@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Light mode defaults */
+:root {
+  --bg-primary: #f9fafb;
+  --bg-card: #ffffff;
+  --bg-hover: #f3f4f6;
+  --bg-input: #f9fafb;
+  --border: #e5e7eb;
+  --border-light: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --text-link: #2563eb;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #0f1117;
+    --bg-card: #1a1b23;
+    --bg-hover: #22232d;
+    --bg-input: #1a1b23;
+    --border: #2a2b35;
+    --border-light: #22232d;
+    --text-primary: #e5e7eb;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --text-link: #60a5fa;
+  }
+}
+
+/* Also support class-based toggle */
+.dark {
+  --bg-primary: #0f1117;
+  --bg-card: #1a1b23;
+  --bg-hover: #22232d;
+  --bg-input: #1a1b23;
+  --border: #2a2b35;
+  --border-light: #22232d;
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --text-link: #60a5fa;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

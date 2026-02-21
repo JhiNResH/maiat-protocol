@@ -1,0 +1,191 @@
+// Maat V2 Database Schema (Cleaned from team-kindred)
+// Categories: m/ai-agents, m/defi
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// Core Models
+// ============================================
+
+// User profile and reputation
+model User {
+  id              String    @id @default(cuid())
+  address         String    @unique // wallet address (lowercase)
+  displayName     String?
+  avatarUrl       String?
+
+  // Reputation metrics
+  reputationScore Int       @default(0)
+  totalReviews    Int       @default(0)
+  totalUpvotes    Int       @default(0)
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  reviews         Review[]
+  votes           Vote[]
+  
+  @@index([address])
+  @@index([reputationScore])
+}
+
+// Project being reviewed
+model Project {
+  id              String    @id @default(cuid())
+  address         String    @unique // contract/protocol address or identifier
+  name            String
+  slug            String    @unique @default(cuid())
+  description     String?
+  image           String?   // Logo URL
+  bannerImage     String?   // Banner/cover image
+  website         String?
+  category        String    @default("m/ai-agents") // m/ai-agents, m/defi
+  
+  // Aggregated stats
+  avgRating       Float     @default(0)
+  reviewCount     Int       @default(0)
+  
+  // Status
+  status          String    @default("pending") // pending, approved, rejected
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  reviews         Review[]
+  
+  @@index([slug])
+  @@index([address])
+  @@index([category])
+  @@index([status])
+}
+
+// Review of a project
+model Review {
+  id              String    @id @default(cuid())
+  
+  // Content
+  rating          Int       // 1-5
+  content         String
+  
+  // Engagement
+  upvotes         Int       @default(0)
+  downvotes       Int       @default(0)
+  
+  // Status
+  status          String    @default("active") // active, flagged, removed
+  
+  // On-chain verification (BSC Testnet)
+  txHash          String?   // BSC transaction hash
+  contentHash     String?   // keccak256 of review content
+  onChainReviewId String?   // ReviewRegistry reviewId (bytes32)
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  reviewer        User      @relation(fields: [reviewerId], references: [id])
+  reviewerId      String
+  project         Project   @relation(fields: [projectId], references: [id])
+  projectId       String
+  votes           Vote[]
+  
+  @@index([reviewerId])
+  @@index([projectId])
+  @@index([createdAt])
+  @@index([txHash])
+}
+
+// Vote on a review (upvote/downvote)
+model Vote {
+  id              String    @id @default(cuid())
+  direction       String    // "up" or "down"
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  
+  // Relations
+  voter           User      @relation(fields: [voterId], references: [id])
+  voterId         String
+  review          Review    @relation(fields: [reviewId], references: [id])
+  reviewId        String
+  
+  // Unique constraint: one vote per user per review
+  @@unique([voterId, reviewId])
+  @@index([reviewId])
+  @@index([voterId])
+}
+
+// ============================================
+// Scarab Economy (Off-chain Points)
+// ============================================
+
+// Scarab balance per user
+model ScarabBalance {
+  id              String    @id @default(cuid())
+  address         String    @unique // wallet address (lowercase)
+  balance         Int       @default(0) // current Scarab balance
+  totalEarned     Int       @default(0) // lifetime earned
+  totalSpent      Int       @default(0) // lifetime spent
+  totalPurchased  Int       @default(0) // lifetime purchased with USDC
+  lastClaimAt     DateTime? // last daily claim timestamp
+  streak          Int       @default(0) // consecutive daily claims
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  transactions    ScarabTransaction[]
+  
+  @@index([address])
+  @@index([balance])
+}
+
+// Scarab transaction ledger (immutable log)
+model ScarabTransaction {
+  id              String    @id @default(cuid())
+  address         String    // wallet address
+  amount          Int       // positive = credit, negative = debit
+  type            String    // "claim" | "purchase" | "review_spend" | "vote_spend" | "reward" | "boost" | "refund"
+  description     String?   // human-readable reason
+  referenceId     String?   // reviewId, voteId, purchaseId, etc.
+  balanceAfter    Int       // balance after this transaction
+  
+  createdAt       DateTime  @default(now())
+  
+  // Relations
+  scarabBalance   ScarabBalance @relation(fields: [address], references: [address])
+  
+  @@index([address])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// USDC purchases of Scarab
+model ScarabPurchase {
+  id              String    @id @default(cuid())
+  address         String    // buyer wallet
+  tier            String    // "small" | "medium" | "large"
+  usdcAmount      Float     // 1, 5, or 20
+  scarabAmount    Int       // 50, 300, or 1500
+  txHash          String?   // on-chain USDC tx hash
+  status          String    @default("pending") // "pending" | "confirmed" | "failed"
+  
+  createdAt       DateTime  @default(now())
+  confirmedAt     DateTime?
+  
+  @@index([address])
+  @@index([status])
+}

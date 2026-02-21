@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+cache
+.env
+.env.*
+!.env.example
+.vercel
+virtuals-acp/
+contracts/lib/
+*.db
+prisma/dev.db
