@@ -169,7 +169,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   <tr key={project.id} className="border-b border-gray-50 dark:border-gray-800 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
                     <td className="px-4 py-2.5 text-xs font-mono text-gray-400 dark:text-gray-500">{i + 1}</td>
                     <td className="px-4 py-2.5">
-                      <Link href={`/m/${project.category.replace('m/', '')}/${(project as any).slug || project.id}`} className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline font-mono">
+                      <Link href={`/project/${(project as any).slug || project.id}`} className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline font-mono">
                         {project.image ? (
                           <img src={project.image} alt="" className="w-5 h-5 rounded" />
                         ) : (
@@ -213,7 +213,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               return (
                 <Link
                   key={project.id}
-                  href={`/m/${project.category.replace('m/', '')}/${(project as any).slug || project.id}`}
+                  href={`/project/${(project as any).slug || project.id}`}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors"
                 >
                   <span className="text-xs font-mono text-gray-400 w-5 shrink-0">{i + 1}</span>

@@ -73,7 +73,7 @@ export function ProjectCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {category ? (
-              <Link href={`/m/${category.replace('m/', '')}/${id}`} className="font-semibold text-white truncate hover:text-purple-300 transition-colors">
+              <Link href={`/project/${id}`} className="font-semibold text-white truncate hover:text-purple-300 transition-colors">
                 {name}
               </Link>
             ) : (

@@ -174,7 +174,7 @@ export default function SwapPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex gap-1 bg-[#111113] rounded-2xl p-1">
             <button className="px-4 py-2 rounded-xl bg-[#1f1f23] text-white text-sm font-semibold">Swap</button>
-            <Link href="/m/ai-agents">
+            <Link href="/?cat=ai-agents">
               <button className="px-4 py-2 rounded-xl text-[#6b6b70] hover:text-white text-sm font-semibold transition-colors">Explore</button>
             </Link>
           </div>

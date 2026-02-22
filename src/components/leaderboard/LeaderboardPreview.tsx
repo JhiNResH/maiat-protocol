@@ -53,7 +53,7 @@ export function LeaderboardPreview() {
           return (
             <Link
               key={item.id}
-              href={`/m/${categorySlug}/${item.id}`}
+              href={`/project/${item.id}`}
               className="flex items-center gap-3 p-3 bg-[#0a0a0b] hover:bg-[#1a1a1d] border border-[#1f1f23] rounded-lg transition-colors group"
             >
               <span className="text-xs font-bold text-[#6b6b70] w-6">#{item.rank}</span>

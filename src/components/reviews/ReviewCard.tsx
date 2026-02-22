@@ -142,7 +142,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
 
       {/* Target Project */}
       <Link 
-        href={`/m/${categorySlug}/${review.project.id}`}
+        href={`/project/${review.project.id}`}
         className="flex items-center gap-2 mb-3 hover:text-purple-400 transition-colors"
       >
         <span className="text-lg">{CATEGORY_ICONS[review.project.category] || '📄'}</span>
