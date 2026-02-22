@@ -1,11 +1,11 @@
 /**
  * GET /api/reviews/pending
  *
- * Returns pending (unverified) reviews for Chainlink CRE workflow consumption.
+ * Returns pending (unverified) reviews for Maiat AI workflow consumption.
  * The CRE trust-score-oracle workflow calls this endpoint every 5 minutes
  * to fetch reviews that need AI verification.
  *
- * Used by: Chainlink CRE & AI track (Convergence hackathon)
+ * Used by: Maiat Protocol
  */
 
 import { NextResponse } from "next/server"

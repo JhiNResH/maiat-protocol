@@ -118,7 +118,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
                   {badges.aiVerified && badges.aiVerdict === 'authentic' && (
                     <span 
                       className="px-2 py-0.5 text-xs rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                      title={`0G AI Verified (${badges.aiScore}/100)`}
+                      title={`AI Verified (${badges.aiScore}/100)`}
                     >
                       🤖 AI Verified
                     </span>

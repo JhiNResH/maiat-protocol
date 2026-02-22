@@ -1,11 +1,11 @@
 /**
  * POST /api/verify-review
  *
- * AI-powered batch review verification endpoint for Chainlink CRE workflow.
+ * AI-powered batch review verification endpoint for Maiat AI workflow.
  * Analyzes reviews for quality, spam detection, and authenticity using
  * Gemini AI, then returns trust scores.
  *
- * Used by: Chainlink CRE trust-score-oracle workflow
+ * Used by: Maiat AI trust-score-oracle workflow
  * Track: CRE & AI (Convergence hackathon)
  *
  * Request body:
@@ -137,7 +137,7 @@ No markdown, no explanation, just the JSON array.`
       verifications,
       reviewCount: reviews.length,
       timestamp: new Date().toISOString(),
-      verifiedBy: "chainlink-cre-maiat-oracle",
+      verifiedBy: "maiat-ai-verifier",
     })
   } catch (err) {
     console.error("Verify review API error:", err)

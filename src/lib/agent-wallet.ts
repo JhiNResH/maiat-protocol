@@ -2,7 +2,7 @@
  * Privy Server Wallet for AI Agent Reviews
  * 
  * Creates and manages a server-controlled wallet that AI agents
- * use to sign reviews and pay x402 KITE verification fees.
+ * use to sign reviews and pay for verification services.
  * 
  * The agent wallet is owned by an authorization key (our backend),
  * not by a user — so agents can autonomously submit reviews.
@@ -75,7 +75,7 @@ export async function submitAgentReview(params: {
   projectAddress: string
   rating: number
   content: string
-  analysisSource: 'gemini' | '0g-compute' | 'manual'
+  analysisSource: 'gemini' | 'maiat-ai' | 'manual'
 }) {
   const wallet = await getAgentWallet()
   

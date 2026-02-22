@@ -10,8 +10,6 @@ interface VerificationResult {
   model: string
   provider: string
   verified: boolean
-  kiteVerified?: boolean
-  kiteTxHash?: string
 }
 
 interface VerificationButtonProps {
@@ -34,51 +32,17 @@ export function VerificationButton({
   const [verifying, setVerifying] = useState(false)
   const [result, setResult] = useState<VerificationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [paymentRequired, setPaymentRequired] = useState(false)
 
   const handleVerify = async () => {
     setVerifying(true)
     setError(null)
-    setPaymentRequired(false)
 
     try {
-      // Step 1: x402 Payment verification (Kite)
-      const kiteRes = await fetch('/api/verify-kite', {
+      const res = await fetch('/api/verify-review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reviewId,
-          agentAddress: '0x0000000000000000000000000000000000000000', // Mock agent address
-          paymentProof: `proof-${Date.now()}`, // Mock payment proof
-          verificationLevel: 'basic',
-        }),
-      })
-
-      if (!kiteRes.ok && kiteRes.status !== 402) {
-        const errorText = await kiteRes.text()
-        console.error('Kite API error:', errorText)
-        throw new Error(`Kite API error (${kiteRes.status})`)
-      }
-
-      const kiteData = await kiteRes.json()
-
-      // Check if payment required (HTTP 402)
-      if (kiteRes.status === 402) {
-        setPaymentRequired(true)
-        setError(`Payment required: ${kiteData.paymentAmount} KITE to ${kiteData.paymentAddress}`)
-        setVerifying(false)
-        return
-      }
-
-      if (!kiteRes.ok) {
-        throw new Error(kiteData.message || 'Kite verification failed')
-      }
-
-      // Step 2: 0G Compute AI verification
-      const ogRes = await fetch('/api/verify-0g', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
           title,
           content,
           rating,
@@ -86,30 +50,29 @@ export function VerificationButton({
         }),
       })
 
-      if (!ogRes.ok) {
-        const errorText = await ogRes.text()
-        console.error('0G API error:', errorText)
-        throw new Error(`0G verification failed (${ogRes.status})`)
+      if (!res.ok) {
+        const errorText = await res.text()
+        throw new Error(`Verification failed (${res.status}): ${errorText}`)
       }
 
-      const ogData = await ogRes.json()
-      
-      // Handle both response formats (direct or nested)
-      const verification = ogData.verification || ogData
+      const data = await res.json()
+      const verification = data.verification || data
+
       if (!verification.score || !verification.verdict) {
-        throw new Error('Invalid 0G response format')
+        throw new Error('Invalid response format')
       }
-      
+
       const verificationResult: VerificationResult = {
-        ...verification,
-        kiteVerified: kiteData.success,
-        kiteTxHash: kiteData.kiteChainTx,
+        score: verification.score,
+        verdict: verification.verdict,
+        reasoning: verification.reasoning,
+        model: verification.model || 'gemini',
+        provider: verification.provider || 'Maiat AI',
+        verified: verification.verified ?? verification.score >= 60,
       }
 
       setResult(verificationResult)
-      if (onVerificationComplete) {
-        onVerificationComplete(verificationResult)
-      }
+      onVerificationComplete?.(verificationResult)
     } catch (err: any) {
       console.error('Verification error:', err)
       setError(err.message || 'Verification failed')
@@ -118,7 +81,6 @@ export function VerificationButton({
     }
   }
 
-  // Already verified - show result
   if (result) {
     const verdictConfig = {
       authentic: {
@@ -156,30 +118,12 @@ export function VerificationButton({
         </div>
         <p className="text-sm text-gray-300">{result.reasoning}</p>
         <div className="flex items-center gap-3 text-xs text-gray-500">
-          <span title="Verified by 0G Compute Network">
-            🔗 {result.provider}
-          </span>
-          {result.kiteVerified && (
-            <span title="Paid via Kite x402">
-              💰 Kite Verified
-            </span>
-          )}
-          {result.kiteTxHash && (
-            <a
-              href={`https://testnet.kitescan.ai/tx/${result.kiteTxHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-purple-400 hover:underline"
-            >
-              View Tx ↗
-            </a>
-          )}
+          <span>🔗 {result.provider}</span>
         </div>
       </div>
     )
   }
 
-  // Show error
   if (error) {
     return (
       <div className="p-3 rounded-lg border bg-red-500/10 border-red-500/30">
@@ -195,24 +139,10 @@ export function VerificationButton({
             Retry
           </button>
         </div>
-        {paymentRequired && (
-          <div className="mt-2 text-xs text-gray-400">
-            Get KITE tokens at{' '}
-            <a
-              href="https://faucet.gokite.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-purple-400 hover:underline"
-            >
-              faucet.gokite.ai ↗
-            </a>
-          </div>
-        )}
       </div>
     )
   }
 
-  // Verify button
   return (
     <button
       onClick={handleVerify}

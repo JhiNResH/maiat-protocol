@@ -109,7 +109,7 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
       {/* Footer Info */}
       <div className="px-4 py-4 text-[10px] text-[#6b6b70]">
         <p className="mb-2">Maiat — Trust Layer for AI Agents</p>
-        <p className="text-[#4a4a4e]">Powered by 0G Compute + Kite AI • BSC verified</p>
+        <p className="text-[#4a4a4e]">Powered by Maiat Protocol • On-chain verified</p>
       </div>
     </aside>
   )
