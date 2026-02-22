@@ -1,25 +1,26 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { PrivyProvider as PrivyLib } from '@privy-io/react-auth'
+import { useState, useEffect, type ReactNode } from 'react'
 
-export function PrivyProvider({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false)
+export function PrivyProvider({ children }: { children: ReactNode }) {
+  const [PrivyLib, setPrivyLib] = useState<any>(null)
   
   useEffect(() => {
-    setMounted(true)
+    const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID
+    if (!appId) return
+    
+    import('@privy-io/react-auth')
+      .then((mod) => setPrivyLib(() => mod.PrivyProvider))
+      .catch((err) => console.warn('Privy load failed:', err))
   }, [])
 
-  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID
-
-  // During SSR/prerender or if no app ID, render children without Privy
-  if (!mounted || !appId) {
+  if (!PrivyLib) {
     return <>{children}</>
   }
 
   return (
     <PrivyLib
-      appId={appId}
+      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID}
       config={{
         appearance: {
           theme: 'dark',
