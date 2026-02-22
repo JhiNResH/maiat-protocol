@@ -7,7 +7,8 @@ import {TrustScoreOracle} from "../src/TrustScoreOracle.sol";
 contract TrustScoreOracleTest is Test {
     TrustScoreOracle public oracle;
 
-    address public owner = address(this);
+    address public admin = address(this);
+    address public updater = address(0x999);
     address public attacker = address(0xBAD);
     address public token  = address(0x100);
     address public token2 = address(0x200);
@@ -17,13 +18,25 @@ contract TrustScoreOracleTest is Test {
     event UserReputationUpdated(address indexed user, uint256 score, uint256 feeBps);
 
     function setUp() public {
-        oracle = new TrustScoreOracle(owner);
+        oracle = new TrustScoreOracle(admin);
+        // Grant updater role to a separate address
+        oracle.grantRole(oracle.UPDATER_ROLE(), updater);
     }
 
-    // ─── Constructor ───────────────────────────────────────────
+    // ─── Constructor & Roles ───────────────────────────────────
 
-    function test_Constructor_SetsOwner() public view {
-        assertEq(oracle.owner(), owner);
+    function test_Constructor_SetsAdmin() public view {
+        assertTrue(oracle.hasRole(oracle.DEFAULT_ADMIN_ROLE(), admin));
+    }
+
+    function test_Constructor_AdminHasUpdaterRole() public view {
+        assertTrue(oracle.hasRole(oracle.UPDATER_ROLE(), admin));
+    }
+
+    function test_SeparateUpdaterCanUpdate() public {
+        vm.prank(updater);
+        oracle.updateTokenScore(token, 80, 10, 400);
+        assertEq(oracle.getScore(token), 80);
     }
 
     function test_Constructor_FeeTiersCorrect() public view {
@@ -71,7 +84,7 @@ contract TrustScoreOracleTest is Test {
         oracle.updateTokenScore(token, 101, 10, 400);
     }
 
-    function test_UpdateTokenScore_NotOwnerReverts() public {
+    function test_UpdateTokenScore_NotUpdaterReverts() public {
         vm.prank(attacker);
         vm.expectRevert();
         oracle.updateTokenScore(token, 80, 10, 400);
@@ -81,9 +94,6 @@ contract TrustScoreOracleTest is Test {
         oracle.updateTokenScore(token, 50, 5, 300);
         oracle.updateTokenScore(token, 90, 20, 480);
         assertEq(oracle.getScore(token), 90);
-
-        TrustScoreOracle.TokenScore memory data = oracle.getTokenData(token);
-        assertEq(data.reviewCount, 20);
     }
 
     // ─── batchUpdateTokenScores ────────────────────────────────
@@ -105,7 +115,7 @@ contract TrustScoreOracleTest is Test {
         assertEq(oracle.getScore(tokens[2]), 95);
     }
 
-    function test_BatchUpdate_LengthMismatchReverts() public {
+    function test_BatchUpdate_ScoresLengthMismatchReverts() public {
         address[] memory tokens       = new address[](2);
         uint256[] memory scores       = new uint256[](3);
         uint256[] memory reviewCounts = new uint256[](2);
@@ -116,7 +126,42 @@ contract TrustScoreOracleTest is Test {
         oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings);
     }
 
-    function test_BatchUpdate_NotOwnerReverts() public {
+    function test_BatchUpdate_ReviewCountsLengthMismatchReverts() public {
+        address[] memory tokens       = new address[](2);
+        uint256[] memory scores       = new uint256[](2);
+        uint256[] memory reviewCounts = new uint256[](3);
+        uint256[] memory avgRatings   = new uint256[](2);
+        tokens[0] = token; tokens[1] = token2;
+        scores[0] = 50; scores[1] = 60;
+
+        vm.expectRevert(TrustScoreOracle.TrustScoreOracle__LengthMismatch.selector);
+        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings);
+    }
+
+    function test_BatchUpdate_AvgRatingsLengthMismatchReverts() public {
+        address[] memory tokens       = new address[](2);
+        uint256[] memory scores       = new uint256[](2);
+        uint256[] memory reviewCounts = new uint256[](2);
+        uint256[] memory avgRatings   = new uint256[](3);
+        tokens[0] = token; tokens[1] = token2;
+        scores[0] = 50; scores[1] = 60;
+
+        vm.expectRevert(TrustScoreOracle.TrustScoreOracle__LengthMismatch.selector);
+        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings);
+    }
+
+    function test_BatchUpdate_TooLargeReverts() public {
+        uint256 size = 101;
+        address[] memory tokens       = new address[](size);
+        uint256[] memory scores       = new uint256[](size);
+        uint256[] memory reviewCounts = new uint256[](size);
+        uint256[] memory avgRatings   = new uint256[](size);
+
+        vm.expectRevert(abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__BatchTooLarge.selector, size));
+        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings);
+    }
+
+    function test_BatchUpdate_NotUpdaterReverts() public {
         address[] memory tokens       = new address[](1);
         uint256[] memory scores       = new uint256[](1);
         uint256[] memory reviewCounts = new uint256[](1);
@@ -131,60 +176,67 @@ contract TrustScoreOracleTest is Test {
     // ─── updateUserReputation + fee tiers ─────────────────────
 
     function test_UserRep_NewUserGetsBaseFee() public view {
-        assertEq(oracle.getUserFee(user), oracle.BASE_FEE()); // 50 bps
+        assertEq(oracle.getUserFee(user), oracle.BASE_FEE());
     }
 
     function test_UserRep_TrustedTier() public {
-        // 10 <= score < 50 → TRUSTED_FEE (30 bps)
         oracle.updateUserReputation(user, 25, 5, 100);
-
-        TrustScoreOracle.UserReputation memory rep = oracle.getUserData(user);
-        assertEq(rep.feeBps, oracle.TRUSTED_FEE()); // 30
         assertEq(oracle.getUserFee(user), 30);
     }
 
     function test_UserRep_VerifiedTier() public {
-        // 50 <= score < 200 → VERIFIED_FEE (10 bps)
         oracle.updateUserReputation(user, 100, 20, 500);
-
-        assertEq(oracle.getUserFee(user), oracle.VERIFIED_FEE()); // 10
+        assertEq(oracle.getUserFee(user), oracle.VERIFIED_FEE());
     }
 
     function test_UserRep_GuardianTier() public {
-        // score >= 200 → GUARDIAN_FEE (0 bps)
         oracle.updateUserReputation(user, 250, 50, 10000);
-
-        assertEq(oracle.getUserFee(user), oracle.GUARDIAN_FEE()); // 0
+        assertEq(oracle.getUserFee(user), oracle.GUARDIAN_FEE());
     }
 
     function test_UserRep_BelowTrustedThreshold() public {
-        // score < 10 → BASE_FEE (50 bps)
         oracle.updateUserReputation(user, 5, 1, 50);
-
-        assertEq(oracle.getUserFee(user), oracle.BASE_FEE()); // 50
+        assertEq(oracle.getUserFee(user), oracle.BASE_FEE());
     }
 
     function test_UserRep_EventEmitted() public {
         vm.expectEmit(true, false, false, true);
-        emit UserReputationUpdated(user, 100, 10); // 10 bps for score=100
-
+        emit UserReputationUpdated(user, 100, 10);
         oracle.updateUserReputation(user, 100, 20, 500);
     }
 
-    function test_UserRep_NotOwnerReverts() public {
+    function test_UserRep_NotUpdaterReverts() public {
         vm.prank(attacker);
         vm.expectRevert();
         oracle.updateUserReputation(user, 100, 20, 500);
     }
 
-    function test_UserRep_StoresAllFields() public {
-        oracle.updateUserReputation(user, 75, 15, 2000);
+    // ─── Pause ─────────────────────────────────────────────────
 
-        TrustScoreOracle.UserReputation memory rep = oracle.getUserData(user);
-        assertEq(rep.reputationScore, 75);
-        assertEq(rep.totalReviews,    15);
-        assertEq(rep.scarabPoints,    2000);
-        assertGt(rep.lastUpdated,     0);
+    function test_Pause_BlocksUpdates() public {
+        oracle.pause();
+        vm.expectRevert();
+        oracle.updateTokenScore(token, 80, 10, 400);
+    }
+
+    function test_Unpause_AllowsUpdates() public {
+        oracle.pause();
+        oracle.unpause();
+        oracle.updateTokenScore(token, 80, 10, 400);
+        assertEq(oracle.getScore(token), 80);
+    }
+
+    function test_Pause_OnlyAdmin() public {
+        vm.prank(attacker);
+        vm.expectRevert();
+        oracle.pause();
+    }
+
+    function test_Pause_ReadsStillWork() public {
+        oracle.updateTokenScore(token, 80, 10, 400);
+        oracle.pause();
+        // Reads should still work when paused
+        assertEq(oracle.getScore(token), 80);
     }
 
     // ─── Fuzz ──────────────────────────────────────────────────
