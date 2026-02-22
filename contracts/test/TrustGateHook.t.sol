@@ -8,6 +8,7 @@ import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 import {IHooks} from "v4-core/interfaces/IHooks.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
+import {SwapParams} from "v4-core/types/PoolOperation.sol";
 import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
 
 contract TrustGateHookTest is Test {
@@ -50,8 +51,8 @@ contract TrustGateHookTest is Test {
         });
     }
 
-    function _makeParams() internal pure returns (IPoolManager.SwapParams memory) {
-        return IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: 0});
+    function _makeParams() internal pure returns (SwapParams memory) {
+        return SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: 0});
     }
 
     // ─── Constructor ───────────────────────────────────────────

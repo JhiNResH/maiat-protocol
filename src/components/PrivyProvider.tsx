@@ -1,13 +1,19 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { PrivyProvider as PrivyLib } from '@privy-io/react-auth'
 
 export function PrivyProvider({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID
 
-  // If no Privy app ID, render without Privy (auth will be disabled)
-  if (!appId) {
-    console.warn('NEXT_PUBLIC_PRIVY_APP_ID not configured, authentication disabled')
+  // During SSR/prerender or if no app ID, render children without Privy
+  if (!mounted || !appId) {
     return <>{children}</>
   }
 
