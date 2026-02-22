@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {TrustGateHook} from "../src/TrustGateHook.sol";
+import {BaseHook} from "../src/base/BaseHook.sol";
 import {TrustScoreOracle} from "../src/TrustScoreOracle.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {Currency} from "v4-core/types/Currency.sol";
@@ -124,7 +125,7 @@ contract TrustGateHookTest is Test {
     function test_BeforeSwap_NotPoolManager_Reverts() public {
         _setScores(80, 80);
         vm.expectRevert(
-            abi.encodeWithSelector(TrustGateHook.TrustGateHook__NotPoolManager.selector, address(this))
+            abi.encodeWithSelector(BaseHook.BaseHook__NotPoolManager.selector, address(this))
         );
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
     }
@@ -133,7 +134,7 @@ contract TrustGateHookTest is Test {
         _setScores(80, 80);
         vm.prank(attacker);
         vm.expectRevert(
-            abi.encodeWithSelector(TrustGateHook.TrustGateHook__NotPoolManager.selector, attacker)
+            abi.encodeWithSelector(BaseHook.BaseHook__NotPoolManager.selector, attacker)
         );
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
     }

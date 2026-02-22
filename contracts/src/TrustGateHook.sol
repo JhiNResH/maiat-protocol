@@ -5,6 +5,8 @@ pragma solidity 0.8.26;
  * @custom:security-contact security@maiat.xyz
  */
 
+import {BaseHook} from "./base/BaseHook.sol";
+import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {IHooks} from "v4-core/interfaces/IHooks.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
@@ -12,17 +14,16 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapD
 import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 import {SwapParams} from "v4-core/types/PoolOperation.sol";
-import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {TrustScoreOracle} from "./TrustScoreOracle.sol";
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 /// @title TrustGateHook
 /// @notice Uniswap V4 hook: trust-gated swaps + reputation-based dynamic fees
-/// @dev Queries TrustScoreOracle for token scores AND user reputation fees
+/// @dev Queries TrustScoreOracle for token scores AND user/router reputation fees
 ///
 /// How it works:
 /// 1. beforeSwap: Check token trust scores → block low-trust tokens
-/// 2. Dynamic fee: User reputation score → lower fees for trusted reviewers
+/// 2. Dynamic fee: Router/user reputation score → lower fees for trusted participants
 /// 3. Community reviews feed the oracle → reviews = lower fees = real economic value
 ///
 /// Fee tiers (from TrustScoreOracle):
@@ -30,61 +31,45 @@ import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 ///   Verified (50+ rep):  0.1% fee
 ///   Trusted (10+ rep):   0.3% fee
 ///   New (0-9 rep):       0.5% fee
-contract TrustGateHook is Ownable {
+///
+/// @dev SENDER NOTE: In Uniswap V4, the `sender` parameter in hook callbacks is
+///      the ROUTER (e.g. UniversalRouter), NOT the end user. Fee discounts based on
+///      `sender` apply per-router, not per-user. To apply per-user discounts, encode
+///      the user address in `hookData` via a trusted router.
+contract TrustGateHook is BaseHook, Ownable {
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
     using LPFeeLibrary for uint24;
 
-    TrustScoreOracle public oracle;
-    IPoolManager public immutable poolManager;
+    TrustScoreOracle public immutable oracle;
     uint256 public trustThreshold;
 
     event TrustGateChecked(address indexed token, uint256 score, bool passed);
     event SwapBlocked(address indexed token, uint256 score, uint256 threshold);
     event ThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
-    event DynamicFeeApplied(address indexed swapper, uint256 feeBps);
-    event OracleUpdated(address indexed oldOracle, address indexed newOracle);
+    event DynamicFeeApplied(address indexed router, uint256 feeBps);
 
     error TrustScoreTooLow(address token, uint256 score, uint256 threshold);
     error TrustGateHook__ZeroAddress();
-    error TrustGateHook__NotPoolManager(address caller);
     error TrustGateHook__InvalidThreshold(uint256 threshold);
-
-    modifier onlyPoolManager() {
-        if (msg.sender != address(poolManager)) revert TrustGateHook__NotPoolManager(msg.sender);
-        _;
-    }
 
     constructor(
         TrustScoreOracle _oracle,
         IPoolManager _poolManager,
         address initialOwner
-    ) Ownable(initialOwner) {
+    ) BaseHook(_poolManager) Ownable(initialOwner) {
         if (address(_oracle) == address(0)) revert TrustGateHook__ZeroAddress();
         if (address(_poolManager) == address(0)) revert TrustGateHook__ZeroAddress();
         if (initialOwner == address(0)) revert TrustGateHook__ZeroAddress();
 
         oracle = _oracle;
-        poolManager = _poolManager;
         trustThreshold = 30; // Block tokens with score < 30
     }
 
-    function updateThreshold(uint256 newThreshold) external onlyOwner {
-        if (newThreshold > 100) revert TrustGateHook__InvalidThreshold(newThreshold);
-        uint256 old = trustThreshold;
-        trustThreshold = newThreshold;
-        emit ThresholdUpdated(old, newThreshold);
-    }
-
-    /// @notice Update oracle address (for migration)
-    function setOracle(TrustScoreOracle newOracle) external onlyOwner {
-        if (address(newOracle) == address(0)) revert TrustGateHook__ZeroAddress();
-        address old = address(oracle);
-        oracle = newOracle;
-        emit OracleUpdated(old, address(newOracle));
-    }
-
-    /// @notice Returns hook permissions (only beforeSwap enabled)
-    function getHookPermissions() public pure returns (Hooks.Permissions memory) {
+    /// @inheritdoc BaseHook
+    /// @dev Only beforeSwap is enabled. All other permissions are false.
+    ///      The hook address MUST be mined so that bit 7 (beforeSwap) is set.
+    ///      Use HookMiner (foundry script) to find a valid CREATE2 salt.
+    function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
             beforeInitialize: false,
             afterInitialize: false,
@@ -96,20 +81,34 @@ contract TrustGateHook is Ownable {
             afterSwap: false,
             beforeDonate: false,
             afterDonate: false,
-            beforeSwapReturnDelta: false,
+            beforeSwapReturnDelta: false,      // DANGER: not needed, keeps NoOp risk off
             afterSwapReturnDelta: false,
             afterAddLiquidityReturnDelta: false,
             afterRemoveLiquidityReturnDelta: false
         });
     }
 
+    function updateThreshold(uint256 newThreshold) external onlyOwner {
+        if (newThreshold > 100) revert TrustGateHook__InvalidThreshold(newThreshold);
+        uint256 old = trustThreshold;
+        trustThreshold = newThreshold;
+        emit ThresholdUpdated(old, newThreshold);
+    }
+
     /// @notice beforeSwap: trust-gate tokens + apply reputation-based dynamic fee
+    /// @dev The pool MUST be initialized with a dynamic fee (0x800000) for the
+    ///      fee override to take effect. We set LPFeeLibrary.OVERRIDE_FEE_FLAG (0x400000)
+    ///      so V4 actually applies the returned fee value.
+    ///
+    ///      `sender` is the router address, not the end user.
+    ///      Fee tier is determined by the router's registered reputation.
+    ///      For per-user fees, encode user address in `hookData` and use a trusted router.
     function beforeSwap(
         address sender,
         PoolKey calldata key,
         SwapParams calldata,
         bytes calldata
-    ) external onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
+    ) external override onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
         // Check currency0 trust score
         address token0 = Currency.unwrap(key.currency0);
         if (token0 != address(0)) {
@@ -132,11 +131,13 @@ contract TrustGateHook is Ownable {
             emit TrustGateChecked(token1, score1, true);
         }
 
-        // Dynamic fee based on user reputation
+        // Dynamic fee based on router/user reputation
+        // NOTE: `sender` = router. Register router reputation in oracle for fee discounts.
         uint256 feeBps = oracle.getUserFee(sender);
         emit DynamicFeeApplied(sender, feeBps);
 
         // V4 requires: fee (in pips = feeBps * 100) | OVERRIDE_FEE_FLAG (0x400000)
+        // Without the flag, the returned value is silently ignored by the PoolManager.
         uint24 lpFeeOverride = uint24(feeBps * 100) | LPFeeLibrary.OVERRIDE_FEE_FLAG;
 
         return (IHooks.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, lpFeeOverride);
