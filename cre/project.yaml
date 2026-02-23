@@ -1,0 +1,12 @@
+name: maiat-cre
+description: Chainlink CRE workflows for Maiat Protocol — trust infrastructure for agentic commerce
+
+targets:
+  staging-settings:
+    rpcs:
+      ethereum-testnet-sepolia-base-1:
+        url: ${BASE_SEPOLIA_RPC_URL}
+  production-settings:
+    rpcs:
+      base-mainnet:
+        url: ${BASE_MAINNET_RPC_URL}

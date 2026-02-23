@@ -1,0 +1,12 @@
+{
+  "name": "@maiat/trust-score-workflow",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@chainlink/cre-sdk": "latest",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

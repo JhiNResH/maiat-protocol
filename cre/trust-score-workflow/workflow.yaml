@@ -1,0 +1,10 @@
+name: maiat-trust-score-workflow
+description: >
+  Maiat Protocol trust score oracle workflow.
+  Fetches community reviews, runs AI sentiment analysis,
+  computes trust scores, and writes to TrustScoreOracle on-chain.
+
+workflow-artifacts:
+  entry-point: main.ts
+  config-file: config.staging.json
+  secrets-file: ../../secrets.yaml
