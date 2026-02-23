@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const tier = searchParams.get('tier')
     const sort = searchParams.get('sort') || 'trust'
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0)
 
     const where: Record<string, unknown> = {
       category: 'm/ai-agents',
