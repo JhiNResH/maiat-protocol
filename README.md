@@ -59,8 +59,9 @@ Verified reviews, AI-powered trust scores, and Uniswap v4 trust-gated swaps — 
 
 | Contract | Address |
 |----------|---------|
-| TrustScoreOracle | `0x115Ab8cEdb7A362e3a7Da03582108d6AF990F21F` |
+| TrustScoreOracle | `0x0098d35d396a929c438168825ae2b16184aa3aaf` |
 | TrustGateHook | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` |
+| MaiatTrustConsumer | `0xd11884c617090da8eaa3a541fe5f42c79de7567b` |
 
 ---
 
@@ -102,7 +103,7 @@ forge script script/Deploy.s.sol \
   --broadcast
 
 # Seed scores
-ORACLE_ADDRESS=0x115Ab8cE... forge script script/Interact.s.sol:SeedScores \
+ORACLE_ADDRESS=0x0098d35d396a929c438168825ae2b16184aa3aaf forge script script/Interact.s.sol:SeedScores \
   --rpc-url https://sepolia.base.org \
   --private-key $PRIVATE_KEY \
   --broadcast
@@ -144,7 +145,7 @@ curl -X POST https://maiat.xyz/api/v1/trust-score \
   "recommendation": "TRUSTED",
   "attestation": {
     "chain": "base-sepolia",
-    "oracle": "0x115Ab8cEdb7A362e3a7Da03582108d6AF990F21F"
+    "oracle": "0x0098d35d396a929c438168825ae2b16184aa3aaf"
   }
 }
 ```
