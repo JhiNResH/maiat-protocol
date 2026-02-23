@@ -1,4 +1,6 @@
 {
   "schedule": "*/30 * * * * *",
-  "maiatApiUrl": "https://api.mathjs.org/v4/?expr=randomInt(1,101)"
+  "maiatApiUrl": "https://api.mathjs.org/v4/?expr=randomInt(1,101)",
+  "oracleAddress": "0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139",
+  "hookAddress": "0xF6065FB076090af33eE0402f7e902B2583e7721E"
 }
