@@ -148,19 +148,14 @@ describe('GET /api/v1/agents', () => {
     })
   })
 
-  // BUG: offset not clamped, negative values crash Prisma
-  it('[M3] negative offset passes -1 to prisma (known bug)', async () => {
-    // Currently the route does parseInt(offset) without clamping,
-    // so offset=-1 passes skip:-1 to Prisma, which throws an error
-    mockFindMany.mockRejectedValueOnce(new Error('skip must be >= 0'))
-
+  // FIXED M3: offset clamped to >= 0
+  it('[M3] negative offset is clamped to 0', async () => {
     const res = await GET(makeRequest({ offset: '-1' }))
-    // The route catches the error and returns 500
-    expect(res.status).toBe(500)
+    expect(res.status).toBe(200)
 
-    // Verify the route DID pass -1 to Prisma (the bug)
+    // offset=-1 should be clamped to skip: 0
     expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: -1 })
+      expect.objectContaining({ skip: 0 })
     )
   })
 })
