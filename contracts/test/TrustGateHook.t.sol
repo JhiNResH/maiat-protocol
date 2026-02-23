@@ -93,9 +93,10 @@ contract TrustGateHookTest is Test {
         assertEq(hook.trustThreshold(), 70);
     }
 
-    function test_UpdateThreshold_Zero() public {
+    function test_UpdateThreshold_Zero_Reverts() public {
+        // threshold=0 would silently disable the trust gate — now rejected
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__ThresholdTooLow.selector, 0));
         hook.updateThreshold(0);
-        assertEq(hook.trustThreshold(), 0);
     }
 
     function test_UpdateThreshold_Hundred() public {
@@ -260,7 +261,7 @@ contract TrustGateHookTest is Test {
 
     function testFuzz_ScoreThreshold(uint256 score, uint256 threshold) public {
         score     = bound(score,     0, 100);
-        threshold = bound(threshold, 0, 100);
+        threshold = bound(threshold, hook.MIN_THRESHOLD(), 100); // 0 is now rejected
 
         oracle.updateTokenScore(token0, score, 10, 400);
         oracle.updateTokenScore(token1, score, 10, 400);

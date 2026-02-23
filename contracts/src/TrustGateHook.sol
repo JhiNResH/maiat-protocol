@@ -15,7 +15,7 @@ import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 import {SwapParams} from "v4-core/types/PoolOperation.sol";
 import {TrustScoreOracle} from "./TrustScoreOracle.sol";
-import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import {Ownable2Step, Ownable} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
 /// @title TrustGateHook
 /// @notice Uniswap V4 hook: trust-gated swaps + reputation-based dynamic fees
@@ -36,21 +36,43 @@ import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 ///      the ROUTER (e.g. UniversalRouter), NOT the end user. Fee discounts based on
 ///      `sender` apply per-router, not per-user. To apply per-user discounts, encode
 ///      the user address in `hookData` via a trusted router.
-contract TrustGateHook is BaseHook, Ownable {
+contract TrustGateHook is BaseHook, Ownable2Step {
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
     using LPFeeLibrary for uint24;
+
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
 
     TrustScoreOracle public immutable oracle;
     uint256 public trustThreshold;
 
+    /// @notice Minimum allowed trust threshold — prevents silently disabling the gate
+    uint256 public constant MIN_THRESHOLD = 1;
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a token passes the trust gate (swap allowed)
     event TrustGateChecked(address indexed token, uint256 score, bool passed);
-    event SwapBlocked(address indexed token, uint256 score, uint256 threshold);
+    /// @notice Emitted when a threshold update is applied
     event ThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
+    /// @notice Emitted when a dynamic fee is applied to a swap
     event DynamicFeeApplied(address indexed router, uint256 feeBps);
+
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
 
     error TrustScoreTooLow(address token, uint256 score, uint256 threshold);
     error TrustGateHook__ZeroAddress();
     error TrustGateHook__InvalidThreshold(uint256 threshold);
+    error TrustGateHook__ThresholdTooLow(uint256 threshold);
+
+    /*//////////////////////////////////////////////////////////////
+                              CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
 
     constructor(
         TrustScoreOracle _oracle,
@@ -64,6 +86,10 @@ contract TrustGateHook is BaseHook, Ownable {
         oracle = _oracle;
         trustThreshold = 30; // Block tokens with score < 30
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        HOOK PERMISSIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc BaseHook
     /// @dev Only beforeSwap is enabled. All other permissions are false.
@@ -88,8 +114,15 @@ contract TrustGateHook is BaseHook, Ownable {
         });
     }
 
+    /*//////////////////////////////////////////////////////////////
+                        USER-FACING STATE-CHANGING FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Update the minimum trust score required for swaps
+    /// @param newThreshold Must be between MIN_THRESHOLD (1) and 100 inclusive
     function updateThreshold(uint256 newThreshold) external onlyOwner {
         if (newThreshold > 100) revert TrustGateHook__InvalidThreshold(newThreshold);
+        if (newThreshold < MIN_THRESHOLD) revert TrustGateHook__ThresholdTooLow(newThreshold);
         uint256 old = trustThreshold;
         trustThreshold = newThreshold;
         emit ThresholdUpdated(old, newThreshold);
@@ -103,6 +136,10 @@ contract TrustGateHook is BaseHook, Ownable {
     ///      `sender` is the router address, not the end user.
     ///      Fee tier is determined by the router's registered reputation.
     ///      For per-user fees, encode user address in `hookData` and use a trusted router.
+    ///
+    /// @dev NOTE on events + revert: SwapBlocked is NOT emitted on blocked swaps because
+    ///      EVM reverts roll back all event logs. TrustScoreTooLow error carries the
+    ///      full context (token, score, threshold) for off-chain monitoring via revert data.
     function beforeSwap(
         address sender,
         PoolKey calldata key,
@@ -114,7 +151,7 @@ contract TrustGateHook is BaseHook, Ownable {
         if (token0 != address(0)) {
             uint256 score0 = oracle.getScore(token0);
             if (score0 < trustThreshold) {
-                emit SwapBlocked(token0, score0, trustThreshold);
+                // NOTE: No emit here — revert rolls back events. Use revert data for monitoring.
                 revert TrustScoreTooLow(token0, score0, trustThreshold);
             }
             emit TrustGateChecked(token0, score0, true);
@@ -125,7 +162,7 @@ contract TrustGateHook is BaseHook, Ownable {
         if (token1 != address(0)) {
             uint256 score1 = oracle.getScore(token1);
             if (score1 < trustThreshold) {
-                emit SwapBlocked(token1, score1, trustThreshold);
+                // NOTE: No emit here — revert rolls back events. Use revert data for monitoring.
                 revert TrustScoreTooLow(token1, score1, trustThreshold);
             }
             emit TrustGateChecked(token1, score1, true);

@@ -242,7 +242,8 @@ contract TrustScoreOracleTest is Test {
     // ─── Fuzz ──────────────────────────────────────────────────
 
     function testFuzz_TokenScore_ValidRange(uint256 score, uint256 reviews, uint256 avgRating) public {
-        score = bound(score, 0, 100);
+        score     = bound(score,     0, 100);
+        avgRating = bound(avgRating, 0, oracle.MAX_AVG_RATING()); // 0–500
         oracle.updateTokenScore(token, score, reviews, avgRating);
         assertEq(oracle.getScore(token), score);
     }
