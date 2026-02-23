@@ -1,109 +1,68 @@
 # 🔱 Maiat × Chainlink CRE — Trust Score Workflow
 
-> **Convergence Hackathon Submission** | Track: CRE & AI
+> **Convergence Hackathon** | Track: CRE & AI
 
 ## What This Does
 
-This CRE workflow automates trust score computation for the Maiat Protocol — trust infrastructure for agentic commerce.
+CRE workflow that automates trust score computation for Maiat Protocol.
 
-**Flow:**
 ```
 Cron Trigger (every 10 min)
     ↓
 Fetch reviews from Maiat API (offchain HTTP)
     ↓
-LLM sentiment analysis + spam detection (Gemini AI)
+AI sentiment analysis + spam detection (Gemini)
     ↓
 Compute weighted trust scores
     ↓
 Write batch update to TrustScoreOracle (onchain)
 ```
 
-## Architecture
+## Simulation Output ✅
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  Chainlink CRE DON                       │
-│                                                          │
-│  ┌──────────┐    ┌──────────┐    ┌───────────────────┐  │
-│  │  Cron     │───▶│  HTTP    │───▶│  Gemini LLM       │  │
-│  │  Trigger  │    │  Fetch   │    │  Sentiment + Spam │  │
-│  └──────────┘    │  Reviews │    └────────┬──────────┘  │
-│                  └──────────┘             │              │
-│                                           ▼              │
-│                            ┌──────────────────────────┐  │
-│                            │  Compute Trust Scores    │  │
-│                            │  weighted: 40% onchain + │  │
-│                            │  30% reviews + 20% comm  │  │
-│                            │  + 10% AI sentiment      │  │
-│                            └────────────┬─────────────┘  │
-│                                         ▼                │
-│                            ┌──────────────────────────┐  │
-│                            │  Write to Oracle         │  │
-│                            │  (Base Sepolia/Mainnet)  │  │
-│                            └──────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
+🔱 Maiat Trust Score Workflow triggered
+Token 0x12345678...: rating=4.2/5, reviews=15, trustScore=67/100
+Token 0xabcdefab...: rating=2.1/5, reviews=3,  trustScore=39/100
+Token 0x98765432...: rating=4.8/5, reviews=42, trustScore=78/100
+✅ Computed trust scores for 3 tokens
 ```
 
 ## Chainlink Files
 
 | File | Description |
 |------|-------------|
-| [`cre/trust-score-workflow/main.ts`](trust-score-workflow/main.ts) | **Main CRE workflow** — triggers, fetches, analyzes, writes |
-| [`cre/trust-score-workflow/config.staging.json`](trust-score-workflow/config.staging.json) | Staging config (Base Sepolia) |
-| [`cre/trust-score-workflow/config.production.json`](trust-score-workflow/config.production.json) | Production config (Base Mainnet) |
-| [`cre/trust-score-workflow/workflow.yaml`](trust-score-workflow/workflow.yaml) | CRE workflow metadata |
+| [`cre/trust-score/main.ts`](trust-score/main.ts) | **Main CRE workflow** — fetch, analyze, compute, write |
+| [`cre/trust-score/config.staging.json`](trust-score/config.staging.json) | Staging config |
+| [`cre/trust-score/workflow.yaml`](trust-score/workflow.yaml) | CRE workflow metadata |
 | [`cre/project.yaml`](project.yaml) | CRE project config with RPC targets |
-| [`cre/secrets.yaml`](secrets.yaml) | Secret references (API keys, private key) |
-| [`contracts/src/TrustScoreOracle.sol`](../contracts/src/TrustScoreOracle.sol) | **Onchain consumer** — stores trust scores |
-| [`contracts/src/TrustGateHook.sol`](../contracts/src/TrustGateHook.sol) | **Uniswap V4 Hook** — reads oracle for trust-gated swaps |
-
-## How It Integrates
-
-1. **Blockchain ↔ External API**: Reads review data from Maiat REST API, writes trust scores to Base Sepolia
-2. **AI/LLM Integration**: Uses Google Gemini for review sentiment analysis and spam detection
-3. **CRE Capabilities Used**: `CronCapability`, `HTTPClient`, `EVMClient`, `runtime.report()`, `runtime.runInNodeMode()`, `consensusMedianAggregation`
-
-## Setup
-
-### Prerequisites
-- [CRE CLI](https://docs.chain.link/cre/getting-started/cli-installation/macos-linux) installed
-- [Bun](https://bun.sh) >= 1.2.21
-- CRE account at [cre.chain.link](https://cre.chain.link)
-- Funded Base Sepolia account
-
-### Quick Start
-
-```bash
-# 1. Login to CRE
-cre login
-
-# 2. Install dependencies
-cd cre/trust-score-workflow
-bun install
-
-# 3. Configure .env
-cp ../.env.example ../.env
-# Edit with your keys
-
-# 4. Simulate
-cre workflow simulate --target staging-settings
-
-# 5. Deploy (Early Access required)
-cre workflow deploy --target staging-settings
-```
+| [`contracts/src/TrustScoreOracle.sol`](../contracts/src/TrustScoreOracle.sol) | Onchain consumer — stores trust scores |
+| [`contracts/src/TrustGateHook.sol`](../contracts/src/TrustGateHook.sol) | Uniswap V4 Hook — reads oracle for trust-gated swaps |
 
 ## Trust Score Formula
 
 ```
-Score = Onchain(40%) + Reviews(30%) + Community(20%) + AI(10%) + Adjustments
+Score = Onchain(40%) + Reviews(30%) + Community(20%) + AI(10%)
 
 Where:
-  Onchain    = existing oracle score (or 50 base)
-  Reviews    = min(100, avgRating × 20)
-  Community  = min(100, reviewCount × 5)
-  AI         = LLM sentiment score (0-100)
-  Adjustments = spam penalty (-20 if >50% spam) + AI trust modifier (-20 to +20)
+  Onchain   = existing oracle score (0-100)
+  Reviews   = min(100, avgRating × 20)
+  Community = min(100, reviewCount × 5)
+  AI        = LLM sentiment score (0-100)
+```
+
+## Setup
+
+```bash
+# Install CRE CLI
+curl -sSL https://cre.chain.link/install.sh | bash
+cre login
+
+# Install deps
+bun install --cwd ./cre/trust-score
+
+# Simulate
+cd cre && cre workflow simulate trust-score --target staging-settings
 ```
 
 ## License
