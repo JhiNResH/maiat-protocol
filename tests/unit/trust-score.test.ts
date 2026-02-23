@@ -107,27 +107,26 @@ describe('computeAgentTrustScore', () => {
 // getSimpleTrustScore
 // ============================================
 describe('getSimpleTrustScore', () => {
-  it('reviewCount=0 returns aiBaseline', () => {
-    // "uniswap" has baseline 90
-    expect(getSimpleTrustScore('uniswap', 'm/defi', 5, 0)).toBe(90)
+  it('reviewCount=0 returns category default (60 for m/defi)', () => {
+    expect(getSimpleTrustScore('uniswap', 'm/defi', 5, 0)).toBe(60)
   })
 
-  it('reviewCount<=5: 60% AI / 40% community split', () => {
-    // aiBaseline for uniswap = 90, communityScore = round(4 * 20) = 80
-    // (90*60 + 80*40) / 100 = (5400 + 3200) / 100 = 86
-    expect(getSimpleTrustScore('uniswap', 'm/defi', 4, 3)).toBe(86)
+  it('reviewCount<=5: 60% default / 40% community split', () => {
+    // categoryDefault for m/defi = 60, communityScore = round(4 * 20) = 80
+    // (60*60 + 80*40) / 100 = (3600 + 3200) / 100 = 68
+    expect(getSimpleTrustScore('uniswap', 'm/defi', 4, 3)).toBe(68)
   })
 
-  it('reviewCount<=20: 30% AI / 70% community split', () => {
-    // aiBaseline for uniswap = 90, communityScore = round(3 * 20) = 60
-    // (90*30 + 60*70) / 100 = (2700 + 4200) / 100 = 69
-    expect(getSimpleTrustScore('uniswap', 'm/defi', 3, 10)).toBe(69)
+  it('reviewCount<=20: 30% default / 70% community split', () => {
+    // categoryDefault for m/defi = 60, communityScore = round(3 * 20) = 60
+    // (60*30 + 60*70) / 100 = (1800 + 4200) / 100 = 60
+    expect(getSimpleTrustScore('uniswap', 'm/defi', 3, 10)).toBe(60)
   })
 
-  it('reviewCount>20: 10% AI / 90% community split', () => {
-    // aiBaseline for uniswap = 90, communityScore = round(4.5 * 20) = 90
-    // (90*10 + 90*90) / 100 = (900 + 8100) / 100 = 90
-    expect(getSimpleTrustScore('uniswap', 'm/defi', 4.5, 50)).toBe(90)
+  it('reviewCount>20: 10% default / 90% community split', () => {
+    // categoryDefault for m/defi = 60, communityScore = round(4.5 * 20) = 90
+    // (60*10 + 90*90) / 100 = (600 + 8100) / 100 = 87
+    expect(getSimpleTrustScore('uniswap', 'm/defi', 4.5, 50)).toBe(87)
   })
 
   it('unknown name returns category default: 60 for m/defi', () => {
@@ -138,32 +137,30 @@ describe('getSimpleTrustScore', () => {
     expect(getSimpleTrustScore('unknown-project', 'm/ai-agents', 5, 0)).toBe(50)
   })
 
-  it('known name "uniswap" returns 90 baseline', () => {
-    expect(getSimpleTrustScore('uniswap', 'm/defi', 5, 0)).toBe(90)
+  it('name "uniswap" with no reviews returns category default (no name-based lookup)', () => {
+    expect(getSimpleTrustScore('uniswap', 'm/defi', 5, 0)).toBe(60)
   })
 
   it('avgRating=5, reviewCount=100 → high score', () => {
-    // aiBaseline for unknown defi = 60, communityScore = round(5 * 20) = 100
+    // categoryDefault for m/defi = 60, communityScore = round(5 * 20) = 100
     // (60*10 + 100*90) / 100 = (600 + 9000) / 100 = 96
     const score = getSimpleTrustScore('unknown-project', 'm/defi', 5, 100)
     expect(score).toBe(96)
   })
 
   it('avgRating=1, reviewCount=100 → low score', () => {
-    // aiBaseline for unknown defi = 60, communityScore = round(1 * 20) = 20
+    // categoryDefault for m/defi = 60, communityScore = round(1 * 20) = 20
     // (60*10 + 20*90) / 100 = (600 + 1800) / 100 = 24
     const score = getSimpleTrustScore('unknown-project', 'm/defi', 1, 100)
     expect(score).toBe(24)
   })
 
-  // KNOWN VULN H1: baseline keyed on name, not address
-  it('[H1] name impersonation: any agent named "uniswap" gets baseline 90', () => {
-    // An impersonating agent named "uniswap" in any category gets 90 baseline
-    // This is a known vulnerability — baseline is keyed on name (mutable), not address
-    const legit = getSimpleTrustScore('uniswap', 'm/defi', 5, 0)
+  // FIXED H1: baseline keyed on address, not mutable name
+  it('[H1] name impersonation: agent named "uniswap" with fake address gets 50 not 90', () => {
+    // An impersonating agent named "uniswap" but with address "fake-address-xyz"
+    // should get the category default (50 for m/ai-agents), not the real Uniswap baseline
     const impersonator = getSimpleTrustScore('uniswap', 'm/ai-agents', 5, 0)
-    expect(legit).toBe(90)
-    expect(impersonator).toBe(90) // Impersonator gets the SAME baseline
+    expect(impersonator).toBe(50)
   })
 })
 

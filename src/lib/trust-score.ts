@@ -31,21 +31,22 @@ export interface TrustScoreResult {
   }
 }
 
-// Known project baseline scores (AI quality)
-const AI_BASELINE_SCORES: Record<string, number> = {
+// Known project baseline scores keyed by address slug (not mutable name)
+const AI_BASELINE_BY_ADDRESS: Record<string, number> = {
   // Blue-chip DeFi
-  'aave': 88, 'uniswap': 90, 'lido': 85, 'compound': 82, 'curve finance': 84,
-  'pancakeswap': 80, 'ethena': 75, 'ether.fi': 78, 'morpho': 76, 'pendle': 74,
-  'sky (makerdao)': 86,
-  // Top AI Agents
-  'aixbt': 82, 'g.a.m.e': 78, 'luna': 75, 'vaderai': 72, 'neurobro': 68,
-  'billybets': 65, 'ethy ai': 70, 'music': 62, 'tracy.ai': 60, 'acolyt': 64,
-  '1000x': 58, 'araistotle': 56, 'ribbita': 55, 'mamo': 60, 'freya protocol': 58,
+  'aave': 88, 'uniswap': 90, 'lido': 85, 'compound': 82, 'curve-finance': 84,
+  'pancakeswap': 80, 'ethena': 75, 'ether-fi': 78, 'morpho': 76, 'pendle': 74,
+  'sky-makerdao': 86,
+  // Top AI Agents (address slugs from seed-agents.ts)
+  'aixbt-base': 82, 'game-virtuals-base': 78, 'luna-virtuals-base': 75,
+  'vaderai': 72, 'neurobro': 68, 'billybets': 65, 'ethy-ai': 70,
+  'music': 62, 'tracy-ai': 60, 'acolyt': 64, '1000x': 58,
+  'araistotle': 56, 'ribbita': 55, 'mamo': 60, 'freya-protocol': 58,
 }
 
-function getAIBaselineScore(name: string, category: string): number {
-  const normalized = name.toLowerCase().trim()
-  return AI_BASELINE_SCORES[normalized] ?? (category === 'm/defi' ? 60 : 50)
+function getAIBaselineScore(address: string, category: string): number {
+  const normalized = address.toLowerCase().trim()
+  return AI_BASELINE_BY_ADDRESS[normalized] ?? (category === 'm/defi' ? 60 : 50)
 }
 
 /**
@@ -159,7 +160,7 @@ export async function calculateTrustScore(
     : 0
 
   // Calculate individual scores
-  const aiQuality = getAIBaselineScore(project.name, project.category)
+  const aiQuality = getAIBaselineScore(project.address, project.category)
   const onChainActivity = calculateOnChainScore(verifiedCount, totalReviews)
   const verifiedReviewsScore = calculateVerifiedReviewsScore(
     reviews.map(r => ({
@@ -215,18 +216,19 @@ export function getSimpleTrustScore(
   avgRating: number,
   reviewCount: number
 ): number {
-  const aiBaseline = getAIBaselineScore(name, category)
-  
-  if (reviewCount === 0) return aiBaseline
-  
+  const categoryDefault = category === 'm/defi' ? 60 : 50
+
+  if (reviewCount === 0) return categoryDefault
+
   const communityScore = Math.round(avgRating * 20)
-  
-  let aiWeight: number, communityWeight: number
-  if (reviewCount <= 5) { aiWeight = 60; communityWeight = 40 }
-  else if (reviewCount <= 20) { aiWeight = 30; communityWeight = 70 }
-  else { aiWeight = 10; communityWeight = 90 }
-  
-  return Math.round((aiBaseline * aiWeight + communityScore * communityWeight) / 100)
+
+  let communityWeight: number
+  if (reviewCount <= 5) { communityWeight = 40 }
+  else if (reviewCount <= 20) { communityWeight = 70 }
+  else { communityWeight = 90 }
+
+  const defaultWeight = 100 - communityWeight
+  return Math.round((categoryDefault * defaultWeight + communityScore * communityWeight) / 100)
 }
 
 // ============================================
