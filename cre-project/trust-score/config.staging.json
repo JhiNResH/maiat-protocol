@@ -1,4 +1,12 @@
 {
   "schedule": "*/30 * * * * *",
-  "maiatApiUrl": "https://api.mathjs.org/v4/?expr=randomInt(1,101)"
+  "maiatApiUrl": "https://maiat-protocol.vercel.app/api/v1/agents",
+  "geminiApiUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_GEMINI_API_KEY",
+  "evms": [
+    {
+      "consumerAddress": "0x0000000000000000000000000000000000000000",
+      "chainName": "base-testnet-sepolia",
+      "gasLimit": "500000"
+    }
+  ]
 }

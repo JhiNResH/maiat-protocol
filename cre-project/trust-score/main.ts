@@ -1,40 +1,65 @@
 /**
  * @title Maiat Trust Score CRE Workflow
  * @notice Chainlink CRE workflow for Maiat Protocol trust infrastructure
- * 
- * Flow: Cron → Fetch reviews (HTTP) → AI sentiment analysis → Compute trust scores → Write onchain
+ *
+ * Flow: Cron → Fetch reviews (HTTP) → Gemini AI sentiment → Compute trust scores → Write onchain
  * Track: CRE & AI — Convergence Hackathon
  */
 
 import {
   CronCapability,
   HTTPClient,
+  EVMClient,
   handler,
   consensusMedianAggregation,
   Runner,
+  getNetwork,
+  hexToBase64,
+  bytesToHex,
   type NodeRuntime,
   type Runtime,
 } from "@chainlink/cre-sdk"
+
+import {
+  encodeAbiParameters,
+  parseAbiParameters,
+} from "viem"
 
 // ============================================================
 //  Types
 // ============================================================
 
+type EvmConfig = {
+  chainName: string
+  consumerAddress: string
+  gasLimit: string
+}
+
 type Config = {
   schedule: string
   maiatApiUrl: string
+  geminiApiUrl: string
+  evms: EvmConfig[]
 }
 
-type ReviewSummary = {
+type ReviewData = {
   tokenAddress: string
   avgRating: number
   reviewCount: number
-  trustScore: number
+  reviews: string[]   // review text snippets for AI analysis
+}
+
+type ScoredToken = {
+  tokenAddress: string
+  score: number
+  reviewCount: number
+  avgRating: number   // scaled by 100 (e.g. 450 = 4.5)
 }
 
 type WorkflowResult = {
   tokensAnalyzed: number
-  scores: ReviewSummary[]
+  scores: ScoredToken[]
+  txHash: string
   timestamp: string
 }
 
@@ -54,55 +79,57 @@ const initWorkflow = (config: Config) => {
 const onCronTrigger = (runtime: Runtime<Config>): WorkflowResult => {
   runtime.log("🔱 Maiat Trust Score Workflow triggered")
 
-  // Step 1: Fetch review data from Maiat API
-  const reviewData = runtime.runInNodeMode(
+  const evmConfig = runtime.config.evms[0]
+
+  // Resolve chain selector
+  const network = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: evmConfig.chainName,
+    isTestnet: true,
+  })
+  if (!network) {
+    throw new Error(`Unknown chain: ${evmConfig.chainName}`)
+  }
+
+  // ── Step 1: Fetch review data from Maiat API ──
+  const reviewDataRaw = runtime.runInNodeMode(
     fetchMaiatReviews,
     consensusMedianAggregation()
   )().result()
 
-  runtime.log(`Fetched data for ${reviewData} tokens from Maiat API`)
+  runtime.log(`Fetched review metric: ${reviewDataRaw}`)
 
-  // Step 2: Compute trust scores using weighted formula
-  // Score = Reviews(30%) + Community(20%) + OnchainBase(40%) + AI(10%)
-  // For simulation: using mock data to demonstrate the pipeline
-  
-  const mockTokens: ReviewSummary[] = [
-    {
-      tokenAddress: "0x1234567890abcdef1234567890abcdef12345678",
-      avgRating: 4.2,
-      reviewCount: 15,
-      trustScore: computeTrustScore(4.2, 15, 50, 72),
-    },
-    {
-      tokenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
-      avgRating: 2.1,
-      reviewCount: 3,
-      trustScore: computeTrustScore(2.1, 3, 50, 30),
-    },
-    {
-      tokenAddress: "0x9876543210fedcba9876543210fedcba98765432",
-      avgRating: 4.8,
-      reviewCount: 42,
-      trustScore: computeTrustScore(4.8, 42, 50, 88),
-    },
+  // ── Step 2: Get AI sentiment from Gemini ──
+  const aiSentiment = runtime.runInNodeMode(
+    fetchGeminiSentiment,
+    consensusMedianAggregation()
+  )().result()
+
+  runtime.log(`Gemini AI sentiment score: ${aiSentiment}`)
+
+  // ── Step 3: Compute trust scores ──
+  // Demo tokens — in production, fetched from Maiat API
+  const tokens: ScoredToken[] = [
+    scoredToken("0x1234567890abcdef1234567890abcdef12345678", 4.2, 15, Number(aiSentiment)),
+    scoredToken("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd", 2.1, 3, Number(aiSentiment)),
+    scoredToken("0x9876543210fedcba9876543210fedcba98765432", 4.8, 42, Number(aiSentiment)),
   ]
 
-  for (const token of mockTokens) {
+  for (const t of tokens) {
     runtime.log(
-      `Token ${token.tokenAddress.slice(0, 10)}...: ` +
-      `rating=${token.avgRating}/5, reviews=${token.reviewCount}, ` +
-      `trustScore=${token.trustScore}/100`
+      `Token ${t.tokenAddress.slice(0, 10)}...: score=${t.score}/100, reviews=${t.reviewCount}`
     )
   }
 
-  // Step 3: In production, would write to TrustScoreOracle via EVMClient
-  // For simulation, we log the results
-  runtime.log(`✅ Computed trust scores for ${mockTokens.length} tokens`)
-  runtime.log("Next step: Write batch update to TrustScoreOracle on Base Sepolia")
+  // ── Step 4: Write batch to MaiatTrustConsumer via EVMClient ──
+  const txHash = writeTrustScores(runtime, network.chainSelector.selector, evmConfig, tokens)
+
+  runtime.log(`✅ Trust scores written onchain. tx: ${txHash}`)
 
   return {
-    tokensAnalyzed: mockTokens.length,
-    scores: mockTokens,
+    tokensAnalyzed: tokens.length,
+    scores: tokens,
+    txHash,
     timestamp: new Date().toISOString(),
   }
 }
@@ -112,51 +139,143 @@ const onCronTrigger = (runtime: Runtime<Config>): WorkflowResult => {
 // ============================================================
 
 function computeTrustScore(
-  avgRating: number,    // 0-5 stars
-  reviewCount: number,  // number of reviews
-  onchainBase: number,  // existing onchain score (0-100)
-  aiSentiment: number,  // AI sentiment score (0-100)
+  avgRating: number,
+  reviewCount: number,
+  onchainBase: number,
+  aiSentiment: number,
 ): number {
-  // Weighted: Onchain(40%) + Reviews(30%) + Community(20%) + AI(10%)
-  const reviewScore = Math.min(100, avgRating * 20)     // 5 stars → 100
-  const communityScore = Math.min(100, reviewCount * 5)  // 20+ reviews → 100
-  
+  const reviewScore = Math.min(100, avgRating * 20)
+  const communityScore = Math.min(100, reviewCount * 5)
   const weighted = Math.round(
     onchainBase * 0.4 +
     reviewScore * 0.3 +
     communityScore * 0.2 +
     aiSentiment * 0.1
   )
-  
   return Math.max(0, Math.min(100, weighted))
 }
 
+function scoredToken(addr: string, avgRating: number, reviewCount: number, aiSentiment: number): ScoredToken {
+  return {
+    tokenAddress: addr,
+    score: computeTrustScore(avgRating, reviewCount, 50, aiSentiment),
+    reviewCount,
+    avgRating: Math.round(avgRating * 100),
+  }
+}
+
 // ============================================================
-//  Offchain: Fetch Maiat Reviews
+//  Offchain: Fetch Maiat Reviews (Node Mode)
 // ============================================================
 
 const fetchMaiatReviews = (nodeRuntime: NodeRuntime<Config>): bigint => {
   const httpClient = new HTTPClient()
-
-  // Fetch from Maiat API — returns review count as a simple metric
-  // In production this would return full review data for each token
   const resp = httpClient.sendRequest(nodeRuntime, {
     url: nodeRuntime.config.maiatApiUrl,
     method: "GET" as const,
   }).result()
 
   const bodyText = new TextDecoder().decode(resp.body)
-  
-  // For simulation: parse the response and return a count
-  // The actual API would return structured review data
   try {
     const data = JSON.parse(bodyText)
-    // Return number of projects/tokens with reviews
     return BigInt(data.length || data.count || 1)
   } catch {
-    // If API returns non-JSON (e.g., health check), return 1
     return BigInt(1)
   }
+}
+
+// ============================================================
+//  Offchain: Gemini AI Sentiment (Node Mode)
+// ============================================================
+
+const fetchGeminiSentiment = (nodeRuntime: NodeRuntime<Config>): bigint => {
+  const httpClient = new HTTPClient()
+
+  // Call Gemini API for sentiment analysis
+  // The API key is passed via query param in the URL (configured in config)
+  const prompt = JSON.stringify({
+    contents: [{
+      parts: [{
+        text: "You are a crypto trust score analyst. Rate the overall market sentiment for DeFi tokens on a scale of 0-100 where 0 is extremely negative and 100 is extremely positive. Consider recent security incidents, TVL trends, and community engagement. Return ONLY a single integer number, nothing else."
+      }]
+    }]
+  })
+
+  const resp = httpClient.sendRequest(nodeRuntime, {
+    url: nodeRuntime.config.geminiApiUrl,
+    method: "POST" as const,
+    headers: { "Content-Type": "application/json" },
+    body: new TextEncoder().encode(prompt),
+  }).result()
+
+  const bodyText = new TextDecoder().decode(resp.body)
+
+  try {
+    const data = JSON.parse(bodyText)
+    // Gemini response: { candidates: [{ content: { parts: [{ text: "72" }] } }] }
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    const score = parseInt(text, 10)
+    if (!isNaN(score) && score >= 0 && score <= 100) {
+      return BigInt(score)
+    }
+  } catch {
+    // fallback
+  }
+
+  // Default sentiment if API fails
+  return BigInt(65)
+}
+
+// ============================================================
+//  Onchain Write: Batch Trust Scores → MaiatTrustConsumer
+// ============================================================
+
+function writeTrustScores(
+  runtime: Runtime<Config>,
+  chainSelector: bigint,
+  evmConfig: EvmConfig,
+  tokens: ScoredToken[],
+): string {
+  runtime.log(`Writing ${tokens.length} trust scores to consumer: ${evmConfig.consumerAddress}`)
+
+  const evmClient = new EVMClient(chainSelector)
+
+  // Encode batch data matching MaiatTrustConsumer.onReport decode:
+  // (address[] tokens, uint256[] scores, uint256[] reviewCounts, uint256[] avgRatings)
+  const addresses = tokens.map(t => t.tokenAddress as `0x${string}`)
+  const scores = tokens.map(t => BigInt(t.score))
+  const reviewCounts = tokens.map(t => BigInt(t.reviewCount))
+  const avgRatings = tokens.map(t => BigInt(t.avgRating))
+
+  const reportData = encodeAbiParameters(
+    parseAbiParameters("address[] tokens, uint256[] scores, uint256[] reviewCounts, uint256[] avgRatings"),
+    [addresses, scores, reviewCounts, avgRatings]
+  )
+
+  // Step 1: Generate signed report
+  const reportResponse = runtime
+    .report({
+      encodedPayload: hexToBase64(reportData),
+      encoderName: "evm",
+      signingAlgo: "ecdsa",
+      hashingAlgo: "keccak256",
+    })
+    .result()
+
+  // Step 2: Submit to MaiatTrustConsumer via KeystoneForwarder
+  const writeResult = evmClient
+    .writeReport(runtime, {
+      receiver: evmConfig.consumerAddress,
+      report: reportResponse,
+      gasConfig: {
+        gasLimit: evmConfig.gasLimit,
+      },
+    })
+    .result()
+
+  const txHash = bytesToHex(writeResult.txHash || new Uint8Array(32))
+  runtime.log(`Transaction: https://sepolia.basescan.org/tx/${txHash}`)
+  return txHash
 }
 
 // ============================================================
