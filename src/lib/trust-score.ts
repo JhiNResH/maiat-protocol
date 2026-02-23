@@ -228,3 +228,46 @@ export function getSimpleTrustScore(
   
   return Math.round((aiBaseline * aiWeight + communityScore * communityWeight) / 100)
 }
+
+// ============================================
+// V2: 3-Layer Trust Score for Agent API
+// ============================================
+
+export function computeAgentTrustScore(
+  onChain: number,
+  offChain: number,
+  human: number = 50
+): { score: number; grade: string } {
+  const score = Math.round(
+    0.5 * Math.min(100, Math.max(0, onChain)) +
+    0.3 * Math.min(100, Math.max(0, offChain)) +
+    0.2 * Math.min(100, Math.max(0, human))
+  )
+
+  let grade: string
+  if (score >= 90) grade = 'S'
+  else if (score >= 80) grade = 'A'
+  else if (score >= 70) grade = 'B'
+  else if (score >= 60) grade = 'C'
+  else if (score >= 40) grade = 'D'
+  else grade = 'F'
+
+  return { score, grade }
+}
+
+export function getConfidence(project: {
+  marketCap: number | null;
+  github: string | null;
+  website: string | null;
+  reviewCount: number;
+}): 'high' | 'medium' | 'low' {
+  let signals = 0
+  if (project.marketCap) signals++
+  if (project.github) signals++
+  if (project.website) signals++
+  if (project.reviewCount > 0) signals++
+
+  if (signals >= 3) return 'high'
+  if (signals >= 2) return 'medium'
+  return 'low'
+}
