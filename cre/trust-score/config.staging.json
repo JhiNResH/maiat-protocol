@@ -5,7 +5,7 @@
   "evms": [
     {
       "consumerAddress": "0x0000000000000000000000000000000000000000",
-      "chainName": "base-testnet-sepolia",
+      "chainName": "ethereum-testnet-sepolia",
       "gasLimit": "500000"
     }
   ]
