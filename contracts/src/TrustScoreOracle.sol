@@ -50,6 +50,8 @@ contract TrustScoreOracle is AccessControl, Pausable {
 
     uint256 public constant MAX_SCORE = 100;
     uint256 public constant MAX_BATCH_SIZE = 100;
+    /// @notice Max avgRating value: 500 = 5.0 stars (stored as stars * 100)
+    uint256 public constant MAX_AVG_RATING = 500;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -57,12 +59,14 @@ contract TrustScoreOracle is AccessControl, Pausable {
 
     event TokenScoreUpdated(address indexed token, uint256 score, uint256 reviewCount);
     event UserReputationUpdated(address indexed user, uint256 score, uint256 feeBps);
+    event UserReputationReset(address indexed user);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
     error TrustScoreOracle__ScoreOutOfRange(uint256 score);
+    error TrustScoreOracle__AvgRatingOutOfRange(uint256 avgRating);
     error TrustScoreOracle__LengthMismatch();
     error TrustScoreOracle__BatchTooLarge(uint256 size);
 
@@ -114,6 +118,7 @@ contract TrustScoreOracle is AccessControl, Pausable {
         uint256 avgRating
     ) external onlyRole(UPDATER_ROLE) whenNotPaused {
         if (score > MAX_SCORE) revert TrustScoreOracle__ScoreOutOfRange(score);
+        if (avgRating > MAX_AVG_RATING) revert TrustScoreOracle__AvgRatingOutOfRange(avgRating);
         tokenScores[token] = TokenScore({
             trustScore:  score,
             reviewCount: reviewCount,
@@ -147,6 +152,14 @@ contract TrustScoreOracle is AccessControl, Pausable {
         emit UserReputationUpdated(user, reputationScore, feeBps);
     }
 
+    /// @notice Fully reset a user's reputation to uninitialized state (updater role only)
+    /// @dev Use when an account is compromised or needs to be cleared entirely.
+    ///      After reset, getUserFee() will return BASE_FEE for the user.
+    function resetUserReputation(address user) external onlyRole(UPDATER_ROLE) whenNotPaused {
+        delete userReputations[user];
+        emit UserReputationReset(user);
+    }
+
     /// @notice Batch update token scores
     function batchUpdateTokenScores(
         address[] calldata tokens,
@@ -162,6 +175,7 @@ contract TrustScoreOracle is AccessControl, Pausable {
 
         for (uint256 i = 0; i < len; i++) {
             if (scores[i] > MAX_SCORE) revert TrustScoreOracle__ScoreOutOfRange(scores[i]);
+            if (avgRatings[i] > MAX_AVG_RATING) revert TrustScoreOracle__AvgRatingOutOfRange(avgRatings[i]);
             tokenScores[tokens[i]] = TokenScore({
                 trustScore:  scores[i],
                 reviewCount: reviewCounts[i],
