@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
+// Note: rate limiting is skipped in tests (UPSTASH env vars not set)
+
 // vi.hoisted ensures these are available when vi.mock factory runs (hoisted)
 const { mockFindMany, mockCount } = vi.hoisted(() => ({
   mockFindMany: vi.fn(),
