@@ -51,13 +51,38 @@ model Project {
   bannerImage     String?   // Banner/cover image
   website         String?
   category        String    @default("m/ai-agents") // m/ai-agents, m/defi
+
+  // Agent-specific fields
+  chain           String?   // base, sol, bnb, arc, multi
+  symbol          String?   // token symbol
+  tier            String?   // 1=DeFi Execution, 2=Signal/Alpha, 3=Platform
+  coreFunctions   String?   // JSON array of functions
+  twitter         String?
+  github          String?
+  docs            String?
+
+  // Trust Score (3-layer system)
+  trustScore      Int?      // 0-100 composite score
+  trustGrade      String?   // S/A/B/C/D/F
+  onChainScore    Int?      // 0-100 (Layer 1: contract age, tx count, audits)
+  offChainScore   Int?      // 0-100 (Layer 2: GitHub, team, incidents)
+  humanScore      Int?      // 0-100 (Layer 3: reviews weighted by reputation)
+  trustUpdatedAt  DateTime? // last trust computation
+
+  // Market data
+  marketCap       Float?
+  price           Float?
+  volume24h       Float?
+  athPrice        Float?
+  athDropPct      Float?
+  marketUpdatedAt DateTime? // last market data refresh
   
   // Aggregated stats
   avgRating       Float     @default(0)
   reviewCount     Int       @default(0)
   
   // Status
-  status          String    @default("pending") // pending, approved, rejected
+  status          String    @default("active") // active, pending, flagged, removed
   
   // Timestamps
   createdAt       DateTime  @default(now())
@@ -69,7 +94,9 @@ model Project {
   @@index([slug])
   @@index([address])
   @@index([category])
+  @@index([chain])
   @@index([status])
+  @@index([trustScore])
 }
 
 // Review of a project

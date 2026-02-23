@@ -1,0 +1,125 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getConfidence } from '@/lib/trust-score'
+
+export const dynamic = 'force-dynamic'
+
+/**
+ * GET /api/v1/trust/:address?chain=base
+ * 
+ * Returns trust score for an AI agent.
+ * Primary endpoint agents call before executing trades.
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ address: string }> }
+) {
+  try {
+    const { address } = await params
+    const chain = request.nextUrl.searchParams.get('chain')
+
+    const project = await prisma.project.findFirst({
+      where: {
+        OR: [
+          { address: address.toLowerCase() },
+          { slug: address.toLowerCase() },
+        ],
+      },
+      include: {
+        reviews: {
+          where: { status: 'active' },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          include: {
+            reviewer: {
+              select: { displayName: true, reputationScore: true },
+            },
+          },
+        },
+      },
+    })
+
+    if (!project) {
+      return NextResponse.json(
+        { error: 'Agent not found', address, hint: 'Use GET /api/v1/agents to list all agents' },
+        { status: 404 }
+      )
+    }
+
+    if (chain && project.chain !== chain.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Agent not on specified chain', address, chain, actual_chain: project.chain },
+        { status: 404 }
+      )
+    }
+
+    const confidence = getConfidence(project)
+
+    return NextResponse.json({
+      agent: {
+        id: project.address,
+        name: project.name,
+        slug: project.slug,
+        symbol: project.symbol,
+        chain: project.chain,
+        tier: project.tier,
+        description: project.description,
+        functions: project.coreFunctions ? JSON.parse(project.coreFunctions) : [],
+        links: {
+          website: project.website,
+          twitter: project.twitter,
+          github: project.github,
+          docs: project.docs,
+        },
+      },
+      trust: {
+        score: project.trustScore,
+        grade: project.trustGrade,
+        breakdown: {
+          on_chain: project.onChainScore,
+          off_chain: project.offChainScore,
+          human_reviews: project.humanScore,
+        },
+        confidence,
+        weights: { on_chain: 0.5, off_chain: 0.3, human_reviews: 0.2 },
+        recommendation: getRecommendation(project.trustScore),
+        last_updated: project.trustUpdatedAt?.toISOString() || null,
+      },
+      market: {
+        market_cap: project.marketCap,
+        price: project.price,
+        volume_24h: project.volume24h,
+        last_updated: project.marketUpdatedAt?.toISOString() || null,
+      },
+      reviews: {
+        count: project.reviewCount,
+        avg_rating: project.avgRating,
+        recent: project.reviews.map((r) => ({
+          rating: r.rating,
+          content: r.content.slice(0, 200),
+          reviewer: r.reviewer.displayName || 'Anonymous',
+          reputation: r.reviewer.reputationScore,
+          created_at: r.createdAt.toISOString(),
+        })),
+      },
+      meta: { api_version: 'v1', status: project.status },
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'X-Maiat-Trust-Score': String(project.trustScore || 0),
+        'X-Maiat-Trust-Grade': project.trustGrade || 'N/A',
+      },
+    })
+  } catch (error: any) {
+    console.error('[Trust API] Error:', error.message)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+function getRecommendation(score: number | null): string {
+  if (!score) return 'INSUFFICIENT_DATA'
+  if (score >= 80) return 'TRUSTED'
+  if (score >= 60) return 'NEUTRAL'
+  if (score >= 40) return 'CAUTION'
+  return 'HIGH_RISK'
+}
