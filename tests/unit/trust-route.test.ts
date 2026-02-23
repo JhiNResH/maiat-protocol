@@ -109,16 +109,14 @@ describe('GET /api/v1/trust/:address', () => {
     expect(body.agent.chain).toBe('base')
   })
 
-  // KNOWN VULN H2: chain mismatch 404 leaks actual_chain, enabling enumeration
-  it('[H2] chain oracle: wrong chain returns 404 with actual_chain field', async () => {
-    // Querying a valid address with the wrong chain exposes what chain
-    // the agent is actually on, enabling cross-chain enumeration.
+  // FIXED H2: chain mismatch returns generic 404 without leaking actual_chain
+  it('[H2] chain mismatch returns generic 404 without actual_chain', async () => {
     const res = await GET(...makeRequest('test-agent', { chain: 'sol' }))
     expect(res.status).toBe(404)
 
     const body = await res.json()
-    expect(body.actual_chain).toBe('base') // Oracle leak: reveals real chain
-    expect(body.error).toBe('Agent not on specified chain')
+    expect(body.actual_chain).toBeUndefined()
+    expect(body.error).toBe('Agent not found')
   })
 
   it('response includes all expected top-level keys', async () => {

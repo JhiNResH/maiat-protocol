@@ -48,7 +48,7 @@ export async function GET(
 
     if (chain && project.chain !== chain.toLowerCase()) {
       return NextResponse.json(
-        { error: 'Agent not on specified chain', address, chain, actual_chain: project.chain },
+        { error: 'Agent not found' },
         { status: 404 }
       )
     }
