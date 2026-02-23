@@ -1,0 +1,4 @@
+{
+  "schedule": "*/30 * * * * *",
+  "maiatApiUrl": "https://api.mathjs.org/v4/?expr=randomInt(1,101)"
+}
