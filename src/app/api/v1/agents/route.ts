@@ -10,6 +10,36 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+            || request.headers.get("x-real-ip")
+            || "anonymous"
+
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      const { Ratelimit } = await import("@upstash/ratelimit")
+      const { Redis } = await import("@upstash/redis")
+      const ratelimit = new Ratelimit({
+        redis: Redis.fromEnv(),
+        limiter: Ratelimit.slidingWindow(60, "1 m"),
+        analytics: true,
+        prefix: "rl:agents",
+      })
+      const { success, limit, reset, remaining } = await ratelimit.limit(ip)
+      if (!success) {
+        return NextResponse.json(
+          { error: "Too many requests", retry_after: Math.ceil((reset - Date.now()) / 1000) },
+          {
+            status: 429,
+            headers: {
+              "X-RateLimit-Limit": String(limit),
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Reset": String(reset),
+              "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
+            }
+          }
+        )
+      }
+    }
+
     const { searchParams } = request.nextUrl
     const chain = searchParams.get('chain')
     const tier = searchParams.get('tier')
