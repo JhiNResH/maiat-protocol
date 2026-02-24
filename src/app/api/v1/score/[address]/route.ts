@@ -60,6 +60,7 @@ export async function GET(
         risk: result.risk,
         type: result.type,
         flags: result.flags,
+        ...(result.protocol && { protocol: result.protocol }),
         details: result.details,
         timestamp: new Date().toISOString(),
         oracle: "maiat-trust-v1",
