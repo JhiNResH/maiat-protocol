@@ -65,6 +65,81 @@ Verified reviews, AI-powered trust scores, and Uniswap v4 trust-gated swaps — 
 
 ---
 
+## Agent SDKs
+
+Plug-and-play trust scoring for every major agent framework.
+
+| Package | Registry | Install |
+|---------|----------|---------|
+| [![npm](https://img.shields.io/npm/v/@maiat/agentkit-plugin?label=%40maiat%2Fagentkit-plugin&color=blue)](https://www.npmjs.com/package/@maiat/agentkit-plugin) | npm | `npm i @maiat/agentkit-plugin` |
+| [![npm](https://img.shields.io/npm/v/@maiat/elizaos-plugin?label=%40maiat%2Felizaos-plugin&color=blue)](https://www.npmjs.com/package/@maiat/elizaos-plugin) | npm | `npm i @maiat/elizaos-plugin` |
+| [![npm](https://img.shields.io/npm/v/@maiat/mcp-server?label=%40maiat%2Fmcp-server&color=blue)](https://www.npmjs.com/package/@maiat/mcp-server) | npm | `npm i @maiat/mcp-server` |
+| [![npm](https://img.shields.io/npm/v/@maiat/virtuals-plugin?label=%40maiat%2Fvirtuals-plugin&color=blue)](https://www.npmjs.com/package/@maiat/virtuals-plugin) | npm | `npm i @maiat/virtuals-plugin` |
+
+Also available on [GitHub Packages](https://github.com/JhiNResH/maiat-protocol/packages).
+
+### Coinbase AgentKit
+
+```typescript
+import { AgentKit } from "@coinbase/agentkit";
+import { maiatTrustPlugin } from "@maiat/agentkit-plugin";
+
+const plugin = maiatTrustPlugin({ minScore: 3.0 });
+// Provides: maiat_check_trust, maiat_gate_transaction actions
+agent.use(plugin);
+```
+
+### ElizaOS (ai16z)
+
+```typescript
+import { maiatPlugin } from "@maiat/elizaos-plugin";
+
+const agent = new ElizaAgent({
+  plugins: [maiatPlugin({ minScore: 3.0 })],
+});
+// Agent can now answer: "Is 0x... safe?" with live trust data
+```
+
+### Virtuals GAME SDK
+
+```typescript
+import { GameAgent } from "@virtuals-protocol/game";
+import { createMaiatWorker } from "@maiat/virtuals-plugin";
+
+const maiatWorker = await createMaiatWorker({ minScore: 3.0 });
+
+const agent = new GameAgent(process.env.GAME_API_KEY!, {
+  name: "TrustGuardAgent",
+  goal: "Only interact with trusted on-chain addresses",
+  workers: [maiatWorker],
+});
+
+await agent.init();
+await agent.run(10);
+```
+
+### Claude / Any MCP-compatible LLM
+
+```json
+// claude_desktop_config.json
+{
+  "mcpServers": {
+    "maiat": {
+      "command": "npx",
+      "args": ["@maiat/mcp-server"],
+      "env": { "MAIAT_API_URL": "https://maiat-protocol.vercel.app" }
+    }
+  }
+}
+```
+
+```bash
+# Or run standalone
+npx @maiat/mcp-server
+```
+
+---
+
 ## Quick Start
 
 ```bash
