@@ -1,0 +1,17 @@
+{
+  "name": "@maiat/elizaos-plugin",
+  "version": "0.1.0",
+  "description": "Maiat Trust Score plugin for ElizaOS — trust-gated agent interactions",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  },
+  "keywords": ["maiat", "elizaos", "ai16z", "trust-score", "ai-agent"]
+}
