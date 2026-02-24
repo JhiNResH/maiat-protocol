@@ -1,19 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
 
-// --- In-memory store (will migrate to Supabase) ---
-interface Review {
+// --- DB: Prisma (Supabase) with in-memory fallback for local dev ---
+let prisma: import("@prisma/client").PrismaClient | null = null;
+
+async function getDb() {
+  if (!process.env.DATABASE_URL) return null;
+  if (!prisma) {
+    const { prisma: client } = await import("@/lib/prisma");
+    prisma = client;
+  }
+  return prisma;
+}
+
+// In-memory fallback (dev only)
+interface ReviewRecord {
   id: string;
   address: string;
-  rating: number;     // 1-10
+  rating: number;
   comment: string;
   tags: string[];
   reviewer: string;
-  timestamp: string;
+  createdAt: Date;
 }
-
-const reviews: Review[] = [];
-let nextId = 1;
+const memReviews: ReviewRecord[] = [];
+let nextMemId = 1;
 
 // --- Rate limiter ---
 const ipHits = new Map<string, { count: number; resetAt: number }>();
@@ -50,21 +61,47 @@ export async function GET(request: NextRequest) {
   }
 
   const address = request.nextUrl.searchParams.get("address");
-
   if (!address || !isAddress(address)) {
     return NextResponse.json({ error: "Valid address required" }, { status: 400, headers: CORS_HEADERS });
   }
 
   const checksummed = getAddress(address);
-  const addressReviews = reviews.filter(r => r.address === checksummed);
-  const avgRating = addressReviews.length > 0
-    ? Math.round((addressReviews.reduce((sum, r) => sum + r.rating, 0) / addressReviews.length) * 10) / 10
+  const db = await getDb();
+
+  let reviews: ReviewRecord[];
+
+  if (db) {
+    // Supabase via Prisma
+    const rows = await db.trustReview.findMany({
+      where: { address: checksummed },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+    reviews = rows.map(r => ({
+      id: r.id,
+      address: r.address,
+      rating: r.rating,
+      comment: r.comment,
+      tags: r.tags,
+      reviewer: r.reviewer,
+      createdAt: r.createdAt,
+    }));
+  } else {
+    // In-memory fallback
+    reviews = memReviews.filter(r => r.address === checksummed);
+  }
+
+  const avgRating = reviews.length > 0
+    ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
     : 0;
 
   return NextResponse.json({
     address: checksummed,
-    reviews: addressReviews,
-    count: addressReviews.length,
+    reviews: reviews.map(r => ({
+      ...r,
+      timestamp: r.createdAt.toISOString(),
+    })),
+    count: reviews.length,
     averageRating: avgRating,
   }, { status: 200, headers: CORS_HEADERS });
 }
@@ -97,23 +134,52 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Valid reviewer wallet address required" }, { status: 400, headers: CORS_HEADERS });
     }
 
-    const review: Review = {
-      id: `rev_${nextId++}`,
-      address: getAddress(address),
-      rating,
-      comment: comment ?? "",
-      tags: tags ?? [],
-      reviewer: getAddress(reviewer),
-      timestamp: new Date().toISOString(),
-    };
+    const checksumAddress = getAddress(address);
+    const checksumReviewer = getAddress(reviewer);
+    const db = await getDb();
+    let saved: ReviewRecord;
 
-    reviews.push(review);
+    if (db) {
+      // Persist to Supabase
+      const row = await db.trustReview.create({
+        data: {
+          address: checksumAddress,
+          rating,
+          comment: comment ?? "",
+          tags: tags ?? [],
+          reviewer: checksumReviewer,
+        },
+      });
+      saved = {
+        id: row.id,
+        address: row.address,
+        rating: row.rating,
+        comment: row.comment,
+        tags: row.tags,
+        reviewer: row.reviewer,
+        createdAt: row.createdAt,
+      };
+    } else {
+      // In-memory fallback
+      saved = {
+        id: `rev_${nextMemId++}`,
+        address: checksumAddress,
+        rating,
+        comment: comment ?? "",
+        tags: tags ?? [],
+        reviewer: checksumReviewer,
+        createdAt: new Date(),
+      };
+      memReviews.push(saved);
+    }
 
     return NextResponse.json({
       success: true,
-      review,
+      review: { ...saved, timestamp: saved.createdAt.toISOString() },
+      persisted: !!db,
     }, { status: 201, headers: CORS_HEADERS });
-  } catch {
+  } catch (err) {
+    console.error("[review POST]", err);
     return NextResponse.json({ error: "Invalid request body" }, { status: 400, headers: CORS_HEADERS });
   }
 }
