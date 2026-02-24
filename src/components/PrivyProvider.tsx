@@ -1,9 +1,30 @@
 'use client'
 
 import { type ReactNode } from 'react'
+import { PrivyProvider as Privy } from '@privy-io/react-auth'
 
-// Privy disabled temporarily — app ID validation issue causes client-side crash.
-// Wallet features will be re-enabled once Privy app ID is verified.
+const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? ''
+
 export function PrivyProvider({ children }: { children: ReactNode }) {
-  return <>{children}</>
+  if (!PRIVY_APP_ID) {
+    return <>{children}</>
+  }
+
+  return (
+    <Privy
+      appId={PRIVY_APP_ID}
+      config={{
+        appearance: {
+          theme: 'dark',
+          accentColor: '#D4A843',
+        },
+        loginMethods: ['wallet'],
+        embeddedWallets: {
+          createOnLogin: 'off',
+        },
+      }}
+    >
+      {children}
+    </Privy>
+  )
 }

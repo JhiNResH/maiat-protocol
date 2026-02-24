@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Feather, Search, Github } from 'lucide-react'
+import { ConnectButton } from './ConnectButton'
 
 export function Header() {
   const router = useRouter()
@@ -60,6 +61,7 @@ export function Header() {
           <Github className="w-[18px] h-[18px]" />
           GitHub
         </a>
+        <ConnectButton />
       </nav>
     </header>
   )
