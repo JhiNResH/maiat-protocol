@@ -1,7 +1,6 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  darkMode: 'class',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -11,32 +10,23 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono: ['DM Mono', 'SF Mono', 'monospace'],
+        mono: ['JetBrains Mono', 'SF Mono', 'Fira Code', 'monospace'],
       },
       colors: {
-        maat: {
-          primary: '#572f61',
-          bg: {
-            primary: '#1a0e2e',
-            secondary: '#24123d',
-            tertiary: '#2d164d',
-          },
-          border: {
-            DEFAULT: '#2d164d',
-            light: '#572f61',
-          },
-          text: {
-            primary: '#d9d4e8',
-            secondary: '#adadb0',
-            muted: '#6b6b70',
-          },
-          accent: {
-            purple: '#d9d4e8',
-            green: '#22c55e',
-            orange: '#ff8a4c',
-            red: '#ef4444',
-          },
-        },
+        page: 'var(--bg-page)',
+        surface: 'var(--bg-surface)',
+        elevated: 'var(--bg-elevated)',
+        'border-default': 'var(--border-default)',
+        'border-subtle': 'var(--border-subtle)',
+        gold: 'var(--primary-gold)',
+        'gold-light': 'var(--primary-gold-light)',
+        turquoise: 'var(--secondary-turquoise)',
+        emerald: 'var(--success-emerald)',
+        crimson: 'var(--danger-crimson)',
+        amber: 'var(--warning-amber)',
+        'txt-primary': 'var(--text-primary)',
+        'txt-secondary': 'var(--text-secondary)',
+        'txt-muted': 'var(--text-muted)',
       },
     },
   },

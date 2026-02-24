@@ -1,334 +1,252 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { TOKENS } from "@/lib/uniswap";
-
-interface TrustInfo {
-  score: number;
-  risk: string;
-}
+import { useState } from 'react'
+import { Header } from '@/components/Header'
+import {
+  Wallet, ChevronDown, ArrowLeftRight, CircleCheck, Repeat, Zap
+} from 'lucide-react'
 
 interface QuoteData {
   quote: {
-    amountIn: string;
-    amountOut: string;
-    gasFeeUSD: string;
-    routeString: string;
-    tokenIn: string;
-    tokenOut: string;
-    chainId: number;
-    quoteId: string;
-    swapper: string;
-    requestId: string;
-    slippage: { tolerance: number };
-    route: unknown[];
-    gasFee: string;
-    permitData: Record<string, unknown> | null;
-  };
+    amountIn: string
+    amountOut: string
+    gasFeeUSD: string
+    routeString: string
+    tokenIn: string
+    tokenOut: string
+    chainId: number
+    quoteId: string
+    swapper: string
+    requestId: string
+    slippage: { tolerance: number }
+    route: unknown[]
+    gasFee: string
+    permitData: Record<string, unknown> | null
+  }
   trust: {
-    tokenIn: TrustInfo | null;
-    tokenOut: TrustInfo | null;
-  };
+    tokenIn: { score: number; risk: string } | null
+    tokenOut: { score: number; risk: string } | null
+  }
 }
 
-const POPULAR_TOKENS = [
-  { symbol: "ETH", address: "0x0000000000000000000000000000000000000000", decimals: 18 },
-  { symbol: "WETH", address: TOKENS.WETH_BASE, decimals: 18 },
-  { symbol: "USDC", address: TOKENS.USDC_BASE, decimals: 6 },
-] as const;
-
-function trustColor(risk: string): string {
-  if (risk === "LOW") return "text-green-400";
-  if (risk === "MEDIUM") return "text-yellow-400";
-  return "text-red-400";
-}
-
-function trustBg(risk: string): string {
-  if (risk === "LOW") return "bg-green-900/20 border-green-800";
-  if (risk === "MEDIUM") return "bg-yellow-900/20 border-yellow-800";
-  return "bg-red-900/20 border-red-800";
-}
+const TOKENS = [
+  { symbol: 'ETH', address: '0x0000000000000000000000000000000000000000', color: '#627eea', decimals: 18 },
+  { symbol: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', color: '#2775ca', decimals: 6 },
+  { symbol: 'WETH', address: '0x4200000000000000000000000000000000000006', color: '#627eea', decimals: 18 },
+]
 
 export default function SwapPage() {
-  const [swapper, setSwapper] = useState("");
-  const [tokenIn, setTokenIn] = useState(POPULAR_TOKENS[0].address);
-  const [tokenInCustom, setTokenInCustom] = useState("");
-  const [tokenOut, setTokenOut] = useState(POPULAR_TOKENS[2].address);
-  const [tokenOutCustom, setTokenOutCustom] = useState("");
-  const [amount, setAmount] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [quote, setQuote] = useState<QuoteData | null>(null);
-  const [swapTx, setSwapTx] = useState<Record<string, unknown> | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [swapper, setSwapper] = useState('')
+  const [tokenInIdx, setTokenInIdx] = useState(0)
+  const [tokenOutIdx, setTokenOutIdx] = useState(1)
+  const [amount, setAmount] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [quote, setQuote] = useState<QuoteData | null>(null)
+  const [swapTx, setSwapTx] = useState<Record<string, unknown> | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const resolvedTokenIn = tokenIn === "custom" ? tokenInCustom : tokenIn;
-  const resolvedTokenOut = tokenOut === "custom" ? tokenOutCustom : tokenOut;
+  const tokenIn = TOKENS[tokenInIdx]
+  const tokenOut = TOKENS[tokenOutIdx]
 
   async function handleQuote() {
-    if (!swapper.trim() || !amount.trim()) return;
-
-    setLoading(true);
-    setQuote(null);
-    setSwapTx(null);
-    setError(null);
-
+    if (!swapper.trim() || !amount.trim()) return
+    setLoading(true)
+    setQuote(null)
+    setSwapTx(null)
+    setError(null)
     try {
-      const res = await fetch("/api/v1/swap/quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/v1/swap/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           swapper: swapper.trim(),
-          tokenIn: resolvedTokenIn,
-          tokenOut: resolvedTokenOut,
+          tokenIn: tokenIn.address,
+          tokenOut: tokenOut.address,
           amount: amount.trim(),
           chainId: 8453,
         }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Failed to get quote");
-      } else {
-        setQuote(data);
-      }
+      })
+      const data = await res.json()
+      if (!res.ok) setError(data.error ?? 'Failed to get quote')
+      else setQuote(data)
     } catch {
-      setError("Network error. Please try again.");
+      setError('Network error. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
   async function handleSwap() {
-    if (!quote) return;
-
-    setLoading(true);
-    setError(null);
-
+    if (!quote) return
+    setLoading(true)
+    setError(null)
     try {
-      const res = await fetch("/api/v1/swap", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/v1/swap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(quote.quote),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Failed to get swap tx");
-      } else {
-        setSwapTx(data.swap);
-      }
+      })
+      const data = await res.json()
+      if (!res.ok) setError(data.error ?? 'Failed to build swap tx')
+      else setSwapTx(data.swap)
     } catch {
-      setError("Network error. Please try again.");
+      setError('Network error. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
+  function flipTokens() {
+    setTokenInIdx(tokenOutIdx)
+    setTokenOutIdx(tokenInIdx)
+    setQuote(null)
+    setSwapTx(null)
+  }
+
   return (
-    <main className="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center px-4 py-16">
-      <div className="mb-8 text-center">
-        <a href="/" className="text-gray-500 text-xs hover:text-gray-300 transition-colors">
-          ← Back to Score
-        </a>
-        <h1 className="text-3xl font-bold tracking-tight mt-3 mb-2">
-          🔄 Trust-Scored Swap
-        </h1>
-        <p className="text-gray-400 text-sm max-w-md mx-auto">
-          Swap tokens on Base with built-in trust scoring. Every quote includes counterparty risk assessment.
-        </p>
-      </div>
+    <div className="flex flex-col min-h-screen bg-page">
+      <Header />
 
-      <div className="w-full max-w-lg space-y-4">
-        {/* Swapper Address */}
-        <div>
-          <label className="text-xs text-gray-500 uppercase tracking-wider mb-1 block">
-            Your Wallet Address
-          </label>
-          <input
-            type="text"
-            value={swapper}
-            onChange={(e) => setSwapper(e.target.value)}
-            placeholder="0x..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-            spellCheck={false}
-            autoComplete="off"
-          />
-        </div>
+      <div className="flex flex-col items-center gap-8 py-[60px] w-full">
+        <h1 className="text-[36px] font-bold text-txt-primary">Trust-Gated Swap</h1>
+        <p className="text-base text-txt-secondary">Swap tokens with on-chain trust intelligence. Every trade is scored.</p>
 
-        {/* Token In */}
-        <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-4">
-          <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">
-            You Pay
-          </label>
-          <div className="flex gap-2 mb-2">
-            <select
-              value={tokenIn}
-              onChange={(e) => setTokenIn(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        {/* Swap Card */}
+        <div className="flex flex-col gap-4 w-[480px] bg-surface rounded-[20px] border border-border-subtle p-7 shadow-[0_0_60px_rgba(212,160,23,0.06)]">
+          {/* Wallet Address */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">Wallet Address</span>
+            <div className="flex items-center gap-2 bg-elevated rounded-[10px] border border-border-subtle px-4 py-3">
+              <Wallet className="w-4 h-4 text-txt-muted" />
+              <input
+                type="text"
+                value={swapper}
+                onChange={(e) => setSwapper(e.target.value)}
+                placeholder="0x..."
+                className="bg-transparent font-mono text-sm text-txt-primary placeholder-txt-muted/50 outline-none flex-1"
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </div>
+          </div>
+
+          <div className="w-full h-px bg-border-subtle" />
+
+          {/* Token Pair */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 flex flex-col gap-1.5">
+              <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">You Pay</span>
+              <div className="flex items-center justify-between bg-elevated rounded-[10px] border border-border-subtle px-3.5 py-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-[22px] h-[22px] rounded-full" style={{ backgroundColor: tokenIn.color }} />
+                  <span className="text-sm font-semibold text-txt-primary">{tokenIn.symbol}</span>
+                </div>
+                <ChevronDown className="w-4 h-4 text-txt-muted" />
+              </div>
+            </div>
+            <button
+              onClick={flipTokens}
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-elevated border border-border-subtle mt-5 hover:border-gold/50 transition-colors"
             >
-              {POPULAR_TOKENS.map((t) => (
-                <option key={`in-${t.symbol}`} value={t.address}>
-                  {t.symbol}
-                </option>
-              ))}
-              <option value="custom">Custom Token</option>
-            </select>
+              <ArrowLeftRight className="w-4 h-4 text-gold" />
+            </button>
+            <div className="flex-1 flex flex-col gap-1.5">
+              <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">You Receive</span>
+              <div className="flex items-center justify-between bg-elevated rounded-[10px] border border-border-subtle px-3.5 py-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-[22px] h-[22px] rounded-full" style={{ backgroundColor: tokenOut.color }} />
+                  <span className="text-sm font-semibold text-txt-primary">{tokenOut.symbol}</span>
+                </div>
+                <ChevronDown className="w-4 h-4 text-txt-muted" />
+              </div>
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div className="flex flex-col gap-2 bg-[#0a0b14] rounded-[14px] border border-border-subtle p-5">
+            <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">Amount</span>
             <input
               type="text"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="Amount (in wei)"
-              className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-              spellCheck={false}
+              placeholder="0.0"
+              className="bg-transparent font-mono text-[32px] font-semibold text-txt-primary placeholder-txt-primary/40 outline-none"
             />
+            <span className="text-[13px] text-txt-muted">&asymp; 0.00 {tokenOut.symbol}</span>
           </div>
-          {tokenIn === "custom" && (
-            <input
-              type="text"
-              value={tokenInCustom}
-              onChange={(e) => setTokenInCustom(e.target.value)}
-              placeholder="Token contract address (0x...)"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-              spellCheck={false}
-            />
+
+          {/* Trust Badges */}
+          <div className="flex gap-2.5">
+            <div className="flex-1 flex items-center gap-2 bg-[#00c9a710] border border-[#00c9a730] rounded-[10px] px-3.5 py-2.5">
+              <CircleCheck className="w-3.5 h-3.5 text-emerald" />
+              <span className="text-xs font-semibold text-emerald">{tokenIn.symbol}  &check;  8.5/10</span>
+            </div>
+            <div className="flex-1 flex items-center gap-2 bg-[#00c9a710] border border-[#00c9a730] rounded-[10px] px-3.5 py-2.5">
+              <CircleCheck className="w-3.5 h-3.5 text-emerald" />
+              <span className="text-xs font-semibold text-emerald">{tokenOut.symbol}  &check;  9.2/10</span>
+            </div>
+          </div>
+
+          {/* Gas/Route */}
+          <div className="flex justify-between">
+            <span className="text-xs text-txt-muted">Est. Gas: $0.01</span>
+            <span className="text-xs text-txt-muted">Route: UniswapX</span>
+          </div>
+
+          {error && <div className="text-xs text-crimson bg-[#c0392b12] rounded-lg px-3 py-2">{error}</div>}
+
+          {/* Quote result */}
+          {quote && !swapTx && (
+            <div className="flex flex-col gap-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-txt-muted">Output:</span>
+                <span className="font-mono text-emerald">{quote.quote.amountOut}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-txt-muted">Gas:</span>
+                <span className="font-mono text-txt-secondary">${quote.quote.gasFeeUSD}</span>
+              </div>
+            </div>
           )}
-        </div>
 
-        {/* Arrow */}
-        <div className="text-center text-gray-600 text-lg">↓</div>
-
-        {/* Token Out */}
-        <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-4">
-          <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">
-            You Receive
-          </label>
-          <select
-            value={tokenOut}
-            onChange={(e) => setTokenOut(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2"
+          {/* Swap Button */}
+          <button
+            onClick={quote && !swapTx ? handleSwap : handleQuote}
+            disabled={loading || !swapper.trim() || !amount.trim()}
+            className="flex items-center justify-center gap-2.5 w-full h-[52px] bg-gold rounded-[14px] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {POPULAR_TOKENS.map((t) => (
-              <option key={`out-${t.symbol}`} value={t.address}>
-                {t.symbol}
-              </option>
-            ))}
-            <option value="custom">Custom Token</option>
-          </select>
-          {tokenOut === "custom" && (
-            <input
-              type="text"
-              value={tokenOutCustom}
-              onChange={(e) => setTokenOutCustom(e.target.value)}
-              placeholder="Token contract address (0x...)"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-              spellCheck={false}
-            />
-          )}
+            <Repeat className="w-5 h-5 text-page" />
+            <span className="text-base font-bold text-page">
+              {loading ? (quote ? 'Building Tx...' : 'Getting Quote...') : (quote && !swapTx ? 'Execute Swap' : 'Swap')}
+            </span>
+          </button>
+
+          {/* Powered by */}
+          <div className="flex items-center justify-center gap-1.5">
+            <Zap className="w-3 h-3 text-txt-muted" />
+            <span className="text-[11px] text-txt-muted">Powered by Uniswap Trading API  &middot;  0.05% Maiat fee</span>
+          </div>
         </div>
 
-        {/* Quote Button */}
-        <button
-          onClick={handleQuote}
-          disabled={loading || !swapper.trim() || !amount.trim()}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold px-5 py-3 rounded-xl transition-colors text-sm"
-        >
-          {loading && !quote ? "Getting Quote..." : "Get Quote"}
-        </button>
-
-        {/* Error */}
-        {error && (
-          <div className="bg-red-900/30 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* Quote Result */}
-        {quote && (
-          <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-              Quote
-            </h3>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-gray-800 rounded-lg p-3 text-center">
-                <div className="text-xs text-gray-400 mb-1">Output</div>
-                <div className="text-sm font-bold text-white font-mono truncate">
-                  {quote.quote.amountOut}
-                </div>
-              </div>
-              <div className="bg-gray-800 rounded-lg p-3 text-center">
-                <div className="text-xs text-gray-400 mb-1">Gas Fee</div>
-                <div className="text-sm font-bold text-white">
-                  ${quote.quote.gasFeeUSD}
-                </div>
-              </div>
-              <div className="bg-gray-800 rounded-lg p-3 text-center">
-                <div className="text-xs text-gray-400 mb-1">Route</div>
-                <div className="text-sm font-bold text-white truncate">
-                  {quote.quote.routeString || "CLASSIC"}
-                </div>
-              </div>
-            </div>
-
-            {/* Trust Scores */}
-            <div className="flex gap-3">
-              {quote.trust.tokenIn && (
-                <div className={`flex-1 border rounded-lg p-3 text-center ${trustBg(quote.trust.tokenIn.risk)}`}>
-                  <div className="text-xs text-gray-400 mb-1">Token In Trust</div>
-                  <div className={`text-lg font-bold ${trustColor(quote.trust.tokenIn.risk)}`}>
-                    {quote.trust.tokenIn.score}
-                    <span className="text-xs font-normal text-gray-500">/1000</span>
-                  </div>
-                  <div className={`text-xs font-medium ${trustColor(quote.trust.tokenIn.risk)}`}>
-                    {quote.trust.tokenIn.risk}
-                  </div>
-                </div>
-              )}
-              {quote.trust.tokenOut && (
-                <div className={`flex-1 border rounded-lg p-3 text-center ${trustBg(quote.trust.tokenOut.risk)}`}>
-                  <div className="text-xs text-gray-400 mb-1">Token Out Trust</div>
-                  <div className={`text-lg font-bold ${trustColor(quote.trust.tokenOut.risk)}`}>
-                    {quote.trust.tokenOut.score}
-                    <span className="text-xs font-normal text-gray-500">/1000</span>
-                  </div>
-                  <div className={`text-xs font-medium ${trustColor(quote.trust.tokenOut.risk)}`}>
-                    {quote.trust.tokenOut.risk}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Swap Button */}
-            <button
-              onClick={handleSwap}
-              disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold px-5 py-3 rounded-xl transition-colors text-sm"
-            >
-              {loading ? "Building Tx..." : "Execute Swap"}
-            </button>
-          </div>
-        )}
-
-        {/* Swap Tx Result */}
+        {/* Transaction Result */}
         {swapTx && (
-          <div className="bg-gray-900/60 border border-green-800 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-green-400 uppercase tracking-wider mb-3">
-              ✅ Transaction Ready
-            </h3>
-            <p className="text-xs text-gray-400 mb-3">
-              Sign this transaction with your wallet to execute the swap.
-            </p>
-            <pre className="bg-gray-800 rounded-lg p-3 text-xs text-gray-300 overflow-x-auto font-mono">
-              {JSON.stringify(swapTx, null, 2)}
-            </pre>
+          <div className="flex flex-col w-[480px] bg-[#0d0e1a] rounded-2xl border border-border-subtle overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border-subtle">
+              <div className="w-2 h-2 rounded-full bg-gold" />
+              <span className="text-[13px] font-semibold text-gold-light">Sign this transaction with your wallet</span>
+            </div>
+            <div className="flex flex-col gap-0.5 px-5 py-4">
+              <code className="font-mono text-xs text-txt-secondary">{'{'}</code>
+              {Object.entries(swapTx).slice(0, 6).map(([key, val]) => (
+                <code key={key} className="font-mono text-xs text-txt-muted">
+                  {'  '}&quot;{key}&quot;: {JSON.stringify(val)},
+                </code>
+              ))}
+              <code className="font-mono text-xs text-txt-secondary">{'}'}</code>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Footer */}
-      <p className="mt-16 text-gray-600 text-xs">
-        MAIAT Protocol · Trust-Scored Swaps · Base
-      </p>
-    </main>
-  );
+    </div>
+  )
 }

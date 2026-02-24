@@ -1,208 +1,220 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-
-interface ScoreResult {
-  address: string;
-  score: number;
-  risk: string;
-  type: string;
-  flags: string[];
-  details: {
-    txCount: number;
-    isContract: boolean;
-    isKnownScam: boolean;
-  };
-  timestamp: string;
-  oracle: string;
-}
-
-function scoreColor(score: number): string {
-  if (score > 700) return "text-green-400";
-  if (score > 400) return "text-yellow-400";
-  return "text-red-400";
-}
-
-function scoreBorder(score: number): string {
-  if (score > 700) return "border-green-500";
-  if (score > 400) return "border-yellow-500";
-  return "border-red-500";
-}
-
-function scoreBg(score: number): string {
-  if (score > 700) return "bg-green-900/20";
-  if (score > 400) return "bg-yellow-900/20";
-  return "bg-red-900/20";
-}
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
+import {
+  Search, ShieldCheck, Gauge, Layers, ChevronDown, ArrowRight,
+  BookOpen, Github, Bot, Plug, Cpu, Repeat, Link as LinkIcon, Feather, Zap
+} from 'lucide-react'
 
 export default function HomePage() {
-  const [address, setAddress] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ScoreResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter()
+  const [address, setAddress] = useState('')
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!address.trim()) return;
-
-    setLoading(true);
-    setResult(null);
-    setError(null);
-
-    try {
-      const res = await fetch(`/api/v1/score/${address.trim()}`);
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? "Unknown error");
-      } else {
-        setResult(data);
-      }
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const q = address.trim()
+    if (!q) return
+    router.push(`/score/${q}`)
   }
 
   return (
-    <main className="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center px-4 py-16">
-      {/* Header */}
-      <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight mb-2">
-          🛡️ Agent Trust Score
-        </h1>
-        <p className="text-gray-400 text-sm max-w-sm mx-auto">
-          On-chain trust scoring for any Ethereum or Base address. Powered by{" "}
-          <span className="text-indigo-400 font-medium">MAIAT Protocol</span>.
-        </p>
-      </div>
+    <div className="flex flex-col min-h-screen bg-page">
+      <Header />
 
-      {/* Input Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-xl flex gap-2"
+      {/* Hero Section */}
+      <section className="flex flex-col items-center w-full px-[60px] pt-[100px] pb-20 gap-10"
+        style={{
+          background: 'linear-gradient(to bottom, var(--bg-page), var(--bg-page)), radial-gradient(ellipse at 50% 30%, rgba(212,160,23,0.125) 0%, transparent 70%)',
+        }}
       >
-        <input
-          type="text"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="0x... Ethereum / Base address"
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-          spellCheck={false}
-          autoComplete="off"
-        />
-        <button
-          type="submit"
-          disabled={loading || !address.trim()}
-          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold px-5 py-3 rounded-lg transition-colors text-sm"
-        >
-          {loading ? "Scoring…" : "Score"}
-        </button>
-      </form>
+        <div className="flex flex-col items-center gap-6">
+          {/* Badge */}
+          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#d4a01740]">
+            <div className="w-1.5 h-1.5 rounded-full bg-gold" />
+            <span className="text-xs font-medium text-gold tracking-[0.5px]">
+              The Trust Layer for the Agent Economy
+            </span>
+          </div>
 
-      {/* Error */}
-      {error && (
-        <div className="mt-6 w-full max-w-xl bg-red-900/30 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">
-          ⚠️ {error}
+          {/* Title */}
+          <h1
+            className="text-[80px] font-extrabold tracking-[-2px]"
+            style={{
+              background: 'linear-gradient(180deg, #d4a017 0%, #e8b84a 50%, #d4a017 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            Maiat
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-[22px] text-txt-secondary text-center max-w-[600px]">
+            Give me an address. I&apos;ll tell you if it&apos;s trustworthy.
+          </p>
         </div>
-      )}
 
-      {/* Result Card */}
-      {result && (
-        <div
-          className={`mt-8 w-full max-w-xl rounded-xl border-2 p-6 ${scoreBorder(result.score)} ${scoreBg(result.score)}`}
-        >
-          {/* Score */}
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">
-                Trust Score
-              </div>
-              <div className={`text-6xl font-black ${scoreColor(result.score)}`}>
-                {result.score}
-                <span className="text-2xl text-gray-500 font-normal">
-                  /1000
-                </span>
-              </div>
-            </div>
-            <div className="text-right">
-              <div
-                className={`text-xl font-bold ${scoreColor(result.score)} uppercase`}
-              >
-                {result.risk}
-              </div>
-              <div className="text-xs text-gray-400 mt-1">{result.type}</div>
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="flex items-center bg-surface rounded-xl border border-border-subtle overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3.5 border-r border-border-subtle">
+            <Layers className="w-4 h-4 text-turquoise" />
+            <span className="text-sm font-medium text-txt-primary">Base</span>
+            <ChevronDown className="w-3.5 h-3.5 text-txt-muted" />
+          </div>
+          <div className="flex items-center gap-2.5 px-5 py-3.5 w-[420px]">
+            <Search className="w-[18px] h-[18px] text-txt-muted" />
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Enter any address (0x...)"
+              className="bg-transparent font-mono text-sm text-txt-primary placeholder-txt-muted outline-none flex-1"
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </div>
+          <button
+            type="submit"
+            className="flex items-center gap-2 bg-gold px-6 py-3.5 rounded-r-xl hover:brightness-110 transition-all"
+          >
+            <ShieldCheck className="w-[18px] h-[18px] text-page" />
+            <span className="text-sm font-semibold text-page">Check Trust Score</span>
+          </button>
+        </form>
+
+        {/* Swap CTA */}
+        <div className="flex items-center gap-2 py-2">
+          <span className="text-sm text-txt-muted">Or swap safely</span>
+          <Link href="/swap" className="flex items-center gap-1.5 text-sm font-semibold text-turquoise hover:brightness-110 transition-all">
+            Trust-gated swap
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Stats Bar */}
+      <section className="flex items-center justify-between px-[60px] py-8 border-y border-border-subtle w-full">
+        {[
+          { value: '847,293', label: 'Addresses Scored', color: 'text-txt-primary' },
+          { value: '12,847', label: 'API Queries Today', color: 'text-txt-primary' },
+          { value: '6', label: 'Chains Supported', color: 'text-turquoise' },
+          { value: '<120ms', label: 'Avg Response Time', color: 'text-emerald' },
+        ].map((stat, i) => (
+          <div key={stat.label} className="flex items-center gap-0">
+            {i > 0 && <div className="w-px h-12 bg-border-subtle mr-auto" />}
+            <div className="flex flex-col items-center gap-1 flex-1">
+              <span className={`font-mono text-[28px] font-semibold ${stat.color}`}>{stat.value}</span>
+              <span className="text-xs font-medium text-txt-muted tracking-[0.5px]">{stat.label}</span>
             </div>
           </div>
+        ))}
+      </section>
 
-          {/* Address */}
-          <div className="mb-4">
-            <div className="text-xs text-gray-500 mb-1">Address</div>
-            <div className="font-mono text-xs text-gray-300 break-all">
-              {result.address}
-            </div>
-          </div>
+      {/* How It Works */}
+      <section className="flex flex-col items-center gap-12 px-[60px] py-20 w-full">
+        <div className="flex flex-col items-center gap-4">
+          <span className="text-xs font-semibold text-gold tracking-[2px]">HOW IT WORKS</span>
+          <h2 className="text-[40px] font-bold tracking-[-1px] text-txt-primary">Three steps to trust</h2>
+          <p className="text-lg text-txt-secondary">From query to protection in milliseconds</p>
+        </div>
 
-          {/* Details */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="bg-gray-900/60 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-white">
-                {result.details.txCount.toLocaleString()}
+        <div className="flex gap-6 w-full">
+          {[
+            { num: '01', numColor: 'text-gold', numBg: 'bg-[#d4a01718]', icon: Search, iconColor: 'text-gold', title: 'Query', desc: 'One API call, any address. Pass an on-chain address and get back a comprehensive trust assessment.' },
+            { num: '02', numColor: 'text-turquoise', numBg: 'bg-[#00b4d818]', icon: Gauge, iconColor: 'text-turquoise', title: 'Score', desc: '0-1000 trust score derived from on-chain history, contract analysis, blacklist checks, and activity patterns.' },
+            { num: '03', numColor: 'text-emerald', numBg: 'bg-[#00c9a718]', icon: ShieldCheck, iconColor: 'text-emerald', title: 'Protect', desc: 'Uniswap v4 Hook blocks untrusted swaps automatically. Your agents trade with confidence, on-chain.' },
+          ].map((card) => (
+            <div key={card.num} className="flex-1 flex flex-col gap-5 bg-surface rounded-2xl border border-border-subtle p-8">
+              <div className={`flex items-center justify-center w-12 h-12 rounded-xl ${card.numBg}`}>
+                <span className={`font-mono text-lg font-semibold ${card.numColor}`}>{card.num}</span>
               </div>
-              <div className="text-xs text-gray-400">Transactions</div>
+              <card.icon className={`w-8 h-8 ${card.iconColor}`} />
+              <h3 className="text-[22px] font-bold text-txt-primary">{card.title}</h3>
+              <p className="text-[15px] text-txt-secondary leading-[1.6]">{card.desc}</p>
             </div>
-            <div className="bg-gray-900/60 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-white">
-                {result.details.isContract ? "✅" : "❌"}
-              </div>
-              <div className="text-xs text-gray-400">Contract</div>
-            </div>
-            <div className="bg-gray-900/60 rounded-lg p-3 text-center">
-              <div className="text-lg font-bold text-white">
-                {result.details.isKnownScam ? "⚠️" : "✅"}
-              </div>
-              <div className="text-xs text-gray-400">Scam Check</div>
-            </div>
-          </div>
+          ))}
+        </div>
+      </section>
 
-          {/* Flags */}
-          {result.flags.length > 0 && (
-            <div className="mb-4">
-              <div className="text-xs text-gray-500 mb-2">Flags</div>
-              <div className="flex flex-wrap gap-2">
-                {result.flags.map((flag) => (
-                  <span
-                    key={flag}
-                    className="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded font-mono"
-                  >
-                    {flag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+      {/* Integrations */}
+      <section className="flex flex-col items-center gap-12 bg-surface border-y border-border-subtle px-[60px] py-20 w-full">
+        <div className="flex flex-col items-center gap-4">
+          <span className="text-xs font-semibold text-turquoise tracking-[2px]">INTEGRATIONS</span>
+          <h2 className="text-[40px] font-bold tracking-[-1px] text-txt-primary">Plug into the agent ecosystem</h2>
+          <p className="text-lg text-txt-secondary">One line of code to integrate trust scoring into any agent framework</p>
+        </div>
 
-          {/* Footer */}
-          <div className="text-xs text-gray-600 mt-2 flex justify-between">
-            <span>Oracle: {result.oracle}</span>
-            <span>{new Date(result.timestamp).toLocaleString()}</span>
+        <div className="flex items-center justify-center gap-10">
+          {[
+            { icon: Bot, name: 'AgentKit' },
+            { icon: Plug, name: 'MCP' },
+            { icon: Cpu, name: 'ElizaOS' },
+            { icon: Repeat, name: 'Uniswap v4' },
+            { icon: LinkIcon, name: 'Chainlink' },
+          ].map((logo) => (
+            <div key={logo.name} className="flex flex-col items-center gap-2.5 rounded-xl border border-border-subtle px-8 py-5">
+              <logo.icon className="w-8 h-8 text-txt-secondary" />
+              <span className="text-[13px] font-medium text-txt-secondary">{logo.name}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* For Developers */}
+      <section className="flex items-center gap-[60px] px-[60px] py-20 w-full">
+        {/* Left */}
+        <div className="flex-1 flex flex-col gap-6">
+          <span className="text-xs font-semibold text-emerald tracking-[2px]">FOR DEVELOPERS</span>
+          <h2 className="text-[36px] font-bold tracking-[-0.5px] text-txt-primary">Built for agents, by builders</h2>
+          <p className="text-base text-txt-secondary leading-[1.7]">
+            No API key needed for the free tier. One GET request returns a full trust assessment. Integrate into any agent framework in minutes.
+          </p>
+          <div className="flex gap-4">
+            <Link href="/docs" className="flex items-center gap-2 bg-gold rounded-[10px] px-7 py-3.5 hover:brightness-110 transition-all">
+              <BookOpen className="w-[18px] h-[18px] text-page" />
+              <span className="text-sm font-semibold text-page">Read the Docs</span>
+            </Link>
+            <a
+              href="https://github.com/JhiNResH/maiat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-[10px] px-7 py-3.5 border border-border-default hover:border-txt-muted transition-colors"
+            >
+              <Github className="w-[18px] h-[18px] text-txt-primary" />
+              <span className="text-sm font-semibold text-txt-primary">View on GitHub</span>
+            </a>
           </div>
         </div>
-      )}
 
-      {/* Swap Link */}
-      <a
-        href="/swap"
-        className="mt-8 inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 px-5 py-3 rounded-xl transition-colors text-sm"
-      >
-        🔄 Swap Tokens with Trust Scoring →
-      </a>
+        {/* Code Block */}
+        <div className="flex-1 flex flex-col rounded-2xl bg-[#0d0e1a] border border-border-subtle overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-border-subtle">
+            <div className="w-2 h-2 rounded-full bg-crimson" />
+            <div className="w-2 h-2 rounded-full bg-amber" />
+            <div className="w-2 h-2 rounded-full bg-emerald" />
+            <span className="ml-2 font-mono text-xs text-txt-muted">terminal</span>
+          </div>
+          <div className="flex flex-col gap-4 p-5">
+            <code className="font-mono text-[13px] text-emerald leading-[1.6] break-all">
+              $ curl https://api.maiat.xyz/v1/score/0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28
+            </code>
+            <div className="flex flex-col gap-1">
+              <code className="font-mono text-[13px] text-txt-secondary">{'{'}</code>
+              <code className="font-mono text-[13px] text-txt-secondary">{'  "address": "0x742d...bD28",'}</code>
+              <code className="font-mono text-[13px] text-gold">{'  "score": 847,'}</code>
+              <code className="font-mono text-[13px] text-emerald">{'  "risk_level": "trusted",'}</code>
+              <code className="font-mono text-[13px] text-txt-secondary">{'  "chain": "base"'}</code>
+              <code className="font-mono text-[13px] text-txt-secondary">{'}'}</code>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* Footer */}
-      <p className="mt-16 text-gray-600 text-xs">
-        MAIAT Protocol · Agent Trust Infrastructure · Base
-      </p>
-    </main>
-  );
+      <Footer />
+    </div>
+  )
 }

@@ -2,58 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Light mode defaults */
 :root {
-  --bg-primary: #f9fafb;
-  --bg-card: #ffffff;
-  --bg-hover: #f3f4f6;
-  --bg-input: #f9fafb;
-  --border: #e5e7eb;
-  --border-light: #f3f4f6;
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
-  --text-link: #2563eb;
+  /* Design system colors */
+  --bg-page: #0a0b14;
+  --bg-surface: #12131f;
+  --bg-elevated: #1a1b2e;
+  --border-default: #2a2b45;
+  --border-subtle: #1e2035;
+  --primary-gold: #d4a017;
+  --primary-gold-light: #e8b84a;
+  --secondary-turquoise: #00b4d8;
+  --success-emerald: #00c9a7;
+  --danger-crimson: #c0392b;
+  --warning-amber: #f59e0b;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary: #0f1117;
-    --bg-card: #1a1b23;
-    --bg-hover: #22232d;
-    --bg-input: #1a1b23;
-    --border: #2a2b35;
-    --border-light: #22232d;
-    --text-primary: #e5e7eb;
-    --text-secondary: #9ca3af;
-    --text-muted: #6b7280;
-    --text-link: #60a5fa;
+@layer base {
+  html, body {
+    height: 100%;
   }
-}
 
-/* Also support class-based toggle */
-.dark {
-  --bg-primary: #0f1117;
-  --bg-card: #1a1b23;
-  --bg-hover: #22232d;
-  --bg-input: #1a1b23;
-  --border: #2a2b35;
-  --border-light: #22232d;
-  --text-primary: #e5e7eb;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
-  --text-link: #60a5fa;
+  .font-mono {
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  }
 }
 
 body {
-  background-color: var(--bg-primary);
+  background-color: var(--bg-page);
   color: var(--text-primary);
   min-height: 100vh;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
 }
