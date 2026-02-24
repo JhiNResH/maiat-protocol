@@ -1,6 +1,6 @@
 {
   "name": "@jhinresh/mcp-server",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Maiat Trust Score MCP Server — trust scoring for AI agents via Model Context Protocol",
   "license": "MIT",
   "type": "module",
