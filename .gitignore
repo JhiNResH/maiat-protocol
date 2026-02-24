@@ -10,3 +10,4 @@ virtuals-acp/
 contracts/lib/
 *.db
 prisma/dev.db
+cre/.env
