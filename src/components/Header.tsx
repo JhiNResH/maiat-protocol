@@ -42,7 +42,7 @@ export function Header() {
             spellCheck={false}
           />
         </form>
-        <Link href="/" className="text-sm font-medium text-txt-secondary hover:text-txt-primary transition-colors">
+        <Link href="/explore" className="text-sm font-medium text-txt-secondary hover:text-txt-primary transition-colors">
           Explore
         </Link>
         <Link href="/swap" className="text-sm font-medium text-txt-secondary hover:text-txt-primary transition-colors">
