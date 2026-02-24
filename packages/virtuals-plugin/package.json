@@ -25,7 +25,8 @@
     }
   },
   "devDependencies": {
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "@virtuals-protocol/game": "^0.1.14"
   },
   "keywords": ["maiat", "virtuals", "game-sdk", "trust-score", "ai-agent", "web3", "virtual-protocol"],
   "repository": {

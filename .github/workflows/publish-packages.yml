@@ -16,9 +16,11 @@ permissions:
   id-token: write
 
 jobs:
+  # ─── Publish to npmjs.org ─────────────────────────────────────────────────
   publish:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         package:
           - elizaos-plugin
@@ -49,9 +51,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+  # ─── Publish to GitHub Packages ───────────────────────────────────────────
   publish-gpr:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         package:
           - elizaos-plugin
@@ -65,7 +69,11 @@ jobs:
         with:
           node-version: '20'
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@maiat'
+          scope: '@jhinresh'
+
+      - name: Skip if manual and not selected
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.package != 'all' && github.event.inputs.package != matrix.package
+        run: exit 0
 
       - name: Install & Build
         working-directory: packages/${{ matrix.package }}
@@ -75,6 +83,6 @@ jobs:
 
       - name: Publish to GitHub Packages
         working-directory: packages/${{ matrix.package }}
-        run: npm publish
+        run: npm publish --registry https://npm.pkg.github.com
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
