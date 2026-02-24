@@ -1,26 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import {
-  Search, ShieldCheck, Gauge, Layers, ChevronDown, ArrowRight,
-  BookOpen, Github, Bot, Plug, Cpu, Repeat, Link as LinkIcon, Feather, Zap
+  Search, ShieldCheck, Gauge, ArrowRight,
+  BookOpen, Github, Bot, Plug, Cpu, Repeat, Link as LinkIcon, Feather
 } from 'lucide-react'
 
 export default function HomePage() {
-  const router = useRouter()
-  const [address, setAddress] = useState('')
-
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
-    const q = address.trim()
-    if (!q) return
-    router.push(`/score/${q}`)
-  }
-
   return (
     <div className="flex flex-col min-h-screen bg-page">
       <Header />
@@ -54,44 +42,24 @@ export default function HomePage() {
 
           {/* Subtitle */}
           <p className="text-[22px] text-txt-secondary text-center max-w-[600px]">
-            Give me an address. I&apos;ll tell you if it&apos;s trustworthy.
+            The native trust and reputation layer for agents on Base.
           </p>
         </div>
 
-        {/* Search Bar */}
-        <form onSubmit={handleSearch} className="flex items-center bg-surface rounded-xl border border-border-subtle overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3.5 border-r border-border-subtle">
-            <Layers className="w-4 h-4 text-turquoise" />
-            <span className="text-sm font-medium text-txt-primary">Base</span>
-            <ChevronDown className="w-3.5 h-3.5 text-txt-muted" />
-          </div>
-          <div className="flex items-center gap-2.5 px-5 py-3.5 w-[420px]">
-            <Search className="w-[18px] h-[18px] text-txt-muted" />
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Enter any address (0x...)"
-              className="bg-transparent font-mono text-sm text-txt-primary placeholder-txt-muted outline-none flex-1"
-              spellCheck={false}
-              autoComplete="off"
-            />
-          </div>
-          <button
-            type="submit"
-            className="flex items-center gap-2 bg-gold px-6 py-3.5 rounded-r-xl hover:brightness-110 transition-all"
+        {/* Launch App CTA */}
+        <div className="flex items-center gap-4 mt-4">
+          <Link
+            href="/explore"
+            className="flex items-center gap-2 bg-gold px-8 py-4 rounded-xl hover:brightness-110 transition-all shadow-[0_0_20px_rgba(212,160,23,0.3)]"
           >
-            <ShieldCheck className="w-[18px] h-[18px] text-page" />
-            <span className="text-sm font-semibold text-page">Check Trust Score</span>
-          </button>
-        </form>
-
-        {/* Swap CTA */}
-        <div className="flex items-center gap-2 py-2">
-          <span className="text-sm text-txt-muted">Or swap safely</span>
-          <Link href="/swap" className="flex items-center gap-1.5 text-sm font-semibold text-turquoise hover:brightness-110 transition-all">
-            Trust-gated swap
-            <ArrowRight className="w-4 h-4" />
+            <span className="text-base font-bold text-page">Launch App</span>
+            <ArrowRight className="w-5 h-5 text-page" />
+          </Link>
+          <Link
+            href="/docs"
+            className="flex items-center gap-2 bg-surface border border-border-subtle px-8 py-4 rounded-xl hover:border-gold/50 transition-colors"
+          >
+            <span className="text-base font-bold text-txt-primary">Read Docs</span>
           </Link>
         </div>
       </section>

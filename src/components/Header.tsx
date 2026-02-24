@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Feather, Search, Github } from 'lucide-react'
 import { ConnectButton } from './ConnectButton'
+import { usePrivy } from '@privy-io/react-auth'
 
 export function Header() {
   const router = useRouter()
+  const { ready, authenticated } = usePrivy()
   const [query, setQuery] = useState('')
 
   function handleSearch(e: React.FormEvent) {
@@ -23,7 +25,7 @@ export function Header() {
   }
 
   return (
-    <header className="flex items-center justify-between px-[60px] py-5 border-b border-border-subtle w-full">
+    <header className="flex items-center justify-between px-[60px] py-5 border-b border-border-subtle w-full z-10 relative bg-page">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2.5">
         <Feather className="w-7 h-7 text-gold" />
@@ -31,7 +33,7 @@ export function Header() {
       </Link>
 
       {/* Nav Links */}
-      <nav className="flex items-center gap-8">
+      <nav className="flex items-center gap-8 bg-page">
         <form onSubmit={handleSearch} className="flex items-center gap-2 rounded-lg border border-border-subtle px-3.5 py-2">
           <Search className="w-4 h-4 text-txt-muted" />
           <input
@@ -43,6 +45,11 @@ export function Header() {
             spellCheck={false}
           />
         </form>
+        {ready && authenticated && (
+          <Link href="/dashboard" className="text-sm font-bold text-gold hover:text-gold/80 transition-colors">
+            Dashboard
+          </Link>
+        )}
         <Link href="/explore" className="text-sm font-medium text-txt-secondary hover:text-txt-primary transition-colors">
           Explore
         </Link>

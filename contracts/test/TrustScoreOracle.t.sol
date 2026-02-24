@@ -271,14 +271,14 @@ contract TrustScoreOracleTest is Test {
         uint256 updatedAt = block.timestamp;
 
         // Warp past staleness window
-        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE() + 1);
+        vm.warp(block.timestamp + 7 days + 1);
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 TrustScoreOracle.TrustScoreOracle__StaleScore.selector,
                 token,
                 updatedAt,
-                oracle.SCORE_MAX_AGE()
+                7 days
             )
         );
         oracle.getScore(token);
@@ -287,20 +287,20 @@ contract TrustScoreOracleTest is Test {
     function test_GetScore_ExactBoundary_Passes() public {
         oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
         // Exactly at max age — should still pass (not strictly greater)
-        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE());
+        vm.warp(block.timestamp + 7 days);
         assertEq(oracle.getScore(token), 70);
     }
 
     function test_GetScore_OneBeyondBoundary_Reverts() public {
         oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
         uint256 updatedAt = block.timestamp;
-        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE() + 1);
+        vm.warp(block.timestamp + 7 days + 1);
         vm.expectRevert(
             abi.encodeWithSelector(
                 TrustScoreOracle.TrustScoreOracle__StaleScore.selector,
                 token,
                 updatedAt,
-                oracle.SCORE_MAX_AGE()
+                7 days
             )
         );
         oracle.getScore(token);
@@ -308,7 +308,7 @@ contract TrustScoreOracleTest is Test {
 
     function test_GetScore_RefreshResetsStale() public {
         oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
-        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE() + 100);
+        vm.warp(block.timestamp + 7 days + 100);
 
         // Refresh score
         oracle.updateTokenScore(token, 75, 15, 420, TrustScoreOracle.DataSource.VERIFIED);

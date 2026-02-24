@@ -308,7 +308,7 @@ contract TrustGateHookTest is Test {
         _setScores(80, 80);
 
         // Warp past SCORE_MAX_AGE
-        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE() + 1);
+        vm.warp(block.timestamp + 7 days + 1);
 
         // Should revert due to stale oracle score
         vm.prank(mockPoolManager);
@@ -318,7 +318,7 @@ contract TrustGateHookTest is Test {
 
     function test_BeforeSwap_StaleScoreRefreshed_AllowsSwap() public {
         _setScores(80, 80);
-        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE() + 1);
+        vm.warp(block.timestamp + 7 days + 1);
 
         // Refresh scores
         _setScores(80, 80);

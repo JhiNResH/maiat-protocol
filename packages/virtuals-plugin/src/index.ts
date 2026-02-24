@@ -417,6 +417,7 @@ export async function createMaiatWorker(config: MaiatVirtualsConfig = {}) {
   let GameWorker: new (cfg: { id: string; name: string; description: string; functions: unknown[] }) => unknown;
 
   try {
+    // @ts-ignore
     const sdk = await import("@virtuals-protocol/game");
     GameFunction = (sdk as Record<string, unknown>)["GameFunction"] as typeof GameFunction;
     GameWorker = (sdk as Record<string, unknown>)["GameWorker"] as typeof GameWorker;
