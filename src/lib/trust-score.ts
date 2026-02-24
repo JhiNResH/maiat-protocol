@@ -287,3 +287,86 @@ export function isStale(
   const ageMs = Date.now() - lastUpdated.getTime()
   return ageMs > thresholdHours * 60 * 60 * 1000
 }
+
+// ============================================
+// V3: Unified Review Count + DataSource Resolution
+// ============================================
+
+export type UnifiedDataSource = 'seed' | 'onchain' | 'community' | 'verified'
+
+/**
+ * Get total review count for an address, combining both review systems:
+ * - Review model (project-based, linked to Project table)
+ * - TrustReview model (address-based, from v1 API)
+ *
+ * This bridges the gap between the two review systems.
+ */
+export async function getReviewCountForAddress(address: string): Promise<{
+  total: number
+  projectReviews: number
+  trustReviews: number
+  avgRating: number
+}> {
+  const normalizedAddress = address.toLowerCase()
+
+  try {
+    const [trustReviews, projectReviewData] = await Promise.all([
+      // TrustReview table (v1 API reviews)
+      prisma.trustReview.findMany({
+        where: { address: { equals: address, mode: 'insensitive' } },
+        select: { rating: true },
+      }),
+      // Review table (project-based reviews) — need to find project first
+      prisma.project.findFirst({
+        where: { address: normalizedAddress },
+        select: {
+          reviews: {
+            where: { status: 'active' },
+            select: { rating: true },
+          },
+        },
+      }),
+    ])
+
+    const projectReviews = projectReviewData?.reviews ?? []
+    const allRatings = [
+      ...trustReviews.map(r => r.rating),
+      ...projectReviews.map(r => r.rating),
+    ]
+
+    const total = allRatings.length
+    const avgRating = total > 0
+      ? Math.round((allRatings.reduce((s, r) => s + r, 0) / total) * 10) / 10
+      : 0
+
+    return {
+      total,
+      projectReviews: projectReviews.length,
+      trustReviews: trustReviews.length,
+      avgRating,
+    }
+  } catch {
+    return { total: 0, projectReviews: 0, trustReviews: 0, avgRating: 0 }
+  }
+}
+
+/**
+ * Determine the data source for an address based on review count.
+ *
+ * - reviewCount >= 5 → 'community' (unlocks token in TrustGateHook)
+ * - reviewCount > 0 but < 5 → 'onchain' (has some data but not enough)
+ * - reviewCount === 0 → 'seed' (hardcoded baseline only)
+ *
+ * This is used by the sync-oracle script to set the correct DataSource
+ * on the TrustScoreOracle contract.
+ */
+export async function getDataSourceForAddress(
+  address: string
+): Promise<UnifiedDataSource> {
+  const { total } = await getReviewCountForAddress(address)
+
+  if (total >= 5) return 'community'
+  if (total > 0) return 'onchain'
+  return 'seed'
+}
+
