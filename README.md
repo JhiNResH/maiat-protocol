@@ -71,10 +71,10 @@ Plug-and-play trust scoring for every major agent framework.
 
 | Package | Registry | Install |
 |---------|----------|---------|
-| [![npm](https://img.shields.io/npm/v/@maiat/agentkit-plugin?label=%40maiat%2Fagentkit-plugin&color=blue)](https://www.npmjs.com/package/@maiat/agentkit-plugin) | npm | `npm i @maiat/agentkit-plugin` |
-| [![npm](https://img.shields.io/npm/v/@maiat/elizaos-plugin?label=%40maiat%2Felizaos-plugin&color=blue)](https://www.npmjs.com/package/@maiat/elizaos-plugin) | npm | `npm i @maiat/elizaos-plugin` |
-| [![npm](https://img.shields.io/npm/v/@maiat/mcp-server?label=%40maiat%2Fmcp-server&color=blue)](https://www.npmjs.com/package/@maiat/mcp-server) | npm | `npm i @maiat/mcp-server` |
-| [![npm](https://img.shields.io/npm/v/@maiat/virtuals-plugin?label=%40maiat%2Fvirtuals-plugin&color=blue)](https://www.npmjs.com/package/@maiat/virtuals-plugin) | npm | `npm i @maiat/virtuals-plugin` |
+| [![npm](https://img.shields.io/npm/v/@jhinresh/agentkit-plugin?label=%40jhinresh%2Fagentkit-plugin&color=blue)](https://www.npmjs.com/package/@jhinresh/agentkit-plugin) | npm | `npm i @jhinresh/agentkit-plugin` |
+| [![npm](https://img.shields.io/npm/v/@jhinresh/elizaos-plugin?label=%40jhinresh%2Felizaos-plugin&color=blue)](https://www.npmjs.com/package/@jhinresh/elizaos-plugin) | npm | `npm i @jhinresh/elizaos-plugin` |
+| [![npm](https://img.shields.io/npm/v/@jhinresh/mcp-server?label=%40jhinresh%2Fmcp-server&color=blue)](https://www.npmjs.com/package/@jhinresh/mcp-server) | npm | `npm i @jhinresh/mcp-server` |
+| [![npm](https://img.shields.io/npm/v/@jhinresh/virtuals-plugin?label=%40jhinresh%2Fvirtuals-plugin&color=blue)](https://www.npmjs.com/package/@jhinresh/virtuals-plugin) | npm | `npm i @jhinresh/virtuals-plugin` |
 
 Also available on [GitHub Packages](https://github.com/JhiNResH/maiat-protocol/packages).
 
@@ -82,7 +82,7 @@ Also available on [GitHub Packages](https://github.com/JhiNResH/maiat-protocol/p
 
 ```typescript
 import { AgentKit } from "@coinbase/agentkit";
-import { maiatTrustPlugin } from "@maiat/agentkit-plugin";
+import { maiatTrustPlugin } from "@jhinresh/agentkit-plugin";
 
 const plugin = maiatTrustPlugin({ minScore: 3.0 });
 // Provides: maiat_check_trust, maiat_gate_transaction actions
@@ -92,7 +92,7 @@ agent.use(plugin);
 ### ElizaOS (ai16z)
 
 ```typescript
-import { maiatPlugin } from "@maiat/elizaos-plugin";
+import { maiatPlugin } from "@jhinresh/elizaos-plugin";
 
 const agent = new ElizaAgent({
   plugins: [maiatPlugin({ minScore: 3.0 })],
@@ -104,7 +104,7 @@ const agent = new ElizaAgent({
 
 ```typescript
 import { GameAgent } from "@virtuals-protocol/game";
-import { createMaiatWorker } from "@maiat/virtuals-plugin";
+import { createMaiatWorker } from "@jhinresh/virtuals-plugin";
 
 const maiatWorker = await createMaiatWorker({ minScore: 3.0 });
 
@@ -126,7 +126,7 @@ await agent.run(10);
   "mcpServers": {
     "maiat": {
       "command": "npx",
-      "args": ["@maiat/mcp-server"],
+      "args": ["@jhinresh/mcp-server"],
       "env": { "MAIAT_API_URL": "https://maiat-protocol.vercel.app" }
     }
   }
@@ -135,7 +135,7 @@ await agent.run(10);
 
 ```bash
 # Or run standalone
-npx @maiat/mcp-server
+npx @jhinresh/mcp-server
 ```
 
 ---
