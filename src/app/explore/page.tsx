@@ -57,22 +57,22 @@ const REVIEW_TAGS = ['Trustworthy', 'Suspicious', 'Rug Risk', 'Well Audited', 'I
 // ============================================================================
 
 const SEED_ITEMS: ExploreItem[] = [
-  { id: '1', address: '0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24', name: 'Uniswap V3 Router', category: 'DEX', chain: 'Base', trustScore: 847, riskLevel: 'LOW', txCount: 245891, reviewCount: 47, ageLabel: '4y', starRating: 4.7, latestReview: 'Battle-tested protocol with consistent performance.', iconLetter: 'U', iconColor: '#FF007A' },
-  { id: '2', address: '0xA238Dd80C259a72e81d7e4664a9801593F98d1c5', name: 'Aave V3 Pool', category: 'Lending', chain: 'Base', trustScore: 920, riskLevel: 'LOW', txCount: 189432, reviewCount: 38, ageLabel: '3y', starRating: 4.5, latestReview: 'Solid lending protocol, governance is strong.', iconLetter: 'A', iconColor: '#B6509E' },
-  { id: '3', address: '0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43', name: 'Aerodrome Router', category: 'DEX', chain: 'Base', trustScore: 780, riskLevel: 'LOW', txCount: 312847, reviewCount: 29, ageLabel: '2y', starRating: 4.2, latestReview: 'Best DEX on Base, great liquidity.', iconLetter: 'Ae', iconColor: '#0052FF' },
-  { id: '4', address: '0x45f1A95A4D3f3836523F5c83673c797f4d4d263B', name: 'Stargate Router', category: 'Bridge', chain: 'Base', trustScore: 790, riskLevel: 'LOW', txCount: 98234, reviewCount: 15, ageLabel: '2y', starRating: 3.8, latestReview: 'Works well for cross-chain, decent fees.', iconLetter: 'S', iconColor: '#6366F1' },
-  { id: '5', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', name: 'USDC', category: 'Stablecoin', chain: 'Base', trustScore: 920, riskLevel: 'LOW', txCount: 1567890, reviewCount: 42, ageLabel: '5y', starRating: 4.6, latestReview: 'Gold standard stablecoin, fully backed.', iconLetter: 'U', iconColor: '#2775CA' },
-  { id: '6', address: '0xb125E6687d4313864e53df431d5425969c15Eb2F', name: 'Compound V3', category: 'Lending', chain: 'Base', trustScore: 880, riskLevel: 'LOW', txCount: 134567, reviewCount: 31, ageLabel: '4y', starRating: 4.3, latestReview: 'Reliable but UI could use improvement.', iconLetter: 'C', iconColor: '#00D395' },
-  { id: '7', address: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb', name: 'Morpho Blue', category: 'Lending', chain: 'Base', trustScore: 820, riskLevel: 'LOW', txCount: 87654, reviewCount: 12, ageLabel: '1y', starRating: 4.1, latestReview: 'Innovative lending design, growing fast.', iconLetter: 'M', iconColor: '#1A1B23' },
-  { id: '8', address: '0x4200000000000000000000000000000000000006', name: 'WETH', category: 'Token', chain: 'Base', trustScore: 920, riskLevel: 'LOW', txCount: 2345678, reviewCount: 55, ageLabel: '5y+', starRating: 4.8, latestReview: 'Canonical wrapped ETH, no concerns.', iconLetter: 'W', iconColor: '#627EEA' },
+  { id: '1', address: '0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24', name: 'Uniswap V3 Router', category: 'DEX', chain: 'Base', trustScore: 8.5, riskLevel: 'LOW', txCount: 245891, reviewCount: 47, ageLabel: '4y', starRating: 4.7, latestReview: 'Battle-tested protocol with consistent performance.', iconLetter: 'U', iconColor: '#FF007A' },
+  { id: '2', address: '0xA238Dd80C259a72e81d7e4664a9801593F98d1c5', name: 'Aave V3 Pool', category: 'Lending', chain: 'Base', trustScore: 9.2, riskLevel: 'LOW', txCount: 189432, reviewCount: 38, ageLabel: '3y', starRating: 4.5, latestReview: 'Solid lending protocol, governance is strong.', iconLetter: 'A', iconColor: '#B6509E' },
+  { id: '3', address: '0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43', name: 'Aerodrome Router', category: 'DEX', chain: 'Base', trustScore: 7.8, riskLevel: 'LOW', txCount: 312847, reviewCount: 29, ageLabel: '2y', starRating: 4.2, latestReview: 'Best DEX on Base, great liquidity.', iconLetter: 'Ae', iconColor: '#0052FF' },
+  { id: '4', address: '0x45f1A95A4D3f3836523F5c83673c797f4d4d263B', name: 'Stargate Router', category: 'Bridge', chain: 'Base', trustScore: 7.9, riskLevel: 'LOW', txCount: 98234, reviewCount: 15, ageLabel: '2y', starRating: 3.8, latestReview: 'Works well for cross-chain, decent fees.', iconLetter: 'S', iconColor: '#6366F1' },
+  { id: '5', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', name: 'USDC', category: 'Stablecoin', chain: 'Base', trustScore: 9.2, riskLevel: 'LOW', txCount: 1567890, reviewCount: 42, ageLabel: '5y', starRating: 4.6, latestReview: 'Gold standard stablecoin, fully backed.', iconLetter: 'U', iconColor: '#2775CA' },
+  { id: '6', address: '0xb125E6687d4313864e53df431d5425969c15Eb2F', name: 'Compound V3', category: 'Lending', chain: 'Base', trustScore: 8.8, riskLevel: 'LOW', txCount: 134567, reviewCount: 31, ageLabel: '4y', starRating: 4.3, latestReview: 'Reliable but UI could use improvement.', iconLetter: 'C', iconColor: '#00D395' },
+  { id: '7', address: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb', name: 'Morpho Blue', category: 'Lending', chain: 'Base', trustScore: 8.2, riskLevel: 'LOW', txCount: 87654, reviewCount: 12, ageLabel: '1y', starRating: 4.1, latestReview: 'Innovative lending design, growing fast.', iconLetter: 'M', iconColor: '#1A1B23' },
+  { id: '8', address: '0x4200000000000000000000000000000000000006', name: 'WETH', category: 'Token', chain: 'Base', trustScore: 9.2, riskLevel: 'LOW', txCount: 2345678, reviewCount: 55, ageLabel: '5y+', starRating: 4.8, latestReview: 'Canonical wrapped ETH, no concerns.', iconLetter: 'W', iconColor: '#627EEA' },
   // Agents
-  { id: '9', address: '0x44ff8620b8cA30902395A7bD3F2407e1A091BF73', name: 'Virtuals Protocol', category: 'Agent', chain: 'Base', trustScore: 720, riskLevel: 'LOW', txCount: 156000, reviewCount: 18, ageLabel: '1y', starRating: 3.9, latestReview: 'Leading agent token launchpad on Base.', iconLetter: 'V', iconColor: '#7C3AED' },
-  { id: '10', address: '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b', name: 'AIXBT Agent', category: 'Agent', chain: 'Base', trustScore: 580, riskLevel: 'MEDIUM', txCount: 45000, reviewCount: 7, ageLabel: '6mo', starRating: 3.4, latestReview: 'Popular CT agent, volatile token price.', iconLetter: 'AI', iconColor: '#F97316' },
-  { id: '11', address: '0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452', name: 'Luna by Virtuals', category: 'Agent', chain: 'Base', trustScore: 490, riskLevel: 'MEDIUM', txCount: 23000, reviewCount: 5, ageLabel: '4mo', starRating: 3.0, latestReview: 'TikTok famous agent, unclear utility.', iconLetter: 'L', iconColor: '#EC4899' },
-  { id: '12', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', name: 'DAI', category: 'Stablecoin', chain: 'Base', trustScore: 890, riskLevel: 'LOW', txCount: 890000, reviewCount: 35, ageLabel: '5y+', starRating: 4.5, latestReview: 'Decentralized stablecoin pioneer.', iconLetter: 'D', iconColor: '#F5AC37' },
+  { id: '9', address: '0x44ff8620b8cA30902395A7bD3F2407e1A091BF73', name: 'Virtuals Protocol', category: 'Agent', chain: 'Base', trustScore: 7.2, riskLevel: 'LOW', txCount: 156000, reviewCount: 18, ageLabel: '1y', starRating: 3.9, latestReview: 'Leading agent token launchpad on Base.', iconLetter: 'V', iconColor: '#7C3AED' },
+  { id: '10', address: '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b', name: 'AIXBT Agent', category: 'Agent', chain: 'Base', trustScore: 5.8, riskLevel: 'MEDIUM', txCount: 45000, reviewCount: 7, ageLabel: '6mo', starRating: 3.4, latestReview: 'Popular CT agent, volatile token price.', iconLetter: 'AI', iconColor: '#F97316' },
+  { id: '11', address: '0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452', name: 'Luna by Virtuals', category: 'Agent', chain: 'Base', trustScore: 4.9, riskLevel: 'MEDIUM', txCount: 23000, reviewCount: 5, ageLabel: '4mo', starRating: 3.0, latestReview: 'TikTok famous agent, unclear utility.', iconLetter: 'L', iconColor: '#EC4899' },
+  { id: '12', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', name: 'DAI', category: 'Stablecoin', chain: 'Base', trustScore: 8.9, riskLevel: 'LOW', txCount: 890000, reviewCount: 35, ageLabel: '5y+', starRating: 4.5, latestReview: 'Decentralized stablecoin pioneer.', iconLetter: 'D', iconColor: '#F5AC37' },
   // Protocols
-  { id: '13', address: '0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70', name: 'Chainlink ETH/USD', category: 'Oracle', chain: 'Base', trustScore: 910, riskLevel: 'LOW', txCount: 1200000, reviewCount: 28, ageLabel: '4y', starRating: 4.7, latestReview: 'The oracle standard, extremely reliable.', iconLetter: 'C', iconColor: '#375BD2' },
-  { id: '14', address: '0x4200000000000000000000000000000000000010', name: 'Base Bridge', category: 'Bridge', chain: 'Base', trustScore: 870, riskLevel: 'LOW', txCount: 3400000, reviewCount: 22, ageLabel: '2y', starRating: 4.3, latestReview: 'Official L2 bridge, trust Coinbase infra.', iconLetter: 'B', iconColor: '#0052FF' },
+  { id: '13', address: '0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70', name: 'Chainlink ETH/USD', category: 'Oracle', chain: 'Base', trustScore: 9.1, riskLevel: 'LOW', txCount: 1200000, reviewCount: 28, ageLabel: '4y', starRating: 4.7, latestReview: 'The oracle standard, extremely reliable.', iconLetter: 'C', iconColor: '#375BD2' },
+  { id: '14', address: '0x4200000000000000000000000000000000000010', name: 'Base Bridge', category: 'Bridge', chain: 'Base', trustScore: 8.7, riskLevel: 'LOW', txCount: 3400000, reviewCount: 22, ageLabel: '2y', starRating: 4.3, latestReview: 'Official L2 bridge, trust Coinbase infra.', iconLetter: 'B', iconColor: '#0052FF' },
 ]
 
 const TOP_MOVERS = [
@@ -88,9 +88,9 @@ const RECENT_REVIEWS = [
 ]
 
 const NEEDS_REVIEW = [
-  { name: 'Base Bridge', address: '0x4200000000000000000000000000000000000010', score: 870 },
-  { name: 'DAI', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', score: 890 },
-  { name: 'Chainlink Feed', address: '0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70', score: 910 },
+  { name: 'Base Bridge', address: '0x4200000000000000000000000000000000000010', score: 8.7 },
+  { name: 'DAI', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', score: 8.9 },
+  { name: 'Chainlink Feed', address: '0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70', score: 9.1 },
 ]
 
 // ============================================================================
@@ -98,14 +98,14 @@ const NEEDS_REVIEW = [
 // ============================================================================
 
 function scoreColor(score: number) {
-  if (score >= 700) return 'text-green-400'
-  if (score >= 400) return 'text-yellow-400'
+  if (score >= 7.0) return 'text-green-400'
+  if (score >= 4.0) return 'text-yellow-400'
   return 'text-red-400'
 }
 
 function scoreBg(score: number) {
-  if (score >= 700) return 'bg-green-500/15 border-green-500/30'
-  if (score >= 400) return 'bg-yellow-500/15 border-yellow-500/30'
+  if (score >= 7.0) return 'bg-green-500/15 border-green-500/30'
+  if (score >= 4.0) return 'bg-yellow-500/15 border-yellow-500/30'
   return 'bg-red-500/15 border-red-500/30'
 }
 

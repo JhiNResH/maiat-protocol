@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { computeTrustScore } from "@/lib/scoring";
+import { generateSummary } from "@/lib/ai-summary";
 
 // --- Simple in-memory IP rate limiter ---
 const ipHits = new Map<string, { count: number; resetAt: number }>();
@@ -53,6 +54,23 @@ export async function GET(
   try {
     const result = await computeTrustScore(address);
 
+    // Optional AI summary
+    const wantSummary = request.nextUrl.searchParams.get("summary") === "true";
+    let summary: string | null = null;
+    if (wantSummary) {
+      summary = await generateSummary({
+        address,
+        score: result.score,
+        risk: result.risk,
+        type: result.type,
+        flags: result.flags,
+        protocolName: result.protocol?.name,
+        txCount: result.details.txCount,
+        balanceETH: result.details.balanceETH,
+        walletAge: result.details.walletAge,
+      });
+    }
+
     return NextResponse.json(
       {
         address,
@@ -63,6 +81,7 @@ export async function GET(
         breakdown: result.breakdown,
         ...(result.protocol && { protocol: result.protocol }),
         details: result.details,
+        ...(summary && { summary }),
         timestamp: new Date().toISOString(),
         oracle: "maiat-trust-v1",
       },
