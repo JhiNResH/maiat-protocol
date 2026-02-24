@@ -16,6 +16,7 @@ interface ScoreResult {
   risk: string
   type: string
   flags: string[]
+  summary?: string
   details: {
     txCount: number
     isContract: boolean
@@ -33,16 +34,16 @@ interface ScoreResult {
 }
 
 function tierLabel(score: number) {
-  if (score > 700) return { label: 'Guardian', color: 'text-emerald', bg: 'bg-[#00c9a718]', icon: ShieldCheck }
-  if (score > 400) return { label: 'Cautious', color: 'text-amber', bg: 'bg-[#f59e0b18]', icon: Shield }
-  if (score > 100) return { label: 'Risky', color: 'text-crimson', bg: 'bg-[#c0392b18]', icon: Shield }
+  if (score >= 7.0) return { label: 'Guardian', color: 'text-emerald', bg: 'bg-[#00c9a718]', icon: ShieldCheck }
+  if (score >= 4.0) return { label: 'Cautious', color: 'text-amber', bg: 'bg-[#f59e0b18]', icon: Shield }
+  if (score >= 1.0) return { label: 'Risky', color: 'text-crimson', bg: 'bg-[#c0392b18]', icon: Shield }
   return { label: 'Unscored', color: 'text-txt-muted', bg: 'bg-[#64748b18]', icon: Shield }
 }
 
 function trustDescription(score: number) {
-  if (score > 700) return 'This address demonstrates strong on-chain history, verified contract interactions, and clean blacklist records.'
-  if (score > 400) return 'This address shows moderate on-chain activity. Some risk factors detected. Proceed with caution.'
-  if (score > 100) return 'This address has limited history or flagged risk indicators. Exercise extreme caution with any interactions.'
+  if (score >= 7.0) return 'This address demonstrates strong on-chain history, verified contract interactions, and clean blacklist records.'
+  if (score >= 4.0) return 'This address shows moderate on-chain activity. Some risk factors detected. Proceed with caution.'
+  if (score >= 1.0) return 'This address has limited history or flagged risk indicators. Exercise extreme caution with any interactions.'
   return 'This address has not been scored yet. No trust data is available.'
 }
 
@@ -57,7 +58,7 @@ export default function AddressDetailPage() {
   useEffect(() => {
     async function fetchScore() {
       try {
-        const res = await fetch(`/api/v1/score/${address}`)
+        const res = await fetch(`/api/v1/score/${address}?summary=true`)
         const data = await res.json()
         if (!res.ok) {
           setError(data.error ?? 'Failed to fetch score')
@@ -92,8 +93,8 @@ export default function AddressDetailPage() {
   }
 
   const flags = result?.flags ?? []
-  const isHighTrust = score > 700
-  const isMedTrust = score > 400 && score <= 700
+  const isHighTrust = score >= 7.0
+  const isMedTrust = score >= 4.0 && score < 7.0
   const flagColor = isHighTrust ? 'text-emerald' : isMedTrust ? 'text-amber' : 'text-crimson'
   const flagBg = isHighTrust ? 'bg-[#00c9a712]' : isMedTrust ? 'bg-[#f59e0b12]' : 'bg-[#c0392b12]'
 
@@ -143,9 +144,9 @@ export default function AddressDetailPage() {
                     <span className={`text-sm font-semibold ${tier.color}`}>{tier.label}</span>
                   </div>
                   <h2 className="text-xl font-bold text-txt-primary">
-                    Trust Level: {score > 700 ? 'Highly Trusted' : score > 400 ? 'Moderate Trust' : score > 100 ? 'Low Trust' : 'Unscored'}
+                    Trust Level: {score >= 7.0 ? 'Highly Trusted' : score >= 4.0 ? 'Moderate Trust' : score >= 1.0 ? 'Low Trust' : 'Unscored'}
                   </h2>
-                  <p className="text-sm text-txt-secondary leading-[1.6]">{trustDescription(score)}</p>
+                  <p className="text-sm text-txt-secondary leading-[1.6]">{result.summary ?? trustDescription(score)}</p>
                   <span className="text-xs text-txt-muted">Last updated: just now</span>
                 </div>
               </div>
@@ -183,10 +184,10 @@ export default function AddressDetailPage() {
               {/* Score Breakdown */}
               <ScoreBreakdown
                 items={[
-                  { label: 'On-chain History', value: breakdown.onChainHistory, max: 400, color: 'var(--primary-gold)' },
-                  { label: 'Contract Analysis', value: breakdown.contractAnalysis, max: 300, color: 'var(--secondary-turquoise)' },
-                  { label: 'Blacklist Check', value: breakdown.blacklistCheck, max: 200, color: 'var(--success-emerald)' },
-                  { label: 'Activity Pattern', value: breakdown.activityPattern, max: 100, color: 'var(--warning-amber)' },
+                  { label: 'On-chain History', value: breakdown.onChainHistory, max: 4.0, color: 'var(--primary-gold)' },
+                  { label: 'Contract Analysis', value: breakdown.contractAnalysis, max: 3.0, color: 'var(--secondary-turquoise)' },
+                  { label: 'Blacklist Check', value: breakdown.blacklistCheck, max: 2.0, color: 'var(--success-emerald)' },
+                  { label: 'Activity Pattern', value: breakdown.activityPattern, max: 1.0, color: 'var(--warning-amber)' },
                 ]}
               />
 
