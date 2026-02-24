@@ -67,10 +67,13 @@ const SEED_ITEMS: ExploreItem[] = [
   { id: '6', address: '0xb125E6687d4313864e53df431d5425969c15Eb2F', name: 'Compound V3', category: 'Lending', chain: 'Base', trustScore: 8.8, riskLevel: 'LOW', txCount: 134567, reviewCount: 31, ageLabel: '4y', starRating: 4.3, latestReview: 'Reliable but UI could use improvement.', iconLetter: 'C', iconColor: '#00D395' , dataSource: 'seed' as const },
   { id: '7', address: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb', name: 'Morpho Blue', category: 'Lending', chain: 'Base', trustScore: 8.2, riskLevel: 'LOW', txCount: 87654, reviewCount: 12, ageLabel: '1y', starRating: 4.1, latestReview: 'Innovative lending design, growing fast.', iconLetter: 'M', iconColor: '#1A1B23' , dataSource: 'seed' as const },
   { id: '8', address: '0x4200000000000000000000000000000000000006', name: 'WETH', category: 'Token', chain: 'Base', trustScore: 9.2, riskLevel: 'LOW', txCount: 2345678, reviewCount: 55, ageLabel: '5y+', starRating: 4.8, latestReview: 'Canonical wrapped ETH, no concerns.', iconLetter: 'W', iconColor: '#627EEA' , dataSource: 'seed' as const },
-  // Agents
-  { id: '9', address: '0x44ff8620b8cA30902395A7bD3F2407e1A091BF73', name: 'Virtuals Protocol', category: 'Agent', chain: 'Base', trustScore: 7.2, riskLevel: 'LOW', txCount: 156000, reviewCount: 18, ageLabel: '1y', starRating: 3.9, latestReview: 'Leading agent token launchpad on Base.', iconLetter: 'V', iconColor: '#7C3AED' , dataSource: 'seed' as const },
-  { id: '10', address: '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b', name: 'AIXBT Agent', category: 'Agent', chain: 'Base', trustScore: 5.8, riskLevel: 'MEDIUM', txCount: 45000, reviewCount: 7, ageLabel: '6mo', starRating: 3.4, latestReview: 'Popular CT agent, volatile token price.', iconLetter: 'AI', iconColor: '#F97316' , dataSource: 'seed' as const },
-  { id: '11', address: '0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452', name: 'Luna by Virtuals', category: 'Agent', chain: 'Base', trustScore: 4.9, riskLevel: 'MEDIUM', txCount: 23000, reviewCount: 5, ageLabel: '4mo', starRating: 3.0, latestReview: 'TikTok famous agent, unclear utility.', iconLetter: 'L', iconColor: '#EC4899' , dataSource: 'seed' as const },
+  // Agents — real contract addresses on Base
+  { id: '9', address: '0x44ff8620b8cA30902395A7bD3F2407e1A091BF73', name: 'Virtuals Protocol', category: 'Agent', chain: 'Base', trustScore: 7.2, riskLevel: 'LOW', txCount: 156000, reviewCount: 18, ageLabel: '1y', starRating: 3.9, latestReview: 'Leading AI agent launchpad on Base. Strong community.', iconLetter: 'V', iconColor: '#7C3AED' , dataSource: 'seed' as const },
+  { id: '10', address: '0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825', name: 'AIXBT by Virtuals', category: 'Agent', chain: 'Base', trustScore: 6.2, riskLevel: 'MEDIUM', txCount: 287000, reviewCount: 11, ageLabel: '8mo', starRating: 3.7, latestReview: 'Best CT alpha agent. Tracks 400+ KOLs. Token volatile.', iconLetter: 'AI', iconColor: '#F97316' , dataSource: 'seed' as const },
+  { id: '11', address: '0x55cd6469f597452b5a7536e2cd98fde4c1247ee4', name: 'Luna by Virtuals', category: 'Agent', chain: 'Base', trustScore: 5.1, riskLevel: 'MEDIUM', txCount: 94000, reviewCount: 8, ageLabel: '6mo', starRating: 3.2, latestReview: 'First IAO agent on Virtuals. Viral TikTok presence.', iconLetter: 'L', iconColor: '#EC4899' , dataSource: 'seed' as const },
+  { id: '15', address: '0x731814e491571a2e9ee3c5b1f7f3b962ee8f4870', name: 'VaderAI by Virtuals', category: 'Agent', chain: 'Base', trustScore: 5.6, riskLevel: 'MEDIUM', txCount: 62000, reviewCount: 6, ageLabel: '7mo', starRating: 3.5, latestReview: 'DeFi-focused agent with DAO governance. Growing.', iconLetter: 'VD', iconColor: '#6D28D9' , dataSource: 'seed' as const },
+  { id: '16', address: '0x3e466dad6695879fd783e2bfcb98e16ce15a3caf', name: 'Freysa AI', category: 'Agent', chain: 'Base', trustScore: 6.8, riskLevel: 'LOW', txCount: 41000, reviewCount: 9, ageLabel: '5mo', starRating: 3.9, latestReview: 'Adversarial AI game experiment. Unique security model.', iconLetter: 'FR', iconColor: '#059669' , dataSource: 'seed' as const },
+  { id: '17', address: '0x1185cb5122edad199bdbc0cbd7a0457e448f23c7', name: 'Sekoia by Virtuals', category: 'Agent', chain: 'Base', trustScore: 4.8, riskLevel: 'MEDIUM', txCount: 38000, reviewCount: 5, ageLabel: '4mo', starRating: 3.1, latestReview: 'Early stage. Community driven. Watch for utility.', iconLetter: 'SK', iconColor: '#0891B2' , dataSource: 'seed' as const },
   { id: '12', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', name: 'DAI', category: 'Stablecoin', chain: 'Base', trustScore: 8.9, riskLevel: 'LOW', txCount: 890000, reviewCount: 35, ageLabel: '5y+', starRating: 4.5, latestReview: 'Decentralized stablecoin pioneer.', iconLetter: 'D', iconColor: '#F5AC37' , dataSource: 'seed' as const },
   // Protocols
   { id: '13', address: '0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70', name: 'Chainlink ETH/USD', category: 'Oracle', chain: 'Base', trustScore: 9.1, riskLevel: 'LOW', txCount: 1200000, reviewCount: 28, ageLabel: '4y', starRating: 4.7, latestReview: 'The oracle standard, extremely reliable.', iconLetter: 'C', iconColor: '#375BD2' , dataSource: 'seed' as const },
@@ -78,9 +81,9 @@ const SEED_ITEMS: ExploreItem[] = [
 ]
 
 const TOP_MOVERS = [
-  { name: 'Aerodrome', address: '0xcF77...E43', change: 45, direction: 'up' as const },
-  { name: 'Morpho Blue', address: '0xBBBB...FCb', change: 32, direction: 'up' as const },
-  { name: 'Unknown Token', address: '0xdd3...5b8f', change: -28, direction: 'down' as const },
+  { name: 'AIXBT', address: '0x4f9f...825', change: 18, direction: 'up' as const },
+  { name: 'Freysa AI', address: '0x3e46...caf', change: 34, direction: 'up' as const },
+  { name: 'Sekoia', address: '0x1185...3c7', change: -15, direction: 'down' as const },
 ]
 
 const RECENT_REVIEWS = [
