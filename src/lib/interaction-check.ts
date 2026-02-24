@@ -51,11 +51,69 @@ interface BasescanTx {
 }
 
 /**
- * Check if a wallet has interacted with a specific target address on Base.
- *
- * Looks at both outgoing (from=wallet, to=target) and incoming (from=target, to=wallet) txs.
- * Only counts successful transactions (isError === "0").
+ * Fallback to Alchemy to check interaction if Basescan is unavailable.
  */
+async function checkInteractionAlchemy(
+  walletAddress: string,
+  targetAddress: string
+): Promise<InteractionProof> {
+  const ALCHEMY_RPC = process.env.ALCHEMY_BASE_RPC;
+  if (!ALCHEMY_RPC) {
+    return { hasInteracted: true, txCount: 0, firstTxDate: null, lastTxDate: null };
+  }
+
+  try {
+    const res = await fetch(ALCHEMY_RPC, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "alchemy_getAssetTransfers",
+        params: [{
+          fromBlock: "0x0",
+          toBlock: "latest",
+          fromAddress: walletAddress,
+          category: ["external", "erc20", "erc721", "erc1155"],
+          withMetadata: true,
+          maxCount: "0x3e8" // 1000
+        }]
+      })
+    });
+    
+    const data = await res.json();
+    if (!data.result || !Array.isArray(data.result.transfers)) {
+      return { hasInteracted: false, txCount: 0, firstTxDate: null, lastTxDate: null };
+    }
+    
+    const targetLower = targetAddress.toLowerCase();
+    
+    const matchingTxs = data.result.transfers.filter((tx: any) => 
+      (tx.to && tx.to.toLowerCase() === targetLower) || 
+      (tx.rawContract && tx.rawContract.address && tx.rawContract.address.toLowerCase() === targetLower)
+    );
+    
+    // Sort by timestamp if metadata exists
+    matchingTxs.sort((a: any, b: any) => {
+      const aTime = a.metadata?.blockTimestamp ? new Date(a.metadata.blockTimestamp).getTime() : 0;
+      const bTime = b.metadata?.blockTimestamp ? new Date(b.metadata.blockTimestamp).getTime() : 0;
+      return aTime - bTime;
+    });
+
+    return {
+      hasInteracted: matchingTxs.length > 0,
+      txCount: matchingTxs.length,
+      firstTxDate: matchingTxs.length > 0 && matchingTxs[0].metadata?.blockTimestamp 
+        ? matchingTxs[0].metadata.blockTimestamp : null,
+      lastTxDate: matchingTxs.length > 0 && matchingTxs[matchingTxs.length - 1].metadata?.blockTimestamp 
+        ? matchingTxs[matchingTxs.length - 1].metadata.blockTimestamp : null,
+    };
+  } catch (error) {
+    console.error("[interaction-check] Error checking interaction via Alchemy:", error);
+    return { hasInteracted: true, txCount: 0, firstTxDate: null, lastTxDate: null };
+  }
+}
+
 export async function checkInteraction(
   walletAddress: string,
   targetAddress: string
@@ -69,15 +127,10 @@ export async function checkInteraction(
   }
 
   if (!BASESCAN_API_KEY) {
-    console.warn(
-      "[interaction-check] BASESCAN_API_KEY not set, allowing all interactions"
-    );
-    return {
-      hasInteracted: true,
-      txCount: 0,
-      firstTxDate: null,
-      lastTxDate: null,
-    };
+    console.warn("[interaction-check] BASESCAN_API_KEY not set, falling back to Alchemy");
+    const proof = await checkInteractionAlchemy(walletAddress, targetAddress);
+    interactionCache.set(key, { proof, expiresAt: Date.now() + CACHE_TTL_MS });
+    return proof;
   }
 
   try {
@@ -90,17 +143,10 @@ export async function checkInteraction(
     };
 
     if (data.status !== "1" || !Array.isArray(data.result)) {
-      // No transactions found or API error
-      const proof: InteractionProof = {
-        hasInteracted: false,
-        txCount: 0,
-        firstTxDate: null,
-        lastTxDate: null,
-      };
-      interactionCache.set(key, {
-        proof,
-        expiresAt: Date.now() + CACHE_TTL_MS,
-      });
+      // Fallback if Basescan fails but we have an API key that doesn't work well
+      console.warn("[interaction-check] Basescan returned error, trying Alchemy fallback");
+      const proof = await checkInteractionAlchemy(walletAddress, targetAddress);
+      interactionCache.set(key, { proof, expiresAt: Date.now() + CACHE_TTL_MS });
       return proof;
     }
 
@@ -136,7 +182,7 @@ export async function checkInteraction(
     return proof;
   } catch (error) {
     console.error("[interaction-check] Error checking interaction:", error);
-    // Fail open — don't block reviews if Basescan is down
+    // Final fallback to open
     return {
       hasInteracted: true,
       txCount: 0,
@@ -147,18 +193,101 @@ export async function checkInteraction(
 }
 
 /**
- * Discover all contracts a wallet has interacted with on Base.
- *
- * Returns unique `to` addresses from the wallet's transaction history,
- * filtered to only include contract addresses (not EOAs).
- * Used by the wallet discovery endpoint.
+ * Fallback to Alchemy to discover interactions if Basescan is unavailable.
  */
+async function discoverInteractionsAlchemy(
+  walletAddress: string,
+  knownProtocols: Map<string, { name: string; category: string }>
+): Promise<DiscoveredContract[]> {
+  const ALCHEMY_RPC = process.env.ALCHEMY_BASE_RPC;
+  if (!ALCHEMY_RPC) return [];
+
+  try {
+    const res = await fetch(ALCHEMY_RPC, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "alchemy_getAssetTransfers",
+        params: [{
+          fromBlock: "0x0",
+          toBlock: "latest",
+          fromAddress: walletAddress,
+          category: ["external", "erc20", "erc721", "erc1155"],
+          withMetadata: true,
+          maxCount: "0x3e8"
+        }]
+      })
+    });
+    
+    const data = await res.json();
+    if (!data.result || !Array.isArray(data.result.transfers)) {
+      return [];
+    }
+
+    const contractMap = new Map<
+      string,
+      { txCount: number; firstTs: number; lastTs: number }
+    >();
+
+    for (const tx of data.result.transfers) {
+      if (!tx.metadata?.blockTimestamp) continue;
+      const ts = new Date(tx.metadata.blockTimestamp).getTime() / 1000;
+      
+      const addressesToRecord = new Set<string>();
+      if (tx.to) addressesToRecord.add(tx.to.toLowerCase());
+      if (tx.rawContract?.address) addressesToRecord.add(tx.rawContract.address.toLowerCase());
+
+      for (const toAddr of addressesToRecord) {
+        const existing = contractMap.get(toAddr);
+        if (existing) {
+          existing.txCount++;
+          existing.firstTs = Math.min(existing.firstTs, ts);
+          existing.lastTs = Math.max(existing.lastTs, ts);
+        } else {
+          contractMap.set(toAddr, { txCount: 1, firstTs: ts, lastTs: ts });
+        }
+      }
+    }
+
+    // Match against known protocols and build results
+    const results: DiscoveredContract[] = [];
+    for (const [addr, info] of contractMap) {
+      let known: { name: string; category: string } | undefined;
+      for (const [knownAddr, proto] of knownProtocols) {
+        if (knownAddr.toLowerCase() === addr) {
+          known = proto;
+          break;
+        }
+      }
+
+      if (known) {
+        results.push({
+          address: addr,
+          name: known.name,
+          category: known.category,
+          txCount: info.txCount,
+          firstTxDate: new Date(info.firstTs * 1000).toISOString(),
+          lastTxDate: new Date(info.lastTs * 1000).toISOString(),
+        });
+      }
+    }
+
+    return results.sort((a, b) => b.txCount - a.txCount);
+  } catch (error) {
+    console.error("[interaction-check] Error discovering interactions via Alchemy:", error);
+    return [];
+  }
+}
+
 export async function discoverInteractions(
   walletAddress: string,
   knownProtocols: Map<string, { name: string; category: string }>
 ): Promise<DiscoveredContract[]> {
   if (!BASESCAN_API_KEY) {
-    return [];
+    console.warn("[interaction-check] BASESCAN_API_KEY missing, using Alchemy fallback for discovery");
+    return discoverInteractionsAlchemy(walletAddress, knownProtocols);
   }
 
   try {
@@ -170,7 +299,8 @@ export async function discoverInteractions(
     };
 
     if (data.status !== "1" || !Array.isArray(data.result)) {
-      return [];
+      console.warn("[interaction-check] Basescan discovery failed, attempting Alchemy fallback");
+      return discoverInteractionsAlchemy(walletAddress, knownProtocols);
     }
 
     // Group by unique `to` addresses
@@ -223,6 +353,6 @@ export async function discoverInteractions(
     return results.sort((a, b) => b.txCount - a.txCount);
   } catch (error) {
     console.error("[interaction-check] Error discovering interactions:", error);
-    return [];
+    return discoverInteractionsAlchemy(walletAddress, knownProtocols);
   }
 }
