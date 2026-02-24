@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Search, TrendingUp, Clock, HelpCircle, Star, Send, X, ArrowRight, MessageSquare, SlidersHorizontal } from 'lucide-react'
@@ -145,6 +145,44 @@ export default function ExplorePage() {
   const [search, setSearch] = useState('')
   const [showSort, setShowSort] = useState(false)
 
+  // Live items (starts from seed, updated by API)
+  const [items, setItems] = useState<ExploreItem[]>(SEED_ITEMS)
+
+  // Fetch live scores + review counts in background
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchLiveData() {
+      const updated = await Promise.all(
+        SEED_ITEMS.map(async (item) => {
+          try {
+            const [scoreRes, reviewRes] = await Promise.all([
+              fetch(`/api/v1/score/${item.address}`),
+              fetch(`/api/v1/review?address=${item.address}`),
+            ])
+            const scoreData = scoreRes.ok ? await scoreRes.json() : null
+            const reviewData = reviewRes.ok ? await reviewRes.json() : null
+
+            return {
+              ...item,
+              trustScore: scoreData?.score ?? item.trustScore,
+              riskLevel: (scoreData?.riskLevel ?? item.riskLevel) as ExploreItem['riskLevel'],
+              txCount: scoreData?.txCount ?? item.txCount,
+              reviewCount: reviewData?.count ?? item.reviewCount,
+              starRating: reviewData?.averageRating ?? item.starRating,
+            }
+          } catch {
+            return item // keep seed data on error
+          }
+        })
+      )
+      if (!cancelled) setItems(updated)
+    }
+
+    fetchLiveData()
+    return () => { cancelled = true }
+  }, [])
+
   // Review modal
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewTarget, setReviewTarget] = useState<ExploreItem | null>(null)
@@ -152,7 +190,7 @@ export default function ExplorePage() {
   const [submitting, setSubmitting] = useState(false)
 
   const filtered = useMemo(() => {
-    let result = [...SEED_ITEMS]
+    let result = [...items]
 
     if (category !== 'all') {
       const map: Record<string, string[]> = {
