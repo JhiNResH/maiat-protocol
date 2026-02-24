@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
+import { PrivyProvider } from '@/components/PrivyProvider'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -32,7 +33,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans bg-page text-txt-primary min-h-screen">
-        {children}
+        <PrivyProvider>
+          {children}
+        </PrivyProvider>
       </body>
     </html>
   )
