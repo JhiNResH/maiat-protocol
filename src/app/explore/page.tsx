@@ -40,8 +40,8 @@ const CATEGORIES = [
   { id: 'all', label: 'All' },
   { id: 'defi', label: 'DeFi' },
   { id: 'tokens', label: 'Tokens' },
-  { id: 'bridges', label: 'Bridges' },
-  { id: 'wallets', label: 'Wallets' },
+  { id: 'agents', label: 'Agents' },
+  { id: 'protocols', label: 'Protocols' },
 ]
 
 const SORT_OPTIONS = [
@@ -65,6 +65,14 @@ const SEED_ITEMS: ExploreItem[] = [
   { id: '6', address: '0xb125E6687d4313864e53df431d5425969c15Eb2F', name: 'Compound V3', category: 'Lending', chain: 'Base', trustScore: 880, riskLevel: 'LOW', txCount: 134567, reviewCount: 31, ageLabel: '4y', starRating: 4.3, latestReview: 'Reliable but UI could use improvement.', iconLetter: 'C', iconColor: '#00D395' },
   { id: '7', address: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb', name: 'Morpho Blue', category: 'Lending', chain: 'Base', trustScore: 820, riskLevel: 'LOW', txCount: 87654, reviewCount: 12, ageLabel: '1y', starRating: 4.1, latestReview: 'Innovative lending design, growing fast.', iconLetter: 'M', iconColor: '#1A1B23' },
   { id: '8', address: '0x4200000000000000000000000000000000000006', name: 'WETH', category: 'Token', chain: 'Base', trustScore: 920, riskLevel: 'LOW', txCount: 2345678, reviewCount: 55, ageLabel: '5y+', starRating: 4.8, latestReview: 'Canonical wrapped ETH, no concerns.', iconLetter: 'W', iconColor: '#627EEA' },
+  // Agents
+  { id: '9', address: '0x44ff8620b8cA30902395A7bD3F2407e1A091BF73', name: 'Virtuals Protocol', category: 'Agent', chain: 'Base', trustScore: 720, riskLevel: 'LOW', txCount: 156000, reviewCount: 18, ageLabel: '1y', starRating: 3.9, latestReview: 'Leading agent token launchpad on Base.', iconLetter: 'V', iconColor: '#7C3AED' },
+  { id: '10', address: '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b', name: 'AIXBT Agent', category: 'Agent', chain: 'Base', trustScore: 580, riskLevel: 'MEDIUM', txCount: 45000, reviewCount: 7, ageLabel: '6mo', starRating: 3.4, latestReview: 'Popular CT agent, volatile token price.', iconLetter: 'AI', iconColor: '#F97316' },
+  { id: '11', address: '0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452', name: 'Luna by Virtuals', category: 'Agent', chain: 'Base', trustScore: 490, riskLevel: 'MEDIUM', txCount: 23000, reviewCount: 5, ageLabel: '4mo', starRating: 3.0, latestReview: 'TikTok famous agent, unclear utility.', iconLetter: 'L', iconColor: '#EC4899' },
+  { id: '12', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', name: 'DAI', category: 'Stablecoin', chain: 'Base', trustScore: 890, riskLevel: 'LOW', txCount: 890000, reviewCount: 35, ageLabel: '5y+', starRating: 4.5, latestReview: 'Decentralized stablecoin pioneer.', iconLetter: 'D', iconColor: '#F5AC37' },
+  // Protocols
+  { id: '13', address: '0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70', name: 'Chainlink ETH/USD', category: 'Oracle', chain: 'Base', trustScore: 910, riskLevel: 'LOW', txCount: 1200000, reviewCount: 28, ageLabel: '4y', starRating: 4.7, latestReview: 'The oracle standard, extremely reliable.', iconLetter: 'C', iconColor: '#375BD2' },
+  { id: '14', address: '0x4200000000000000000000000000000000000010', name: 'Base Bridge', category: 'Bridge', chain: 'Base', trustScore: 870, riskLevel: 'LOW', txCount: 3400000, reviewCount: 22, ageLabel: '2y', starRating: 4.3, latestReview: 'Official L2 bridge, trust Coinbase infra.', iconLetter: 'B', iconColor: '#0052FF' },
 ]
 
 const TOP_MOVERS = [
@@ -148,10 +156,10 @@ export default function ExplorePage() {
 
     if (category !== 'all') {
       const map: Record<string, string[]> = {
-        defi: ['DEX', 'Lending', 'Stablecoin', 'DeFi'],
+        defi: ['DEX', 'Lending', 'DeFi'],
         tokens: ['Token', 'Stablecoin'],
-        bridges: ['Bridge'],
-        wallets: ['Wallet'],
+        agents: ['Agent'],
+        protocols: ['Oracle', 'Bridge', 'Infrastructure'],
       }
       const allowed = map[category] || []
       result = result.filter(item => allowed.includes(item.category))
