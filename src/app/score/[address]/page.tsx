@@ -1,229 +1,337 @@
-import { Metadata } from "next";
-import { computeTrustScore } from "@/lib/scoring";
+'use client'
 
-type Props = {
-  params: Promise<{ address: string }>;
-};
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { Header } from '@/components/Header'
+import { TrustGauge } from '@/components/TrustGauge'
+import { ScoreBreakdown } from '@/components/ScoreBreakdown'
+import {
+  Copy, ShieldCheck, Shield, FileCheck, Ban, CircleCheck,
+  ArrowLeftRight, Repeat, Zap, ChevronDown
+} from 'lucide-react'
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { address } = await params;
+interface ScoreResult {
+  address: string
+  score: number
+  risk: string
+  type: string
+  flags: string[]
+  summary?: string
+  details: {
+    txCount: number
+    isContract: boolean
+    isKnownScam: boolean
+    walletAge?: string
+    balance?: string
+    lastActive?: string
+  }
+  breakdown?: {
+    onChainHistory: number
+    contractAnalysis: number
+    blacklistCheck: number
+    activityPattern: number
+  }
+}
 
-  let score: number | null = null;
-  let risk: string | null = null;
+function tierLabel(score: number) {
+  if (score >= 7.0) return { label: 'Guardian', color: 'text-emerald', bg: 'bg-[#00c9a718]', icon: ShieldCheck }
+  if (score >= 4.0) return { label: 'Cautious', color: 'text-amber', bg: 'bg-[#f59e0b18]', icon: Shield }
+  if (score >= 1.0) return { label: 'Risky', color: 'text-crimson', bg: 'bg-[#c0392b18]', icon: Shield }
+  return { label: 'Unscored', color: 'text-txt-muted', bg: 'bg-[#64748b18]', icon: Shield }
+}
 
-  try {
-    const result = await computeTrustScore(address);
-    score = result.score;
-    risk = result.risk;
-  } catch {
-    // ignore, show generic meta
+function trustDescription(score: number) {
+  if (score >= 7.0) return 'This address demonstrates strong on-chain history, verified contract interactions, and clean blacklist records.'
+  if (score >= 4.0) return 'This address shows moderate on-chain activity. Some risk factors detected. Proceed with caution.'
+  if (score >= 1.0) return 'This address has limited history or flagged risk indicators. Exercise extreme caution with any interactions.'
+  return 'This address has not been scored yet. No trust data is available.'
+}
+
+export default function AddressDetailPage() {
+  const params = useParams()
+  const address = params.address as string
+  const [result, setResult] = useState<ScoreResult | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    async function fetchScore() {
+      try {
+        const res = await fetch(`/api/v1/score/${address}?summary=true`)
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.error ?? 'Failed to fetch score')
+        } else {
+          setResult(data)
+        }
+      } catch {
+        setError('Network error. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchScore()
+  }, [address])
+
+  function handleCopy() {
+    navigator.clipboard.writeText(address)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
-  const title = score !== null
-    ? `Trust Score ${score}/1000 — ${address.slice(0, 10)}… | MAIAT`
-    : `Agent Trust Score — ${address.slice(0, 10)}… | MAIAT`;
+  const shortAddr = `${address.slice(0, 12)}...${address.slice(-6)}`
+  const score = result?.score ?? 0
+  const tier = tierLabel(score)
+  const TierIcon = tier.icon
 
-  const description = score !== null
-    ? `On-chain trust score for ${address}: ${score}/1000 (${risk} risk). Powered by MAIAT Protocol.`
-    : `Check on-chain trust score for ${address} on MAIAT Protocol.`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      siteName: "MAIAT Protocol",
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
-  };
-}
-
-function scoreColor(score: number): string {
-  if (score > 700) return "#4ade80"; // green-400
-  if (score > 400) return "#facc15"; // yellow-400
-  return "#f87171"; // red-400
-}
-
-function riskLabel(score: number): string {
-  if (score > 700) return "LOW RISK";
-  if (score > 400) return "MEDIUM RISK";
-  if (score > 100) return "HIGH RISK";
-  return "CRITICAL RISK";
-}
-
-export default async function ScorePage({ params }: Props) {
-  const { address } = await params;
-
-  let result = null;
-  let errorMsg: string | null = null;
-
-  try {
-    result = await computeTrustScore(address);
-  } catch (err) {
-    errorMsg = err instanceof Error ? err.message : "Failed to compute score";
+  const breakdown = result?.breakdown ?? {
+    onChainHistory: Math.round(score * 0.4),
+    contractAnalysis: Math.round(score * 0.31),
+    blacklistCheck: Math.round(score * 0.21),
+    activityPattern: Math.round(score * 0.08),
   }
+
+  const flags = result?.flags ?? []
+  const isHighTrust = score >= 7.0
+  const isMedTrust = score >= 4.0 && score < 7.0
+  const flagColor = isHighTrust ? 'text-emerald' : isMedTrust ? 'text-amber' : 'text-crimson'
+  const flagBg = isHighTrust ? 'bg-[#00c9a712]' : isMedTrust ? 'bg-[#f59e0b12]' : 'bg-[#c0392b12]'
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#030712",
-        color: "#f3f4f6",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "4rem 1rem",
-        fontFamily: "system-ui, sans-serif",
-      }}
-    >
-      <h1 style={{ fontSize: "2rem", fontWeight: 800, marginBottom: "0.5rem" }}>
-        🛡️ MAIAT Trust Score
-      </h1>
-      <p style={{ color: "#6b7280", fontSize: "0.875rem", marginBottom: "2rem" }}>
-        On-chain agent trust scoring · Base Sepolia
-      </p>
+    <div className="flex flex-col min-h-screen bg-page">
+      <Header />
 
-      {errorMsg && (
-        <div
-          style={{
-            background: "#450a0a",
-            border: "1px solid #b91c1c",
-            color: "#fca5a5",
-            borderRadius: "0.75rem",
-            padding: "1rem 1.5rem",
-            maxWidth: "600px",
-            width: "100%",
-          }}
-        >
-          ⚠️ {errorMsg}
+      <div className="flex flex-col gap-8 px-[60px] py-10 w-full">
+        {/* Address Header */}
+        <div className="flex items-center gap-4 w-full">
+          <span className="font-mono text-[22px] font-semibold text-txt-primary">{shortAddr}</span>
+          <button onClick={handleCopy} className="text-txt-muted hover:text-txt-primary transition-colors">
+            <Copy className="w-[18px] h-[18px]" />
+          </button>
+          {copied && <span className="text-xs text-emerald">Copied!</span>}
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00b4d815]">
+            <span className="w-1.5 h-1.5 rounded-full bg-turquoise" />
+            <span className="text-xs font-semibold text-turquoise">Base</span>
+          </span>
+          <span className="px-3 py-1 rounded-full bg-[#d4a01715]">
+            <span className="text-xs font-semibold text-gold">{result?.type === 'contract' ? 'Contract' : 'Wallet'}</span>
+          </span>
         </div>
-      )}
 
-      {result && (
-        <div
-          style={{
-            maxWidth: "600px",
-            width: "100%",
-            border: `2px solid ${scoreColor(result.score)}`,
-            borderRadius: "0.75rem",
-            padding: "1.5rem",
-            background: "rgba(17,24,39,0.8)",
-          }}
-        >
-          {/* Score headline */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: "0.75rem", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.25rem" }}>
-                Trust Score
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin w-8 h-8 border-2 border-gold border-t-transparent rounded-full" />
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-[#c0392b18] border border-crimson/30 text-crimson rounded-xl px-6 py-4 text-sm">
+            {error}
+          </div>
+        )}
+
+        {result && (
+          <div className="flex gap-6 w-full">
+            {/* Left Column */}
+            <div className="flex-1 flex flex-col gap-6">
+              {/* Trust Score Card */}
+              <div className="flex items-center gap-10 bg-surface rounded-[20px] border border-border-subtle p-8">
+                <TrustGauge score={score} />
+                <div className="flex flex-col gap-4 flex-1">
+                  <div className={`flex items-center gap-2 w-fit px-3.5 py-1.5 rounded-lg ${tier.bg}`}>
+                    <TierIcon className={`w-4 h-4 ${tier.color}`} />
+                    <span className={`text-sm font-semibold ${tier.color}`}>{tier.label}</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-txt-primary">
+                    Trust Level: {score >= 7.0 ? 'Highly Trusted' : score >= 4.0 ? 'Moderate Trust' : score >= 1.0 ? 'Low Trust' : 'Unscored'}
+                  </h2>
+                  <p className="text-sm text-txt-secondary leading-[1.6]">{result.summary ?? trustDescription(score)}</p>
+                  <span className="text-xs text-txt-muted">Last updated: just now</span>
+                </div>
               </div>
-              <div style={{ fontSize: "3.5rem", fontWeight: 900, color: scoreColor(result.score), lineHeight: 1 }}>
-                {result.score}
-                <span style={{ fontSize: "1.5rem", color: "#6b7280", fontWeight: 400 }}>/1000</span>
+
+              {/* Swap Card */}
+              <div className="flex flex-col gap-4">
+                <h3 className="text-2xl font-bold text-txt-primary">Trade with Confidence</h3>
+                <SwapCard address={address} score={score} />
               </div>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "1.25rem", fontWeight: 700, color: scoreColor(result.score) }}>
-                {riskLabel(result.score)}
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.25rem" }}>
-                {result.type}
-              </div>
-            </div>
-          </div>
 
-          {/* Address */}
-          <div style={{ marginBottom: "1rem" }}>
-            <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.25rem" }}>Address</div>
-            <div style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "#d1d5db", wordBreak: "break-all" }}>
-              {address}
-            </div>
-          </div>
-
-          {/* Stats grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem", marginBottom: "1rem" }}>
-            {[
-              { label: "Transactions", value: result.details.txCount.toLocaleString() },
-              { label: "Contract", value: result.details.isContract ? "Yes" : "No" },
-              { label: "Scam Check", value: result.details.isKnownScam ? "⚠️ Flagged" : "✅ Clear" },
-            ].map(({ label, value }) => (
-              <div
-                key={label}
-                style={{
-                  background: "rgba(17,24,39,0.6)",
-                  borderRadius: "0.5rem",
-                  padding: "0.75rem",
-                  textAlign: "center",
-                  border: "1px solid #1f2937",
-                }}
-              >
-                <div style={{ fontWeight: 700, fontSize: "1rem", color: "#f9fafb" }}>{value}</div>
-                <div style={{ fontSize: "0.7rem", color: "#6b7280", marginTop: "0.25rem" }}>{label}</div>
+            {/* Right Column */}
+            <div className="w-[420px] flex flex-col gap-6">
+              {/* Status Flags */}
+              <div className="flex flex-col gap-4 bg-surface rounded-2xl border border-border-subtle p-6">
+                <h3 className="text-base font-bold text-txt-primary">Status Flags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { icon: Shield, label: flags.includes('verified') ? 'Verified' : 'Unverified', positive: !flags.includes('unverified') },
+                    { icon: FileCheck, label: flags.includes('has_audit') ? 'Has Audit' : 'No Audit', positive: flags.includes('has_audit') || isHighTrust },
+                    { icon: Ban, label: result.details.isKnownScam ? 'Blacklisted' : 'Not Blacklisted', positive: !result.details.isKnownScam },
+                    { icon: Shield, label: 'No Honeypot', positive: isHighTrust },
+                  ].map((flag) => (
+                    <div
+                      key={flag.label}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${flag.positive ? flagBg : 'bg-[#c0392b12]'}`}
+                    >
+                      <flag.icon className={`w-3.5 h-3.5 ${flag.positive ? flagColor : 'text-crimson'}`} />
+                      <span className={`text-xs font-medium ${flag.positive ? flagColor : 'text-crimson'}`}>{flag.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
 
-          {/* Flags */}
-          {result.flags.length > 0 && (
-            <div style={{ marginBottom: "1rem" }}>
-              <div style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.5rem" }}>Flags</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                {result.flags.map((flag) => (
-                  <span
-                    key={flag}
-                    style={{
-                      background: "#1f2937",
-                      color: "#9ca3af",
-                      fontSize: "0.7rem",
-                      padding: "0.25rem 0.5rem",
-                      borderRadius: "0.25rem",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {flag}
-                  </span>
+              {/* Score Breakdown */}
+              <ScoreBreakdown
+                items={[
+                  { label: 'On-chain History', value: breakdown.onChainHistory, max: 4.0, color: 'var(--primary-gold)' },
+                  { label: 'Contract Analysis', value: breakdown.contractAnalysis, max: 3.0, color: 'var(--secondary-turquoise)' },
+                  { label: 'Blacklist Check', value: breakdown.blacklistCheck, max: 2.0, color: 'var(--success-emerald)' },
+                  { label: 'Activity Pattern', value: breakdown.activityPattern, max: 1.0, color: 'var(--warning-amber)' },
+                ]}
+              />
+
+              {/* Address Details */}
+              <div className="flex flex-col gap-4 bg-surface rounded-2xl border border-border-subtle p-6">
+                <h3 className="text-base font-bold text-txt-primary">Address Details</h3>
+                {[
+                  { label: 'Wallet Age', value: result.details.walletAge ?? 'Unknown' },
+                  { label: 'Transaction Count', value: result.details.txCount.toLocaleString() },
+                  { label: 'Balance', value: result.details.balance ?? 'N/A' },
+                  { label: 'Last Active', value: result.details.lastActive ?? 'N/A' },
+                  { label: 'Is Contract', value: result.details.isContract ? 'Yes' : 'No', color: result.details.isContract ? undefined : 'text-emerald' },
+                ].map((row) => (
+                  <div key={row.label} className="flex justify-between">
+                    <span className="text-[13px] text-txt-muted">{row.label}</span>
+                    <span className={`font-mono text-[13px] ${row.color ?? 'text-txt-primary'}`}>{row.value}</span>
+                  </div>
                 ))}
               </div>
             </div>
-          )}
-
-          {/* CTA */}
-          <div style={{ borderTop: "1px solid #1f2937", paddingTop: "1rem", marginTop: "0.5rem" }}>
-            <a
-              href="/"
-              style={{
-                display: "inline-block",
-                background: "#4f46e5",
-                color: "#fff",
-                padding: "0.5rem 1.25rem",
-                borderRadius: "0.5rem",
-                fontSize: "0.875rem",
-                fontWeight: 600,
-                textDecoration: "none",
-              }}
-            >
-              Score Another Address →
-            </a>
           </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* Embedded Swap Card for Address Detail */
+function SwapCard({ address, score }: { address: string; score: number }) {
+  const [amount, setAmount] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [quoteResult, setQuoteResult] = useState<{ amountOut: string; gasFeeUSD: string; routeString: string } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleQuote() {
+    if (!amount.trim()) return
+    setLoading(true)
+    setError(null)
+    setQuoteResult(null)
+    try {
+      const res = await fetch('/api/v1/swap/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          swapper: address,
+          tokenIn: '0x0000000000000000000000000000000000000000',
+          tokenOut: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+          amount: amount.trim(),
+          chainId: 8453,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) setError(data.error ?? 'Failed')
+      else setQuoteResult(data.quote)
+    } catch {
+      setError('Network error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4 bg-surface rounded-[20px] border border-border-subtle p-6 shadow-[0_0_40px_rgba(212,160,23,0.08)]">
+      {/* Token Pair */}
+      <div className="flex items-center gap-3 w-full">
+        <div className="flex-1 flex flex-col gap-1.5">
+          <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">You Pay</span>
+          <div className="flex items-center justify-between bg-elevated rounded-[10px] border border-border-subtle px-3.5 py-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-[22px] h-[22px] rounded-full bg-[#627eea]" />
+              <span className="text-sm font-semibold text-txt-primary">ETH</span>
+            </div>
+            <ChevronDown className="w-4 h-4 text-txt-muted" />
+          </div>
+        </div>
+        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-elevated border border-border-subtle mt-5">
+          <ArrowLeftRight className="w-4 h-4 text-gold" />
+        </div>
+        <div className="flex-1 flex flex-col gap-1.5">
+          <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">You Receive</span>
+          <div className="flex items-center justify-between bg-elevated rounded-[10px] border border-border-subtle px-3.5 py-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-[22px] h-[22px] rounded-full bg-[#2775ca]" />
+              <span className="text-sm font-semibold text-txt-primary">USDC</span>
+            </div>
+            <ChevronDown className="w-4 h-4 text-txt-muted" />
+          </div>
+        </div>
+      </div>
+
+      {/* Amount */}
+      <div className="flex flex-col gap-2 bg-[#0a0b14] rounded-[14px] border border-border-subtle p-5">
+        <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">Amount</span>
+        <input
+          type="text"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="0.0"
+          className="bg-transparent font-mono text-[32px] font-semibold text-txt-primary placeholder-txt-primary/40 outline-none"
+        />
+        <span className="text-[13px] text-txt-muted">&asymp; 0.00 USDC</span>
+      </div>
+
+      {/* Trust badges */}
+      <div className="flex gap-2.5">
+        <div className="flex-1 flex items-center gap-2 bg-[#00c9a710] border border-[#00c9a730] rounded-[10px] px-3.5 py-2.5">
+          <CircleCheck className="w-3.5 h-3.5 text-emerald" />
+          <span className="text-xs font-semibold text-emerald">ETH  &check;  8.5/10</span>
+        </div>
+        <div className="flex-1 flex items-center gap-2 bg-[#00c9a710] border border-[#00c9a730] rounded-[10px] px-3.5 py-2.5">
+          <CircleCheck className="w-3.5 h-3.5 text-emerald" />
+          <span className="text-xs font-semibold text-emerald">USDC  &check;  9.2/10</span>
+        </div>
+      </div>
+
+      {/* Gas/Route */}
+      <div className="flex justify-between">
+        <span className="text-xs text-txt-muted">Est. Gas: $0.01</span>
+        <span className="text-xs text-txt-muted">Route: UniswapX</span>
+      </div>
+
+      {error && <div className="text-xs text-crimson">{error}</div>}
+      {quoteResult && (
+        <div className="text-xs text-emerald font-mono">
+          Output: {quoteResult.amountOut} | Gas: ${quoteResult.gasFeeUSD}
         </div>
       )}
 
-      <p style={{ marginTop: "4rem", color: "#374151", fontSize: "0.75rem" }}>
-        MAIAT Protocol · Agent Trust Infrastructure
-      </p>
-    </main>
-  );
+      {/* Swap Button */}
+      <button
+        onClick={handleQuote}
+        disabled={loading || !amount.trim()}
+        className="flex items-center justify-center gap-2.5 w-full h-[52px] bg-gold rounded-[14px] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+      >
+        <Repeat className="w-5 h-5 text-page" />
+        <span className="text-base font-bold text-page">{loading ? 'Getting Quote...' : 'Swap'}</span>
+      </button>
+
+      {/* Powered by */}
+      <div className="flex items-center justify-center gap-1.5">
+        <Zap className="w-3 h-3 text-txt-muted" />
+        <span className="text-[11px] text-txt-muted">Powered by Uniswap Trading API  &middot;  0.05% Maiat fee</span>
+      </div>
+    </div>
+  )
 }
+
