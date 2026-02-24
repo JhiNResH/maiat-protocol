@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { computeTrustScore } from "@/lib/scoring";
+import SwapSection from "@/components/SwapSection";
 
 type Props = {
   params: Promise<{ address: string }>;
@@ -220,6 +221,8 @@ export default async function ScorePage({ params }: Props) {
           </div>
         </div>
       )}
+
+      {result && <SwapSection address={address} />}
 
       <p style={{ marginTop: "4rem", color: "#374151", fontSize: "0.75rem" }}>
         MAIAT Protocol · Agent Trust Infrastructure
