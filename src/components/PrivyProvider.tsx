@@ -3,7 +3,7 @@
 import { type ReactNode } from 'react'
 import { PrivyProvider as Privy } from '@privy-io/react-auth'
 
-const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? ''
+const PRIVY_APP_ID = (process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? '').trim()
 
 export function PrivyProvider({ children }: { children: ReactNode }) {
   if (!PRIVY_APP_ID) {
