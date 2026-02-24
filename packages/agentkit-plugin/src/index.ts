@@ -3,6 +3,13 @@
  * 
  * Coinbase AgentKit plugin that adds trust scoring to every agent transaction.
  * 
+ * V0.2.0 — Cold-start update:
+ * - submitReview(): Submit trust reviews with Scarab staking
+ * - getInteractions(): Discover contracts a wallet has interacted with
+ * - getPassport(): Get a wallet's reputation passport
+ * - getDefiInfo(): Query DeFi protocol trust data by slug or address
+ * - getAgentInfo(): Query AI agent trust data by slug or address
+ * 
  * Usage:
  * ```typescript
  * import { AgentKit } from "@coinbase/agentkit";
@@ -10,9 +17,6 @@
  * 
  * const agent = new AgentKit({ ... });
  * agent.use(maiatTrustPlugin({ minScore: 3.0 }));
- * 
- * // Now every transaction auto-checks trust before executing
- * // Addresses below minScore are blocked automatically
  * ```
  */
 
@@ -63,6 +67,86 @@ export interface TrustScoreResult {
   };
 }
 
+export interface ReviewSubmission {
+  address: string;
+  rating: number;
+  comment?: string;
+  tags?: string[];
+  reviewer: string;
+  signature?: string;
+}
+
+export interface ReviewResult {
+  success: boolean;
+  review: {
+    id: string;
+    address: string;
+    rating: number;
+    comment: string;
+    reviewer: string;
+    timestamp: string;
+  };
+  meta: {
+    interactionVerified: boolean;
+    qualityScore: number | null;
+    scarabDeducted: boolean;
+    scarabReward: number;
+  };
+}
+
+export interface InteractionResult {
+  wallet: string;
+  interacted: Array<{
+    address: string;
+    name: string;
+    category: string;
+    slug: string | null;
+    txCount: number;
+    trustScore: number | null;
+    canReview: boolean;
+    hasReviewed: boolean;
+  }>;
+  interactedCount: number;
+  notInteracted: Array<{
+    address: string;
+    name: string;
+    category: string;
+    canReview: boolean;
+  }>;
+}
+
+export interface PassportResult {
+  wallet: string;
+  passport: {
+    trustLevel: "new" | "trusted" | "verified" | "guardian";
+    reputationScore: number;
+    totalReviews: number;
+    feeTier: { rate: number; discount: string; label: string };
+  };
+  scarab: { balance: number };
+  reviews: { count: number; addressesReviewed: string[] };
+  progression: {
+    current: string;
+    nextLevel: string | null;
+    pointsToNext: number | null;
+    benefits: string[];
+  };
+}
+
+export interface EntityInfoResult {
+  entity: {
+    address: string;
+    slug: string;
+    name: string;
+    type: string;
+    category: string;
+    auditedBy?: string[];
+  };
+  trust: { score: number; risk?: string } | null;
+  reviews: { total: number; avgRating: number };
+  canonical: { url: string };
+}
+
 export class MaiatTrustError extends Error {
   constructor(
     public address: string,
@@ -93,6 +177,15 @@ export class MaiatClient {
     this.chain = config.chain || "base";
   }
 
+  private get headers(): Record<string, string> {
+    const h: Record<string, string> = {
+      "Content-Type": "application/json",
+      "User-Agent": "maiat-agentkit-plugin/0.2.0",
+    };
+    if (this.apiKey) h["Authorization"] = `Bearer ${this.apiKey}`;
+    return h;
+  }
+
   async checkTrust(address: string, chain?: string): Promise<TrustScoreResult> {
     const cacheKey = `${address}:${chain || this.chain}`;
     const cached = this.cache.get(cacheKey);
@@ -100,26 +193,15 @@ export class MaiatClient {
       return cached.result;
     }
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "User-Agent": "maiat-agentkit-plugin/0.1.0",
-    };
-    if (this.apiKey) {
-      headers["Authorization"] = `Bearer ${this.apiKey}`;
-    }
-
     const url = `${this.apiUrl}/api/v1/score/${address}?chain=${chain || this.chain}`;
-    const res = await fetch(url, { headers });
+    const res = await fetch(url, { headers: this.headers });
 
     if (!res.ok) {
       throw new Error(`Maiat API error (${res.status}): ${await res.text()}`);
     }
 
     const result: TrustScoreResult = await res.json();
-
-    // Cache for 5 minutes
     this.cache.set(cacheKey, { result, expiresAt: Date.now() + 5 * 60 * 1000 });
-
     return result;
   }
 
@@ -129,6 +211,60 @@ export class MaiatClient {
 
   isSafe(score: number, minScore: number = 3.0): boolean {
     return score >= minScore;
+  }
+
+  /** Submit a trust review for a contract address. Costs 2 Scarab. */
+  async submitReview(review: ReviewSubmission): Promise<ReviewResult> {
+    const res = await fetch(`${this.apiUrl}/api/v1/review`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify(review),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      throw new Error(`Review submission failed: ${err.error || err.detail || res.status}`);
+    }
+    return res.json();
+  }
+
+  /** Discover contracts a wallet has interacted with on Base. */
+  async getInteractions(walletAddress: string): Promise<InteractionResult> {
+    const res = await fetch(
+      `${this.apiUrl}/api/v1/wallet/${walletAddress}/interactions`,
+      { headers: this.headers }
+    );
+    if (!res.ok) throw new Error(`Interactions API error: ${res.status}`);
+    return res.json();
+  }
+
+  /** Get a wallet's reputation passport (trust level, Scarab, reviews). */
+  async getPassport(walletAddress: string): Promise<PassportResult> {
+    const res = await fetch(
+      `${this.apiUrl}/api/v1/wallet/${walletAddress}/passport`,
+      { headers: this.headers }
+    );
+    if (!res.ok) throw new Error(`Passport API error: ${res.status}`);
+    return res.json();
+  }
+
+  /** Get DeFi protocol info by slug or address. */
+  async getDefiInfo(slugOrAddress: string): Promise<EntityInfoResult> {
+    const res = await fetch(
+      `${this.apiUrl}/api/v1/defi/${slugOrAddress}`,
+      { headers: this.headers }
+    );
+    if (!res.ok) throw new Error(`DeFi info API error: ${res.status}`);
+    return res.json();
+  }
+
+  /** Get AI agent info by slug or address. */
+  async getAgentInfo(slugOrAddress: string): Promise<EntityInfoResult> {
+    const res = await fetch(
+      `${this.apiUrl}/api/v1/agent/${slugOrAddress}`,
+      { headers: this.headers }
+    );
+    if (!res.ok) throw new Error(`Agent info API error: ${res.status}`);
+    return res.json();
   }
 }
 
@@ -145,6 +281,7 @@ export function maiatTrustActions(config: MaiatPluginConfig = {}) {
   const minScore = config.minScore ?? 3.0;
 
   return [
+    // --- Existing: Trust Check ---
     {
       name: "maiat_check_trust",
       description: `Check the trust score of an on-chain address using Maiat. Returns a 0-10 score with risk assessment. Addresses scoring below ${minScore} are considered unsafe.`,
@@ -176,6 +313,7 @@ export function maiatTrustActions(config: MaiatPluginConfig = {}) {
         };
       },
     },
+    // --- Existing: Transaction Gate ---
     {
       name: "maiat_gate_transaction",
       description: "Check if a transaction target is trustworthy before executing. Blocks transactions to untrusted addresses automatically.",
@@ -205,6 +343,137 @@ export function maiatTrustActions(config: MaiatPluginConfig = {}) {
         };
       },
     },
+    // --- NEW: Submit Review ---
+    {
+      name: "maiat_submit_review",
+      description: "Submit a trust review for a contract address. Costs 2 Scarab points. Quality reviews earn 3-10 Scarab rewards.",
+      schema: {
+        type: "object" as const,
+        properties: {
+          address: { type: "string", description: "Contract address to review (0x...)" },
+          rating: { type: "number", description: "Rating from 1-10" },
+          comment: { type: "string", description: "Review text explaining your rating" },
+          reviewer: { type: "string", description: "Your wallet address (0x...)" },
+          tags: { type: "array", description: "Tags: safe, risky, audited, scam, defi, nft" },
+        },
+        required: ["address", "rating", "reviewer"],
+      },
+      handler: async (params: ReviewSubmission) => {
+        const result = await client.submitReview(params);
+        return {
+          success: result.success,
+          reviewId: result.review.id,
+          scarabReward: result.meta.scarabReward,
+          qualityScore: result.meta.qualityScore,
+          interactionVerified: result.meta.interactionVerified,
+          message: `✅ Review submitted for ${params.address}. Earned ${result.meta.scarabReward} Scarab.`,
+        };
+      },
+    },
+    // --- NEW: Wallet Interactions ---
+    {
+      name: "maiat_get_interactions",
+      description: "Discover which contracts a wallet has interacted with on Base. Shows reviewable contracts and their trust scores.",
+      schema: {
+        type: "object" as const,
+        properties: {
+          wallet: { type: "string", description: "Wallet address to check (0x...)" },
+        },
+        required: ["wallet"],
+      },
+      handler: async (params: { wallet: string }) => {
+        const result = await client.getInteractions(params.wallet);
+        return {
+          wallet: result.wallet,
+          interactedCount: result.interactedCount,
+          contracts: result.interacted.map(c => ({
+            name: c.name,
+            address: c.address,
+            category: c.category,
+            txCount: c.txCount,
+            trustScore: c.trustScore,
+            canReview: c.canReview,
+            hasReviewed: c.hasReviewed,
+          })),
+          message: `Found ${result.interactedCount} contracts you've interacted with.`,
+        };
+      },
+    },
+    // --- NEW: Reputation Passport ---
+    {
+      name: "maiat_get_passport",
+      description: "Get a wallet's reputation passport showing trust level, Scarab balance, review history, and fee tier progression.",
+      schema: {
+        type: "object" as const,
+        properties: {
+          wallet: { type: "string", description: "Wallet address (0x...)" },
+        },
+        required: ["wallet"],
+      },
+      handler: async (params: { wallet: string }) => {
+        const result = await client.getPassport(params.wallet);
+        return {
+          trustLevel: result.passport.trustLevel,
+          reputationScore: result.passport.reputationScore,
+          totalReviews: result.passport.totalReviews,
+          scarabBalance: result.scarab.balance,
+          feeTier: result.passport.feeTier,
+          nextLevel: result.progression.nextLevel,
+          pointsToNext: result.progression.pointsToNext,
+          benefits: result.progression.benefits,
+          message: `🛡️ ${result.passport.trustLevel.toUpperCase()} — ${result.passport.reputationScore} reputation, ${result.scarab.balance} Scarab`,
+        };
+      },
+    },
+    // --- NEW: DeFi Info ---
+    {
+      name: "maiat_defi_info",
+      description: "Get trust data for a DeFi protocol by name or address. Examples: 'usdc', 'aerodrome', 'aave', '0x833589...'",
+      schema: {
+        type: "object" as const,
+        properties: {
+          query: { type: "string", description: "Protocol slug (e.g. 'usdc') or address (0x...)" },
+        },
+        required: ["query"],
+      },
+      handler: async (params: { query: string }) => {
+        const result = await client.getDefiInfo(params.query);
+        return {
+          name: result.entity.name,
+          address: result.entity.address,
+          category: result.entity.category,
+          auditedBy: result.entity.auditedBy || [],
+          trustScore: result.trust?.score ?? null,
+          reviews: result.reviews.total,
+          avgRating: result.reviews.avgRating,
+          url: result.canonical.url,
+        };
+      },
+    },
+    // --- NEW: Agent Info ---
+    {
+      name: "maiat_agent_info",
+      description: "Get trust data for an AI agent by name or address. Examples: 'aixbt', 'virtuals', 'luna', '0x4f9fd6...'",
+      schema: {
+        type: "object" as const,
+        properties: {
+          query: { type: "string", description: "Agent slug (e.g. 'aixbt') or address (0x...)" },
+        },
+        required: ["query"],
+      },
+      handler: async (params: { query: string }) => {
+        const result = await client.getAgentInfo(params.query);
+        return {
+          name: result.entity.name,
+          address: result.entity.address,
+          category: result.entity.category,
+          trustScore: result.trust?.score ?? null,
+          reviews: result.reviews.total,
+          avgRating: result.reviews.avgRating,
+          url: result.canonical.url,
+        };
+      },
+    },
   ];
 }
 
@@ -231,7 +500,7 @@ export function maiatTrustActions(config: MaiatPluginConfig = {}) {
 export function maiatTrustPlugin(config: MaiatPluginConfig = {}) {
   return {
     name: "maiat-trust",
-    version: "0.1.0",
+    version: "0.2.0",
     actions: maiatTrustActions(config),
     client: new MaiatClient(config),
   };
