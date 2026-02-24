@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { computeTrustScore } from "@/lib/scoring";
 import { generateSummary } from "@/lib/ai-summary";
+import { apiLog } from "@/lib/logger";
 
 // --- Simple in-memory IP rate limiter ---
 const ipHits = new Map<string, { count: number; resetAt: number }>();
@@ -97,7 +98,7 @@ export async function GET(
       );
     }
 
-    console.error("[score/[address]]", err);
+    apiLog.error('score', err, { address });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500, headers: CORS_HEADERS }
