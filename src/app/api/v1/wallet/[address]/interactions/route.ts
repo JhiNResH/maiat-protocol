@@ -84,8 +84,9 @@ export async function GET(
           txCount: contract.txCount,
           firstTxDate: contract.firstTxDate,
           lastTxDate: contract.lastTxDate,
+          isKnown: contract.isKnown,
           trustScore,
-          canReview: true, // They've interacted, so they can review
+          canReview: contract.isKnown, // They can only review known contracts
           hasReviewed: reviewedAddresses.has(contract.address.toLowerCase()),
           reviewUrl: `/api/v1/review`,
         };
