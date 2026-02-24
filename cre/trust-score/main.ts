@@ -117,7 +117,7 @@ const onCronTrigger = (runtime: Runtime<Config>): WorkflowResult => {
 
   for (const t of tokens) {
     runtime.log(
-      `Token ${t.tokenAddress.slice(0, 10)}...: score=${t.score}/100, reviews=${t.reviewCount}`
+      `Token ${t.tokenAddress.slice(0, 10)}...: score=${t.score}/100 (${(t.score / 10).toFixed(1)}/10), reviews=${t.reviewCount}`
     )
   }
 
