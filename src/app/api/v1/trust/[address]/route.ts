@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getConfidence, isStale } from '@/lib/trust-score'
 import { TRUST_WEIGHTS } from '@/lib/scoring-constants'
+import { apiLog } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,8 +16,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ address: string }> }
 ) {
+  const { address } = await params
   try {
-    const { address } = await params
     const chain = request.nextUrl.searchParams.get('chain')
 
     const project = await prisma.project.findFirst({
@@ -113,7 +114,7 @@ export async function GET(
       },
     })
   } catch (error: any) {
-    console.error('[Trust API] Error:', error.message)
+    apiLog.error('trust', error, { address })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
