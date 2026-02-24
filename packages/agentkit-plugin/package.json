@@ -1,6 +1,6 @@
 {
-  "name": "@maiat/agentkit-plugin",
-  "version": "0.1.0",
+  "name": "@jhinresh/agentkit-plugin",
+  "version": "0.1.1",
   "description": "Maiat Trust Score plugin for Coinbase AgentKit — auto-check trust before every transaction",
   "license": "MIT",
   "type": "module",
@@ -23,5 +23,13 @@
   "devDependencies": {
     "typescript": "^5.5.0"
   },
-  "keywords": ["maiat", "agentkit", "coinbase", "trust-score", "ai-agent", "web3", "x402"]
+  "keywords": [
+    "maiat",
+    "agentkit",
+    "coinbase",
+    "trust-score",
+    "ai-agent",
+    "web3",
+    "x402"
+  ]
 }
