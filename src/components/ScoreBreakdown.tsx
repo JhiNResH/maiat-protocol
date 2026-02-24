@@ -18,7 +18,7 @@ export function ScoreBreakdown({ items }: ScoreBreakdownProps) {
           <div className="flex justify-between">
             <span className="text-[13px] text-txt-secondary">{item.label}</span>
             <span className="font-mono text-[13px] font-semibold text-txt-primary">
-              {item.value}/{item.max}
+              {item.value.toFixed(1)}/{item.max.toFixed(1)}
             </span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-[#1e2035]">
