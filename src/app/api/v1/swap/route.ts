@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSwap, type QuoteResponse } from "@/lib/uniswap";
+import { apiLog } from "@/lib/logger";
 
 // --- Simple in-memory IP rate limiter ---
 const ipHits = new Map<string, { count: number; resetAt: number }>();
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Swap failed";
-    console.error("[swap]", err);
+    apiLog.error('swap', err);
     return NextResponse.json(
       { error: message },
       { status: 500, headers: CORS_HEADERS }
