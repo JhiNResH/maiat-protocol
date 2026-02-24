@@ -64,12 +64,21 @@ export function DashboardView() {
       ])
 
       if (passportRes.ok) {
-        setPassport(await passportRes.json())
+        const data = await passportRes.json()
+        setPassport({
+          trustLevel: data.passport?.trustLevel || 'Newcomer',
+          reputationScore: data.passport?.reputationScore || 0,
+          totalReviews: data.passport?.totalReviews || 0,
+          scarabBalance: data.scarab?.balance || 0,
+          feeTier: data.passport?.feeTier?.label || 'Standard',
+          interactedContracts: data.reviews?.count || 0,
+          reviewedContracts: data.reviews?.count || 0,
+        })
       }
       
       if (interactionsRes.ok) {
         const data = await interactionsRes.json()
-        setInteractions(data.interactions || [])
+        setInteractions(data.interacted || [])
       }
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err)
