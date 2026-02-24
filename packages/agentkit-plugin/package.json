@@ -1,0 +1,27 @@
+{
+  "name": "@maiat/agentkit-plugin",
+  "version": "0.1.0",
+  "description": "Maiat Trust Score plugin for Coinbase AgentKit — auto-check trust before every transaction",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "@coinbase/agentkit": ">=0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  },
+  "keywords": ["maiat", "agentkit", "coinbase", "trust-score", "ai-agent", "web3", "x402"]
+}
