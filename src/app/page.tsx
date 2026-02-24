@@ -191,9 +191,17 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* Swap Link */}
+      <a
+        href="/swap"
+        className="mt-8 inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 px-5 py-3 rounded-xl transition-colors text-sm"
+      >
+        🔄 Swap Tokens with Trust Scoring →
+      </a>
+
       {/* Footer */}
       <p className="mt-16 text-gray-600 text-xs">
-        MAIAT Protocol · Agent Trust Infrastructure · Base Sepolia
+        MAIAT Protocol · Agent Trust Infrastructure · Base
       </p>
     </main>
   );
