@@ -4,7 +4,6 @@ pragma solidity 0.8.26;
 /**
  * @custom:security-contact security@maiat.xyz
  */
-
 import {BaseHook} from "./base/BaseHook.sol";
 import {Hooks} from "v4-core/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
@@ -69,16 +68,16 @@ contract TrustGateHook is BaseHook, Ownable2Step {
     error TrustGateHook__ZeroAddress();
     error TrustGateHook__InvalidThreshold(uint256 threshold);
     error TrustGateHook__ThresholdTooLow(uint256 threshold);
+    error TrustGateHook__SeedScoreRejected(address token);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(
-        TrustScoreOracle _oracle,
-        IPoolManager _poolManager,
-        address initialOwner
-    ) BaseHook(_poolManager) Ownable(initialOwner) {
+    constructor(TrustScoreOracle _oracle, IPoolManager _poolManager, address initialOwner)
+        BaseHook(_poolManager)
+        Ownable(initialOwner)
+    {
         if (address(_oracle) == address(0)) revert TrustGateHook__ZeroAddress();
         if (address(_poolManager) == address(0)) revert TrustGateHook__ZeroAddress();
         if (initialOwner == address(0)) revert TrustGateHook__ZeroAddress();
@@ -107,7 +106,7 @@ contract TrustGateHook is BaseHook, Ownable2Step {
             afterSwap: false,
             beforeDonate: false,
             afterDonate: false,
-            beforeSwapReturnDelta: false,      // DANGER: not needed, keeps NoOp risk off
+            beforeSwapReturnDelta: false, // DANGER: not needed, keeps NoOp risk off
             afterSwapReturnDelta: false,
             afterAddLiquidityReturnDelta: false,
             afterRemoveLiquidityReturnDelta: false
@@ -140,12 +139,12 @@ contract TrustGateHook is BaseHook, Ownable2Step {
     /// @dev NOTE on events + revert: SwapBlocked is NOT emitted on blocked swaps because
     ///      EVM reverts roll back all event logs. TrustScoreTooLow error carries the
     ///      full context (token, score, threshold) for off-chain monitoring via revert data.
-    function beforeSwap(
-        address sender,
-        PoolKey calldata key,
-        SwapParams calldata,
-        bytes calldata
-    ) external override onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
+    function beforeSwap(address sender, PoolKey calldata key, SwapParams calldata, bytes calldata)
+        external
+        override
+        onlyPoolManager
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {
         // Check currency0 trust score
         address token0 = Currency.unwrap(key.currency0);
         if (token0 != address(0)) {
@@ -153,6 +152,10 @@ contract TrustGateHook is BaseHook, Ownable2Step {
             if (score0 < trustThreshold) {
                 // NOTE: No emit here — revert rolls back events. Use revert data for monitoring.
                 revert TrustScoreTooLow(token0, score0, trustThreshold);
+            }
+            // Reject scores derived from seed/baseline data
+            if (oracle.getDataSource(token0) == TrustScoreOracle.DataSource.SEED) {
+                revert TrustGateHook__SeedScoreRejected(token0);
             }
             emit TrustGateChecked(token0, score0, true);
         }
@@ -164,6 +167,10 @@ contract TrustGateHook is BaseHook, Ownable2Step {
             if (score1 < trustThreshold) {
                 // NOTE: No emit here — revert rolls back events. Use revert data for monitoring.
                 revert TrustScoreTooLow(token1, score1, trustThreshold);
+            }
+            // Reject scores derived from seed/baseline data
+            if (oracle.getDataSource(token1) == TrustScoreOracle.DataSource.SEED) {
+                revert TrustGateHook__SeedScoreRejected(token1);
             }
             emit TrustGateChecked(token1, score1, true);
         }

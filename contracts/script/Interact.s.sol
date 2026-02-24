@@ -44,25 +44,34 @@ contract SeedScores is Script {
         // Base Sepolia token addresses
         address WETH = 0x4200000000000000000000000000000000000006;
         address USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
-        address DAI  = 0x7683022d84F726a96c4A6611cD31DBf5409c0Ac9;
+        address DAI = 0x7683022d84F726a96c4A6611cD31DBf5409c0Ac9;
 
-        address[] memory tokens        = new address[](3);
-        uint256[] memory scores        = new uint256[](3);
-        uint256[] memory reviewCounts  = new uint256[](3);
-        uint256[] memory avgRatings    = new uint256[](3);
+        address[] memory tokens = new address[](3);
+        uint256[] memory scores = new uint256[](3);
+        uint256[] memory reviewCounts = new uint256[](3);
+        uint256[] memory avgRatings = new uint256[](3);
 
         // WETH: score 95, 150 reviews, avg 4.8 (480)
-        tokens[0] = WETH; scores[0] = 95; reviewCounts[0] = 150; avgRatings[0] = 480;
+        tokens[0] = WETH;
+        scores[0] = 95;
+        reviewCounts[0] = 150;
+        avgRatings[0] = 480;
         // USDC: score 92, 200 reviews, avg 4.7 (470)
-        tokens[1] = USDC; scores[1] = 92; reviewCounts[1] = 200; avgRatings[1] = 470;
+        tokens[1] = USDC;
+        scores[1] = 92;
+        reviewCounts[1] = 200;
+        avgRatings[1] = 470;
         // DAI:  score 88,  80 reviews, avg 4.5 (450)
-        tokens[2] = DAI;  scores[2] = 88; reviewCounts[2] =  80; avgRatings[2] = 450;
+        tokens[2] = DAI;
+        scores[2] = 88;
+        reviewCounts[2] = 80;
+        avgRatings[2] = 450;
 
         console2.log("Seeding scores on oracle:", oracleAddr);
         console2.log("Caller:", vm.addr(callerKey));
 
         vm.startBroadcast(callerKey);
-        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings);
+        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.SEED);
         vm.stopBroadcast();
 
         console2.log("Scores seeded:");
@@ -76,12 +85,12 @@ contract SeedScores is Script {
 
 contract UpdateTokenScore is Script {
     function run() external {
-        address oracleAddr   = vm.envAddress("ORACLE_ADDRESS");
-        address token        = vm.envAddress("TOKEN");
-        uint256 score        = vm.envUint("SCORE");
-        uint256 reviewCount  = vm.envUint("REVIEW_COUNT");
-        uint256 avgRating    = vm.envUint("AVG_RATING"); // e.g. 450 = 4.5 stars
-        uint256 callerKey    = vm.envUint("PRIVATE_KEY");
+        address oracleAddr = vm.envAddress("ORACLE_ADDRESS");
+        address token = vm.envAddress("TOKEN");
+        uint256 score = vm.envUint("SCORE");
+        uint256 reviewCount = vm.envUint("REVIEW_COUNT");
+        uint256 avgRating = vm.envUint("AVG_RATING"); // e.g. 450 = 4.5 stars
+        uint256 callerKey = vm.envUint("PRIVATE_KEY");
 
         TrustScoreOracle oracle = TrustScoreOracle(oracleAddr);
 
@@ -91,7 +100,7 @@ contract UpdateTokenScore is Script {
         console2.log("  avgRating:", avgRating);
 
         vm.startBroadcast(callerKey);
-        oracle.updateTokenScore(token, score, reviewCount, avgRating);
+        oracle.updateTokenScore(token, score, reviewCount, avgRating, TrustScoreOracle.DataSource.API);
         vm.stopBroadcast();
 
         console2.log("Updated. New score:", oracle.getScore(token));
@@ -102,12 +111,12 @@ contract UpdateTokenScore is Script {
 
 contract UpdateUserRep is Script {
     function run() external {
-        address oracleAddr    = vm.envAddress("ORACLE_ADDRESS");
-        address user          = vm.envAddress("USER");
-        uint256 repScore      = vm.envUint("REP_SCORE");
-        uint256 totalReviews  = vm.envUint("TOTAL_REVIEWS");
-        uint256 scarabPoints  = vm.envUint("SCARAB");
-        uint256 callerKey     = vm.envUint("PRIVATE_KEY");
+        address oracleAddr = vm.envAddress("ORACLE_ADDRESS");
+        address user = vm.envAddress("USER");
+        uint256 repScore = vm.envUint("REP_SCORE");
+        uint256 totalReviews = vm.envUint("TOTAL_REVIEWS");
+        uint256 scarabPoints = vm.envUint("SCARAB");
+        uint256 callerKey = vm.envUint("PRIVATE_KEY");
 
         TrustScoreOracle oracle = TrustScoreOracle(oracleAddr);
 
@@ -129,9 +138,9 @@ contract UpdateUserRep is Script {
 
 contract UpdateThreshold is Script {
     function run() external {
-        address hookAddr      = vm.envAddress("HOOK_ADDRESS");
-        uint256 newThreshold  = vm.envUint("NEW_THRESHOLD");
-        uint256 callerKey     = vm.envUint("PRIVATE_KEY");
+        address hookAddr = vm.envAddress("HOOK_ADDRESS");
+        uint256 newThreshold = vm.envUint("NEW_THRESHOLD");
+        uint256 callerKey = vm.envUint("PRIVATE_KEY");
 
         TrustGateHook hook = TrustGateHook(hookAddr);
 
@@ -151,14 +160,14 @@ contract UpdateThreshold is Script {
 contract ReadState is Script {
     function run() external view {
         address oracleAddr = vm.envAddress("ORACLE_ADDRESS");
-        address hookAddr   = vm.envAddress("HOOK_ADDRESS");
+        address hookAddr = vm.envAddress("HOOK_ADDRESS");
 
         TrustScoreOracle oracle = TrustScoreOracle(oracleAddr);
-        TrustGateHook    hook   = TrustGateHook(hookAddr);
+        TrustGateHook hook = TrustGateHook(hookAddr);
 
         address WETH = 0x4200000000000000000000000000000000000006;
         address USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
-        address DAI  = 0x7683022d84F726a96c4A6611cD31DBf5409c0Ac9;
+        address DAI = 0x7683022d84F726a96c4A6611cD31DBf5409c0Ac9;
 
         console2.log("=== MAIAT On-chain State ===");
         console2.log("Oracle:          ", oracleAddr);

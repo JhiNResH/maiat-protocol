@@ -63,12 +63,19 @@ export interface AddressDetails {
   lastActive: string | null;
 }
 
+export type DataSource = "onchain" | "cre" | "seed" | "unknown";
+
 export interface TrustScoreResult {
   score: number;           // 0-10 (one decimal)
   risk: RiskLevel;
   type: AddressType;
   flags: string[];
   breakdown: ScoreBreakdown;
+  /** Per trust-score-spec.md: "onchain" | "cre" | "seed" | "unknown" */
+  dataSource: DataSource;
+  /** True if score is older than the max freshness window for its source */
+  isStale: boolean;
+  lastUpdated: string;     // ISO 8601
   protocol?: {
     name: string;
     category: string;
@@ -170,6 +177,9 @@ export async function computeTrustScore(
       risk: "CRITICAL",
       type: "UNKNOWN",
       flags,
+      dataSource: "onchain",
+      isStale: false,
+      lastUpdated: new Date().toISOString(),
       breakdown: { onChainHistory: 0, contractAnalysis: 0, blacklistCheck: 0, activityPattern: 0 },
       details: { txCount: 0, balance: "0", balanceETH: 0, isContract: false, isKnownScam: true, isKnownProtocol: false, walletAge: null, lastActive: null },
     };
@@ -198,6 +208,9 @@ export async function computeTrustScore(
       risk: getRisk(score),
       type: "PROTOCOL",
       flags,
+      dataSource: "seed",   // hardcoded baseScore — see docs/trust-score-spec.md §4
+      isStale: false,
+      lastUpdated: new Date().toISOString(),
       breakdown,
       protocol: {
         name: protocolInfo.name,
@@ -328,6 +341,9 @@ export async function computeTrustScore(
     risk: getRisk(score),
     type: addressType,
     flags,
+    dataSource: "onchain",
+    isStale: false,
+    lastUpdated: new Date().toISOString(),
     breakdown,
     details: {
       txCount,
