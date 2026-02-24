@@ -23,6 +23,7 @@ export interface DiscoveredContract {
   txCount: number;
   firstTxDate: string;
   lastTxDate: string;
+  isKnown: boolean;
 }
 
 // --- Cache ---
@@ -262,16 +263,15 @@ async function discoverInteractionsAlchemy(
         }
       }
 
-      if (known) {
-        results.push({
-          address: addr,
-          name: known.name,
-          category: known.category,
-          txCount: info.txCount,
-          firstTxDate: new Date(info.firstTs * 1000).toISOString(),
-          lastTxDate: new Date(info.lastTs * 1000).toISOString(),
-        });
-      }
+      results.push({
+        address: addr,
+        name: known?.name || "Unknown Contract",
+        category: known?.category || "RAW_CONTRACT",
+        txCount: info.txCount,
+        firstTxDate: new Date(info.firstTs * 1000).toISOString(),
+        lastTxDate: new Date(info.lastTs * 1000).toISOString(),
+        isKnown: !!known,
+      });
     }
 
     return results.sort((a, b) => b.txCount - a.txCount);
@@ -336,17 +336,15 @@ export async function discoverInteractions(
         }
       }
 
-      // Only include known protocols (skip random EOA addresses)
-      if (known) {
-        results.push({
-          address: addr,
-          name: known.name,
-          category: known.category,
-          txCount: info.txCount,
-          firstTxDate: new Date(info.firstTs * 1000).toISOString(),
-          lastTxDate: new Date(info.lastTs * 1000).toISOString(),
-        });
-      }
+      results.push({
+        address: addr,
+        name: known?.name || "Unknown Contract",
+        category: known?.category || "RAW_CONTRACT",
+        txCount: info.txCount,
+        firstTxDate: new Date(info.firstTs * 1000).toISOString(),
+        lastTxDate: new Date(info.lastTs * 1000).toISOString(),
+        isKnown: !!known,
+      });
     }
 
     // Sort by txCount descending

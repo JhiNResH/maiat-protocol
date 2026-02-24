@@ -1,6 +1,3 @@
-// Maat V2 Database Schema (Cleaned from team-kindred)
-// Categories: m/ai-agents, m/defi
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
@@ -12,85 +9,59 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ============================================
-// Core Models
-// ============================================
-
-// User profile and reputation
 model User {
-  id              String    @id @default(cuid())
-  address         String    @unique // wallet address (lowercase)
+  id              String   @id @default(cuid())
+  address         String   @unique
   displayName     String?
   avatarUrl       String?
-
-  // Reputation metrics
-  reputationScore Int       @default(0)
-  totalReviews    Int       @default(0)
-  totalUpvotes    Int       @default(0)
-
-  // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  // Relations
+  reputationScore Int      @default(0)
+  totalReviews    Int      @default(0)
+  totalUpvotes    Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   reviews         Review[]
   votes           Vote[]
-  
+
   @@index([address])
   @@index([reputationScore])
 }
 
-// Project being reviewed
 model Project {
   id              String    @id @default(cuid())
-  address         String    @unique // contract/protocol address or identifier
+  address         String    @unique
   name            String
   slug            String    @unique @default(cuid())
   description     String?
-  image           String?   // Logo URL
-  bannerImage     String?   // Banner/cover image
+  image           String?
+  bannerImage     String?
   website         String?
-  category        String    @default("m/ai-agents") // m/ai-agents, m/defi
-
-  // Agent-specific fields
-  chain           String?   // base, sol, bnb, arc, multi
-  symbol          String?   // token symbol
-  tier            String?   // 1=DeFi Execution, 2=Signal/Alpha, 3=Platform
-  coreFunctions   String?   // JSON array of functions
-  twitter         String?
-  github          String?
-  docs            String?
-
-  // Trust Score (3-layer system)
-  trustScore      Int?      // 0-100 composite score
-  trustGrade      String?   // S/A/B/C/D/F
-  onChainScore    Int?      // 0-100 (Layer 1: contract age, tx count, audits)
-  offChainScore   Int?      // 0-100 (Layer 2: GitHub, team, incidents)
-  humanScore      Int?      // 0-100 (Layer 3: reviews weighted by reputation)
-  trustUpdatedAt  DateTime? // last trust computation
-
-  // Market data
-  marketCap       Float?
-  price           Float?
-  volume24h       Float?
-  athPrice        Float?
-  athDropPct      Float?
-  marketUpdatedAt DateTime? // last market data refresh
-  
-  // Aggregated stats
+  category        String    @default("m/ai-agents")
   avgRating       Float     @default(0)
   reviewCount     Int       @default(0)
-  
-  // Status
-  status          String    @default("active") // active, pending, flagged, removed
-  
-  // Timestamps
+  status          String    @default("active")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  
-  // Relations
+  athDropPct      Float?
+  athPrice        Float?
+  chain           String?
+  coreFunctions   String?
+  docs            String?
+  github          String?
+  humanScore      Int?
+  marketCap       Float?
+  marketUpdatedAt DateTime?
+  offChainScore   Int?
+  onChainScore    Int?
+  price           Float?
+  symbol          String?
+  tier            String?
+  trustGrade      String?
+  trustScore      Int?
+  trustUpdatedAt  DateTime?
+  twitter         String?
+  volume24h       Float?
   reviews         Review[]
-  
+
   @@index([slug])
   @@index([address])
   @@index([category])
@@ -99,144 +70,99 @@ model Project {
   @@index([trustScore])
 }
 
-// Review of a project
 model Review {
-  id              String    @id @default(cuid())
-  
-  // Content
-  rating          Int       // 1-5
+  id              String   @id @default(cuid())
+  rating          Int
   content         String
-  
-  // Engagement
-  upvotes         Int       @default(0)
-  downvotes       Int       @default(0)
-  
-  // Status
-  status          String    @default("active") // active, flagged, removed
-  
-  // On-chain verification (BSC Testnet)
-  txHash          String?   // BSC transaction hash
-  contentHash     String?   // keccak256 of review content
-  onChainReviewId String?   // ReviewRegistry reviewId (bytes32)
-  
-  // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  // Relations
-  reviewer        User      @relation(fields: [reviewerId], references: [id])
+  upvotes         Int      @default(0)
+  downvotes       Int      @default(0)
+  status          String   @default("active")
+  txHash          String?
+  contentHash     String?
+  onChainReviewId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   reviewerId      String
-  project         Project   @relation(fields: [projectId], references: [id])
   projectId       String
+  project         Project  @relation(fields: [projectId], references: [id])
+  reviewer        User     @relation(fields: [reviewerId], references: [id])
   votes           Vote[]
-  
+
   @@index([reviewerId])
   @@index([projectId])
   @@index([createdAt])
   @@index([txHash])
 }
 
-// Vote on a review (upvote/downvote)
 model Vote {
-  id              String    @id @default(cuid())
-  direction       String    // "up" or "down"
-  
-  // Timestamps
-  createdAt       DateTime  @default(now())
-  
-  // Relations
-  voter           User      @relation(fields: [voterId], references: [id])
-  voterId         String
-  review          Review    @relation(fields: [reviewId], references: [id])
-  reviewId        String
-  
-  // Unique constraint: one vote per user per review
+  id        String   @id @default(cuid())
+  direction String
+  createdAt DateTime @default(now())
+  voterId   String
+  reviewId  String
+  review    Review   @relation(fields: [reviewId], references: [id])
+  voter     User     @relation(fields: [voterId], references: [id])
+
   @@unique([voterId, reviewId])
   @@index([reviewId])
   @@index([voterId])
 }
 
-// ============================================
-// Scarab Economy (Off-chain Points)
-// ============================================
-
-// Scarab balance per user
 model ScarabBalance {
-  id              String    @id @default(cuid())
-  address         String    @unique // wallet address (lowercase)
-  balance         Int       @default(0) // current Scarab balance
-  totalEarned     Int       @default(0) // lifetime earned
-  totalSpent      Int       @default(0) // lifetime spent
-  totalPurchased  Int       @default(0) // lifetime purchased with USDC
-  lastClaimAt     DateTime? // last daily claim timestamp
-  streak          Int       @default(0) // consecutive daily claims
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  // Relations
-  transactions    ScarabTransaction[]
-  
+  id             String              @id @default(cuid())
+  address        String              @unique
+  balance        Int                 @default(0)
+  totalEarned    Int                 @default(0)
+  totalSpent     Int                 @default(0)
+  totalPurchased Int                 @default(0)
+  lastClaimAt    DateTime?
+  streak         Int                 @default(0)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  transactions   ScarabTransaction[]
+
   @@index([address])
   @@index([balance])
 }
 
-// Scarab transaction ledger (immutable log)
 model ScarabTransaction {
-  id              String    @id @default(cuid())
-  address         String    // wallet address
-  amount          Int       // positive = credit, negative = debit
-  type            String    // "claim" | "purchase" | "review_spend" | "vote_spend" | "reward" | "boost" | "refund"
-  description     String?   // human-readable reason
-  referenceId     String?   // reviewId, voteId, purchaseId, etc.
-  balanceAfter    Int       // balance after this transaction
-  
-  createdAt       DateTime  @default(now())
-  
-  // Relations
-  scarabBalance   ScarabBalance @relation(fields: [address], references: [address])
-  
+  id            String        @id @default(cuid())
+  address       String
+  amount        Int
+  type          String
+  description   String?
+  referenceId   String?
+  balanceAfter  Int
+  createdAt     DateTime      @default(now())
+  scarabBalance ScarabBalance @relation(fields: [address], references: [address])
+
   @@index([address])
   @@index([type])
   @@index([createdAt])
 }
 
-// USDC purchases of Scarab
 model ScarabPurchase {
-  id              String    @id @default(cuid())
-  address         String    // buyer wallet
-  tier            String    // "small" | "medium" | "large"
-  usdcAmount      Float     // 1, 5, or 20
-  scarabAmount    Int       // 50, 300, or 1500
-  txHash          String?   // on-chain USDC tx hash
-  status          String    @default("pending") // "pending" | "confirmed" | "failed"
-  
-  createdAt       DateTime  @default(now())
-  confirmedAt     DateTime?
-  
+  id           String    @id @default(cuid())
+  address      String
+  tier         String
+  usdcAmount   Float
+  scarabAmount Int
+  txHash       String?
+  status       String    @default("pending")
+  createdAt    DateTime  @default(now())
+  confirmedAt  DateTime?
+
   @@index([address])
   @@index([status])
 }
 
-// ============================================
-// MAIAT Trust Reviews (v1 API — 0-10 scale)
-// ============================================
-
 model TrustReview {
   id        String   @id @default(cuid())
-
-  // Target contract / token / agent address (checksummed)
   address   String
-
-  // Rating 1-10
   rating    Int
-
-  // Optional comment and tags
   comment   String   @default("")
   tags      String[] @default([])
-
-  // Reviewer wallet address (checksummed)
   reviewer  String
-
   createdAt DateTime @default(now())
 
   @@index([address])

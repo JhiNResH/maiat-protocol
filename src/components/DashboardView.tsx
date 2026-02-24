@@ -27,6 +27,7 @@ type InteractionData = {
   txCount: number
   canReview: boolean
   existingReview: boolean
+  isKnown: boolean
 }
 
 export function DashboardView() {
@@ -38,6 +39,7 @@ export function DashboardView() {
   const [loading, setLoading] = useState(true)
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
   const [selectedContract, setSelectedContract] = useState<InteractionData | null>(null)
+  const [activeTab, setActiveTab] = useState<'reviewable' | 'raw'>('reviewable')
 
   // Review form state
   const [rating, setRating] = useState(5)
@@ -275,11 +277,32 @@ export function DashboardView() {
 
             {/* Interaction Discovery */}
             <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-1">
-                <h2 className="text-2xl font-bold text-txt-primary">Contracts You Use</h2>
-                <p className="text-sm text-txt-secondary">
-                  We found these contracts based on your Base transaction history. Review them to earn reputation.
-                </p>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-2xl font-bold text-txt-primary">Contracts You Use</h2>
+                  <p className="text-sm text-txt-secondary">
+                    Review known protocols to earn reputation. View your raw transaction history for unknown contracts.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setActiveTab('reviewable')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                      activeTab === 'reviewable' ? 'bg-gold text-bg-primary shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'bg-surface text-txt-secondary hover:text-txt-primary border border-border-subtle'
+                    }`}
+                  >
+                    Reviewable Protocols ({interactions.filter(i => i.isKnown).length})
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('raw')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                      activeTab === 'raw' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-surface text-txt-secondary hover:text-txt-primary border border-border-subtle'
+                    }`}
+                  >
+                    Raw Traces ({interactions.filter(i => !i.isKnown).length})
+                  </button>
+                </div>
               </div>
 
               {interactions.length === 0 ? (
@@ -288,7 +311,9 @@ export function DashboardView() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-                  {interactions.map(contract => (
+                  {interactions
+                    .filter(contract => activeTab === 'reviewable' ? contract.isKnown : !contract.isKnown)
+                    .map(contract => (
                     <div key={contract.address} className="bg-surface border border-border-subtle rounded-2xl p-5 flex flex-col gap-4 hover:border-gold/30 transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
@@ -322,30 +347,36 @@ export function DashboardView() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleOpenReview(contract)}
-                        disabled={!contract.canReview || contract.existingReview || (passport?.scarabBalance || 0) < 2}
-                        className={`mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all
-                          ${contract.existingReview 
-                            ? 'bg-border-subtle text-txt-muted cursor-not-allowed hidden' 
-                            : !contract.canReview || (passport?.scarabBalance || 0) < 2
-                                ? 'bg-bg-primary text-txt-muted border border-border-subtle cursor-not-allowed'
-                                : 'bg-gold/10 text-gold border border-gold/30 hover:bg-gold hover:text-page'
-                          }`}
-                      >
-                        {contract.existingReview ? (
-                          'Reviewed'
-                        ) : !contract.canReview ? (
-                          'Need More Txs'
-                        ) : (passport?.scarabBalance || 0) < 2 ? (
-                          'Need 2 Scarab'
-                        ) : (
-                          <>
-                            <MessageSquare className="w-4 h-4" />
-                            Write Review <span className="opacity-70 text-xs ml-1 font-normal">(-2 🪲)</span>
-                          </>
-                        )}
-                      </button>
+                      {contract.isKnown ? (
+                        <button
+                          onClick={() => handleOpenReview(contract)}
+                          disabled={!contract.canReview || contract.existingReview || (passport?.scarabBalance || 0) < 2}
+                          className={`mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all
+                            ${contract.existingReview 
+                              ? 'bg-border-subtle text-txt-muted cursor-not-allowed hidden' 
+                              : !contract.canReview || (passport?.scarabBalance || 0) < 2
+                                  ? 'bg-bg-primary text-txt-muted border border-border-subtle cursor-not-allowed'
+                                  : 'bg-gold/10 text-gold border border-gold/30 hover:bg-gold hover:text-page'
+                            }`}
+                        >
+                          {contract.existingReview ? (
+                            'Reviewed'
+                          ) : !contract.canReview ? (
+                            'Need More Txs'
+                          ) : (passport?.scarabBalance || 0) < 2 ? (
+                            'Need 2 Scarab'
+                          ) : (
+                            <>
+                              <MessageSquare className="w-4 h-4" />
+                              Write Review <span className="opacity-70 text-xs ml-1 font-normal">(-2 🪲)</span>
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <div className="mt-2 w-full flex items-center justify-center py-2.5 rounded-lg text-xs font-mono text-txt-muted bg-bg-primary border border-border-subtle">
+                          Raw Interaction
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
