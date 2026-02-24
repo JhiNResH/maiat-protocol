@@ -45,7 +45,22 @@ jobs:
           npm install
           npm run build
 
+      - name: Check if version already published
+        id: check_npm
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          if npm view "${PKG}@${VER}" version 2>/dev/null | grep -q "${VER}"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⏭️ ${PKG}@${VER} already published — skipping"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "🚀 Publishing ${PKG}@${VER}..."
+          fi
+
       - name: Publish to npm
+        if: steps.check_npm.outputs.skip != 'true'
         working-directory: packages/${{ matrix.package }}
         run: npm publish --access public
         env:
@@ -81,7 +96,23 @@ jobs:
           npm install
           npm run build
 
+      - name: Check if version already published on GPR
+        id: check_gpr
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          if npm view "${PKG}@${VER}" version --registry https://npm.pkg.github.com 2>/dev/null | grep -q "${VER}"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⏭️ ${PKG}@${VER} already published on GPR — skipping"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish to GitHub Packages
+        if: steps.check_gpr.outputs.skip != 'true'
         working-directory: packages/${{ matrix.package }}
         run: npm publish --registry https://npm.pkg.github.com
         env:

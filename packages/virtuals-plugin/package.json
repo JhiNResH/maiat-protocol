@@ -1,5 +1,5 @@
 {
-  "name": "@maiat/virtuals-plugin",
+  "name": "@jhinresh/virtuals-plugin",
   "version": "0.1.0",
   "description": "Maiat Trust Score plugin for Virtuals GAME SDK — trust-gate agent transactions on Virtuals Protocol",
   "license": "MIT",
