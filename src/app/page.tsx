@@ -125,7 +125,7 @@ export default function HomePage() {
         <div className="flex gap-6 w-full">
           {[
             { num: '01', numColor: 'text-gold', numBg: 'bg-[#d4a01718]', icon: Search, iconColor: 'text-gold', title: 'Query', desc: 'One API call, any address. Pass an on-chain address and get back a comprehensive trust assessment.' },
-            { num: '02', numColor: 'text-turquoise', numBg: 'bg-[#00b4d818]', icon: Gauge, iconColor: 'text-turquoise', title: 'Score', desc: '0-1000 trust score derived from on-chain history, contract analysis, blacklist checks, and activity patterns.' },
+            { num: '02', numColor: 'text-turquoise', numBg: 'bg-[#00b4d818]', icon: Gauge, iconColor: 'text-turquoise', title: 'Score', desc: '0-10 trust score derived from on-chain history, contract analysis, blacklist checks, and activity patterns.' },
             { num: '03', numColor: 'text-emerald', numBg: 'bg-[#00c9a718]', icon: ShieldCheck, iconColor: 'text-emerald', title: 'Protect', desc: 'Uniswap v4 Hook blocks untrusted swaps automatically. Your agents trade with confidence, on-chain.' },
           ].map((card) => (
             <div key={card.num} className="flex-1 flex flex-col gap-5 bg-surface rounded-2xl border border-border-subtle p-8">
@@ -205,7 +205,7 @@ export default function HomePage() {
             <div className="flex flex-col gap-1">
               <code className="font-mono text-[13px] text-txt-secondary">{'{'}</code>
               <code className="font-mono text-[13px] text-txt-secondary">{'  "address": "0x742d...bD28",'}</code>
-              <code className="font-mono text-[13px] text-gold">{'  "score": 847,'}</code>
+              <code className="font-mono text-[13px] text-gold">{'  "score": 8.47,'}</code>
               <code className="font-mono text-[13px] text-emerald">{'  "risk_level": "trusted",'}</code>
               <code className="font-mono text-[13px] text-txt-secondary">{'  "chain": "base"'}</code>
               <code className="font-mono text-[13px] text-txt-secondary">{'}'}</code>

@@ -129,7 +129,7 @@ export default function DocsPage() {
                 { text: '{', color: 'text-txt-secondary' },
                 { text: '  "address": "0x742d...f2bD",', color: 'text-gold-light' },
                 { text: '  "chain": "base",', color: 'text-txt-secondary' },
-                { text: '  "score": 847,', color: 'text-emerald' },
+                { text: '  "score": 8.47,', color: 'text-emerald' },
                 { text: '  "tier": "guardian",', color: 'text-emerald' },
                 { text: '  "flags": [],', color: 'text-txt-secondary' },
                 { text: '  "breakdown": {', color: 'text-txt-secondary' },
