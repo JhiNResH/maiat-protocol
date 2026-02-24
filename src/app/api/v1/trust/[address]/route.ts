@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getConfidence } from '@/lib/trust-score'
+import { getConfidence, isStale } from '@/lib/trust-score'
+import { TRUST_WEIGHTS } from '@/lib/scoring-constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,6 +75,7 @@ export async function GET(
       },
       trust: {
         score: project.trustScore,
+        isStale: isStale(project.trustUpdatedAt),
         grade: project.trustGrade,
         breakdown: {
           on_chain: project.onChainScore,
@@ -81,7 +83,7 @@ export async function GET(
           human_reviews: project.humanScore,
         },
         confidence,
-        weights: { on_chain: 0.5, off_chain: 0.3, human_reviews: 0.2 },
+        weights: { on_chain: TRUST_WEIGHTS.ON_CHAIN, off_chain: TRUST_WEIGHTS.OFF_CHAIN, human_reviews: TRUST_WEIGHTS.HUMAN_REVIEWS },
         recommendation: getRecommendation(project.trustScore),
         last_updated: project.trustUpdatedAt?.toISOString() || null,
       },
