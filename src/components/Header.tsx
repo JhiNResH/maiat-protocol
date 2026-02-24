@@ -45,7 +45,7 @@ export function Header() {
         <Link href="/" className="text-sm font-medium text-txt-secondary hover:text-txt-primary transition-colors">
           Explore
         </Link>
-        <Link href="/swap" className="text-sm font-medium text-gold hover:text-gold/80 transition-colors">
+        <Link href="/swap" className="text-sm font-medium text-txt-secondary hover:text-txt-primary transition-colors">
           Swap
         </Link>
         <Link href="/docs" className="text-sm font-medium text-txt-secondary hover:text-txt-primary transition-colors">
