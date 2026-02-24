@@ -71,13 +71,13 @@ export default function TokenDetailPage() {
 
   const score = result?.score ?? 0
   const shortAddr = `${address.slice(0, 6)}...${address.slice(-4)}`
-  const isHighTrust = score > 700
+  const isHighTrust = score > 7.0
 
   const breakdown = result?.breakdown ?? {
-    onChainHistory: Math.round(score * 0.38),
-    contractAnalysis: Math.round(score * 0.29),
-    blacklistCheck: Math.round(score * 0.19),
-    activityPattern: Math.round(score * 0.06),
+    onChainHistory: parseFloat((score * 0.38).toFixed(1)),
+    contractAnalysis: parseFloat((score * 0.29).toFixed(1)),
+    blacklistCheck: parseFloat((score * 0.19).toFixed(1)),
+    activityPattern: parseFloat((score * 0.06).toFixed(1)),
   }
 
   const safety = result?.safety ?? {
@@ -212,7 +212,7 @@ export default function TokenDetailPage() {
                   {/* Trust badge */}
                   <div className="flex items-center gap-2 bg-[#00c9a712] rounded-[10px] px-4 py-2 w-full">
                     <Shield className="w-[18px] h-[18px] text-emerald" />
-                    <span className="text-sm font-semibold text-emerald">Safe to Swap &mdash; Trust Score: {score}</span>
+                    <span className="text-sm font-semibold text-emerald">Safe to Swap &mdash; Trust Score: {score.toFixed(1)}/10</span>
                   </div>
 
                   {/* You Pay */}
@@ -319,10 +319,10 @@ export default function TokenDetailPage() {
               {/* Score Breakdown */}
               <ScoreBreakdown
                 items={[
-                  { label: 'On-chain History', value: breakdown.onChainHistory, max: 400, color: 'var(--primary-gold)' },
-                  { label: 'Contract Analysis', value: breakdown.contractAnalysis, max: 300, color: 'var(--secondary-turquoise)' },
-                  { label: 'Blacklist Check', value: breakdown.blacklistCheck, max: 200, color: 'var(--success-emerald)' },
-                  { label: 'Activity Pattern', value: breakdown.activityPattern, max: 100, color: 'var(--warning-amber)' },
+                  { label: 'On-chain History', value: breakdown.onChainHistory, max: 4.0, color: 'var(--primary-gold)' },
+                  { label: 'Contract Analysis', value: breakdown.contractAnalysis, max: 3.0, color: 'var(--secondary-turquoise)' },
+                  { label: 'Blacklist Check', value: breakdown.blacklistCheck, max: 2.0, color: 'var(--success-emerald)' },
+                  { label: 'Activity Pattern', value: breakdown.activityPattern, max: 1.0, color: 'var(--warning-amber)' },
                 ]}
               />
             </div>
