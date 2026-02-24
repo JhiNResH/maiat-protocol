@@ -12,7 +12,7 @@ const PrivyClient = dynamic(
 
 export function PrivyProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false)
-  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? ''
+  const appId = (process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? '').trim()
 
   useEffect(() => { setMounted(true) }, [])
 
