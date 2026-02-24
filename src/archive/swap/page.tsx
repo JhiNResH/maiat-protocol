@@ -1,347 +1,251 @@
 'use client'
 
 import { useState } from 'react'
-import { usePrivy } from '@privy-io/react-auth'
-import { ArrowDown, Shield, AlertTriangle, Loader2, Settings, ChevronDown, X, Check } from 'lucide-react'
-import Link from 'next/link'
+import { Header } from '@/components/Header'
+import {
+  Wallet, ChevronDown, ArrowLeftRight, CircleCheck, Repeat, Zap
+} from 'lucide-react'
 
-const POPULAR_TOKENS = [
-  { symbol: 'ETH', name: 'Ethereum', address: '0x0000000000000000000000000000000000000000', decimals: 18, color: '#627EEA' },
-  { symbol: 'USDC', name: 'USD Coin', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6, color: '#2775CA' },
-  { symbol: 'WETH', name: 'Wrapped ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, color: '#627EEA' },
-  { symbol: 'DAI', name: 'Dai', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', decimals: 18, color: '#F5AC37' },
-  { symbol: 'cbBTC', name: 'Coinbase BTC', address: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf', decimals: 8, color: '#F7931A' },
-  { symbol: 'AERO', name: 'Aerodrome', address: '0x940181a94A35A4569E4529A3CDfB74e38FD98631', decimals: 18, color: '#0052FF' },
-  { symbol: 'DEGEN', name: 'Degen', address: '0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed', decimals: 18, color: '#A855F7' },
-  { symbol: 'USDT', name: 'Tether', address: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', decimals: 6, color: '#26A17B' },
+interface QuoteData {
+  quote: {
+    amountIn: string
+    amountOut: string
+    gasFeeUSD: string
+    routeString: string
+    tokenIn: string
+    tokenOut: string
+    chainId: number
+    quoteId: string
+    swapper: string
+    requestId: string
+    slippage: { tolerance: number }
+    route: unknown[]
+    gasFee: string
+    permitData: Record<string, unknown> | null
+  }
+  trust: {
+    tokenIn: { score: number; risk: string } | null
+    tokenOut: { score: number; risk: string } | null
+  }
+}
+
+const TOKENS = [
+  { symbol: 'ETH', address: '0x0000000000000000000000000000000000000000', color: '#627eea', decimals: 18 },
+  { symbol: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', color: '#2775ca', decimals: 6 },
+  { symbol: 'WETH', address: '0x4200000000000000000000000000000000000006', color: '#627eea', decimals: 18 },
 ]
 
-function TokenIcon({ symbol, color, size = 32 }: { symbol: string; color: string; size?: number }) {
-  return (
-    <div
-      style={{ width: size, height: size, background: color, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-    >
-      <span style={{ color: 'white', fontWeight: 700, fontSize: size * 0.35, letterSpacing: '-0.5px' }}>
-        {symbol.slice(0, 2)}
-      </span>
-    </div>
-  )
-}
-
-function TokenSelectModal({
-  open,
-  onClose,
-  onSelect,
-  exclude,
-}: {
-  open: boolean
-  onClose: () => void
-  onSelect: (t: typeof POPULAR_TOKENS[0]) => void
-  exclude: string
-}) {
-  const [search, setSearch] = useState('')
-  if (!open) return null
-  const filtered = POPULAR_TOKENS.filter(
-    t => t.symbol !== exclude && (
-      t.symbol.toLowerCase().includes(search.toLowerCase()) ||
-      t.name.toLowerCase().includes(search.toLowerCase())
-    )
-  )
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div
-        className="relative w-full max-w-sm rounded-3xl border border-[#2a2a2e] overflow-hidden"
-        style={{ background: '#191919' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <span className="text-white font-semibold text-lg">Select token</span>
-          <button onClick={onClose} className="text-[#6b6b70] hover:text-white transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Search */}
-        <div className="px-4 pb-3">
-          <input
-            autoFocus
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search name or address"
-            className="w-full px-4 py-3 rounded-2xl text-sm text-white placeholder-[#6b6b70] outline-none border border-[#2a2a2e] focus:border-[#3a3a3e] transition-colors"
-            style={{ background: '#0a0a0b' }}
-          />
-        </div>
-
-        {/* Token List */}
-        <div className="px-2 pb-4 max-h-[320px] overflow-y-auto">
-          {filtered.map(t => (
-            <button
-              key={t.symbol}
-              onClick={() => { onSelect(t); onClose() }}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-white/5 transition-colors text-left"
-            >
-              <TokenIcon symbol={t.symbol} color={t.color} size={36} />
-              <div>
-                <div className="text-white font-semibold text-sm">{t.symbol}</div>
-                <div className="text-[#6b6b70] text-xs">{t.name}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-interface QuoteResult {
-  allowed: boolean
-  trustScore?: number
-  riskLevel?: string
-  warning?: string
-  quote?: any
-  error?: string
-}
-
 export default function SwapPage() {
-  const { authenticated, user, login, logout } = usePrivy()
-  const [tokenIn, setTokenIn] = useState(POPULAR_TOKENS[0])
-  const [tokenOut, setTokenOut] = useState(POPULAR_TOKENS[1])
+  const [swapper, setSwapper] = useState('')
+  const [tokenInIdx, setTokenInIdx] = useState(0)
+  const [tokenOutIdx, setTokenOutIdx] = useState(1)
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<QuoteResult | null>(null)
-  const [modalFor, setModalFor] = useState<'in' | 'out' | null>(null)
+  const [quote, setQuote] = useState<QuoteData | null>(null)
+  const [swapTx, setSwapTx] = useState<Record<string, unknown> | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const address = user?.wallet?.address
+  const tokenIn = TOKENS[tokenInIdx]
+  const tokenOut = TOKENS[tokenOutIdx]
 
-  const handleQuote = async () => {
-    if (!amount || !address) return
+  async function handleQuote() {
+    if (!swapper.trim() || !amount.trim()) return
     setLoading(true)
-    setResult(null)
+    setQuote(null)
+    setSwapTx(null)
+    setError(null)
     try {
-      const amountWei = BigInt(Math.floor(parseFloat(amount) * (10 ** tokenIn.decimals))).toString()
-      const res = await fetch('/api/swap', {
+      const res = await fetch('/api/v1/swap/quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          swapper: swapper.trim(),
           tokenIn: tokenIn.address,
           tokenOut: tokenOut.address,
-          amount: amountWei,
+          amount: amount.trim(),
           chainId: 8453,
-          swapper: address,
-          type: 'EXACT_INPUT',
         }),
       })
       const data = await res.json()
-      setResult(data)
-    } catch (e: any) {
-      setResult({ allowed: false, error: e.message })
+      if (!res.ok) setError(data.error ?? 'Failed to get quote')
+      else setQuote(data)
+    } catch {
+      setError('Network error. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  const swapTokens = () => {
-    const temp = tokenIn
-    setTokenIn(tokenOut)
-    setTokenOut(temp)
-    setResult(null)
+  async function handleSwap() {
+    if (!quote) return
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/v1/swap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(quote.quote),
+      })
+      const data = await res.json()
+      if (!res.ok) setError(data.error ?? 'Failed to build swap tx')
+      else setSwapTx(data.swap)
+    } catch {
+      setError('Network error. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const outputAmount = result?.quote?.quote?.output?.amount
-    ? (Number(result.quote.quote.output.amount) / (10 ** tokenOut.decimals)).toFixed(4)
-    : ''
+  function flipTokens() {
+    setTokenInIdx(tokenOutIdx)
+    setTokenOutIdx(tokenInIdx)
+    setQuote(null)
+    setSwapTx(null)
+  }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0b] flex flex-col items-center justify-start pt-24 px-4">
-      <TokenSelectModal
-        open={modalFor === 'in'}
-        onClose={() => setModalFor(null)}
-        onSelect={t => { setTokenIn(t); setResult(null) }}
-        exclude={tokenOut.symbol}
-      />
-      <TokenSelectModal
-        open={modalFor === 'out'}
-        onClose={() => setModalFor(null)}
-        onSelect={t => { setTokenOut(t); setResult(null) }}
-        exclude={tokenIn.symbol}
-      />
+    <div className="flex flex-col min-h-screen bg-page">
+      <Header />
 
-      <div className="w-full max-w-[480px]">
-        {/* Tabs */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-1 bg-[#111113] rounded-2xl p-1">
-            <button className="px-4 py-2 rounded-xl bg-[#1f1f23] text-white text-sm font-semibold">Swap</button>
-            <Link href="/?cat=ai-agents">
-              <button className="px-4 py-2 rounded-xl text-[#6b6b70] hover:text-white text-sm font-semibold transition-colors">Explore</button>
-            </Link>
-          </div>
-          <div className="flex items-center gap-2">
-            {authenticated ? (
-              <button onClick={logout} className="px-3 py-1.5 rounded-xl bg-[#1f1f23] text-xs font-mono text-zinc-300 hover:bg-[#2a2a2e] transition-colors">
-                {address ? `${address.slice(0,6)}...${address.slice(-4)}` : 'Connected'}
-              </button>
-            ) : (
-              <button onClick={login} className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-medium text-white transition-colors">
-                Connect
-              </button>
-            )}
-            <button className="p-2 rounded-xl hover:bg-white/5 text-[#6b6b70] hover:text-white transition-colors">
-              <Settings className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+      <div className="flex flex-col items-center gap-8 py-[60px] w-full">
+        <h1 className="text-[36px] font-bold text-txt-primary">Trust-Gated Swap</h1>
+        <p className="text-base text-txt-secondary">Swap tokens with on-chain trust intelligence. Every trade is scored.</p>
 
-        {/* Main Card */}
-        <div className="rounded-3xl border border-[#1f1f23] p-2" style={{ background: '#111113' }}>
-          {/* Token In */}
-          <div className="rounded-2xl p-4 mb-1" style={{ background: '#191919' }}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[#6b6b70] text-sm">You pay</span>
-              {address && (
-                <span className="text-[#6b6b70] text-xs">Balance: —</span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
+        {/* Swap Card */}
+        <div className="flex flex-col gap-4 w-[480px] bg-surface rounded-[20px] border border-border-subtle p-7 shadow-[0_0_60px_rgba(212,160,23,0.06)]">
+          {/* Wallet Address */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">Wallet Address</span>
+            <div className="flex items-center gap-2 bg-elevated rounded-[10px] border border-border-subtle px-4 py-3">
+              <Wallet className="w-4 h-4 text-txt-muted" />
               <input
-                type="number"
-                value={amount}
-                onChange={e => { setAmount(e.target.value); setResult(null) }}
-                placeholder="0"
-                className="flex-1 bg-transparent text-4xl font-semibold text-white outline-none placeholder-[#2a2a2e] min-w-0"
-                style={{ WebkitAppearance: 'none' }}
+                type="text"
+                value={swapper}
+                onChange={(e) => setSwapper(e.target.value)}
+                placeholder="0x..."
+                className="bg-transparent font-mono text-sm text-txt-primary placeholder-txt-muted/50 outline-none flex-1"
+                spellCheck={false}
+                autoComplete="off"
               />
-              <button
-                onClick={() => setModalFor('in')}
-                className="flex items-center gap-2 px-3 py-2 rounded-2xl font-semibold text-white text-sm transition-all hover:opacity-80 flex-shrink-0"
-                style={{ background: tokenIn.color + '22', border: `1px solid ${tokenIn.color}44` }}
-              >
-                <TokenIcon symbol={tokenIn.symbol} color={tokenIn.color} size={22} />
-                {tokenIn.symbol}
-                <ChevronDown className="w-4 h-4 text-[#6b6b70]" />
-              </button>
             </div>
-            {amount && (
-              <div className="text-[#6b6b70] text-sm mt-2">≈ $—</div>
-            )}
           </div>
 
-          {/* Swap arrow */}
-          <div className="flex justify-center -my-1 relative z-10">
-            <button
-              onClick={swapTokens}
-              className="w-10 h-10 rounded-2xl border-2 border-[#111113] flex items-center justify-center hover:scale-110 transition-transform"
-              style={{ background: '#1f1f23' }}
-            >
-              <ArrowDown className="w-4 h-4 text-[#6b6b70]" />
-            </button>
-          </div>
+          <div className="w-full h-px bg-border-subtle" />
 
-          {/* Token Out */}
-          <div className="rounded-2xl p-4 mt-1" style={{ background: '#191919' }}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[#6b6b70] text-sm">You receive</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="flex-1 text-4xl font-semibold min-w-0 truncate" style={{ color: outputAmount ? 'white' : '#2a2a2e' }}>
-                {outputAmount || '0'}
-              </span>
-              <button
-                onClick={() => setModalFor('out')}
-                className="flex items-center gap-2 px-3 py-2 rounded-2xl font-semibold text-white text-sm transition-all hover:opacity-80 flex-shrink-0"
-                style={{ background: tokenOut.color + '22', border: `1px solid ${tokenOut.color}44` }}
-              >
-                <TokenIcon symbol={tokenOut.symbol} color={tokenOut.color} size={22} />
-                {tokenOut.symbol}
-                <ChevronDown className="w-4 h-4 text-[#6b6b70]" />
-              </button>
-            </div>
-            {outputAmount && (
-              <div className="text-[#6b6b70] text-sm mt-2">≈ $—</div>
-            )}
-          </div>
-
-          {/* Trust Score Banner (inside card) */}
-          {result && (
-            <div className={`mt-2 mx-0 rounded-2xl p-3 flex items-start gap-3 ${
-              result.allowed
-                ? result.warning
-                  ? 'bg-yellow-500/10 border border-yellow-500/20'
-                  : 'bg-green-500/10 border border-green-500/20'
-                : 'bg-red-500/10 border border-red-500/20'
-            }`}>
-              {result.allowed ? (
-                result.warning
-                  ? <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-                  : <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-              ) : (
-                <Shield className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`text-sm font-semibold ${
-                    result.allowed
-                      ? result.warning ? 'text-yellow-400' : 'text-green-400'
-                      : 'text-red-400'
-                  }`}>
-                    {result.allowed ? (result.warning ? 'Proceed with caution' : 'Safe to swap') : 'Swap blocked'}
-                  </span>
-                  {result.trustScore !== undefined && (
-                    <span className="text-[#6b6b70] text-xs flex-shrink-0">
-                      Trust {result.trustScore}/100
-                    </span>
-                  )}
+          {/* Token Pair */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 flex flex-col gap-1.5">
+              <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">You Pay</span>
+              <div className="flex items-center justify-between bg-elevated rounded-[10px] border border-border-subtle px-3.5 py-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-[22px] h-[22px] rounded-full" style={{ backgroundColor: tokenIn.color }} />
+                  <span className="text-sm font-semibold text-txt-primary">{tokenIn.symbol}</span>
                 </div>
-                {(result.warning || result.error) && (
-                  <p className="text-xs text-[#8b8b90] mt-1">{result.warning || result.error}</p>
-                )}
+                <ChevronDown className="w-4 h-4 text-txt-muted" />
+              </div>
+            </div>
+            <button
+              onClick={flipTokens}
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-elevated border border-border-subtle mt-5 hover:border-gold/50 transition-colors"
+            >
+              <ArrowLeftRight className="w-4 h-4 text-gold" />
+            </button>
+            <div className="flex-1 flex flex-col gap-1.5">
+              <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">You Receive</span>
+              <div className="flex items-center justify-between bg-elevated rounded-[10px] border border-border-subtle px-3.5 py-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-[22px] h-[22px] rounded-full" style={{ backgroundColor: tokenOut.color }} />
+                  <span className="text-sm font-semibold text-txt-primary">{tokenOut.symbol}</span>
+                </div>
+                <ChevronDown className="w-4 h-4 text-txt-muted" />
+              </div>
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div className="flex flex-col gap-2 bg-[#0a0b14] rounded-[14px] border border-border-subtle p-5">
+            <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">Amount</span>
+            <input
+              type="text"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.0"
+              className="bg-transparent font-mono text-[32px] font-semibold text-txt-primary placeholder-txt-primary/40 outline-none"
+            />
+            <span className="text-[13px] text-txt-muted">&asymp; 0.00 {tokenOut.symbol}</span>
+          </div>
+
+          {/* Trust Badges */}
+          <div className="flex gap-2.5">
+            <div className="flex-1 flex items-center gap-2 bg-[#00c9a710] border border-[#00c9a730] rounded-[10px] px-3.5 py-2.5">
+              <CircleCheck className="w-3.5 h-3.5 text-emerald" />
+              <span className="text-xs font-semibold text-emerald">{tokenIn.symbol}  &check;  8.5/10</span>
+            </div>
+            <div className="flex-1 flex items-center gap-2 bg-[#00c9a710] border border-[#00c9a730] rounded-[10px] px-3.5 py-2.5">
+              <CircleCheck className="w-3.5 h-3.5 text-emerald" />
+              <span className="text-xs font-semibold text-emerald">{tokenOut.symbol}  &check;  9.2/10</span>
+            </div>
+          </div>
+
+          {/* Gas/Route */}
+          <div className="flex justify-between">
+            <span className="text-xs text-txt-muted">Est. Gas: $0.01</span>
+            <span className="text-xs text-txt-muted">Route: UniswapX</span>
+          </div>
+
+          {error && <div className="text-xs text-crimson bg-[#c0392b12] rounded-lg px-3 py-2">{error}</div>}
+
+          {/* Quote result */}
+          {quote && !swapTx && (
+            <div className="flex flex-col gap-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-txt-muted">Output:</span>
+                <span className="font-mono text-emerald">{quote.quote.amountOut}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-txt-muted">Gas:</span>
+                <span className="font-mono text-txt-secondary">${quote.quote.gasFeeUSD}</span>
               </div>
             </div>
           )}
 
-          {/* Action Button */}
-          <div className="mt-2">
-            {!authenticated ? (
-              <button
-                onClick={login}
-                className="w-full py-4 rounded-2xl font-bold text-base text-white transition-all hover:opacity-90 active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}
-              >
-                Connect Wallet
-              </button>
-            ) : (
-              <button
-                onClick={handleQuote}
-                disabled={loading || !amount}
-                className="w-full py-4 rounded-2xl font-bold text-base text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                style={{
-                  background: result?.allowed
-                    ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                    : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
-                }}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Checking trust score...
-                  </>
-                ) : result?.allowed ? (
-                  `Swap ${tokenIn.symbol} → ${tokenOut.symbol}`
-                ) : (
-                  'Get quote'
-                )}
-              </button>
-            )}
+          {/* Swap Button */}
+          <button
+            onClick={quote && !swapTx ? handleSwap : handleQuote}
+            disabled={loading || !swapper.trim() || !amount.trim()}
+            className="flex items-center justify-center gap-2.5 w-full h-[52px] bg-gold rounded-[14px] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            <Repeat className="w-5 h-5 text-page" />
+            <span className="text-base font-bold text-page">
+              {loading ? (quote ? 'Building Tx...' : 'Getting Quote...') : (quote && !swapTx ? 'Execute Swap' : 'Swap')}
+            </span>
+          </button>
+
+          {/* Powered by */}
+          <div className="flex items-center justify-center gap-1.5">
+            <Zap className="w-3 h-3 text-txt-muted" />
+            <span className="text-[11px] text-txt-muted">Powered by Uniswap Trading API  &middot;  0.05% Maiat fee</span>
           </div>
         </div>
 
-        {/* Trust layer info */}
-        <div className="mt-3 flex items-center justify-center gap-2 text-[#4b4b50] text-xs">
-          <Shield className="w-3 h-3" />
-          <span>Trust-gated by Maiat · Powered by Uniswap API on Base</span>
-        </div>
+        {/* Transaction Result */}
+        {swapTx && (
+          <div className="flex flex-col w-[480px] bg-[#0d0e1a] rounded-2xl border border-border-subtle overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border-subtle">
+              <div className="w-2 h-2 rounded-full bg-gold" />
+              <span className="text-[13px] font-semibold text-gold-light">Sign this transaction with your wallet</span>
+            </div>
+            <div className="flex flex-col gap-0.5 px-5 py-4">
+              <code className="font-mono text-xs text-txt-secondary">{'{'}</code>
+              {Object.entries(swapTx).slice(0, 6).map(([key, val]) => (
+                <code key={key} className="font-mono text-xs text-txt-muted">
+                  {'  '}&quot;{key}&quot;: {JSON.stringify(val)},
+                </code>
+              ))}
+              <code className="font-mono text-xs text-txt-secondary">{'}'}</code>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

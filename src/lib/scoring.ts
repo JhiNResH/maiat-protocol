@@ -1,60 +1,157 @@
-import { createPublicClient, http, getAddress, isAddress } from "viem";
-import { baseSepolia } from "viem/chains";
+import { createPublicClient, http, getAddress, isAddress, formatEther } from "viem";
+import { base } from "viem/chains";
+
+const ALCHEMY_BASE_RPC = process.env.ALCHEMY_BASE_RPC ?? "https://mainnet.base.org";
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY ?? "";
+const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY ?? "";
 
 const client = createPublicClient({
-  chain: baseSepolia,
-  transport: http("https://sepolia.base.org"),
+  chain: base,
+  transport: http(ALCHEMY_BASE_RPC),
 });
 
-// Hardcoded known scam addresses (checksummed)
+// --- Known Protocols (Base mainnet) ---
+interface ProtocolInfo {
+  name: string;
+  category: "DEX" | "LENDING" | "BRIDGE" | "STABLECOIN" | "ORACLE" | "INFRASTRUCTURE" | "YIELD" | "NFT";
+  auditedBy?: string[];
+  baseScore: number;
+}
+
+const KNOWN_PROTOCOLS = new Map<string, ProtocolInfo>([
+  ["0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24", { name: "Uniswap V3 Router", category: "DEX", auditedBy: ["Trail of Bits", "ABDK"], baseScore: 8.5 }],
+  ["0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD", { name: "Uniswap Universal Router", category: "DEX", auditedBy: ["Trail of Bits"], baseScore: 8.6 }],
+  ["0x33128a8fC17869897dcE68Ed026d694621f6FDfD", { name: "Uniswap V3 Factory", category: "DEX", auditedBy: ["Trail of Bits", "ABDK"], baseScore: 8.7 }],
+  ["0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43", { name: "Aerodrome Router", category: "DEX", auditedBy: ["Code4rena"], baseScore: 7.8 }],
+  ["0x420DD381b31aEf6683db6B902084cB0FFECe40Da", { name: "Aerodrome Factory", category: "DEX", auditedBy: ["Code4rena"], baseScore: 7.8 }],
+  ["0xA238Dd80C259a72e81d7e4664a9801593F98d1c5", { name: "Aave V3 Pool", category: "LENDING", auditedBy: ["OpenZeppelin", "Trail of Bits", "Sigma Prime"], baseScore: 9.2 }],
+  ["0xb125E6687d4313864e53df431d5425969c15Eb2F", { name: "Compound V3 USDC", category: "LENDING", auditedBy: ["OpenZeppelin", "ChainSecurity"], baseScore: 8.8 }],
+  ["0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb", { name: "Morpho Blue", category: "LENDING", auditedBy: ["Spearbit", "Cantina"], baseScore: 8.2 }],
+  ["0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70", { name: "Chainlink ETH/USD Feed", category: "ORACLE", auditedBy: ["Trail of Bits"], baseScore: 9.1 }],
+  ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", { name: "USDC", category: "STABLECOIN", auditedBy: ["Deloitte"], baseScore: 9.2 }],
+  ["0x4200000000000000000000000000000000000006", { name: "WETH", category: "INFRASTRUCTURE", baseScore: 9.2 }],
+  ["0x4200000000000000000000000000000000000010", { name: "L2StandardBridge", category: "BRIDGE", auditedBy: ["Sherlock", "OpenZeppelin"], baseScore: 8.7 }],
+  ["0x45f1A95A4D3f3836523F5c83673c797f4d4d263B", { name: "Stargate Router", category: "BRIDGE", auditedBy: ["Zellic", "Quantstamp"], baseScore: 7.9 }],
+  ["0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb", { name: "DAI", category: "STABLECOIN", auditedBy: ["Trail of Bits"], baseScore: 8.9 }],
+  ["0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA", { name: "USDbC", category: "STABLECOIN", baseScore: 8.5 }],
+]);
+
 const KNOWN_SCAM_ADDRESSES = new Set([
   "0x000000000000000000000000000000000000dEaD",
   "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF",
-  "0x6B175474E89094C44Da98b954EedeAC495271d0F", // placeholder scam 1
-  "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // placeholder scam 2
-  "0xdAC17F958D2ee523a2206206994597C13D831ec7", // placeholder scam 3
-]).add("0x0000000000000000000000000000000000000000");
+  "0x0000000000000000000000000000000000000000",
+]);
 
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type AddressType = "EOA" | "CONTRACT" | "PROTOCOL" | "TOKEN" | "UNKNOWN";
 
-export interface TrustScoreResult {
-  score: number;        // 0-1000
-  risk: RiskLevel;
-  type: "EOA" | "CONTRACT" | "UNKNOWN";
-  flags: string[];
-  details: {
-    txCount: number;
-    isContract: boolean;
-    isKnownScam: boolean;
-    rawScore: number;
-  };
+export interface ScoreBreakdown {
+  onChainHistory: number;    // max 4.0
+  contractAnalysis: number;  // max 3.0
+  blacklistCheck: number;    // max 2.0
+  activityPattern: number;   // max 1.0
 }
 
-// Simple cache: address -> { result, expiresAt }
+export interface AddressDetails {
+  txCount: number;
+  balance: string;
+  balanceETH: number;
+  isContract: boolean;
+  isKnownScam: boolean;
+  isKnownProtocol: boolean;
+  walletAge: string | null;
+  lastActive: string | null;
+}
+
+export interface TrustScoreResult {
+  score: number;           // 0-10 (one decimal)
+  risk: RiskLevel;
+  type: AddressType;
+  flags: string[];
+  breakdown: ScoreBreakdown;
+  protocol?: {
+    name: string;
+    category: string;
+    auditedBy?: string[];
+  };
+  details: AddressDetails;
+}
+
+// Simple cache
 interface CacheEntry {
   result: TrustScoreResult;
   expiresAt: number;
 }
 
 const cache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 function getRisk(score: number): RiskLevel {
-  if (score > 700) return "LOW";
-  if (score > 400) return "MEDIUM";
-  if (score > 100) return "HIGH";
+  if (score >= 7.0) return "LOW";
+  if (score >= 4.0) return "MEDIUM";
+  if (score >= 1.0) return "HIGH";
   return "CRITICAL";
+}
+
+// Fetch first tx timestamp from Basescan for wallet age
+async function getFirstTxTimestamp(address: string): Promise<number | null> {
+  if (!BASESCAN_API_KEY) return null;
+  try {
+    const url = `https://api.basescan.org/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=1&sort=asc&apikey=${BASESCAN_API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json() as { status: string; result: Array<{ timeStamp: string }> };
+    if (data.status === "1" && data.result?.length > 0) {
+      return parseInt(data.result[0].timeStamp) * 1000;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+// Fetch last tx timestamp
+async function getLastTxTimestamp(address: string): Promise<number | null> {
+  if (!BASESCAN_API_KEY) return null;
+  try {
+    const url = `https://api.basescan.org/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=1&sort=desc&apikey=${BASESCAN_API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json() as { status: string; result: Array<{ timeStamp: string }> };
+    if (data.status === "1" && data.result?.length > 0) {
+      return parseInt(data.result[0].timeStamp) * 1000;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function formatAge(timestampMs: number): string {
+  const diffMs = Date.now() - timestampMs;
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (days >= 365) {
+    const years = Math.floor(days / 365);
+    const months = Math.floor((days % 365) / 30);
+    return months > 0 ? `${years}y ${months}mo` : `${years}y`;
+  }
+  if (days >= 30) {
+    return `${Math.floor(days / 30)} months`;
+  }
+  return `${days} days`;
+}
+
+function formatLastActive(timestampMs: number): string {
+  const diffMs = Date.now() - timestampMs;
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (hours < 1) return "Just now";
+  if (hours < 24) return `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} days ago`;
 }
 
 export async function computeTrustScore(
   rawAddress: string
 ): Promise<TrustScoreResult> {
-  // Validate address
   if (!isAddress(rawAddress)) {
     throw new Error(`Invalid Ethereum address: ${rawAddress}`);
   }
 
-  const address = getAddress(rawAddress); // checksummed
+  const address = getAddress(rawAddress);
 
   // Check cache
   const cached = cache.get(address);
@@ -63,74 +160,187 @@ export async function computeTrustScore(
   }
 
   const flags: string[] = [];
-  let score = 500; // baseline
 
-  // --- Factor 1: Known scam check ---
+  // --- Known scam ---
   const isKnownScam = KNOWN_SCAM_ADDRESSES.has(address);
   if (isKnownScam) {
     flags.push("KNOWN_SCAM_ADDRESS");
-    score = 0;
+    const result: TrustScoreResult = {
+      score: 0,
+      risk: "CRITICAL",
+      type: "UNKNOWN",
+      flags,
+      breakdown: { onChainHistory: 0, contractAnalysis: 0, blacklistCheck: 0, activityPattern: 0 },
+      details: { txCount: 0, balance: "0", balanceETH: 0, isContract: false, isKnownScam: true, isKnownProtocol: false, walletAge: null, lastActive: null },
+    };
+    cache.set(address, { result, expiresAt: Date.now() + CACHE_TTL_MS });
+    return result;
   }
 
-  // --- Factor 2: Is contract? ---
+  // --- Known protocol ---
+  const protocolInfo = KNOWN_PROTOCOLS.get(address);
+  if (protocolInfo) {
+    flags.push("KNOWN_PROTOCOL");
+    if (protocolInfo.auditedBy?.length) flags.push("AUDITED");
+    flags.push("VERIFIED");
+
+    const score = protocolInfo.baseScore;
+    // Distribute score across categories proportionally
+    const breakdown: ScoreBreakdown = {
+      onChainHistory: Math.min(4.0, Math.round(score * 0.4 * 10) / 10),
+      contractAnalysis: Math.min(3.0, Math.round(score * 0.3 * 10) / 10),
+      blacklistCheck: Math.min(2.0, Math.round(score * 0.2 * 10) / 10),
+      activityPattern: Math.min(1.0, Math.round(score * 0.1 * 10) / 10),
+    };
+
+    const result: TrustScoreResult = {
+      score,
+      risk: getRisk(score),
+      type: "PROTOCOL",
+      flags,
+      breakdown,
+      protocol: {
+        name: protocolInfo.name,
+        category: protocolInfo.category,
+        auditedBy: protocolInfo.auditedBy,
+      },
+      details: { txCount: -1, balance: "0", balanceETH: 0, isContract: true, isKnownScam: false, isKnownProtocol: true, walletAge: null, lastActive: null },
+    };
+    cache.set(address, { result, expiresAt: Date.now() + CACHE_TTL_MS });
+    return result;
+  }
+
+  // --- On-chain queries ---
   let isContract = false;
-  try {
-    const code = await client.getCode({ address });
+  let txCount = 0;
+  let balanceWei = BigInt(0);
+
+  // Parallel queries
+  const [codeResult, txCountResult, balanceResult, firstTx, lastTx] = await Promise.allSettled([
+    client.getCode({ address }),
+    client.getTransactionCount({ address }),
+    client.getBalance({ address }),
+    getFirstTxTimestamp(address),
+    getLastTxTimestamp(address),
+  ]);
+
+  if (codeResult.status === "fulfilled") {
+    const code = codeResult.value;
     isContract = !!(code && code !== "0x" && code.length > 2);
-    if (isContract) {
-      flags.push("IS_CONTRACT");
-      // Contracts get a slight bonus as they are deployed intentionally
-      score = Math.min(1000, score + 50);
-    }
-  } catch {
+    if (isContract) flags.push("IS_CONTRACT");
+  } else {
     flags.push("CODE_FETCH_FAILED");
   }
 
-  // --- Factor 3: Transaction count ---
-  let txCount = 0;
-  try {
-    txCount = Number(
-      await client.getTransactionCount({ address })
-    );
-
-    if (txCount === 0) {
-      flags.push("NO_TRANSACTIONS");
-      score = Math.max(0, score - 200);
-    } else if (txCount < 5) {
-      flags.push("FEW_TRANSACTIONS");
-      score = Math.max(0, score - 50);
-    } else if (txCount >= 100) {
-      score = Math.min(1000, score + 200);
-    } else if (txCount >= 20) {
-      score = Math.min(1000, score + 100);
-    } else if (txCount >= 5) {
-      score = Math.min(1000, score + 50);
-    }
-  } catch {
+  if (txCountResult.status === "fulfilled") {
+    txCount = Number(txCountResult.value);
+  } else {
     flags.push("TX_COUNT_FETCH_FAILED");
-    score = Math.max(0, score - 100);
   }
 
-  // Clamp if known scam, regardless of other factors
-  if (isKnownScam) {
-    score = 0;
+  if (balanceResult.status === "fulfilled") {
+    balanceWei = balanceResult.value;
   }
+
+  const firstTxTs = firstTx.status === "fulfilled" ? firstTx.value : null;
+  const lastTxTs = lastTx.status === "fulfilled" ? lastTx.value : null;
+
+  const balanceETH = parseFloat(formatEther(balanceWei));
+  const walletAge = firstTxTs ? formatAge(firstTxTs) : null;
+  const lastActive = lastTxTs ? formatLastActive(lastTxTs) : null;
+
+  // --- Score Breakdown (0-10 scale) ---
+
+  // 1. On-chain History (max 4.0)
+  let onChainHistory = 1.0; // baseline
+  if (txCount === 0) {
+    onChainHistory = 0;
+    flags.push("NO_TRANSACTIONS");
+  } else if (txCount < 5) {
+    onChainHistory = 0.5;
+    flags.push("FEW_TRANSACTIONS");
+  } else if (txCount >= 1000) {
+    onChainHistory = 4.0;
+  } else if (txCount >= 100) {
+    onChainHistory = 3.4;
+  } else if (txCount >= 20) {
+    onChainHistory = 2.0;
+  } else {
+    onChainHistory = 1.2;
+  }
+  // Wallet age bonus
+  if (firstTxTs) {
+    const ageDays = (Date.now() - firstTxTs) / (1000 * 60 * 60 * 24);
+    if (ageDays >= 365) onChainHistory = Math.min(4.0, onChainHistory + 0.6);
+    else if (ageDays >= 90) onChainHistory = Math.min(4.0, onChainHistory + 0.3);
+  }
+
+  // 2. Contract Analysis (max 3.0)
+  let contractAnalysis = 1.5; // baseline for EOA
+  if (isContract) {
+    contractAnalysis = 2.0; // contracts start higher
+  }
+  // Balance factor
+  if (balanceETH >= 10) contractAnalysis = Math.min(3.0, contractAnalysis + 0.8);
+  else if (balanceETH >= 1) contractAnalysis = Math.min(3.0, contractAnalysis + 0.4);
+  else if (balanceETH >= 0.1) contractAnalysis = Math.min(3.0, contractAnalysis + 0.2);
+  else if (balanceETH < 0.001 && txCount > 0) contractAnalysis = Math.max(0, contractAnalysis - 0.3);
+
+  // 3. Blacklist Check (max 2.0)
+  let blacklistCheck = 1.8; // default: not on blacklist
+  if (isKnownScam) {
+    blacklistCheck = 0;
+  }
+  if (txCount === 0 && !isContract) {
+    blacklistCheck = 1.0; // unknown = partial score
+  }
+
+  // 4. Activity Pattern (max 1.0)
+  let activityPattern = 0.5; // baseline
+  if (lastTxTs) {
+    const hoursSinceLastTx = (Date.now() - lastTxTs) / (1000 * 60 * 60);
+    if (hoursSinceLastTx < 24) activityPattern = 0.9;
+    else if (hoursSinceLastTx < 168) activityPattern = 0.7; // week
+    else if (hoursSinceLastTx < 720) activityPattern = 0.5; // month
+    else activityPattern = 0.2; // dormant
+  }
+  if (txCount === 0) activityPattern = 0;
+
+  const breakdown: ScoreBreakdown = {
+    onChainHistory: Math.max(0, Math.min(4.0, Math.round(onChainHistory * 10) / 10)),
+    contractAnalysis: Math.max(0, Math.min(3.0, Math.round(contractAnalysis * 10) / 10)),
+    blacklistCheck: Math.max(0, Math.min(2.0, Math.round(blacklistCheck * 10) / 10)),
+    activityPattern: Math.max(0, Math.min(1.0, Math.round(activityPattern * 10) / 10)),
+  };
+
+  const rawScore = breakdown.onChainHistory + breakdown.contractAnalysis + breakdown.blacklistCheck + breakdown.activityPattern;
+  const score = Math.max(0, Math.min(10, Math.round(rawScore * 10) / 10));
+
+  const addressType: AddressType = isContract ? "CONTRACT" : txCount > 0 ? "EOA" : "UNKNOWN";
+
+  // Additional flags
+  if (score >= 7.0) flags.push("TRUSTED");
+  if (balanceETH >= 1) flags.push("FUNDED");
+  if (!isContract) flags.push("NOT_BLACKLISTED"); // basic check
 
   const result: TrustScoreResult = {
-    score: Math.max(0, Math.min(1000, Math.round(score))),
+    score,
     risk: getRisk(score),
-    type: isContract ? "CONTRACT" : txCount > 0 ? "EOA" : "UNKNOWN",
+    type: addressType,
     flags,
+    breakdown,
     details: {
       txCount,
+      balance: balanceWei.toString(),
+      balanceETH: Math.round(balanceETH * 10000) / 10000,
       isContract,
-      isKnownScam,
-      rawScore: score,
+      isKnownScam: false,
+      isKnownProtocol: false,
+      walletAge,
+      lastActive,
     },
   };
 
-  // Cache result
   cache.set(address, { result, expiresAt: Date.now() + CACHE_TTL_MS });
-
   return result;
 }

@@ -216,3 +216,30 @@ model ScarabPurchase {
   @@index([address])
   @@index([status])
 }
+
+// ============================================
+// MAIAT Trust Reviews (v1 API — 0-10 scale)
+// ============================================
+
+model TrustReview {
+  id        String   @id @default(cuid())
+
+  // Target contract / token / agent address (checksummed)
+  address   String
+
+  // Rating 1-10
+  rating    Int
+
+  // Optional comment and tags
+  comment   String   @default("")
+  tags      String[] @default([])
+
+  // Reviewer wallet address (checksummed)
+  reviewer  String
+
+  createdAt DateTime @default(now())
+
+  @@index([address])
+  @@index([reviewer])
+  @@index([createdAt])
+}

@@ -1,27 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { computeTrustScore } from "@/lib/scoring";
-import { generateSummary } from "@/lib/ai-summary";
+import { analyzeToken } from "@/lib/token-analysis";
 
-// --- Simple in-memory IP rate limiter ---
+// --- Rate limiter ---
 const ipHits = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 30;        // requests
-const RATE_WINDOW_MS = 60_000; // per 1 minute
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60_000;
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const entry = ipHits.get(ip);
-
   if (!entry || entry.resetAt < now) {
     ipHits.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
     return false;
   }
-
   if (entry.count >= RATE_LIMIT) return true;
   entry.count++;
   return false;
 }
 
-// --- CORS helpers ---
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -38,7 +35,6 @@ export async function GET(
 ) {
   const { address } = await params;
 
-  // Rate limit
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
     request.headers.get("x-real-ip") ??
@@ -52,43 +48,57 @@ export async function GET(
   }
 
   try {
-    const result = await computeTrustScore(address);
+    // Run trust score and token analysis in parallel
+    const [trustResult, tokenResult] = await Promise.all([
+      computeTrustScore(address),
+      analyzeToken(address),
+    ]);
 
-    // Optional AI summary
-    const wantSummary = request.nextUrl.searchParams.get("summary") === "true";
-    let summary: string | null = null;
-    if (wantSummary) {
-      summary = await generateSummary({
-        address,
-        score: result.score,
-        risk: result.risk,
-        type: result.type,
-        flags: result.flags,
-        protocolName: result.protocol?.name,
-        txCount: result.details.txCount,
-        balanceETH: result.details.balanceETH,
-        walletAge: result.details.walletAge,
-      });
+    if (!tokenResult) {
+      return NextResponse.json(
+        {
+          address,
+          isToken: false,
+          score: trustResult.score,
+          risk: trustResult.risk,
+          type: trustResult.type,
+          message: "Address is not a recognized ERC-20 token",
+          timestamp: new Date().toISOString(),
+        },
+        { status: 200, headers: CORS_HEADERS }
+      );
     }
 
     return NextResponse.json(
       {
         address,
-        score: result.score,
-        risk: result.risk,
-        type: result.type,
-        flags: result.flags,
-        breakdown: result.breakdown,
-        ...(result.protocol && { protocol: result.protocol }),
-        details: result.details,
-        ...(summary && { summary }),
+        isToken: true,
+        name: tokenResult.name,
+        symbol: tokenResult.symbol,
+        decimals: tokenResult.decimals,
+        totalSupply: tokenResult.totalSupply,
+        score: trustResult.score,
+        risk: trustResult.risk,
+        type: "TOKEN",
+        flags: trustResult.flags,
+        breakdown: trustResult.breakdown,
+        ...(trustResult.protocol && { protocol: trustResult.protocol }),
+        safetyChecks: tokenResult.safetyChecks,
+        topHolders: tokenResult.topHolders,
+        market: {
+          tvl: tokenResult.tvl,
+          volume24h: tokenResult.volume24h,
+          marketCap: tokenResult.marketCap,
+          trend7d: tokenResult.trend7d,
+        },
+        details: trustResult.details,
         timestamp: new Date().toISOString(),
         oracle: "maiat-trust-v1",
       },
       { status: 200, headers: CORS_HEADERS }
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Scoring failed";
+    const message = err instanceof Error ? err.message : "Analysis failed";
 
     if (message.includes("Invalid Ethereum address")) {
       return NextResponse.json(
@@ -97,7 +107,7 @@ export async function GET(
       );
     }
 
-    console.error("[score/[address]]", err);
+    console.error("[token/[address]]", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500, headers: CORS_HEADERS }

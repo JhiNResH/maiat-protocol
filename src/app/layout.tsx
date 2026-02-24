@@ -1,16 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import { PrivyProvider } from '@/components/PrivyProvider'
-import { TopNav } from '@/components/TopNav'
-import { ClientLayout } from '@/components/ClientLayout'
-import { Footer } from '@/components/Footer'
+import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains-mono' })
 
 export const metadata: Metadata = {
-  title: 'Maiat - Trust Layer for Agentic Commerce',
-  description: 'Review and rate AI agents and DeFi protocols with on-chain verification',
+  title: 'Maiat - Trust Layer for the Agent Economy',
+  description: 'On-chain trust scoring for any blockchain address or token. Powered by Maiat Protocol.',
   icons: {
     icon: '/favicon.png',
     apple: '/apple-touch-icon.png',
@@ -27,32 +25,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
-        <script async dangerouslySetInnerHTML={{ __html: `
-          (function(){
-            var t = localStorage.getItem('theme');
-            if (t === 'light') return;
-            if (t === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
-              document.documentElement.classList.add('dark');
-            }
-          })();
-        `}} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link 
-          href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&display=swap" 
-          rel="stylesheet" 
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         />
       </head>
-      <body className={`${inter.className}`}>
+      <body className="font-sans bg-page text-txt-primary min-h-screen">
         <PrivyProvider>
-          <div className="min-h-screen flex flex-col">
-            <div className="flex-1">
-              {children}
-            </div>
-            <Footer />
-          </div>
+          {children}
         </PrivyProvider>
       </body>
     </html>
