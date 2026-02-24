@@ -13,14 +13,14 @@ import {SwapParams} from "v4-core/types/PoolOperation.sol";
 import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
 
 contract TrustGateHookTest is Test {
-    TrustGateHook    public hook;
+    TrustGateHook public hook;
     TrustScoreOracle public oracle;
 
-    address public owner           = address(this);
-    address public attacker        = address(0xBAD);
-    address public swapper         = address(0xABC);
-    address public token0          = address(0x2);
-    address public token1          = address(0x3);
+    address public owner = address(this);
+    address public attacker = address(0xBAD);
+    address public swapper = address(0xABC);
+    address public token0 = address(0x2);
+    address public token1 = address(0x3);
     address public mockPoolManager = address(0xBEEF);
 
     uint256 constant DEFAULT_THRESHOLD = 30;
@@ -32,23 +32,23 @@ contract TrustGateHookTest is Test {
 
     function setUp() public {
         oracle = new TrustScoreOracle(owner);
-        hook   = new TrustGateHook(oracle, IPoolManager(mockPoolManager), owner);
+        hook = new TrustGateHook(oracle, IPoolManager(mockPoolManager), owner);
     }
 
     // ─── Helpers ───────────────────────────────────────────────
 
     function _setScores(uint256 s0, uint256 s1) internal {
-        oracle.updateTokenScore(token0, s0, 10, 400);
-        oracle.updateTokenScore(token1, s1, 10, 400);
+        oracle.updateTokenScore(token0, s0, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        oracle.updateTokenScore(token1, s1, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
     }
 
     function _makeKey() internal view returns (PoolKey memory) {
         return PoolKey({
-            currency0:   Currency.wrap(token0),
-            currency1:   Currency.wrap(token1),
-            fee:         3000,
+            currency0: Currency.wrap(token0),
+            currency1: Currency.wrap(token1),
+            fee: 3000,
             tickSpacing: 60,
-            hooks:       IHooks(address(hook))
+            hooks: IHooks(address(hook))
         });
     }
 
@@ -125,18 +125,14 @@ contract TrustGateHookTest is Test {
 
     function test_BeforeSwap_NotPoolManager_Reverts() public {
         _setScores(80, 80);
-        vm.expectRevert(
-            abi.encodeWithSelector(BaseHook.BaseHook__NotPoolManager.selector, address(this))
-        );
+        vm.expectRevert(abi.encodeWithSelector(BaseHook.BaseHook__NotPoolManager.selector, address(this)));
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
     }
 
     function test_BeforeSwap_AttackerReverts() public {
         _setScores(80, 80);
         vm.prank(attacker);
-        vm.expectRevert(
-            abi.encodeWithSelector(BaseHook.BaseHook__NotPoolManager.selector, attacker)
-        );
+        vm.expectRevert(abi.encodeWithSelector(BaseHook.BaseHook__NotPoolManager.selector, attacker));
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
     }
 
@@ -159,27 +155,21 @@ contract TrustGateHookTest is Test {
     function test_BeforeSwap_Token0LowScore_Reverts() public {
         _setScores(10, 90); // token0 score 10 < threshold 30
         vm.prank(mockPoolManager);
-        vm.expectRevert(
-            abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token0, 10, DEFAULT_THRESHOLD)
-        );
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token0, 10, DEFAULT_THRESHOLD));
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
     }
 
     function test_BeforeSwap_Token1LowScore_Reverts() public {
         _setScores(80, 10); // token1 score 10 < threshold 30
         vm.prank(mockPoolManager);
-        vm.expectRevert(
-            abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token1, 10, DEFAULT_THRESHOLD)
-        );
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token1, 10, DEFAULT_THRESHOLD));
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
     }
 
     function test_BeforeSwap_UnregisteredToken_Reverts() public {
         // Score 0 < threshold 30 → denied
         vm.prank(mockPoolManager);
-        vm.expectRevert(
-            abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token0, 0, DEFAULT_THRESHOLD)
-        );
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token0, 0, DEFAULT_THRESHOLD));
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
     }
 
@@ -244,27 +234,46 @@ contract TrustGateHookTest is Test {
     // ─── Native ETH edge case ──────────────────────────────────
 
     function test_BeforeSwap_NativeETH_Skipped() public {
-        oracle.updateTokenScore(token1, 80, 10, 400);
+        oracle.updateTokenScore(token1, 80, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
         PoolKey memory ethKey = PoolKey({
-            currency0:   Currency.wrap(address(0)), // native ETH — skipped
-            currency1:   Currency.wrap(token1),
-            fee:         3000,
+            currency0: Currency.wrap(address(0)), // native ETH — skipped
+            currency1: Currency.wrap(token1),
+            fee: 3000,
             tickSpacing: 60,
-            hooks:       IHooks(address(hook))
+            hooks: IHooks(address(hook))
         });
         vm.prank(mockPoolManager);
         (bytes4 sel,,) = hook.beforeSwap(swapper, ethKey, _makeParams(), "");
         assertEq(sel, IHooks.beforeSwap.selector);
     }
 
+    // ─── Seed data source protection ─────────────────────────────
+
+    function test_BeforeSwap_SeedDataSource_Reverts() public {
+        // High score but from seed data → should be rejected
+        oracle.updateTokenScore(token0, 90, 10, 400, TrustScoreOracle.DataSource.SEED);
+        oracle.updateTokenScore(token1, 90, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        vm.prank(mockPoolManager);
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__SeedScoreRejected.selector, token0));
+        hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
+    }
+
+    function test_BeforeSwap_APIDataSource_Passes() public {
+        oracle.updateTokenScore(token0, 80, 10, 400, TrustScoreOracle.DataSource.API);
+        oracle.updateTokenScore(token1, 80, 10, 400, TrustScoreOracle.DataSource.COMMUNITY);
+        vm.prank(mockPoolManager);
+        (bytes4 sel,,) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
+        assertEq(sel, IHooks.beforeSwap.selector);
+    }
+
     // ─── Fuzz ──────────────────────────────────────────────────
 
     function testFuzz_ScoreThreshold(uint256 score, uint256 threshold) public {
-        score     = bound(score,     0, 100);
+        score = bound(score, 0, 100);
         threshold = bound(threshold, hook.MIN_THRESHOLD(), 100); // 0 is now rejected
 
-        oracle.updateTokenScore(token0, score, 10, 400);
-        oracle.updateTokenScore(token1, score, 10, 400);
+        oracle.updateTokenScore(token0, score, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        oracle.updateTokenScore(token1, score, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
         hook.updateThreshold(threshold);
 
         vm.prank(mockPoolManager);
@@ -280,9 +289,9 @@ contract TrustGateHookTest is Test {
     function testFuzz_OracleScoreRange(uint256 score) public {
         if (score > 100) {
             vm.expectRevert(abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__ScoreOutOfRange.selector, score));
-            oracle.updateTokenScore(token0, score, 0, 0);
+            oracle.updateTokenScore(token0, score, 0, 0, TrustScoreOracle.DataSource.API);
         } else {
-            oracle.updateTokenScore(token0, score, 0, 0);
+            oracle.updateTokenScore(token0, score, 0, 0, TrustScoreOracle.DataSource.API);
             assertEq(oracle.getScore(token0), score);
         }
     }

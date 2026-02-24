@@ -3,6 +3,7 @@ import {
   computeAgentTrustScore,
   getSimpleTrustScore,
   getConfidence,
+  isStale,
 } from '@/lib/trust-score'
 
 // ============================================
@@ -217,5 +218,52 @@ describe('getConfidence', () => {
     expect(
       getConfidence({ marketCap: null, github: null, website: null, reviewCount: 1 })
     ).toBe('low') // 1 signal
+  })
+})
+
+// ============================================
+// isStale
+// ============================================
+describe('isStale', () => {
+  it('null lastUpdated → true (no data)', () => {
+    expect(isStale(null)).toBe(true)
+  })
+
+  it('undefined lastUpdated → true', () => {
+    expect(isStale(undefined)).toBe(true)
+  })
+
+  it('1 hour ago → false (fresh)', () => {
+    const oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000)
+    expect(isStale(oneHourAgo)).toBe(false)
+  })
+
+  it('23 hours ago → false (within 24h default)', () => {
+    const twentyThreeHoursAgo = new Date(Date.now() - 23 * 60 * 60 * 1000)
+    expect(isStale(twentyThreeHoursAgo)).toBe(false)
+  })
+
+  it('25 hours ago → true (past 24h default)', () => {
+    const twentyFiveHoursAgo = new Date(Date.now() - 25 * 60 * 60 * 1000)
+    expect(isStale(twentyFiveHoursAgo)).toBe(true)
+  })
+
+  it('exactly 24 hours + 1ms → true (boundary)', () => {
+    const exactlyStale = new Date(Date.now() - 24 * 60 * 60 * 1000 - 1)
+    expect(isStale(exactlyStale)).toBe(true)
+  })
+
+  it('custom threshold: 1 hour, updated 30 min ago → false', () => {
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000)
+    expect(isStale(thirtyMinAgo, 1)).toBe(false)
+  })
+
+  it('custom threshold: 1 hour, updated 2 hours ago → true', () => {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
+    expect(isStale(twoHoursAgo, 1)).toBe(true)
+  })
+
+  it('just now → false', () => {
+    expect(isStale(new Date())).toBe(false)
   })
 })

@@ -9,6 +9,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { TRUST_WEIGHTS, STALE_THRESHOLD_HOURS } from '@/lib/scoring-constants'
 
 export interface TrustScoreBreakdown {
   onChainActivity: number      // 0-100
@@ -241,9 +242,9 @@ export function computeAgentTrustScore(
   human: number = 50
 ): { score: number; grade: string } {
   const score = Math.round(
-    0.5 * Math.min(100, Math.max(0, onChain)) +
-    0.3 * Math.min(100, Math.max(0, offChain)) +
-    0.2 * Math.min(100, Math.max(0, human))
+    TRUST_WEIGHTS.ON_CHAIN * Math.min(100, Math.max(0, onChain)) +
+    TRUST_WEIGHTS.OFF_CHAIN * Math.min(100, Math.max(0, offChain)) +
+    TRUST_WEIGHTS.HUMAN_REVIEWS * Math.min(100, Math.max(0, human))
   )
 
   let grade: string
@@ -272,4 +273,17 @@ export function getConfidence(project: {
   if (signals >= 3) return 'high'
   if (signals >= 2) return 'medium'
   return 'low'
+}
+
+/**
+ * Check if a trust score is stale based on its last update timestamp.
+ * Returns true if the score hasn't been updated within the threshold.
+ */
+export function isStale(
+  lastUpdated: Date | null | undefined,
+  thresholdHours: number = STALE_THRESHOLD_HOURS
+): boolean {
+  if (!lastUpdated) return true
+  const ageMs = Date.now() - lastUpdated.getTime()
+  return ageMs > thresholdHours * 60 * 60 * 1000
 }

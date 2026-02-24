@@ -4,7 +4,6 @@ pragma solidity 0.8.26;
 /**
  * @custom:security-contact security@maiat.xyz
  */
-
 import {AccessControl} from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 import {Pausable} from "openzeppelin-contracts/contracts/utils/Pausable.sol";
 
@@ -12,24 +11,34 @@ import {Pausable} from "openzeppelin-contracts/contracts/utils/Pausable.sol";
 /// @notice On-chain oracle for Maiat trust scores — fed by community reviews + AI
 /// @dev Scores are weighted: On-chain (40%) + Reviews (30%) + Community (20%) + AI (10%)
 contract TrustScoreOracle is AccessControl, Pausable {
-
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Origin of a trust score — determines if the hook should accept it
+    enum DataSource {
+        NONE, // 0: unset / unknown
+        SEED, // 1: hardcoded baseline (not verified)
+        API, // 2: scored by off-chain API
+        COMMUNITY, // 3: from community reviews
+        VERIFIED // 4: audited / multi-source verified
+
+    }
+
     struct TokenScore {
-        uint256 trustScore;      // 0-100 overall score
-        uint256 reviewCount;     // number of community reviews
-        uint256 avgRating;       // avg rating * 100 (e.g. 450 = 4.5 stars)
-        uint256 lastUpdated;     // block.timestamp of last update
+        uint256 trustScore; // 0-100 overall score
+        uint256 reviewCount; // number of community reviews
+        uint256 avgRating; // avg rating * 100 (e.g. 450 = 4.5 stars)
+        uint256 lastUpdated; // block.timestamp of last update
+        DataSource dataSource; // origin of the score
     }
 
     struct UserReputation {
         uint256 reputationScore; // combined score (reviews + scarab)
-        uint256 totalReviews;    // reviews written
-        uint256 scarabPoints;    // Scarab balance
-        uint256 feeBps;          // fee in basis points (50 = 0.5%)
-        bool    initialized;     // true once updateUserReputation is called
+        uint256 totalReviews; // reviews written
+        uint256 scarabPoints; // Scarab balance
+        uint256 feeBps; // fee in basis points (50 = 0.5%)
+        bool initialized; // true once updateUserReputation is called
         uint256 lastUpdated;
     }
 
@@ -43,10 +52,10 @@ contract TrustScoreOracle is AccessControl, Pausable {
     mapping(address => UserReputation) public userReputations;
 
     // Fee tiers (basis points)
-    uint256 public constant BASE_FEE     = 50;   // 0.5%
-    uint256 public constant TRUSTED_FEE  = 30;   // 0.3%
-    uint256 public constant VERIFIED_FEE = 10;   // 0.1%
-    uint256 public constant GUARDIAN_FEE = 0;    // 0%
+    uint256 public constant BASE_FEE = 50; // 0.5%
+    uint256 public constant TRUSTED_FEE = 30; // 0.3%
+    uint256 public constant VERIFIED_FEE = 10; // 0.1%
+    uint256 public constant GUARDIAN_FEE = 0; // 0%
 
     uint256 public constant MAX_SCORE = 100;
     uint256 public constant MAX_BATCH_SIZE = 100;
@@ -95,6 +104,11 @@ contract TrustScoreOracle is AccessControl, Pausable {
         return rep.feeBps;
     }
 
+    /// @notice Get the data source for a token's score
+    function getDataSource(address token) external view returns (DataSource) {
+        return tokenScores[token].dataSource;
+    }
+
     /// @notice Get full token score data
     function getTokenData(address token) external view returns (TokenScore memory) {
         return tokenScores[token];
@@ -115,39 +129,40 @@ contract TrustScoreOracle is AccessControl, Pausable {
         address token,
         uint256 score,
         uint256 reviewCount,
-        uint256 avgRating
+        uint256 avgRating,
+        DataSource dataSource
     ) external onlyRole(UPDATER_ROLE) whenNotPaused {
         if (score > MAX_SCORE) revert TrustScoreOracle__ScoreOutOfRange(score);
         if (avgRating > MAX_AVG_RATING) revert TrustScoreOracle__AvgRatingOutOfRange(avgRating);
         tokenScores[token] = TokenScore({
-            trustScore:  score,
+            trustScore: score,
             reviewCount: reviewCount,
-            avgRating:   avgRating,
-            lastUpdated: block.timestamp
+            avgRating: avgRating,
+            lastUpdated: block.timestamp,
+            dataSource: dataSource
         });
         emit TokenScoreUpdated(token, score, reviewCount);
     }
 
     /// @notice Update user reputation + fee tier (updater role only)
-    function updateUserReputation(
-        address user,
-        uint256 reputationScore,
-        uint256 totalReviews,
-        uint256 scarabPoints
-    ) external onlyRole(UPDATER_ROLE) whenNotPaused {
+    function updateUserReputation(address user, uint256 reputationScore, uint256 totalReviews, uint256 scarabPoints)
+        external
+        onlyRole(UPDATER_ROLE)
+        whenNotPaused
+    {
         uint256 feeBps;
-        if (reputationScore >= 200)      feeBps = GUARDIAN_FEE;
-        else if (reputationScore >= 50)  feeBps = VERIFIED_FEE;
-        else if (reputationScore >= 10)  feeBps = TRUSTED_FEE;
-        else                             feeBps = BASE_FEE;
+        if (reputationScore >= 200) feeBps = GUARDIAN_FEE;
+        else if (reputationScore >= 50) feeBps = VERIFIED_FEE;
+        else if (reputationScore >= 10) feeBps = TRUSTED_FEE;
+        else feeBps = BASE_FEE;
 
         userReputations[user] = UserReputation({
             reputationScore: reputationScore,
-            totalReviews:    totalReviews,
-            scarabPoints:    scarabPoints,
-            feeBps:          feeBps,
-            initialized:     true,
-            lastUpdated:     block.timestamp
+            totalReviews: totalReviews,
+            scarabPoints: scarabPoints,
+            feeBps: feeBps,
+            initialized: true,
+            lastUpdated: block.timestamp
         });
         emit UserReputationUpdated(user, reputationScore, feeBps);
     }
@@ -165,7 +180,8 @@ contract TrustScoreOracle is AccessControl, Pausable {
         address[] calldata tokens,
         uint256[] calldata scores,
         uint256[] calldata reviewCounts,
-        uint256[] calldata avgRatings
+        uint256[] calldata avgRatings,
+        DataSource dataSource
     ) external onlyRole(UPDATER_ROLE) whenNotPaused {
         uint256 len = tokens.length;
         if (len != scores.length || len != reviewCounts.length || len != avgRatings.length) {
@@ -177,10 +193,11 @@ contract TrustScoreOracle is AccessControl, Pausable {
             if (scores[i] > MAX_SCORE) revert TrustScoreOracle__ScoreOutOfRange(scores[i]);
             if (avgRatings[i] > MAX_AVG_RATING) revert TrustScoreOracle__AvgRatingOutOfRange(avgRatings[i]);
             tokenScores[tokens[i]] = TokenScore({
-                trustScore:  scores[i],
+                trustScore: scores[i],
                 reviewCount: reviewCounts[i],
-                avgRating:   avgRatings[i],
-                lastUpdated: block.timestamp
+                avgRating: avgRatings[i],
+                lastUpdated: block.timestamp,
+                dataSource: dataSource
             });
             emit TokenScoreUpdated(tokens[i], scores[i], reviewCounts[i]);
         }
