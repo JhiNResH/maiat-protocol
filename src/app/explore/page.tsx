@@ -86,11 +86,7 @@ const TOP_MOVERS = [
   { name: 'Sekoia', address: '0x1185...3c7', change: -15, direction: 'down' as const },
 ]
 
-const RECENT_REVIEWS = [
-  { reviewer: '0xab1...3f2c', target: 'Uniswap V3', rating: 5, snippet: 'Still the gold standard for DEXs.', hoursAgo: 1 },
-  { reviewer: '0x7f2...a1b4', target: 'Stargate', rating: 3, snippet: 'Bridging took longer than expected.', hoursAgo: 2 },
-  { reviewer: '0x3e9...c8d1', target: 'Aave V3', rating: 5, snippet: 'Governance proposals are solid.', hoursAgo: 3 },
-]
+
 
 const NEEDS_REVIEW = [
   { name: 'Base Bridge', address: '0x4200000000000000000000000000000000000010', score: 8.7 },
@@ -155,10 +151,17 @@ export default function ExplorePage() {
 
   // Real stats from DB
   const [stats, setStats] = useState<{ addressesScored: number; totalReviews: number; contributors: number } | null>(null)
+  const [recentReviews, setRecentReviews] = useState<any[]>([])
+  
   useEffect(() => {
     fetch('/api/v1/stats')
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setStats(data) })
+      .catch(() => {})
+
+    fetch('/api/v1/explore/recent')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.recent) setRecentReviews(data.recent) })
       .catch(() => {})
   }, [])
 
@@ -424,7 +427,7 @@ export default function ExplorePage() {
                 Recently Reviewed
               </h3>
               <div className="space-y-2.5">
-                {RECENT_REVIEWS.map((r, i) => (
+                {recentReviews.length > 0 ? recentReviews.map((r, i) => (
                   <div key={i} className="border-b border-border-subtle last:border-0 pb-2 last:pb-0">
                     <div className="flex items-center justify-between mb-0.5">
                       <span className="text-[11px] font-semibold">{r.target}</span>
@@ -433,7 +436,9 @@ export default function ExplorePage() {
                     <p className="text-[10px] text-txt-muted italic line-clamp-1">"{r.snippet}"</p>
                     <p className="text-[9px] text-txt-muted/50 font-mono mt-0.5">by {r.reviewer} · {r.hoursAgo}h ago</p>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-[10px] text-txt-muted italic">No recent reviews yet.</p>
+                )}
               </div>
             </div>
 
