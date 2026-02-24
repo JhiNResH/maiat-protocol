@@ -19,21 +19,21 @@ interface ProtocolInfo {
 }
 
 const KNOWN_PROTOCOLS = new Map<string, ProtocolInfo>([
-  ["0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24", { name: "Uniswap V3 Router", category: "DEX", auditedBy: ["Trail of Bits", "ABDK"], baseScore: 847 }],
-  ["0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD", { name: "Uniswap Universal Router", category: "DEX", auditedBy: ["Trail of Bits"], baseScore: 860 }],
-  ["0x33128a8fC17869897dcE68Ed026d694621f6FDfD", { name: "Uniswap V3 Factory", category: "DEX", auditedBy: ["Trail of Bits", "ABDK"], baseScore: 870 }],
-  ["0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43", { name: "Aerodrome Router", category: "DEX", auditedBy: ["Code4rena"], baseScore: 780 }],
-  ["0x420DD381b31aEf6683db6B902084cB0FFECe40Da", { name: "Aerodrome Factory", category: "DEX", auditedBy: ["Code4rena"], baseScore: 780 }],
-  ["0xA238Dd80C259a72e81d7e4664a9801593F98d1c5", { name: "Aave V3 Pool", category: "LENDING", auditedBy: ["OpenZeppelin", "Trail of Bits", "Sigma Prime"], baseScore: 920 }],
-  ["0xb125E6687d4313864e53df431d5425969c15Eb2F", { name: "Compound V3 USDC", category: "LENDING", auditedBy: ["OpenZeppelin", "ChainSecurity"], baseScore: 880 }],
-  ["0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb", { name: "Morpho Blue", category: "LENDING", auditedBy: ["Spearbit", "Cantina"], baseScore: 820 }],
-  ["0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70", { name: "Chainlink ETH/USD Feed", category: "ORACLE", auditedBy: ["Trail of Bits"], baseScore: 910 }],
-  ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", { name: "USDC", category: "STABLECOIN", auditedBy: ["Deloitte"], baseScore: 920 }],
-  ["0x4200000000000000000000000000000000000006", { name: "WETH", category: "INFRASTRUCTURE", baseScore: 920 }],
-  ["0x4200000000000000000000000000000000000010", { name: "L2StandardBridge", category: "BRIDGE", auditedBy: ["Sherlock", "OpenZeppelin"], baseScore: 870 }],
-  ["0x45f1A95A4D3f3836523F5c83673c797f4d4d263B", { name: "Stargate Router", category: "BRIDGE", auditedBy: ["Zellic", "Quantstamp"], baseScore: 790 }],
-  ["0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb", { name: "DAI", category: "STABLECOIN", auditedBy: ["Trail of Bits"], baseScore: 890 }],
-  ["0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA", { name: "USDbC", category: "STABLECOIN", baseScore: 850 }],
+  ["0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24", { name: "Uniswap V3 Router", category: "DEX", auditedBy: ["Trail of Bits", "ABDK"], baseScore: 8.5 }],
+  ["0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD", { name: "Uniswap Universal Router", category: "DEX", auditedBy: ["Trail of Bits"], baseScore: 8.6 }],
+  ["0x33128a8fC17869897dcE68Ed026d694621f6FDfD", { name: "Uniswap V3 Factory", category: "DEX", auditedBy: ["Trail of Bits", "ABDK"], baseScore: 8.7 }],
+  ["0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43", { name: "Aerodrome Router", category: "DEX", auditedBy: ["Code4rena"], baseScore: 7.8 }],
+  ["0x420DD381b31aEf6683db6B902084cB0FFECe40Da", { name: "Aerodrome Factory", category: "DEX", auditedBy: ["Code4rena"], baseScore: 7.8 }],
+  ["0xA238Dd80C259a72e81d7e4664a9801593F98d1c5", { name: "Aave V3 Pool", category: "LENDING", auditedBy: ["OpenZeppelin", "Trail of Bits", "Sigma Prime"], baseScore: 9.2 }],
+  ["0xb125E6687d4313864e53df431d5425969c15Eb2F", { name: "Compound V3 USDC", category: "LENDING", auditedBy: ["OpenZeppelin", "ChainSecurity"], baseScore: 8.8 }],
+  ["0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb", { name: "Morpho Blue", category: "LENDING", auditedBy: ["Spearbit", "Cantina"], baseScore: 8.2 }],
+  ["0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70", { name: "Chainlink ETH/USD Feed", category: "ORACLE", auditedBy: ["Trail of Bits"], baseScore: 9.1 }],
+  ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", { name: "USDC", category: "STABLECOIN", auditedBy: ["Deloitte"], baseScore: 9.2 }],
+  ["0x4200000000000000000000000000000000000006", { name: "WETH", category: "INFRASTRUCTURE", baseScore: 9.2 }],
+  ["0x4200000000000000000000000000000000000010", { name: "L2StandardBridge", category: "BRIDGE", auditedBy: ["Sherlock", "OpenZeppelin"], baseScore: 8.7 }],
+  ["0x45f1A95A4D3f3836523F5c83673c797f4d4d263B", { name: "Stargate Router", category: "BRIDGE", auditedBy: ["Zellic", "Quantstamp"], baseScore: 7.9 }],
+  ["0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb", { name: "DAI", category: "STABLECOIN", auditedBy: ["Trail of Bits"], baseScore: 8.9 }],
+  ["0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA", { name: "USDbC", category: "STABLECOIN", baseScore: 8.5 }],
 ]);
 
 const KNOWN_SCAM_ADDRESSES = new Set([
@@ -46,10 +46,10 @@ export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type AddressType = "EOA" | "CONTRACT" | "PROTOCOL" | "TOKEN" | "UNKNOWN";
 
 export interface ScoreBreakdown {
-  onChainHistory: number;    // max 400
-  contractAnalysis: number;  // max 300
-  blacklistCheck: number;    // max 200
-  activityPattern: number;   // max 100
+  onChainHistory: number;    // max 4.0
+  contractAnalysis: number;  // max 3.0
+  blacklistCheck: number;    // max 2.0
+  activityPattern: number;   // max 1.0
 }
 
 export interface AddressDetails {
@@ -64,7 +64,7 @@ export interface AddressDetails {
 }
 
 export interface TrustScoreResult {
-  score: number;           // 0-1000
+  score: number;           // 0-10 (one decimal)
   risk: RiskLevel;
   type: AddressType;
   flags: string[];
@@ -87,9 +87,9 @@ const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 function getRisk(score: number): RiskLevel {
-  if (score >= 700) return "LOW";
-  if (score >= 400) return "MEDIUM";
-  if (score >= 100) return "HIGH";
+  if (score >= 7.0) return "LOW";
+  if (score >= 4.0) return "MEDIUM";
+  if (score >= 1.0) return "HIGH";
   return "CRITICAL";
 }
 
@@ -187,10 +187,10 @@ export async function computeTrustScore(
     const score = protocolInfo.baseScore;
     // Distribute score across categories proportionally
     const breakdown: ScoreBreakdown = {
-      onChainHistory: Math.min(400, Math.round(score * 0.4)),
-      contractAnalysis: Math.min(300, Math.round(score * 0.3)),
-      blacklistCheck: Math.min(200, Math.round(score * 0.2)),
-      activityPattern: Math.min(100, Math.round(score * 0.1)),
+      onChainHistory: Math.min(4.0, Math.round(score * 0.4 * 10) / 10),
+      contractAnalysis: Math.min(3.0, Math.round(score * 0.3 * 10) / 10),
+      blacklistCheck: Math.min(2.0, Math.round(score * 0.2 * 10) / 10),
+      activityPattern: Math.min(1.0, Math.round(score * 0.1 * 10) / 10),
     };
 
     const result: TrustScoreResult = {
@@ -249,80 +249,77 @@ export async function computeTrustScore(
   const walletAge = firstTxTs ? formatAge(firstTxTs) : null;
   const lastActive = lastTxTs ? formatLastActive(lastTxTs) : null;
 
-  // --- Score Breakdown ---
+  // --- Score Breakdown (0-10 scale) ---
 
-  // 1. On-chain History (max 400)
-  let onChainHistory = 100; // baseline
+  // 1. On-chain History (max 4.0)
+  let onChainHistory = 1.0; // baseline
   if (txCount === 0) {
     onChainHistory = 0;
     flags.push("NO_TRANSACTIONS");
   } else if (txCount < 5) {
-    onChainHistory = 50;
+    onChainHistory = 0.5;
     flags.push("FEW_TRANSACTIONS");
   } else if (txCount >= 1000) {
-    onChainHistory = 400;
+    onChainHistory = 4.0;
   } else if (txCount >= 100) {
-    onChainHistory = 340;
+    onChainHistory = 3.4;
   } else if (txCount >= 20) {
-    onChainHistory = 200;
+    onChainHistory = 2.0;
   } else {
-    onChainHistory = 120;
+    onChainHistory = 1.2;
   }
   // Wallet age bonus
   if (firstTxTs) {
     const ageDays = (Date.now() - firstTxTs) / (1000 * 60 * 60 * 24);
-    if (ageDays >= 365) onChainHistory = Math.min(400, onChainHistory + 60);
-    else if (ageDays >= 90) onChainHistory = Math.min(400, onChainHistory + 30);
+    if (ageDays >= 365) onChainHistory = Math.min(4.0, onChainHistory + 0.6);
+    else if (ageDays >= 90) onChainHistory = Math.min(4.0, onChainHistory + 0.3);
   }
 
-  // 2. Contract Analysis (max 300)
-  let contractAnalysis = 150; // baseline for EOA
+  // 2. Contract Analysis (max 3.0)
+  let contractAnalysis = 1.5; // baseline for EOA
   if (isContract) {
-    contractAnalysis = 200; // contracts start higher
-    // Could check verified source via Basescan later
+    contractAnalysis = 2.0; // contracts start higher
   }
   // Balance factor
-  if (balanceETH >= 10) contractAnalysis = Math.min(300, contractAnalysis + 80);
-  else if (balanceETH >= 1) contractAnalysis = Math.min(300, contractAnalysis + 40);
-  else if (balanceETH >= 0.1) contractAnalysis = Math.min(300, contractAnalysis + 20);
-  else if (balanceETH < 0.001 && txCount > 0) contractAnalysis = Math.max(0, contractAnalysis - 30);
+  if (balanceETH >= 10) contractAnalysis = Math.min(3.0, contractAnalysis + 0.8);
+  else if (balanceETH >= 1) contractAnalysis = Math.min(3.0, contractAnalysis + 0.4);
+  else if (balanceETH >= 0.1) contractAnalysis = Math.min(3.0, contractAnalysis + 0.2);
+  else if (balanceETH < 0.001 && txCount > 0) contractAnalysis = Math.max(0, contractAnalysis - 0.3);
 
-  // 3. Blacklist Check (max 200)
-  let blacklistCheck = 180; // default: not on blacklist
+  // 3. Blacklist Check (max 2.0)
+  let blacklistCheck = 1.8; // default: not on blacklist
   if (isKnownScam) {
     blacklistCheck = 0;
   }
-  // Could integrate GoPlus/ScamSniffer here
   if (txCount === 0 && !isContract) {
-    blacklistCheck = 100; // unknown = partial score
+    blacklistCheck = 1.0; // unknown = partial score
   }
 
-  // 4. Activity Pattern (max 100)
-  let activityPattern = 50; // baseline
+  // 4. Activity Pattern (max 1.0)
+  let activityPattern = 0.5; // baseline
   if (lastTxTs) {
     const hoursSinceLastTx = (Date.now() - lastTxTs) / (1000 * 60 * 60);
-    if (hoursSinceLastTx < 24) activityPattern = 90;
-    else if (hoursSinceLastTx < 168) activityPattern = 70; // week
-    else if (hoursSinceLastTx < 720) activityPattern = 50; // month
-    else activityPattern = 20; // dormant
+    if (hoursSinceLastTx < 24) activityPattern = 0.9;
+    else if (hoursSinceLastTx < 168) activityPattern = 0.7; // week
+    else if (hoursSinceLastTx < 720) activityPattern = 0.5; // month
+    else activityPattern = 0.2; // dormant
   }
   if (txCount === 0) activityPattern = 0;
 
   const breakdown: ScoreBreakdown = {
-    onChainHistory: Math.max(0, Math.min(400, Math.round(onChainHistory))),
-    contractAnalysis: Math.max(0, Math.min(300, Math.round(contractAnalysis))),
-    blacklistCheck: Math.max(0, Math.min(200, Math.round(blacklistCheck))),
-    activityPattern: Math.max(0, Math.min(100, Math.round(activityPattern))),
+    onChainHistory: Math.max(0, Math.min(4.0, Math.round(onChainHistory * 10) / 10)),
+    contractAnalysis: Math.max(0, Math.min(3.0, Math.round(contractAnalysis * 10) / 10)),
+    blacklistCheck: Math.max(0, Math.min(2.0, Math.round(blacklistCheck * 10) / 10)),
+    activityPattern: Math.max(0, Math.min(1.0, Math.round(activityPattern * 10) / 10)),
   };
 
-  const score = Math.max(0, Math.min(1000,
-    breakdown.onChainHistory + breakdown.contractAnalysis + breakdown.blacklistCheck + breakdown.activityPattern
-  ));
+  const rawScore = breakdown.onChainHistory + breakdown.contractAnalysis + breakdown.blacklistCheck + breakdown.activityPattern;
+  const score = Math.max(0, Math.min(10, Math.round(rawScore * 10) / 10));
 
   const addressType: AddressType = isContract ? "CONTRACT" : txCount > 0 ? "EOA" : "UNKNOWN";
 
   // Additional flags
-  if (score >= 700) flags.push("TRUSTED");
+  if (score >= 7.0) flags.push("TRUSTED");
   if (balanceETH >= 1) flags.push("FUNDED");
   if (!isContract) flags.push("NOT_BLACKLISTED"); // basic check
 
