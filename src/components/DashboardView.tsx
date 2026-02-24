@@ -24,7 +24,7 @@ type InteractionData = {
   name: string
   category: string
   trustScore: number | null
-  userTxCount: number
+  txCount: number
   canReview: boolean
   existingReview: boolean
 }
@@ -318,7 +318,7 @@ export function DashboardView() {
                         </div>
                         <div className="flex flex-col p-2 bg-bg-primary rounded-lg border border-border-subtle">
                            <span className="text-[10px] text-txt-muted uppercase tracking-wider">Your Txs</span>
-                           <span className="text-sm font-bold text-turquoise">{contract.userTxCount}</span>
+                           <span className="text-sm font-bold text-turquoise">{contract.txCount}</span>
                         </div>
                       </div>
 
