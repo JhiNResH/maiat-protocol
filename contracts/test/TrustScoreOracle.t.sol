@@ -274,12 +274,7 @@ contract TrustScoreOracleTest is Test {
         vm.warp(block.timestamp + 7 days + 1);
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                TrustScoreOracle.TrustScoreOracle__StaleScore.selector,
-                token,
-                updatedAt,
-                7 days
-            )
+            abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__StaleScore.selector, token, updatedAt, 7 days)
         );
         oracle.getScore(token);
     }
@@ -296,12 +291,7 @@ contract TrustScoreOracleTest is Test {
         uint256 updatedAt = block.timestamp;
         vm.warp(block.timestamp + 7 days + 1);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                TrustScoreOracle.TrustScoreOracle__StaleScore.selector,
-                token,
-                updatedAt,
-                7 days
-            )
+            abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__StaleScore.selector, token, updatedAt, 7 days)
         );
         oracle.getScore(token);
     }
@@ -343,6 +333,101 @@ contract TrustScoreOracleTest is Test {
             assertEq(fee, oracle.TRUSTED_FEE());
         } else {
             assertEq(fee, oracle.BASE_FEE());
+        }
+    }
+
+    // ─── Fuzz Tests ─────────────────────────────────────────────
+
+    function testFuzz_UpdateTokenScore(
+        address fuzzToken,
+        uint256 score,
+        uint256 reviewCount,
+        uint256 avgRating,
+        uint8 ds
+    ) public {
+        vm.assume(fuzzToken != address(0));
+        score = bound(score, 0, 100);
+        avgRating = bound(avgRating, 0, 500);
+        ds = uint8(bound(ds, 0, 4));
+
+        oracle.updateTokenScore(fuzzToken, score, reviewCount, avgRating, TrustScoreOracle.DataSource(ds));
+
+        TrustScoreOracle.TokenScore memory data = oracle.getTokenData(fuzzToken);
+        assertEq(data.trustScore, score);
+        assertEq(data.reviewCount, reviewCount);
+        assertEq(data.avgRating, avgRating);
+        assertEq(uint8(data.dataSource), ds);
+        assertEq(oracle.getScore(fuzzToken), score);
+    }
+
+    function testFuzz_UpdateUserReputation(
+        address fuzzUser,
+        uint256 repScore,
+        uint256 totalReviews,
+        uint256 scarabPoints
+    ) public {
+        vm.assume(fuzzUser != address(0));
+        repScore = bound(repScore, 0, 100000);
+
+        oracle.updateUserReputation(fuzzUser, repScore, totalReviews, scarabPoints);
+
+        TrustScoreOracle.UserReputation memory data = oracle.getUserData(fuzzUser);
+        assertEq(data.reputationScore, repScore);
+        assertEq(data.totalReviews, totalReviews);
+        assertEq(data.scarabPoints, scarabPoints);
+        assertTrue(data.initialized);
+    }
+
+    function testFuzz_BatchUpdateTokenScores(
+        address[] memory tokens,
+        uint256[] memory scores,
+        uint256[] memory reviewCounts,
+        uint256[] memory avgRatings,
+        uint8 ds
+    ) public {
+        uint256 len = tokens.length;
+        if (scores.length < len) len = scores.length;
+        if (reviewCounts.length < len) len = reviewCounts.length;
+        if (avgRatings.length < len) len = avgRatings.length;
+        if (len == 0) return; // Ignore runs with length 0
+        if (len > 50) len = 50; // Bound maximum size to prevent OutOfGas
+
+        // Truncate memory arrays to the shortest length
+        assembly {
+            mstore(tokens, len)
+            mstore(scores, len)
+            mstore(reviewCounts, len)
+            mstore(avgRatings, len)
+        }
+
+        TrustScoreOracle.DataSource dataSource = TrustScoreOracle.DataSource(uint8(bound(ds, 0, 4)));
+
+        for (uint256 i = 0; i < len; i++) {
+            vm.assume(tokens[i] != address(0));
+            scores[i] = bound(scores[i], 0, 100);
+            avgRatings[i] = bound(avgRatings[i], 0, 500);
+        }
+
+        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, dataSource);
+
+        for (uint256 i = 0; i < len; i++) {
+            // If the token appears again later in the array, its score gets overwritten.
+            // Only check the final overwritten value.
+            bool overridden = false;
+            for (uint256 j = i + 1; j < len; j++) {
+                if (tokens[i] == tokens[j]) {
+                    overridden = true;
+                    break;
+                }
+            }
+            if (overridden) continue;
+
+            TrustScoreOracle.TokenScore memory data = oracle.getTokenData(tokens[i]);
+            assertEq(data.trustScore, scores[i]);
+            assertEq(data.reviewCount, reviewCounts[i]);
+            assertEq(data.avgRating, avgRatings[i]);
+            assertEq(uint8(data.dataSource), uint8(dataSource));
+            assertEq(oracle.getScore(tokens[i]), scores[i]);
         }
     }
 }
