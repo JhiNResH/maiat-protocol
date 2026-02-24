@@ -271,6 +271,78 @@ User ──┬── Review ──── Project
 
 ---
 
+## Agent SDKs & Plugins
+
+Plug Maiat trust scoring directly into your agent framework — no custom API calls needed.
+
+### Available Packages
+
+| Package | Framework | npm |
+|---------|-----------|-----|
+| `@jhinresh/mcp-server` | Claude / OpenClaw / any MCP host | [![npm](https://img.shields.io/npm/v/@jhinresh/mcp-server)](https://www.npmjs.com/package/@jhinresh/mcp-server) |
+| `@jhinresh/elizaos-plugin` | ElizaOS / ai16z | [![npm](https://img.shields.io/npm/v/@jhinresh/elizaos-plugin)](https://www.npmjs.com/package/@jhinresh/elizaos-plugin) |
+| `@jhinresh/agentkit-plugin` | Coinbase AgentKit | [![npm](https://img.shields.io/npm/v/@jhinresh/agentkit-plugin)](https://www.npmjs.com/package/@jhinresh/agentkit-plugin) |
+
+---
+
+### `@jhinresh/mcp-server` — MCP (Claude / OpenClaw)
+
+```bash
+npm install @jhinresh/mcp-server
+```
+
+Add to your `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "maiat": {
+      "command": "npx",
+      "args": ["-y", "@jhinresh/mcp-server"],
+      "env": { "MAIAT_API_URL": "https://maiat-protocol.vercel.app" }
+    }
+  }
+}
+```
+
+Tools exposed: `maiat_check_trust`, `maiat_check_token`, `maiat_batch_check`
+
+---
+
+### `@jhinresh/elizaos-plugin` — ElizaOS / ai16z
+
+```bash
+npm install @jhinresh/elizaos-plugin
+```
+
+```typescript
+import { maiatPlugin } from "@jhinresh/elizaos-plugin";
+
+const agent = new ElizaAgent({
+  plugins: [maiatPlugin({ minScore: 3.0 })],
+});
+// Agent now auto-gates swaps — rejects addresses with trust score < 3.0
+```
+
+Actions: `CHECK_TRUST` · Evaluators: `TRUST_GATE` · Providers: `TRUST_DATA`
+
+---
+
+### `@jhinresh/agentkit-plugin` — Coinbase AgentKit
+
+```bash
+npm install @jhinresh/agentkit-plugin
+```
+
+```typescript
+import { MaiatTrustPlugin } from "@jhinresh/agentkit-plugin";
+
+const plugin = new MaiatTrustPlugin({ minScore: 3.0 });
+// Wrap any AgentKit action with trust gating
+const safeTransfer = plugin.wrapAction(transferAction);
+```
+
+---
+
 ## Roadmap
 
 - [x] Review submission + AI verification
@@ -280,7 +352,7 @@ User ──┬── Review ──── Project
 - [ ] Multi-chain deployment (BNB, ARC, Solana)
 - [ ] x402 payment integration (USDC)
 - [ ] Trust badge embeds for project websites
-- [ ] Agent SDK (npm package)
+- [x] Agent SDK — MCP server, ElizaOS plugin, AgentKit plugin (npm)
 - [ ] Mainnet deployment
 
 ---
