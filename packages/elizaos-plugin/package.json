@@ -1,6 +1,6 @@
 {
   "name": "@jhinresh/elizaos-plugin",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Maiat Trust Score plugin for ElizaOS — trust-gated agent interactions",
   "license": "MIT",
   "type": "module",
