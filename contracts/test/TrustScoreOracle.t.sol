@@ -258,6 +258,65 @@ contract TrustScoreOracleTest is Test {
 
     // ─── Fuzz ──────────────────────────────────────────────────
 
+    // ─── getScore: staleness ───────────────────────────────────
+
+    function test_GetScore_FreshScore_Passes() public {
+        oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        // Should not revert — score is fresh
+        assertEq(oracle.getScore(token), 70);
+    }
+
+    function test_GetScore_StaleScore_Reverts() public {
+        oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        uint256 updatedAt = block.timestamp;
+
+        // Warp past staleness window
+        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE() + 1);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TrustScoreOracle.TrustScoreOracle__StaleScore.selector,
+                token,
+                updatedAt,
+                oracle.SCORE_MAX_AGE()
+            )
+        );
+        oracle.getScore(token);
+    }
+
+    function test_GetScore_ExactBoundary_Passes() public {
+        oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        // Exactly at max age — should still pass (not strictly greater)
+        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE());
+        assertEq(oracle.getScore(token), 70);
+    }
+
+    function test_GetScore_OneBeyondBoundary_Reverts() public {
+        oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        uint256 updatedAt = block.timestamp;
+        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE() + 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TrustScoreOracle.TrustScoreOracle__StaleScore.selector,
+                token,
+                updatedAt,
+                oracle.SCORE_MAX_AGE()
+            )
+        );
+        oracle.getScore(token);
+    }
+
+    function test_GetScore_RefreshResetsStale() public {
+        oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE() + 100);
+
+        // Refresh score
+        oracle.updateTokenScore(token, 75, 15, 420, TrustScoreOracle.DataSource.VERIFIED);
+
+        // Should no longer revert
+        assertEq(oracle.getScore(token), 75);
+    }
+
     function testFuzz_TokenScore_ValidRange(uint256 score, uint256 reviews, uint256 avgRating) public {
         score = bound(score, 0, 100);
         avgRating = bound(avgRating, 0, oracle.MAX_AVG_RATING()); // 0–500

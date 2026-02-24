@@ -68,6 +68,7 @@ contract TrustGateHook is BaseHook, Ownable2Step {
     error TrustGateHook__ZeroAddress();
     error TrustGateHook__InvalidThreshold(uint256 threshold);
     error TrustGateHook__ThresholdTooLow(uint256 threshold);
+    /// @notice Reverts when a token's score originates from unverified seed/baseline data
     error TrustGateHook__SeedScoreRejected(address token);
 
     /*//////////////////////////////////////////////////////////////
@@ -133,52 +134,63 @@ contract TrustGateHook is BaseHook, Ownable2Step {
     ///      so V4 actually applies the returned fee value.
     ///
     ///      `sender` is the router address, not the end user.
-    ///      Fee tier is determined by the router's registered reputation.
-    ///      For per-user fees, encode user address in `hookData` and use a trusted router.
+    ///      For per-user fees, encode the user address in hookData as abi.encode(userAddress).
+    ///      If hookData is empty or <32 bytes, fee is based on the router (`sender`).
+    ///
+    /// @dev SEED SCORES: Tokens with DataSource.SEED (unverified baseline) are rejected.
+    ///      The updater must submit a verified score before the token can be swapped.
+    ///
+    /// @dev STALE SCORES: If oracle.getScore() reverts with StaleScore, the swap is BLOCKED.
+    ///      This is conservative by design — a stale score cannot be trusted. The updater
+    ///      service should refresh scores within SCORE_MAX_AGE (7 days).
     ///
     /// @dev NOTE on events + revert: SwapBlocked is NOT emitted on blocked swaps because
-    ///      EVM reverts roll back all event logs. TrustScoreTooLow error carries the
-    ///      full context (token, score, threshold) for off-chain monitoring via revert data.
-    function beforeSwap(address sender, PoolKey calldata key, SwapParams calldata, bytes calldata)
-        external
-        override
-        onlyPoolManager
-        returns (bytes4, BeforeSwapDelta, uint24)
-    {
-        // Check currency0 trust score
+    ///      EVM reverts roll back all event logs. TrustScoreTooLow / StaleScore / SeedScoreRejected
+    ///      errors carry full context for off-chain monitoring via revert data.
+    function beforeSwap(
+        address sender,
+        PoolKey calldata key,
+        SwapParams calldata,
+        bytes calldata hookData
+    ) external override onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
+        // Check currency0 trust score (stale score revert bubbles up → blocks swap)
         address token0 = Currency.unwrap(key.currency0);
         if (token0 != address(0)) {
             uint256 score0 = oracle.getScore(token0);
             if (score0 < trustThreshold) {
-                // NOTE: No emit here — revert rolls back events. Use revert data for monitoring.
                 revert TrustScoreTooLow(token0, score0, trustThreshold);
             }
-            // Reject scores derived from seed/baseline data
+            // Reject scores derived from seed/baseline data (not verified on-chain)
             if (oracle.getDataSource(token0) == TrustScoreOracle.DataSource.SEED) {
                 revert TrustGateHook__SeedScoreRejected(token0);
             }
             emit TrustGateChecked(token0, score0, true);
         }
 
-        // Check currency1 trust score
+        // Check currency1 trust score (stale score revert bubbles up → blocks swap)
         address token1 = Currency.unwrap(key.currency1);
         if (token1 != address(0)) {
             uint256 score1 = oracle.getScore(token1);
             if (score1 < trustThreshold) {
-                // NOTE: No emit here — revert rolls back events. Use revert data for monitoring.
                 revert TrustScoreTooLow(token1, score1, trustThreshold);
             }
-            // Reject scores derived from seed/baseline data
+            // Reject scores derived from seed/baseline data (not verified on-chain)
             if (oracle.getDataSource(token1) == TrustScoreOracle.DataSource.SEED) {
                 revert TrustGateHook__SeedScoreRejected(token1);
             }
             emit TrustGateChecked(token1, score1, true);
         }
 
-        // Dynamic fee based on router/user reputation
-        // NOTE: `sender` = router. Register router reputation in oracle for fee discounts.
-        uint256 feeBps = oracle.getUserFee(sender);
-        emit DynamicFeeApplied(sender, feeBps);
+        // Per-user fee: decode user address from hookData if provided by a trusted router.
+        // If hookData.length < 32 (or empty), fall back to router-level fee (`sender`).
+        // Routers MUST abi.encode(userAddress) and pass it as hookData for per-user discounts.
+        address feeTarget = sender;
+        if (hookData.length >= 32) {
+            feeTarget = abi.decode(hookData, (address));
+        }
+
+        uint256 feeBps = oracle.getUserFee(feeTarget);
+        emit DynamicFeeApplied(feeTarget, feeBps);
 
         // V4 requires: fee (in pips = feeBps * 100) | OVERRIDE_FEE_FLAG (0x400000)
         // Without the flag, the returned value is silently ignored by the PoolManager.

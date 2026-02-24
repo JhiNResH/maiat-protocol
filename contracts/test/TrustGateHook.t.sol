@@ -268,6 +268,66 @@ contract TrustGateHookTest is Test {
 
     // ─── Fuzz ──────────────────────────────────────────────────
 
+    // ─── beforeSwap: hookData per-user fee ─────────────────────
+
+    function test_BeforeSwap_HookData_PerUserFee() public {
+        _setScores(80, 80);
+
+        // Give a high-rep user guardian-level fee
+        address highRepUser = address(0xBEEF);
+        oracle.updateUserReputation(highRepUser, 200, 50, 1000);
+
+        // Swapper (router) has base fee by default
+        // Encode highRepUser in hookData
+        bytes memory hookData = abi.encode(highRepUser);
+
+        vm.prank(mockPoolManager);
+        (,, uint24 fee) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+
+        // Fee should reflect highRepUser's tier (GUARDIAN = 0%), not swapper's (BASE = 0.5%)
+        uint256 expectedFee = oracle.GUARDIAN_FEE(); // 0
+        assertEq(fee, uint24(expectedFee * 100) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
+    }
+
+    function test_BeforeSwap_EmptyHookData_FallsBackToSender() public {
+        _setScores(80, 80);
+
+        // Set router (swapper) to verified tier
+        oracle.updateUserReputation(swapper, 50, 10, 0);
+
+        vm.prank(mockPoolManager);
+        (,, uint24 fee) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
+
+        uint256 expectedFee = oracle.getUserFee(swapper); // VERIFIED = 10 bps
+        assertEq(fee, uint24(expectedFee * 100) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
+    }
+
+    // ─── beforeSwap: stale oracle score ────────────────────────
+
+    function test_BeforeSwap_StaleScore_BlocksSwap() public {
+        _setScores(80, 80);
+
+        // Warp past SCORE_MAX_AGE
+        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE() + 1);
+
+        // Should revert due to stale oracle score
+        vm.prank(mockPoolManager);
+        vm.expectRevert();
+        hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
+    }
+
+    function test_BeforeSwap_StaleScoreRefreshed_AllowsSwap() public {
+        _setScores(80, 80);
+        vm.warp(block.timestamp + oracle.SCORE_MAX_AGE() + 1);
+
+        // Refresh scores
+        _setScores(80, 80);
+
+        vm.prank(mockPoolManager);
+        (bytes4 sel,,) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
+        assertEq(sel, IHooks.beforeSwap.selector);
+    }
+
     function testFuzz_ScoreThreshold(uint256 score, uint256 threshold) public {
         score = bound(score, 0, 100);
         threshold = bound(threshold, hook.MIN_THRESHOLD(), 100); // 0 is now rejected

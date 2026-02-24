@@ -61,6 +61,8 @@ contract TrustScoreOracle is AccessControl, Pausable {
     uint256 public constant MAX_BATCH_SIZE = 100;
     /// @notice Max avgRating value: 500 = 5.0 stars (stored as stars * 100)
     uint256 public constant MAX_AVG_RATING = 500;
+    /// @notice Score staleness window — scores older than this are considered stale
+    uint256 public constant SCORE_MAX_AGE = 7 days;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -78,6 +80,8 @@ contract TrustScoreOracle is AccessControl, Pausable {
     error TrustScoreOracle__AvgRatingOutOfRange(uint256 avgRating);
     error TrustScoreOracle__LengthMismatch();
     error TrustScoreOracle__BatchTooLarge(uint256 size);
+    /// @notice Reverts when a score has not been updated within SCORE_MAX_AGE
+    error TrustScoreOracle__StaleScore(address token, uint256 lastUpdated, uint256 maxAge);
 
     /*//////////////////////////////////////////////////////////////
                               FUNCTIONS
@@ -93,8 +97,17 @@ contract TrustScoreOracle is AccessControl, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get trust score for a token (used by TrustGateHook)
+    /// @dev Reverts with StaleScore if the score has not been updated within SCORE_MAX_AGE.
+    ///      Tokens that have never been scored (lastUpdated == 0) are treated as stale → score = 0.
+    ///      Callers MUST handle the revert to avoid blocking legitimate swaps during oracle downtime.
     function getScore(address token) external view returns (uint256) {
-        return tokenScores[token].trustScore;
+        TokenScore memory ts = tokenScores[token];
+        // Never-scored tokens have lastUpdated == 0 → return 0 (fails trust gate naturally)
+        if (ts.lastUpdated == 0) return 0;
+        if (block.timestamp - ts.lastUpdated > SCORE_MAX_AGE) {
+            revert TrustScoreOracle__StaleScore(token, ts.lastUpdated, SCORE_MAX_AGE);
+        }
+        return ts.trustScore;
     }
 
     /// @notice Get fee in basis points for a user based on reputation
