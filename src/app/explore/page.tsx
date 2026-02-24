@@ -153,6 +153,15 @@ export default function ExplorePage() {
   // Live items (starts from seed, updated by API)
   const [items, setItems] = useState<ExploreItem[]>(SEED_ITEMS)
 
+  // Real stats from DB
+  const [stats, setStats] = useState<{ addressesScored: number; totalReviews: number; contributors: number } | null>(null)
+  useEffect(() => {
+    fetch('/api/v1/stats')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setStats(data) })
+      .catch(() => {})
+  }, [])
+
   // Fetch live scores + review counts in background
   useEffect(() => {
     let cancelled = false
@@ -454,17 +463,17 @@ export default function ExplorePage() {
         {/* Stats Footer */}
         <div className="mt-8 bg-bg-card border border-border-subtle rounded-xl p-4 flex items-center justify-around text-center">
           <div>
-            <p className="text-lg font-bold text-gold">12.8k</p>
+            <p className="text-lg font-bold text-gold">{stats ? stats.addressesScored.toLocaleString() : '—'}</p>
             <p className="text-[9px] text-txt-muted uppercase tracking-wider">Addresses Scored</p>
           </div>
           <div className="w-px h-8 bg-border-subtle" />
           <div>
-            <p className="text-lg font-bold text-gold">3.2k</p>
+            <p className="text-lg font-bold text-gold">{stats ? stats.totalReviews.toLocaleString() : '—'}</p>
             <p className="text-[9px] text-txt-muted uppercase tracking-wider">Reviews</p>
           </div>
           <div className="w-px h-8 bg-border-subtle" />
           <div>
-            <p className="text-lg font-bold text-gold">847</p>
+            <p className="text-lg font-bold text-gold">{stats ? stats.contributors.toLocaleString() : '—'}</p>
             <p className="text-[9px] text-txt-muted uppercase tracking-wider">Contributors</p>
           </div>
         </div>

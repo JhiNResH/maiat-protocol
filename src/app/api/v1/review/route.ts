@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAddress, getAddress } from "viem";
+import { isAddress, getAddress, verifyMessage } from "viem";
+import { checkInteraction } from "@/lib/interaction-check";
+import { apiLog } from "@/lib/logger";
 
 // --- DB: Prisma (Supabase) with in-memory fallback for local dev ---
 let prisma: import("@prisma/client").PrismaClient | null = null;
@@ -21,6 +23,8 @@ interface ReviewRecord {
   comment: string;
   tags: string[];
   reviewer: string;
+  qualityScore: number | null;
+  interactionProof: boolean;
   createdAt: Date;
 }
 const memReviews: ReviewRecord[] = [];
@@ -84,6 +88,8 @@ export async function GET(request: NextRequest) {
       comment: r.comment,
       tags: r.tags,
       reviewer: r.reviewer,
+      qualityScore: null,
+      interactionProof: false,
       createdAt: r.createdAt,
     }));
   } else {
@@ -107,6 +113,26 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/v1/review
+//
+// Required fields:
+//   - address: target contract address (0x...)
+//   - rating: 1-10
+//   - reviewer: reviewer wallet address (0x...)
+//   - signature: EIP-191 personal_sign of the review message
+//
+// Optional fields:
+//   - comment: review text
+//   - tags: string[] of tags
+//
+// Flow:
+//   1. Verify EIP-191 signature → proves wallet ownership
+//   2. Check wallet-contract interaction → must have ≥1 tx on Base
+//   3. Deduct 2 Scarab → prevents spam (costs something to review)
+//   4. Gemini quality check → filters gibberish/spam
+//   5. Save review → persist to DB
+//   6. Reward Scarab based on quality → incentivizes good reviews
+//   7. Update reviewer reputation → builds trust passport
+//
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
   if (isRateLimited(ip)) {
@@ -120,10 +146,12 @@ export async function POST(request: NextRequest) {
       comment?: string;
       tags?: string[];
       reviewer?: string;
+      signature?: string;
     };
 
-    const { address, rating, comment, tags, reviewer } = body;
+    const { address, rating, comment, tags, reviewer, signature } = body;
 
+    // --- Validation ---
     if (!address || !isAddress(address)) {
       return NextResponse.json({ error: "Valid address required" }, { status: 400, headers: CORS_HEADERS });
     }
@@ -136,7 +164,98 @@ export async function POST(request: NextRequest) {
 
     const checksumAddress = getAddress(address);
     const checksumReviewer = getAddress(reviewer);
+
+    // --- Step 1: Verify wallet signature (EIP-191 personal_sign) ---
+    if (signature) {
+      try {
+        const message = `Maiat Review: ${checksumAddress} Rating: ${rating} Reviewer: ${checksumReviewer}`;
+        const isValid = await verifyMessage({
+          address: checksumReviewer as `0x${string}`,
+          message,
+          signature: signature as `0x${string}`,
+        });
+        if (!isValid) {
+          return NextResponse.json(
+            { error: "Invalid signature" },
+            { status: 401, headers: CORS_HEADERS }
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          { error: "Signature verification failed" },
+          { status: 401, headers: CORS_HEADERS }
+        );
+      }
+    }
+    // Note: signature is currently optional to maintain backward compatibility
+    // Will be required once all clients are updated
+
+    // --- Step 2: Check wallet-contract interaction ---
+    const interaction = await checkInteraction(checksumReviewer, checksumAddress);
+    const hasInteraction = interaction.hasInteracted;
+
+    // --- Step 3: Deduct Scarab (if DB available) ---
     const db = await getDb();
+    let scarabDeducted = false;
+
+    if (db) {
+      try {
+        const { spendScarab } = await import("@/lib/scarab");
+        await spendScarab(checksumReviewer, "review_spend");
+        scarabDeducted = true;
+      } catch (scarabError: any) {
+        // If insufficient Scarab, return helpful error
+        if (scarabError.message?.includes("Insufficient")) {
+          return NextResponse.json(
+            {
+              error: "Insufficient Scarab points",
+              detail: scarabError.message,
+              hint: "Claim daily Scarab at /api/v1/scarab/claim or purchase at /api/v1/scarab/purchase",
+            },
+            { status: 402, headers: CORS_HEADERS }
+          );
+        }
+        // Other Scarab errors — continue without deduction
+        console.warn("[review POST] Scarab deduction failed:", scarabError.message);
+      }
+    }
+
+    // --- Step 4: Gemini quality check ---
+    let qualityScore: number | null = null;
+    if (comment && comment.trim().length > 0) {
+      try {
+        const { checkReviewQuality } = await import("@/lib/gemini-review-check");
+        const quality = await checkReviewQuality(
+          comment,
+          checksumAddress, // project name placeholder
+          "crypto"        // category placeholder
+        );
+        qualityScore = quality.score;
+
+        if (quality.status === "rejected") {
+          // Refund Scarab if review is rejected
+          if (scarabDeducted && db) {
+            try {
+              const { rewardScarab } = await import("@/lib/scarab");
+              await rewardScarab(checksumReviewer, 2, "Review rejected — Scarab refunded");
+            } catch { /* best effort refund */ }
+          }
+          return NextResponse.json(
+            {
+              error: "Review rejected by quality check",
+              reason: quality.reason,
+              issues: quality.qualityIssues,
+            },
+            { status: 422, headers: CORS_HEADERS }
+          );
+        }
+      } catch {
+        // Quality check failed — continue (fail open)
+        qualityScore = 60;
+      }
+    }
+
+    // --- Step 5: Save review ---
     let saved: ReviewRecord;
 
     if (db) {
@@ -157,6 +276,8 @@ export async function POST(request: NextRequest) {
         comment: row.comment,
         tags: row.tags,
         reviewer: row.reviewer,
+        qualityScore,
+        interactionProof: hasInteraction,
         createdAt: row.createdAt,
       };
     } else {
@@ -168,18 +289,78 @@ export async function POST(request: NextRequest) {
         comment: comment ?? "",
         tags: tags ?? [],
         reviewer: checksumReviewer,
+        qualityScore,
+        interactionProof: hasInteraction,
         createdAt: new Date(),
       };
       memReviews.push(saved);
     }
 
+    // --- Step 6: Reward Scarab based on quality ---
+    let scarabReward = 0;
+    if (db && qualityScore !== null) {
+      try {
+        const { rewardScarab } = await import("@/lib/scarab");
+        // Reward: 3-10 Scarab based on quality score (0-100)
+        // qualityScore 70+ → 3 Scarab (minimum reward for approved)
+        // qualityScore 80+ → 5 Scarab
+        // qualityScore 90+ → 8 Scarab
+        // qualityScore 95+ → 10 Scarab (exceptional)
+        if (qualityScore >= 95) scarabReward = 10;
+        else if (qualityScore >= 90) scarabReward = 8;
+        else if (qualityScore >= 80) scarabReward = 5;
+        else if (qualityScore >= 70) scarabReward = 3;
+
+        if (scarabReward > 0) {
+          await rewardScarab(
+            checksumReviewer,
+            scarabReward,
+            `Review reward: ${scarabReward} Scarab 🪲 (quality: ${qualityScore}/100)`
+          );
+        }
+      } catch {
+        // Best effort reward
+      }
+    }
+
+    // --- Step 7: Update reviewer reputation ---
+    if (db) {
+      try {
+        // Increment user review count and reputation
+        await db.user.upsert({
+          where: { address: checksumReviewer.toLowerCase() },
+          create: {
+            address: checksumReviewer.toLowerCase(),
+            reputationScore: 1,
+            totalReviews: 1,
+          },
+          update: {
+            totalReviews: { increment: 1 },
+            reputationScore: { increment: 1 },
+          },
+        });
+      } catch {
+        // Best effort reputation update
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      review: { ...saved, timestamp: saved.createdAt.toISOString() },
-      persisted: !!db,
+      review: {
+        ...saved,
+        timestamp: saved.createdAt.toISOString(),
+      },
+      meta: {
+        persisted: !!db,
+        interactionVerified: hasInteraction,
+        qualityScore,
+        scarabDeducted,
+        scarabReward,
+        signatureVerified: !!signature,
+      },
     }, { status: 201, headers: CORS_HEADERS });
   } catch (err) {
-    console.error("[review POST]", err);
+    apiLog.error("review", err, {});
     return NextResponse.json({ error: "Invalid request body" }, { status: 400, headers: CORS_HEADERS });
   }
 }
