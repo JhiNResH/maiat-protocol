@@ -1,18 +1,29 @@
 'use client'
 
-import { type ReactNode } from 'react'
-import { PrivyProvider as Privy } from '@privy-io/react-auth'
+import { type ReactNode, useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 
-const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? ''
+// Dynamically import Privy — prevents SSR prerender crash during `next build`
+// Privy initializes JS globals that don't exist in the Node.js render environment.
+const PrivyClient = dynamic(
+  () => import('@privy-io/react-auth').then(m => m.PrivyProvider),
+  { ssr: false }
+)
 
 export function PrivyProvider({ children }: { children: ReactNode }) {
-  if (!PRIVY_APP_ID) {
+  const [mounted, setMounted] = useState(false)
+  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? ''
+
+  useEffect(() => { setMounted(true) }, [])
+
+  // On server (build/SSR): render children only — no Privy
+  if (!mounted || !appId) {
     return <>{children}</>
   }
 
   return (
-    <Privy
-      appId={PRIVY_APP_ID}
+    <PrivyClient
+      appId={appId}
       config={{
         appearance: {
           theme: 'dark',
@@ -25,6 +36,6 @@ export function PrivyProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </Privy>
+    </PrivyClient>
   )
 }
