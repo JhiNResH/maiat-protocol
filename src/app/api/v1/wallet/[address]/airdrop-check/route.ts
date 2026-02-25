@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
+import bs58 from "bs58";
 import { discoverInteractions } from "@/lib/interaction-check";
 import { getKnownProtocolsMap } from "@/lib/slug-resolver";
 import { createOffchainReceipt } from "@/lib/eas";
@@ -24,18 +25,36 @@ export async function POST(
 ) {
   const { address } = await params;
 
-  if (!isAddress(address)) {
+  let isValidAddress = false;
+  let normalizedAddress = address;
+
+  // 1. Check EVM
+  if (isAddress(address) || (address.startsWith("0x") && isAddress(address.toLowerCase()))) {
+    isValidAddress = true;
+    normalizedAddress = getAddress(address.toLowerCase());
+  } else {
+    // 2. Check Solana
+    try {
+      const decoded = bs58.decode(address);
+      if (decoded.length === 32) {
+        isValidAddress = true;
+        normalizedAddress = address;
+      }
+    } catch (e) {
+      isValidAddress = false;
+    }
+  }
+
+  if (!isValidAddress) {
     return NextResponse.json(
-      { error: "Invalid Ethereum address" },
+      { error: "Invalid wallet address (EVM or Solana required)" },
       { status: 400, headers: CORS_HEADERS }
     );
   }
 
-  const checksummed = getAddress(address);
-
   try {
     const knownProtocols = getKnownProtocolsMap();
-    const interactions = await discoverInteractions(checksummed, knownProtocols);
+    const interactions = await discoverInteractions(normalizedAddress, knownProtocols);
 
     const newAirdrops = [];
 
@@ -45,7 +64,7 @@ export async function POST(
       // Check if we already airdropped/store a receipt for this user and this protocol
       const existing = await prisma.eASReceipt.findFirst({
         where: {
-          recipient: checksummed,
+          recipient: normalizedAddress,
           serviceProtocol: interaction.name || "Unknown Contract",
           isOffchain: true,
         }
@@ -58,7 +77,7 @@ export async function POST(
         const mockTxHash = `0xAirdroppedTxRef_${Buffer.from(interaction.address).toString('hex').slice(0, 10)}`;
         
         const attestation = await createOffchainReceipt(
-          checksummed, 
+          normalizedAddress, 
           interaction.name || interaction.address,
           mockTxHash
         );
@@ -66,7 +85,7 @@ export async function POST(
         if (attestation) {
           const receiptDb = await prisma.eASReceipt.create({
             data: {
-              recipient: checksummed,
+              recipient: normalizedAddress,
               attester: process.env.MAIAT_ADMIN_PUBLIC_KEY || "Maiat Oracle", // Informational
               serviceProtocol: interaction.name || interaction.address,
               txHash: mockTxHash,
@@ -83,14 +102,14 @@ export async function POST(
 
     return NextResponse.json(
       {
-        wallet: checksummed,
+        wallet: normalizedAddress,
         airdroppedCount: newAirdrops.length,
         success: true
       },
       { headers: CORS_HEADERS }
     );
   } catch (error) {
-    apiLog.error("airdrop-check", error, { address: checksummed });
+    apiLog.error("airdrop-check", error, { address: normalizedAddress });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500, headers: CORS_HEADERS }

@@ -232,15 +232,15 @@ export function getAllEntities(type?: EntityType): ResolvedEntity[] {
  */
 export function getKnownProtocolsMap(): Map<
   string,
-  { name: string; category: string }
+  { name: string; category: string; chainId: number }
 > {
-  const map = new Map<string, { name: string; category: string }>();
+  const map = new Map<string, { name: string; category: string; chainId: number }>();
 
   for (const info of Array.from(ADDRESS_TO_DEFI.values())) {
-    map.set(info.address, { name: info.name, category: info.category });
+    map.set(info.address, { name: info.name, category: info.category, chainId: info.chainId });
   }
   for (const info of Array.from(ADDRESS_TO_AGENT.values())) {
-    map.set(info.address, { name: info.name, category: info.category });
+    map.set(info.address, { name: info.name, category: info.category, chainId: info.chainId });
   }
 
   return map;
