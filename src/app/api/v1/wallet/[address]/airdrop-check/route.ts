@@ -70,7 +70,9 @@ export async function POST(
               attester: process.env.MAIAT_ADMIN_PUBLIC_KEY || "Maiat Oracle", // Informational
               serviceProtocol: interaction.name || interaction.address,
               txHash: mockTxHash,
-              receiptJson: JSON.stringify(attestation),
+              receiptJson: JSON.stringify(attestation, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value
+              ),
               isOffchain: true,
             }
           });
