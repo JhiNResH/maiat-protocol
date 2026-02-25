@@ -13,6 +13,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
   const { authenticated, user, login } = usePrivy()
   const [rating, setRating] = useState(5)
   const [content, setContent] = useState('')
+  const [easReceiptId, setEasReceiptId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,14 +27,15 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
     setError(null)
 
     try {
-      const res = await fetch('/api/reviews', {
+      const res = await fetch('/api/v1/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          projectId,
-          address,
+          address: projectId, // API expects `address`
+          reviewer: address,
           rating,
-          content: content.trim() || undefined,
+          comment: content.trim() || undefined,
+          easReceiptId: easReceiptId.trim() || undefined,
         }),
       })
 
@@ -42,6 +44,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
 
       setContent('')
       setRating(5)
+      setEasReceiptId('')
       if (onSuccess) onSuccess()
       alert(`✅ Review submitted! (-2 Scarab spent)`)
     } catch (e: any) {
@@ -106,6 +109,18 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
           className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm font-mono text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-400"
         />
         <div className="text-xs font-mono text-gray-400 mt-1">{content.length}/500 characters</div>
+      </div>
+
+      {/* EAS Receipt ID */}
+      <div className="mb-4">
+        <label className="block text-xs font-mono text-gray-400 mb-2">EAS Receipt ID 🧾 (Boost Rep x5)</label>
+        <input
+          type="text"
+          value={easReceiptId}
+          onChange={(e) => setEasReceiptId(e.target.value)}
+          placeholder="Paste your Verified Receipt ID..."
+          className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm font-mono text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-400"
+        />
       </div>
 
       {/* Cost Warning */}
