@@ -157,13 +157,15 @@ model ScarabPurchase {
 }
 
 model TrustReview {
-  id        String   @id @default(cuid())
-  address   String
-  rating    Int
-  comment   String   @default("")
-  tags      String[] @default([])
-  reviewer  String
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  address      String
+  rating       Int
+  comment      String   @default("")
+  tags         String[] @default([])
+  reviewer     String
+  easReceiptId String?  // Optional Reference to the EASReceipt used for 5x weight
+  weight       Int      @default(1) // 1x for raw, 5x for receipt-verified
+  createdAt    DateTime @default(now())
 
   @@index([address])
   @@index([reviewer])

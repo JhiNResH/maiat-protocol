@@ -12,7 +12,8 @@ import { isAddress, getAddress } from "viem";
 
 // --- Types ---
 
-export type EntityType = "defi" | "agent" | "token" | "unknown";
+export type EntityType = "defi" | "agent" | "memecoin" | "stablecoin" | "nft" | "infrastructure" | "unknown";
+export type ChainId = 8453 | 1 | 56 | 1399811149; // Base = 8453, ETH = 1, BNB = 56, SOL = 1399811149 (fake chain id for solana RPCs, just marking it out)
 
 export interface ResolvedEntity {
   address: string;
@@ -20,152 +21,51 @@ export interface ResolvedEntity {
   name: string;
   type: EntityType;
   category: string;
+  chainId: ChainId; // To identify which Alchemy RPC to query
   auditedBy?: string[];
 }
 
 // --- Known DeFi Protocols (Base Mainnet) ---
 
 const DEFI_SLUGS: Record<string, Omit<ResolvedEntity, "slug" | "type">> = {
-  usdc: {
-    address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    name: "USDC",
-    category: "STABLECOIN",
-    auditedBy: ["Deloitte"],
-  },
-  weth: {
-    address: "0x4200000000000000000000000000000000000006",
-    name: "WETH",
-    category: "INFRASTRUCTURE",
-  },
-  dai: {
-    address: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
-    name: "DAI",
-    category: "STABLECOIN",
-    auditedBy: ["Trail of Bits"],
-  },
-  usdbc: {
-    address: "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",
-    name: "USDbC",
-    category: "STABLECOIN",
-  },
-  "uniswap-v3-router": {
-    address: "0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24",
-    name: "Uniswap V3 Router",
-    category: "DEX",
-    auditedBy: ["Trail of Bits", "ABDK"],
-  },
-  "uniswap-universal-router": {
-    address: "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD",
-    name: "Uniswap Universal Router",
-    category: "DEX",
-    auditedBy: ["Trail of Bits"],
-  },
-  uniswap: {
-    address: "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD",
-    name: "Uniswap Universal Router",
-    category: "DEX",
-    auditedBy: ["Trail of Bits"],
-  },
-  aerodrome: {
-    address: "0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43",
-    name: "Aerodrome Router",
-    category: "DEX",
-    auditedBy: ["Code4rena"],
-  },
-  "aave-v3": {
-    address: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
-    name: "Aave V3 Pool",
-    category: "LENDING",
-    auditedBy: ["OpenZeppelin", "Trail of Bits", "Sigma Prime"],
-  },
-  aave: {
-    address: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
-    name: "Aave V3 Pool",
-    category: "LENDING",
-    auditedBy: ["OpenZeppelin", "Trail of Bits", "Sigma Prime"],
-  },
-  "compound-v3": {
-    address: "0xb125E6687d4313864e53df431d5425969c15Eb2F",
-    name: "Compound V3 USDC",
-    category: "LENDING",
-    auditedBy: ["OpenZeppelin", "ChainSecurity"],
-  },
-  compound: {
-    address: "0xb125E6687d4313864e53df431d5425969c15Eb2F",
-    name: "Compound V3 USDC",
-    category: "LENDING",
-    auditedBy: ["OpenZeppelin", "ChainSecurity"],
-  },
-  morpho: {
-    address: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
-    name: "Morpho Blue",
-    category: "LENDING",
-    auditedBy: ["Spearbit", "Cantina"],
-  },
-  "chainlink-eth-usd": {
-    address: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70",
-    name: "Chainlink ETH/USD Feed",
-    category: "ORACLE",
-    auditedBy: ["Trail of Bits"],
-  },
-  chainlink: {
-    address: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70",
-    name: "Chainlink ETH/USD Feed",
-    category: "ORACLE",
-    auditedBy: ["Trail of Bits"],
-  },
-  "base-bridge": {
-    address: "0x4200000000000000000000000000000000000010",
-    name: "L2StandardBridge",
-    category: "BRIDGE",
-    auditedBy: ["Sherlock", "OpenZeppelin"],
-  },
-  stargate: {
-    address: "0x45f1A95A4D3f3836523F5c83673c797f4d4d263B",
-    name: "Stargate Router",
-    category: "BRIDGE",
-    auditedBy: ["Zellic", "Quantstamp"],
-  },
+  // --- BASE MAINNET DEFI & TOKENS ---
+  usdc: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", name: "USDC (Base)", category: "STABLECOIN", chainId: 8453 },
+  uniswap: { address: "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD", name: "Uniswap V3 (Base)", category: "DEX", chainId: 8453 },
+  aerodrome: { address: "0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43", name: "Aerodrome Router", category: "DEX", chainId: 8453 },
+  aave: { address: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5", name: "Aave V3 (Base)", category: "LENDING", chainId: 8453 },
+  compound: { address: "0xb125E6687d4313864e53df431d5425969c15Eb2F", name: "Compound V3 (Base)", category: "LENDING", chainId: 8453 },
+  
+  // --- ETHEREUM MAINNET DEFI & TOKENS ---
+  "usdt-eth": { address: "0xdac17f958d2ee523a2206206994597c13d831ec7", name: "USDT", category: "STABLECOIN", chainId: 1 },
+  "aave-eth": { address: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2", name: "Aave V3 Pool (ETH)", category: "LENDING", chainId: 1 },
+  lido: { address: "0xae7ab96520de3a18e5e111b5eaab095312d7fe84", name: "Lido stETH", category: "LIQUID_STAKING", chainId: 1 },
+  "uniswap-eth": { address: "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45", name: "Uniswap V3 Router 2", category: "DEX", chainId: 1 },
+  pepe: { address: "0x6982508145454ce325ddbe47a25d4ec3d2311933", name: "PEPE", category: "MEMECOIN", chainId: 1 },
+
+  // --- SOLANA SYSTEM DEFI & TOKENS ---
+  "usdc-sol": { address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", name: "USDC (Solana)", category: "STABLECOIN", chainId: 1399811149 },
+  raydium: { address: "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8", name: "Raydium Liquidity Pool V4", category: "DEX", chainId: 1399811149 },
+  jito: { address: "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn", name: "Jito Staked SOL (JitoSOL)", category: "LIQUID_STAKING", chainId: 1399811149 },
+  wif: { address: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYtM2wYSzUj", name: "dogwifhat (WIF)", category: "MEMECOIN", chainId: 1399811149 },
+  bonk: { address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", name: "Bonk", category: "MEMECOIN", chainId: 1399811149 },
+
+  // --- BNB CHAIN DEFI & TOKENS ---
+  "usdt-bnb": { address: "0x55d398326f99059ff775485246999027b3197955", name: "USDT (BNB)", category: "STABLECOIN", chainId: 56 },
+  pancakeswap: { address: "0x10ED43C718714eb63d5aA57B78B54704E256024E", name: "PancakeSwap V2 Router", category: "DEX", chainId: 56 },
+  venus: { address: "0xfD36E2c2a6789Db23113CeCb403C495012ACFE52", name: "Venus vBNB", category: "LENDING", chainId: 56 },
+  "binance-peg-eth": { address: "0x2170ed0880ac9a755fd29b2688956bd959f933f8", name: "Binance-Peg Ethereum Token", category: "INFRASTRUCTURE", chainId: 56 },
+  cake: { address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", name: "PancakeSwap Token (CAKE)", category: "INFRASTRUCTURE", chainId: 56 },
 };
 
 // --- Known AI Agents (Base Mainnet) ---
 
 const AGENT_SLUGS: Record<string, Omit<ResolvedEntity, "slug" | "type">> = {
-  virtuals: {
-    address: "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",
-    name: "Virtuals Protocol (VIRTUAL)",
-    category: "AGENT_PLATFORM",
-  },
-  virtual: {
-    address: "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",
-    name: "Virtuals Protocol (VIRTUAL)",
-    category: "AGENT_PLATFORM",
-  },
-  aixbt: {
-    address: "0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825",
-    name: "AIXBT by Virtuals",
-    category: "AGENT",
-  },
-  luna: {
-    address: "0x55cd6469f597452b5a7536e2cd98fde4c1247ee4",
-    name: "Luna by Virtuals",
-    category: "AGENT",
-  },
-  vaderai: {
-    address: "0x731814e491571a2e9ee3c5b1f7f3b962ee8f4870",
-    name: "VaderAI by Virtuals",
-    category: "AGENT",
-  },
-  freysa: {
-    address: "0x3e466dad6695879fd783e2bfcb98e16ce15a3caf",
-    name: "Freysa AI",
-    category: "AGENT",
-  },
-  sekoia: {
-    address: "0x1185cb5122edad199bdbc0cbd7a0457e448f23c7",
-    name: "Sekoia by Virtuals",
-    category: "AGENT",
-  },
+  // --- BASE MAINNET AGENTS ---
+  virtuals: { address: "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b", name: "Virtuals Protocol", category: "AGENT_PLATFORM", chainId: 8453 },
+  aixbt: { address: "0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825", name: "AIXBT", category: "AGENT", chainId: 8453 },
+  luna: { address: "0x55cd6469f597452b5a7536e2cd98fde4c1247ee4", name: "Luna by Virtuals", category: "AGENT", chainId: 8453 },
+  vaderai: { address: "0x731814e491571a2e9ee3c5b1f7f3b962ee8f4870", name: "VaderAI", category: "AGENT", chainId: 8453 },
+  freysa: { address: "0x3e466dad6695879fd783e2bfcb98e16ce15a3caf", name: "Freysa AI", category: "AGENT", chainId: 8453 },
 };
 
 // --- Build reverse lookup (address → slug) ---
@@ -214,7 +114,7 @@ export function resolveSlug(
     const addrLower = checksummed.toLowerCase();
 
     // Check DeFi
-    if (!typeHint || typeHint === "defi" || typeHint === "token") {
+    if (!typeHint || !["agent"].includes(typeHint)) {
       const defi = ADDRESS_TO_DEFI.get(addrLower);
       if (defi) {
         return {
@@ -223,6 +123,7 @@ export function resolveSlug(
           name: defi.name,
           type: "defi",
           category: defi.category,
+          chainId: defi.chainId,
           auditedBy: defi.auditedBy,
         };
       }
@@ -238,6 +139,7 @@ export function resolveSlug(
           name: agent.name,
           type: "agent",
           category: agent.category,
+          chainId: agent.chainId,
         };
       }
     }
@@ -248,7 +150,7 @@ export function resolveSlug(
 
   // Try as slug
   // Check DeFi slugs
-  if (!typeHint || typeHint === "defi" || typeHint === "token") {
+  if (!typeHint || !["agent"].includes(typeHint)) {
     const defi = DEFI_SLUGS[normalized];
     if (defi) {
       return {
@@ -257,6 +159,7 @@ export function resolveSlug(
         name: defi.name,
         type: "defi",
         category: defi.category,
+        chainId: defi.chainId,
         auditedBy: defi.auditedBy,
       };
     }
@@ -272,6 +175,7 @@ export function resolveSlug(
         name: agent.name,
         type: "agent",
         category: agent.category,
+        chainId: agent.chainId,
       };
     }
   }
@@ -285,7 +189,7 @@ export function resolveSlug(
 export function getAllEntities(type?: EntityType): ResolvedEntity[] {
   const results: ResolvedEntity[] = [];
 
-  if (!type || type === "defi" || type === "token") {
+  if (!type || type === "defi" || type === "memecoin" || type === "stablecoin") {
     for (const [slug, info] of Object.entries(DEFI_SLUGS)) {
       // Skip aliases (only include entries where this is the first slug for the address)
       const addrLower = info.address.toLowerCase();
@@ -296,7 +200,7 @@ export function getAllEntities(type?: EntityType): ResolvedEntity[] {
           slug,
           name: info.name,
           type: "defi",
-          category: info.category,
+          category: info.category, chainId: info.chainId,
           auditedBy: info.auditedBy,
         });
       }
@@ -313,7 +217,7 @@ export function getAllEntities(type?: EntityType): ResolvedEntity[] {
           slug,
           name: info.name,
           type: "agent",
-          category: info.category,
+          category: info.category, chainId: info.chainId,
         });
       }
     }
@@ -332,10 +236,10 @@ export function getKnownProtocolsMap(): Map<
 > {
   const map = new Map<string, { name: string; category: string }>();
 
-  for (const info of ADDRESS_TO_DEFI.values()) {
+  for (const info of Array.from(ADDRESS_TO_DEFI.values())) {
     map.set(info.address, { name: info.name, category: info.category });
   }
-  for (const info of ADDRESS_TO_AGENT.values()) {
+  for (const info of Array.from(ADDRESS_TO_AGENT.values())) {
     map.set(info.address, { name: info.name, category: info.category });
   }
 
