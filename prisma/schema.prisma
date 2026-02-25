@@ -169,3 +169,18 @@ model TrustReview {
   @@index([reviewer])
   @@index([createdAt])
 }
+
+model EASReceipt {
+  id              String   @id @default(cuid())
+  recipient       String   // The wallet address of the user who receives the receipt
+  attester        String   // The service provider or Maiat Admin
+  serviceProtocol String?  // e.g "Uniswap", "Virtuals Protocol"
+  txHash          String?  // Reference to the on-chain transaction
+  receiptJson     String   @db.Text // The actual signed EAS off-chain JSON
+  isOffchain      Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@index([recipient])
+  @@index([attester])
+  @@index([createdAt])
+}
