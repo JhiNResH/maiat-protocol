@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
 import { getReceiptsForWallet, MAIAT_RECEIPT_SCHEMA_UID } from "@/lib/eas";
+import { prisma } from "@/lib/prisma";
 import { apiLog } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -48,11 +49,42 @@ export async function GET(
       ];
     }
 
+    // Fetch off-chain receipts from DB
+    const dbReceipts = await prisma.eASReceipt.findMany({
+      where: { recipient: checksummed },
+      orderBy: { createdAt: "desc" }
+    });
+
+    const formattedDbReceipts = dbReceipts.map((r: any) => {
+      let decodedData = [];
+      try {
+        const parsed = JSON.parse(r.receiptJson);
+        const uid = parsed.uid || r.id; // EAS offchain SDK might include uid
+        decodedData = [
+          { name: "serviceProvider", type: "string", value: r.serviceProtocol || "Maiat Oracle" },
+          { name: "serviceType", type: "string", value: "Verified DApp Interaction" },
+          { name: "valuePaid", type: "string", value: "Airdropped" }
+        ];
+        return {
+          id: uid,
+          attester: r.attester,
+          recipient: r.recipient,
+          timeCreated: Math.floor(r.createdAt.getTime() / 1000),
+          txid: r.txHash || "",
+          decodedDataJson: JSON.stringify(decodedData)
+        };
+      } catch (e) {
+        return null;
+      }
+    }).filter(Boolean) as any[];
+
+    const combinedReceipts = [...returnedReceipts, ...formattedDbReceipts];
+
     return NextResponse.json(
       {
         wallet: checksummed,
-        receipts: returnedReceipts,
-        count: returnedReceipts.length,
+        receipts: combinedReceipts,
+        count: combinedReceipts.length,
         isMockEnv: isMock
       },
       { headers: CORS_HEADERS }

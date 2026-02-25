@@ -17,6 +17,7 @@
     "audit:probe": "npx tsx scripts/audit-probe.ts"
   },
   "dependencies": {
+    "@ethereum-attestation-service/eas-sdk": "^2.9.0",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.22.0",
     "@privy-io/react-auth": "^1.95.0",
@@ -26,6 +27,7 @@
     "@upstash/redis": "^1.36.2",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
+    "ethers": "^6.16.0",
     "lucide-react": "^0.563.0",
     "next": "^16.1.6",
     "prisma": "^5.22.0",
