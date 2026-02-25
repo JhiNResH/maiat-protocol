@@ -87,7 +87,12 @@ export async function claimDaily(address: string, boost: boolean = false) {
     
     // Check if already claimed today
     if (bal.lastClaimAt && isSameDay(bal.lastClaimAt, now)) {
-      throw new Error('Already claimed today')
+      return {
+        alreadyClaimed: true,
+        amount: 0,
+        balance: bal.balance,
+        streak: bal.streak,
+      }
     }
 
     // Calculate streak

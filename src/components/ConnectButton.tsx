@@ -22,13 +22,16 @@ export function ConnectButton() {
         })
 
         if (!res.ok) {
-          // 400 means already claimed today, which is normal
-          setClaimed(true)
-          return
+          throw new Error('Failed to claim')
         }
 
         const data = await res.json()
         setClaimed(true)
+
+        // If already claimed, don't show confetti or toast
+        if (data.alreadyClaimed) {
+          return
+        }
 
         // Trigger confetti
         confetti({
