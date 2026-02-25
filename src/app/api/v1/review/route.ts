@@ -25,6 +25,7 @@ interface ReviewRecord {
   reviewer: string;
   qualityScore: number | null;
   interactionProof: boolean;
+  weight: number;
   createdAt: Date;
 }
 const memReviews: ReviewRecord[] = [];
@@ -90,6 +91,7 @@ export async function GET(request: NextRequest) {
       reviewer: r.reviewer,
       qualityScore: null,
       interactionProof: false,
+      weight: r.weight,
       createdAt: r.createdAt,
     }));
   } else {
@@ -97,8 +99,16 @@ export async function GET(request: NextRequest) {
     reviews = memReviews.filter(r => r.address === checksummed);
   }
 
-  const avgRating = reviews.length > 0
-    ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+  let totalWeight = 0;
+  let weightedSum = 0;
+
+  for (const r of reviews) {
+    totalWeight += r.weight;
+    weightedSum += r.rating * r.weight;
+  }
+
+  const avgRating = totalWeight > 0
+    ? Math.round((weightedSum / totalWeight) * 10) / 10
     : 0;
 
   return NextResponse.json({
@@ -305,6 +315,7 @@ export async function POST(request: NextRequest) {
         reviewer: row.reviewer,
         qualityScore,
         interactionProof: hasInteraction,
+        weight: row.weight,
         createdAt: row.createdAt,
       };
     } else {
@@ -318,6 +329,7 @@ export async function POST(request: NextRequest) {
         reviewer: checksumReviewer,
         qualityScore,
         interactionProof: hasInteraction,
+        weight: 1,
         createdAt: new Date(),
       };
       memReviews.push(saved);
