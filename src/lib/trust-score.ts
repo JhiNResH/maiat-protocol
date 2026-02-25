@@ -115,6 +115,9 @@ function calculateCommunityTrustScore(
   return Math.min(upvoteScore + reputationScore, 100)
 }
 
+import { isAddress } from 'viem'
+import { analyzeToken } from './token-analysis'
+
 /**
  * Main Trust Score calculation function
  * 
@@ -125,7 +128,7 @@ export async function calculateTrustScore(
   tokenAddressOrSlug: string
 ): Promise<TrustScoreResult> {
   // Try to find project by address or slug
-  const project = await prisma.project.findFirst({
+  let project = await prisma.project.findFirst({
     where: {
       OR: [
         { address: tokenAddressOrSlug.toLowerCase() },
@@ -142,8 +145,75 @@ export async function calculateTrustScore(
     }
   })
 
+  // ON-THE-FLY GENERATION LOGIC
   if (!project) {
-    throw new Error(`Project not found: ${tokenAddressOrSlug}`)
+    // We only process on-the-fly if it is a valid EVM address format
+    if (!isAddress(tokenAddressOrSlug)) {
+      throw new Error(`Project not found: ${tokenAddressOrSlug}. Please provide a valid contract address to instantly generate a trust score.`)
+    }
+
+    try {
+      const address = tokenAddressOrSlug.toLowerCase()
+      // 1. Fetch on-chain data
+      const analysis = await analyzeToken(address)
+      if (!analysis || (!analysis.name && !analysis.symbol)) {
+        throw new Error(`Invalid token address: ${address}. Could not read token name/symbol from chain.`)
+      }
+
+      // 2. Determine basic stats
+      const isVerified = analysis.safetyChecks.verifiedSourceCode
+      const isRenounced = analysis.safetyChecks.ownershipRenounced
+      let baseScore = 40 // Default for unknown new tokens
+      if (isVerified) baseScore += 20
+      if (isRenounced) baseScore += 10
+      if (analysis.safetyChecks.proxyContract) baseScore -= 10
+
+      // 3. Generate baseline description using AI
+      let aiDescription = `An automatically profiled token on Base.`
+      try {
+        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY
+        if (apiKey) {
+          const { GoogleGenerativeAI } = await import('@google/generative-ai')
+          const genAI = new GoogleGenerativeAI(apiKey)
+          const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+          const prompt = `Write a short, professional, ONE sentence description for a newly indexed crypto project.
+Name: ${analysis.name}
+Symbol: ${analysis.symbol}
+Verified: ${isVerified ? 'Yes' : 'No'}
+Ownership Renounced: ${isRenounced ? 'Yes' : 'No'}`
+          const result = await model.generateContent(prompt)
+          aiDescription = result.response.text().trim()
+        }
+      } catch (aiErr) {
+        console.warn('AI description generation failed, using fallback', aiErr)
+      }
+
+      // 4. Create the project in the database
+      project = await prisma.project.create({
+        data: {
+          address: address,
+          name: analysis.name || 'Unknown Token',
+          slug: address, // use address as fallback slug initially
+          symbol: analysis.symbol || '???',
+          category: 'm/memecoin', // default category for auto-indexed tokens
+          description: aiDescription,
+          chain: 'base-mainnet',
+          status: 'active',
+          trustScore: baseScore,
+          onChainScore: isVerified ? 100 : 0,
+        },
+        include: {
+          reviews: {
+            include: {
+              reviewer: true
+            }
+          }
+        }
+      })
+    } catch (err: any) {
+      // Re-throw if it failed during creation or analysis
+      throw new Error(err.message || `Failed to instant-analyze project for address: ${tokenAddressOrSlug}`)
+    }
   }
 
   // Extract review data
