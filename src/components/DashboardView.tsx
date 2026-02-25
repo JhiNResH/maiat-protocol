@@ -349,9 +349,15 @@ export function DashboardView() {
                         parsedData = JSON.parse(receipt.decodedDataJson)
                       } catch(e){}
 
-                      const serviceProvider = parsedData.find(d => d.name === 'serviceProvider')?.value?.value || 'Unknown Provider'
-                      const serviceType = parsedData.find(d => d.name === 'serviceType')?.value?.value || 'Unknown Service'
-                      const valuePaid = parsedData.find(d => d.name === 'valuePaid')?.value?.value || '0'
+                      const getParsedVal = (name: string) => {
+                        const item = parsedData.find(d => d.name === name)
+                        if (!item) return null
+                        return typeof item.value === 'object' && item.value !== null ? item.value.value : item.value
+                      }
+
+                      const serviceProvider = getParsedVal('serviceProvider') || 'Unknown Provider'
+                      const serviceType = getParsedVal('serviceType') || 'Unknown Service'
+                      const valuePaid = getParsedVal('valuePaid') || '0'
 
                       return (
                         <div key={receipt.id} className="bg-surface border border-emerald/50 rounded-2xl p-6 flex flex-col gap-4 relative overflow-hidden">
