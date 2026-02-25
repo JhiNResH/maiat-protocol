@@ -30,16 +30,26 @@ type InteractionData = {
   isKnown: boolean
 }
 
+type EASReceipt = {
+  id: string
+  attester: string
+  recipient: string
+  timeCreated: number
+  decodedDataJson: string
+  txid: string
+}
+
 export function DashboardView() {
   const { ready, authenticated, user } = usePrivy()
   const router = useRouter()
   
   const [passport, setPassport] = useState<PassportData | null>(null)
   const [interactions, setInteractions] = useState<InteractionData[]>([])
+  const [receipts, setReceipts] = useState<EASReceipt[]>([])
   const [loading, setLoading] = useState(true)
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
   const [selectedContract, setSelectedContract] = useState<InteractionData | null>(null)
-  const [activeTab, setActiveTab] = useState<'reviewable' | 'raw'>('reviewable')
+  const [activeTab, setActiveTab] = useState<'reviewable' | 'raw' | 'receipts'>('reviewable')
 
   // Review form state
   const [rating, setRating] = useState(5)
@@ -60,9 +70,10 @@ export function DashboardView() {
   async function fetchDashboardData(address: string) {
     setLoading(true)
     try {
-      const [passportRes, interactionsRes] = await Promise.all([
+      const [passportRes, interactionsRes, receiptsRes] = await Promise.all([
         fetch(`/api/v1/wallet/${address}/passport`),
-        fetch(`/api/v1/wallet/${address}/interactions`)
+        fetch(`/api/v1/wallet/${address}/interactions`),
+        fetch(`/api/v1/wallet/${address}/receipts`)
       ])
 
       if (passportRes.ok) {
@@ -81,6 +92,11 @@ export function DashboardView() {
       if (interactionsRes.ok) {
         const data = await interactionsRes.json()
         setInteractions(data.interacted || [])
+      }
+
+      if (receiptsRes.ok) {
+        const data = await receiptsRes.json()
+        setReceipts(data.receipts || [])
       }
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err)
@@ -279,9 +295,9 @@ export function DashboardView() {
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
-                  <h2 className="text-2xl font-bold text-txt-primary">Contracts You Use</h2>
+                  <h2 className="text-2xl font-bold text-txt-primary">Your Passport Traces</h2>
                   <p className="text-sm text-txt-secondary">
-                    Review known protocols to earn reputation. View your raw transaction history for unknown contracts.
+                    Review contracts, track your raw blockchain history, or manage cryptographic service receipts.
                   </p>
                 </div>
 
@@ -302,10 +318,102 @@ export function DashboardView() {
                   >
                     Raw Traces ({interactions.filter(i => !i.isKnown).length})
                   </button>
+                  <button 
+                    onClick={() => setActiveTab('receipts')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                      activeTab === 'receipts' ? 'bg-emerald text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-surface text-txt-secondary hover:text-txt-primary border border-border-subtle'
+                    }`}
+                  >
+                    Your Receipts 
+                    {receipts.length > 0 && (
+                      <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{receipts.length}</span>
+                    )}
+                  </button>
                 </div>
               </div>
 
-              {interactions.length === 0 ? (
+              {activeTab === 'receipts' ? (
+                receipts.length === 0 ? (
+                  <div className="text-center py-12 bg-surface border border-border-subtle rounded-2xl">
+                    <p className="text-txt-secondary">No EAS Service Receipts found for this wallet.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {receipts.map(receipt => {
+                      let parsedData: any[] = []
+                      try {
+                        parsedData = JSON.parse(receipt.decodedDataJson)
+                      } catch(e){}
+
+                      const serviceProvider = parsedData.find(d => d.name === 'serviceProvider')?.value?.value || 'Unknown Provider'
+                      const serviceType = parsedData.find(d => d.name === 'serviceType')?.value?.value || 'Unknown Service'
+                      const valuePaid = parsedData.find(d => d.name === 'valuePaid')?.value?.value || '0'
+
+                      return (
+                        <div key={receipt.id} className="bg-surface border border-emerald/50 rounded-2xl p-6 flex flex-col gap-4 relative overflow-hidden">
+                          {/* Receipt visual styling */}
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald/5 rounded-bl-full -z-10" />
+                          
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-full bg-emerald/10 border border-emerald/30 flex items-center justify-center">
+                                <span className="text-xl">🧾</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <h3 className="text-lg font-bold text-txt-primary flex items-center gap-2">
+                                  {serviceProvider}
+                                  <span className="text-[10px] bg-emerald/20 text-emerald px-2 py-0.5 rounded uppercase tracking-wider font-bold">Verified Receipt</span>
+                                </h3>
+                                <p className="text-sm text-txt-secondary">{serviceType}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-txt-primary">{valuePaid}</div>
+                              <div className="text-xs font-mono text-txt-muted mt-1">
+                                {new Date(receipt.timeCreated * 1000).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-2 pt-4 border-t border-border-subtle border-dashed flex items-center justify-between">
+                            <div className="flex items-center gap-4 text-xs font-mono text-txt-muted">
+                              <span className="flex items-center gap-1">
+                                EAS ID <a href={`https://base.easscan.org/attestation/view/${receipt.id}`} target="_blank" rel="noopener noreferrer" className="text-emerald hover:underline flex items-center gap-1">{receipt.id.slice(0,10)}... <ExternalLink className="w-3 h-3"/></a>
+                              </span>
+                              <span className="flex items-center gap-1">
+                                Tx <a href={`https://basescan.org/tx/${receipt.txid}`} target="_blank" rel="noopener noreferrer" className="text-emerald hover:underline flex items-center gap-1">{receipt.txid.slice(0,10)}... <ExternalLink className="w-3 h-3"/></a>
+                              </span>
+                            </div>
+                            
+                            <button
+                                onClick={() => {
+                                  // Mock review action for receipt
+                                  setSelectedContract({
+                                    address: receipt.attester,
+                                    name: serviceProvider,
+                                    category: serviceType,
+                                    trustScore: null,
+                                    txCount: 1,
+                                    canReview: true,
+                                    existingReview: false,
+                                    isKnown: true
+                                  })
+                                  setRating(5)
+                                  setComment('')
+                                  setReviewModalOpen(true)
+                                }}
+                                className="px-4 py-2 bg-emerald/10 text-emerald border border-emerald/30 hover:bg-emerald hover:text-white rounded-lg text-sm font-semibold transition-all flex items-center gap-2"
+                              >
+                                <MessageSquare className="w-4 h-4" />
+                                Review Service
+                              </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              ) : interactions.length === 0 ? (
                 <div className="text-center py-12 bg-surface border border-border-subtle rounded-2xl">
                   <p className="text-txt-secondary">No contract interactions found on Base.</p>
                 </div>
