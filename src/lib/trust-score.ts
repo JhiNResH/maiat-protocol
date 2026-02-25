@@ -130,6 +130,7 @@ export async function calculateTrustScore(
       OR: [
         { address: tokenAddressOrSlug.toLowerCase() },
         { slug: tokenAddressOrSlug.toLowerCase() },
+        { name: { contains: tokenAddressOrSlug, mode: 'insensitive' } }
       ]
     },
     include: {

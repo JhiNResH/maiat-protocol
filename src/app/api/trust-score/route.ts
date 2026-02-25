@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('token')
     const slug = searchParams.get('slug')
     
+    // We already do a contains search in calculateTrustScore, so just pass whatever they give us.
     const identifier = token || slug
     
     if (!identifier) {
