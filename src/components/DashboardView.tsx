@@ -70,6 +70,10 @@ export function DashboardView() {
   async function fetchDashboardData(address: string) {
     setLoading(true)
     try {
+      // Step 1: Trigger the off-chain receipt indexer Airdrop check
+      await fetch(`/api/v1/wallet/${address}/airdrop-check`, { method: 'POST' })
+        .catch(err => console.error('Airdrop check failed', err));
+
       const [passportRes, interactionsRes, receiptsRes] = await Promise.all([
         fetch(`/api/v1/wallet/${address}/passport`),
         fetch(`/api/v1/wallet/${address}/interactions`),
