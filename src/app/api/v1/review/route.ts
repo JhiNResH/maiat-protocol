@@ -147,9 +147,10 @@ export async function POST(request: NextRequest) {
       tags?: string[];
       reviewer?: string;
       signature?: string;
+      easReceiptId?: string;
     };
 
-    const { address, rating, comment, tags, reviewer, signature } = body;
+    const { address, rating, comment, tags, reviewer, signature, easReceiptId } = body;
 
     // --- Validation ---
     if (!address || !isAddress(address)) {
@@ -168,7 +169,11 @@ export async function POST(request: NextRequest) {
     // --- Step 1: Verify wallet signature (EIP-191 personal_sign) ---
     if (signature) {
       try {
-        const message = `Maiat Review: ${checksumAddress} Rating: ${rating} Reviewer: ${checksumReviewer}`;
+        let message = `Maiat Review: ${checksumAddress} Rating: ${rating} Reviewer: ${checksumReviewer}`;
+        if (easReceiptId) {
+          message += ` Receipt: ${easReceiptId}`;
+        }
+        
         const isValid = await verifyMessage({
           address: checksumReviewer as `0x${string}`,
           message,
@@ -255,6 +260,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // --- Step 4.5: Verify EAS Receipt (if provided) and compute weight ---
+    let weight = 1; // Default
+    let verifiedReceiptId: string | undefined = undefined;
+    
+    if (db && easReceiptId) {
+      const receiptMatch = await db.eASReceipt.findFirst({
+         where: {
+            id: easReceiptId,
+            recipient: checksumReviewer
+         }
+      });
+      
+      // Optionally check if the receipt serviceProtocol matches the Review target
+      // This is a safety measure so uses can't re-use unrelated receipts.
+      if (receiptMatch) {
+         weight = 5; // 5x Reputation Weight
+         verifiedReceiptId = receiptMatch.id;
+      }
+    }
+
     // --- Step 5: Save review ---
     let saved: ReviewRecord;
 
@@ -267,6 +292,8 @@ export async function POST(request: NextRequest) {
           comment: comment ?? "",
           tags: tags ?? [],
           reviewer: checksumReviewer,
+          easReceiptId: verifiedReceiptId,
+          weight
         },
       });
       saved = {
@@ -357,6 +384,7 @@ export async function POST(request: NextRequest) {
         scarabDeducted,
         scarabReward,
         signatureVerified: !!signature,
+        easWeight: weight, // Include for frontend display info
       },
     }, { status: 201, headers: CORS_HEADERS });
   } catch (err) {
