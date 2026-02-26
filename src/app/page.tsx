@@ -1,8 +1,6 @@
 import { redirect } from 'next/navigation'
 
-// Redirect root → /explore until a custom domain is set up for the landing page.
-// When maiat.xyz (or maiat-landing.vercel.app) is live, update this to:
-//   redirect('https://maiat.xyz')
 export default function HomePage() {
+  // 由於 Landing Page 已經獨立，主專案的根目錄直接導向應用程式入口
   redirect('/explore')
 }

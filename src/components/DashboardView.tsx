@@ -390,9 +390,11 @@ export function DashboardView() {
                               <span className="flex items-center gap-1">
                                 EAS ID <a href={`https://base.easscan.org/attestation/view/${receipt.id}`} target="_blank" rel="noopener noreferrer" className="text-emerald hover:underline flex items-center gap-1">{receipt.id.slice(0,10)}... <ExternalLink className="w-3 h-3"/></a>
                               </span>
-                              <span className="flex items-center gap-1">
-                                Tx <a href={`https://basescan.org/tx/${receipt.txid}`} target="_blank" rel="noopener noreferrer" className="text-emerald hover:underline flex items-center gap-1">{receipt.txid.slice(0,10)}... <ExternalLink className="w-3 h-3"/></a>
-                              </span>
+                              {receipt.txid && receipt.txid.startsWith('0x') && receipt.txid.length > 40 && (
+                                <span className="flex items-center gap-1">
+                                  Tx <a href={`https://basescan.org/tx/${receipt.txid}`} target="_blank" rel="noopener noreferrer" className="text-emerald hover:underline flex items-center gap-1">{receipt.txid.slice(0,10)}... <ExternalLink className="w-3 h-3"/></a>
+                                </span>
+                              )}
                             </div>
                             
                             <button

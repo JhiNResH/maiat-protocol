@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import { PrivyProvider } from '@/components/PrivyProvider'
-import { TopNav } from '@/components/TopNav'
-import { ClientLayout } from '@/components/ClientLayout'
+import { Sidebar } from '@/components/Sidebar'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -14,10 +13,6 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.png',
     apple: '/apple-touch-icon.png',
-  },
-  other: {
-    'base:app_id': '699600ef25337829d86a5475',
-    'base:bounty_code': 'bc_cozhkj23',
   },
 }
 
@@ -34,15 +29,16 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         />
       </head>
-      <body className="font-sans bg-page text-txt-primary min-h-screen">
+      <body className="font-sans bg-[#030303] text-txt-primary min-h-screen">
         <PrivyProvider>
-          {/* Global top nav — fixed, 65px height */}
-          <TopNav />
-          {/* Sidebar + main content layout below the top nav */}
-          <div className="pt-[65px]">
-            <ClientLayout>
-              {children}
-            </ClientLayout>
+          <div className="flex flex-col min-h-screen">
+            {/* Header is fixed inside its own component */}
+            <div className="flex flex-1 pt-[73px]">
+              <Sidebar />
+              <main className="flex-1 lg:pl-[240px] w-full">
+                {children}
+              </main>
+            </div>
           </div>
         </PrivyProvider>
       </body>

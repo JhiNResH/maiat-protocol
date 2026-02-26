@@ -1,11 +1,10 @@
 import type { NextConfig } from 'next'
 
-// Note: Next.js 15+ removed eslint.ignoreDuringBuilds from NextConfig type.
-// ESLint is now configured via eslint.config.mjs / .eslintrc.
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Next.js 15+ 穩定版不使用 experimental.turbopack.root
 }
 
 export default nextConfig

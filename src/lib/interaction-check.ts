@@ -181,23 +181,22 @@ async function discoverInteractionsAlchemy(
   knownProtocols: Map<string, { name: string; category: string; chainId: number }>
 ): Promise<DiscoveredContract[]> {
   
-  // Group protocols by chainId to minimize RPC calls
-  const chainTargets = new Map<number, string[]>();
-  for (const [addr, info] of Array.from(knownProtocols.entries())) {
-    if (!chainTargets.has(info.chainId)) chainTargets.set(info.chainId, []);
-    chainTargets.get(info.chainId)!.push(addr.toLowerCase());
+  // For discovery, we scan major chains. 
+  // We include chains from knownProtocols and default to Base/ETH
+  const chainIds = new Set<number>([8453, 1]); // Always scan Base and Mainnet
+  for (const info of Array.from(knownProtocols.values())) {
+    chainIds.add(info.chainId);
   }
 
   const contractMap = new Map<string, { txCount: number; firstTs: number; lastTs: number }>();
 
   // Fetch interactions per chain
-  const fetchPromises = Array.from(chainTargets.entries()).map(async ([chainId, targets]) => {
+  const fetchPromises = Array.from(chainIds).map(async (chainId) => {
     const rpcUrl = getRpcUrlForChain(chainId);
-    if (!rpcUrl) return; // Skip if no RPC for this chain
+    if (!rpcUrl) return; 
 
     // Solana needs a different RPC call
     if (chainId === 1399811149) {
-       // Minimal stub for Solana, we can't use alchemy_getAssetTransfers
        console.warn(`[interaction-check] Solana scanning not yet implemented via EVM Alchemy. Skipping for now.`);
        return;
     }
@@ -233,7 +232,8 @@ async function discoverInteractionsAlchemy(
         if (tx.rawContract?.address) addressesToRecord.add(tx.rawContract.address.toLowerCase());
 
         for (const toAddr of Array.from(addressesToRecord)) {
-          if (!targets.includes(toAddr)) continue; // Only care if it's in our known list
+          // Exclude self-transfers or transfers back to wallet
+          if (toAddr === walletAddress.toLowerCase()) continue;
 
           const existing = contractMap.get(toAddr);
           if (existing) {
@@ -254,19 +254,20 @@ async function discoverInteractionsAlchemy(
 
   // Match against known protocols and build results
   const results: DiscoveredContract[] = [];
+  
+  // Pre-normalize known protocols map for faster lookup
+  const normalizedKnown = new Map<string, { name: string; category: string }>();
+  for (const [addr, info] of Array.from(knownProtocols.entries())) {
+    normalizedKnown.set(addr.toLowerCase(), info);
+  }
+
   for (const [addr, info] of Array.from(contractMap)) {
-    let known: { name: string; category: string } | undefined;
-    for (const [knownAddr, proto] of Array.from(knownProtocols)) {
-      if (knownAddr.toLowerCase() === addr) {
-        known = proto;
-        break;
-      }
-    }
+    const known = normalizedKnown.get(addr);
 
     results.push({
       address: addr,
-      name: known?.name || "Unknown Contract",
-      category: known?.category || "RAW_CONTRACT",
+      name: known?.name || null, // Will be displayed as "Unknown Contract" in UI
+      category: known?.category || null,
       txCount: info.txCount,
       firstTxDate: new Date(info.firstTs * 1000).toISOString(),
       lastTxDate: new Date(info.lastTs * 1000).toISOString(),

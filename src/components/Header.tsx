@@ -3,73 +3,50 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Feather, Search, Github } from 'lucide-react'
+import { Feather, Search } from 'lucide-react'
 import { ConnectButton } from './ConnectButton'
-import { usePrivy } from '@privy-io/react-auth'
 
 export function Header() {
   const router = useRouter()
-  const { ready, authenticated } = usePrivy()
   const [query, setQuery] = useState('')
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     const q = query.trim()
     if (!q) return
-    if (q.startsWith('0x') && q.length === 42) {
-      router.push(`/score/${q}`)
-    } else {
-      router.push(`/score/${q}`)
-    }
+    router.push(`/explore?q=${encodeURIComponent(q)}`)
     setQuery('')
   }
 
   return (
-    <header className="flex items-center justify-between px-[60px] py-5 border-b border-border-subtle w-full z-10 relative bg-page">
+    <header className="fixed top-0 left-0 right-0 h-[73px] flex items-center justify-between px-6 border-b border-[#1a1a1b] z-50 bg-[#030303]">
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2.5">
-        <Feather className="w-7 h-7 text-gold" />
-        <span className="font-mono text-xl font-bold tracking-[3px] text-txt-primary">MAIAT</span>
+      <Link href="/explore" className="flex items-center gap-2.5 shrink-0">
+        <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center shadow-lg shadow-gold/10">
+          <Feather className="w-6 h-6 text-black" />
+        </div>
+        <span className="font-mono text-xl font-bold tracking-[3px] text-[#d7dadc] hidden sm:block">MAIAT</span>
       </Link>
 
-      {/* Nav Links */}
-      <nav className="flex items-center gap-8 bg-page">
-        <form onSubmit={handleSearch} className="flex items-center gap-2 rounded-lg border border-border-subtle px-3.5 py-2">
-          <Search className="w-4 h-4 text-txt-muted" />
+      {/* Search Bar (Reddit Style) */}
+      <div className="flex-1 max-w-2xl px-8">
+        <form onSubmit={handleSearch} className="relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#818384] group-focus-within:text-gold transition-colors" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search address..."
-            className="bg-transparent text-[13px] text-txt-primary placeholder-txt-muted outline-none w-[140px]"
+            placeholder="Search communities, agents, or addresses..."
+            className="w-full bg-[#1a1a1b] hover:bg-[#272729] focus:bg-[#272729] border border-[#343536] focus:border-[#d7dadc] text-sm text-[#d7dadc] placeholder-[#818384] rounded-full py-2.5 pl-11 pr-4 outline-none transition-all font-mono"
             spellCheck={false}
           />
         </form>
-        {ready && authenticated && (
-          <Link href="/dashboard" className="text-sm font-bold text-gold hover:text-gold/80 transition-colors">
-            Dashboard
-          </Link>
-        )}
-        <Link href="/explore" className="text-sm font-medium text-txt-secondary hover:text-txt-primary transition-colors">
-          Explore
-        </Link>
-        <Link href="/swap" className="text-sm font-medium text-txt-secondary hover:text-txt-primary transition-colors">
-          Swap
-        </Link>
-        <Link href="/docs" className="text-sm font-medium text-txt-secondary hover:text-txt-primary transition-colors">
-          API Docs
-        </Link>
-        <a
-          href="https://github.com/JhiNResH/maiat"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-sm font-medium text-txt-secondary hover:text-txt-primary transition-colors"
-        >
-          <Github className="w-[18px] h-[18px]" />
-          GitHub
-        </a>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-4 shrink-0">
         <ConnectButton />
-      </nav>
+      </div>
     </header>
   )
 }
