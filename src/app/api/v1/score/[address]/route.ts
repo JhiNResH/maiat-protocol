@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { computeTrustScore } from "@/lib/scoring";
+import { computeTrustScore, type SupportedChain } from "@/lib/scoring";
 import { generateSummary } from "@/lib/ai-summary";
 import { apiLog } from "@/lib/logger";
+
+const SUPPORTED_CHAINS: SupportedChain[] = ["base", "eth", "bnb"];
 
 // --- Simple in-memory IP rate limiter ---
 const ipHits = new Map<string, { count: number; resetAt: number }>();
@@ -53,7 +55,11 @@ export async function GET(
   }
 
   try {
-    const result = await computeTrustScore(address);
+    // Parse ?chain= (default: base)
+    const chainParam = request.nextUrl.searchParams.get("chain")?.toLowerCase() as SupportedChain | null;
+    const chain: SupportedChain = chainParam && SUPPORTED_CHAINS.includes(chainParam) ? chainParam : "base";
+
+    const result = await computeTrustScore(address, chain);
 
     // Optional AI summary
     const wantSummary = request.nextUrl.searchParams.get("summary") === "true";
@@ -75,6 +81,7 @@ export async function GET(
     return NextResponse.json(
       {
         address,
+        chain: result.chain,
         score: result.score,
         risk: result.risk,
         type: result.type,
