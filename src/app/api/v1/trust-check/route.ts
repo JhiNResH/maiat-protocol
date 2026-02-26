@@ -215,13 +215,15 @@ export async function GET(req: NextRequest) {
     getOutcomeStats(addr),
   ]);
 
-  // Address not in DB → return 404 so SDK/guard treats it as unknown (fail-open)
-  if (!trustData || trustData.score === undefined) {
+  // Address not in DB (on-the-fly generated or failed) → return 404
+  // Guard/SDK uses 404 as fail-open signal
+  if (!trustData || !trustData.breakdown) {
     return NextResponse.json(
       {
         error: "Address not found",
         address: addr,
-        detail: "This address is not in the Maiat database. Submit a review to add it.",
+        known: false,
+        detail: "This address has no Maiat community data. Submit a review to add it.",
       },
       { status: 404, headers: CORS }
     );
