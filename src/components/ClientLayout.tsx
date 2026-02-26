@@ -8,24 +8,25 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   return (
-    <div className="flex flex-1 pt-0">
+    <div className="flex min-h-[calc(100vh-65px)]">
       {/* Sidebar */}
       <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
 
-      {/* Expand Button (when sidebar collapsed) */}
+      {/* Expand button (shown when collapsed) */}
       {sidebarCollapsed && (
         <button
           onClick={() => setSidebarCollapsed(false)}
-          className="fixed left-4 top-[80px] z-40 p-2 bg-[#111113] border border-[#1f1f23] rounded-lg text-white hover:border-purple-500 transition-colors shadow-lg"
+          className="fixed left-4 top-[76px] z-50 p-2 bg-[#0c0c0e] border border-[#1f1f23] rounded-lg text-[#adadb0] hover:text-white hover:border-gold/40 transition-all shadow-lg"
+          title="Expand sidebar"
         >
-          <PanelLeftOpen className="w-5 h-5" />
+          <PanelLeftOpen className="w-4 h-4" />
         </button>
       )}
 
-      {/* Main Content */}
+      {/* Main content — shifts right to make room for sidebar */}
       <main
-        className={`flex-1 transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? 'ml-0' : 'md:ml-[260px]'
+        className={`flex-1 min-w-0 transition-all duration-200 ease-in-out ${
+          sidebarCollapsed ? 'ml-0' : 'md:ml-[240px]'
         }`}
       >
         {children}

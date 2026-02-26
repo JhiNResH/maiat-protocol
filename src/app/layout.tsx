@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import { PrivyProvider } from '@/components/PrivyProvider'
+import { TopNav } from '@/components/TopNav'
+import { ClientLayout } from '@/components/ClientLayout'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -34,7 +36,14 @@ export default function RootLayout({
       </head>
       <body className="font-sans bg-page text-txt-primary min-h-screen">
         <PrivyProvider>
-          {children}
+          {/* Global top nav — fixed, 65px height */}
+          <TopNav />
+          {/* Sidebar + main content layout below the top nav */}
+          <div className="pt-[65px]">
+            <ClientLayout>
+              {children}
+            </ClientLayout>
+          </div>
         </PrivyProvider>
       </body>
     </html>
