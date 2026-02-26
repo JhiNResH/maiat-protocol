@@ -3,9 +3,15 @@
  * Bridges off-chain reviews to on-chain proofs
  */
 
-import { createPublicClient, createWalletClient, http, keccak256, toBytes, encodeFunctionData, type Hex, toHex, concat } from 'viem'
+import { createPublicClient, createWalletClient, http, keccak256, toBytes, encodeFunctionData, type Hex } from 'viem'
 import { baseSepolia } from 'viem/chains'
 import { privateKeyToAccount } from 'viem/accounts'
+import { Attribution } from 'ox/erc8021'
+
+// ERC-8021 Builder Code — tracks all Maiat transactions on Base
+// Registered at base.dev under JhiNResH's account
+export const BUILDER_CODE = 'bc_cozhkj23'
+export const DATA_SUFFIX = Attribution.toDataSuffix({ codes: [BUILDER_CODE] })
 
 // ReviewRegistry ABI (minimal - only what we need)
 export const REVIEW_REGISTRY_ABI = [
@@ -157,18 +163,11 @@ export async function submitReviewOnChain(
   }
 
   const account = privateKeyToAccount(privateKey)
-  // ERC-8021 Builder Code — tracks all Maiat agent transactions on Base
-  // Builder code from base.dev: bc_cozhkj23
-  const BUILDER_CODE = 'bc_cozhkj23'
-  const ERC8021_MARKER = '0x80218021802180218021802180218021' as Hex
-  const builderCodeHex = toHex(BUILDER_CODE)
-  const dataSuffix = concat([builderCodeHex, ERC8021_MARKER])
-
   const walletClient = createWalletClient({
     account,
     chain: baseSepolia,
     transport: http('https://sepolia.base.org'),
-    dataSuffix,
+    dataSuffix: DATA_SUFFIX,  // ERC-8021: bc_cozhkj23
   })
 
   try {
