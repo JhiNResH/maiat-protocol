@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Clock,
   Star,
+  BarChart3,
 } from "lucide-react";
 import { isAddress } from "viem";
 
@@ -351,6 +352,15 @@ function ExplorePage() {
                     {tab.label}
                   </button>
                 ))}
+
+                {/* Markets Tab */}
+                <Link
+                  href="/markets"
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono uppercase tracking-wide transition-all rounded border border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#F59E0B] hover:bg-[#F59E0B]/20"
+                >
+                  <BarChart3 className="w-3 h-3" />
+                  MARKETS
+                </Link>
               </div>
 
               {/* Sort Toggle */}
