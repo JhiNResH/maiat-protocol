@@ -65,13 +65,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: CORS_HEADERS });
   }
 
-  const address = request.nextUrl.searchParams.get("address");
-  if (!address || !isAddress(address)) {
+  const addressParam = request.nextUrl.searchParams.get("address");
+  if (!addressParam) {
+    return NextResponse.json({ error: "address required" }, { status: 400, headers: CORS_HEADERS });
+  }
+
+  const db = await getDb();
+
+  // Resolve slug → real EVM address if needed
+  let resolvedAddress = addressParam;
+  if (!isAddress(addressParam) && db) {
+    const project = await db.project.findFirst({ where: { OR: [{ slug: addressParam }, { address: addressParam }] } });
+    if (project?.address && isAddress(project.address)) {
+      resolvedAddress = project.address;
+    } else {
+      return NextResponse.json({ reviews: [], count: 0, averageRating: 0 }, { headers: CORS_HEADERS });
+    }
+  }
+
+  if (!isAddress(resolvedAddress)) {
     return NextResponse.json({ error: "Valid address required" }, { status: 400, headers: CORS_HEADERS });
   }
 
-  const checksummed = getAddress(address);
-  const db = await getDb();
+  const checksummed = getAddress(resolvedAddress);
 
   let reviews: ReviewRecord[];
 
