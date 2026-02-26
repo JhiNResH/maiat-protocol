@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress, verifyMessage, type Hash } from "viem";
 import { checkInteraction } from "@/lib/interaction-check";
+import { getUserReputation } from "@/lib/reputation";
 import { apiLog } from "@/lib/logger";
 
 // --- DB: Prisma (Supabase) with in-memory fallback for local dev ---
@@ -293,21 +294,39 @@ export async function POST(request: NextRequest) {
     // Note: both signature and txHash are optional for backward compat.
     // Will enforce one of them once all clients are updated.
 
-    // --- Step 2: Check wallet-contract interaction (GATE) ---
-    // You must have actually used this agent/contract to review it.
-    // Bypass paths (in order of strength):
-    //   A. txHash verified above → already confirmed reviewer → target
-    //   B. EAS receipt provided → claimed service proof (weight boost later)
-    //   C. Alchemy confirms ≥1 tx from reviewer to target
-    // None of the above → 403.
+    // --- Step 2: GATE — Passport + EAS interaction check ---
+    // Trust Passport integrates multiple trust signals:
+    //   On-chain interaction + EAS service receipts + Base Verify + Scarab reputation
+    //
+    // Bypass hierarchy (weakest → strongest):
+    //   A. txHash verified → reviewer sent tx to target (on-chain proof)
+    //   B. EAS receipt provided → claimed service proof (DB-verified at Step 4.5)
+    //   C. Passport trust level: trusted/verified/guardian → no Alchemy needed
+    //   D. Alchemy confirms ≥1 tx → baseline interaction check
+    //   None → 403
+
+    // Fetch passport reputation (fail open if DB unavailable)
+    let passportLevel: 'new' | 'trusted' | 'verified' | 'guardian' = 'new';
+    try {
+      const reputation = await getUserReputation(checksumReviewer);
+      passportLevel = reputation.trustLevel;
+    } catch { /* DB unavailable — treat as new user */ }
+
+    const PASSPORT_BYPASS_LEVELS: Array<typeof passportLevel> = ['trusted', 'verified', 'guardian'];
+
     let hasInteraction: boolean;
     if (txHashInteracts) {
-      // Already confirmed by verifyTxHash above
+      // Strongest on-chain proof — already confirmed by verifyTxHash
       hasInteraction = true;
     } else if (easReceiptId) {
-      // Claiming EAS receipt → bypass gate, weight verified at Step 4.5
+      // EAS receipt claim — bypass gate, weight resolved at Step 4.5
+      hasInteraction = true;
+    } else if (PASSPORT_BYPASS_LEVELS.includes(passportLevel)) {
+      // Established passport holders skip per-review Alchemy check
+      // (They've already proven themselves through past interactions)
       hasInteraction = true;
     } else {
+      // Baseline: check Alchemy for on-chain tx history
       const interaction = await checkInteraction(checksumReviewer, checksumAddress);
       hasInteraction = interaction.hasInteracted;
     }
@@ -317,7 +336,8 @@ export async function POST(request: NextRequest) {
         {
           error: "No interaction found",
           detail: `Wallet ${checksumReviewer} has no on-chain interaction with ${checksumAddress}.`,
-          hint: "Provide a txHash of your interaction, an EAS receipt, or interact with the contract first.",
+          hint: "Options: (1) provide txHash of your interaction, (2) attach an EAS service receipt, (3) interact with the contract on-chain first.",
+          passportLevel,
         },
         { status: 403, headers: CORS_HEADERS }
       );
@@ -384,30 +404,46 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Step 4.5: Verify EAS Receipt (if provided) and compute weight ---
-    // Weight ladder:
-    //   1  = anonymous / unverified
-    //   2  = txHash-verified on-chain interaction (agent-friendly)
-    //   5  = EAS Receipt (strongest — cryptographic service proof)
-    let weight = 1; // Default
-    let verifiedReceiptId: string | undefined = undefined;
+    // --- Step 4.5: Compute review weight (Passport + EAS) ---
+    // Weight ladder (Trust Passport direction):
+    //
+    //   Proof type:
+    //     1  = Alchemy baseline (or passport trusted bypass)
+    //     2  = txHash on-chain proof  OR  verified passport level
+    //     3  = txHash + verified passport  OR  guardian passport
+    //     5  = EAS Receipt (always wins — cryptographic service proof)
+    //
+    //   Passport multipliers:
+    //     new      → ×1
+    //     trusted  → ×1  (skip Alchemy, but no weight boost yet)
+    //     verified → ×2  (Base Verify identity proven)
+    //     guardian → ×3  (community champion)
 
-    // txHash interaction proof → 2x weight baseline
-    if (txHashInteracts) {
-      weight = 2;
+    // Base weight from proof type
+    let weight = txHashInteracts ? 2 : 1;
+
+    // Passport boost (additive on top of proof weight, capped at 4 before EAS)
+    if (passportLevel === 'guardian') {
+      weight = Math.min(weight + 1, 4);   // txHash+guardian → 3, alchemy+guardian → 2 (but EAS still 5)
+    } else if (passportLevel === 'verified') {
+      weight = Math.max(weight, 2);        // At least 2x for Base-verified identity
     }
+    // 'trusted' and 'new' don't change the proof-based weight
+
+    let verifiedReceiptId: string | undefined = undefined;
 
     if (db && easReceiptId) {
       const receiptMatch = await db.eASReceipt.findFirst({
          where: {
             id: easReceiptId,
-            recipient: checksumReviewer
+            recipient: checksumReviewer,
          }
       });
 
       // Safety: receipt must belong to this reviewer.
+      // EAS always wins — service proof is the strongest signal.
       if (receiptMatch) {
-         weight = 5; // EAS always wins — 5x Reputation Weight
+         weight = 5;
          verifiedReceiptId = receiptMatch.id;
       }
     }
@@ -518,9 +554,10 @@ export async function POST(request: NextRequest) {
         scarabDeducted,
         scarabReward,
         signatureVerified: !!signature,
-        txHashVerified,       // true if txHash was provided and verified on-chain
-        txHashInteracts,      // true if txHash proved reviewer → target interaction
-        easWeight: weight,    // final weight (1 | 2 | 5) for frontend display
+        txHashVerified,         // true if txHash was provided and verified on-chain
+        txHashInteracts,        // true if txHash proved reviewer → target interaction
+        passportLevel,          // reviewer's Trust Passport level
+        easWeight: weight,      // final weight (1|2|3|5) for frontend display
       },
     }, { status: 201, headers: CORS_HEADERS });
   } catch (err) {
