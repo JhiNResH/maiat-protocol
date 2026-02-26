@@ -28,7 +28,7 @@ const EXPLORER_APIS: Record<SupportedChain, { url: string; key: string }> = {
 // ─── Known Protocol interface ────────────────────────────────────────────────
 interface ProtocolInfo {
   name: string;
-  category: "DEX" | "LENDING" | "BRIDGE" | "STABLECOIN" | "ORACLE" | "INFRASTRUCTURE" | "YIELD" | "NFT" | "AGENT";
+  category: "DEX" | "LENDING" | "BRIDGE" | "STABLECOIN" | "ORACLE" | "INFRASTRUCTURE" | "YIELD" | "NFT" | "AGENT_TOKEN" | "AGENT_WALLET";
   auditedBy?: string[];
   baseScore: number;
 }
@@ -56,9 +56,9 @@ const PROTOCOLS_BASE = new Map<string, ProtocolInfo>([
   ["0x0578d8A44db98B23BF096A382e016e29a5Ce0ffe", { name: "BRETT",                        category: "NFT",                                                                      baseScore: 5.2 }],
   ["0x44fF8620b8cA30902395A7bD3F2407e1A091BF73", { name: "VIRTUAL",                     category: "INFRASTRUCTURE",                                                           baseScore: 7.1 }],
   // AI Agents on Base
-  ["0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825", { name: "aixbt",                       category: "AGENT",                                                                    baseScore: 7.4 }],
-  ["0x55cd6469f597452b5a7536e2cd98fde4c1247ee4", { name: "Luna",                        category: "AGENT",                                                                    baseScore: 6.8 }],
-  ["0x731814e491571a2e9ee3c5b1f7f3b962ee8f4870", { name: "Vader AI",                    category: "AGENT",                                                                    baseScore: 6.5 }],
+  ["0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825", { name: "aixbt",                       category: "AGENT_TOKEN",                                                                    baseScore: 7.4 }],
+  ["0x55cd6469f597452b5a7536e2cd98fde4c1247ee4", { name: "Luna",                        category: "AGENT_TOKEN",                                                                    baseScore: 6.8 }],
+  ["0x731814e491571a2e9ee3c5b1f7f3b962ee8f4870", { name: "Vader AI",                    category: "AGENT_TOKEN",                                                                    baseScore: 6.5 }],
 ]);
 
 // ─── Ethereum mainnet protocols ──────────────────────────────────────────────
@@ -113,7 +113,7 @@ const KNOWN_SCAM_ADDRESSES = new Set([
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type RiskLevel    = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-export type AddressType  = "EOA" | "CONTRACT" | "PROTOCOL" | "TOKEN" | "AGENT" | "UNKNOWN";
+export type AddressType  = "EOA" | "CONTRACT" | "PROTOCOL" | "TOKEN" | "AGENT_TOKEN" | "AGENT_WALLET" | "UNKNOWN";
 
 export interface ScoreBreakdown {
   onChainHistory:  number;  // max 4.0
@@ -249,7 +249,9 @@ export async function computeTrustScore(
       activityPattern: Math.min(1.0, Math.round(score * 0.1 * 10) / 10),
     };
 
-    const addressType: AddressType = protocolInfo.category === "AGENT" ? "AGENT" : "PROTOCOL";
+    const addressType: AddressType =
+      protocolInfo.category === "AGENT_TOKEN"   ? "AGENT_TOKEN" :
+      protocolInfo.category === "AGENT_WALLET"  ? "AGENT_WALLET" : "PROTOCOL";
 
     const result: TrustScoreResult = {
       score, risk: getRisk(score), type: addressType, flags, chain,

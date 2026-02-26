@@ -50,11 +50,12 @@ interface ReviewFormData {
 // ============================================================================
 
 const CATEGORIES = [
-  { id: "all", label: "All" },
-  { id: "defi", label: "DeFi" },
-  { id: "tokens", label: "Tokens" },
-  { id: "agents", label: "Agents" },
-  { id: "protocols", label: "Protocols" },
+  { id: "all",           label: "All" },
+  { id: "defi",          label: "DeFi" },
+  { id: "tokens",        label: "Tokens" },
+  { id: "agent-tokens",  label: "Agent Tokens" },
+  { id: "agent-wallets", label: "Agent Wallets" },
+  { id: "protocols",     label: "Protocols" },
 ];
 
 const CHAINS = [
@@ -226,7 +227,7 @@ const SEED_ITEMS: ExploreItem[] = [
     id: "9",
     address: "0x44ff8620b8cA30902395A7bD3F2407e1A091BF73",
     name: "Virtuals Protocol",
-    category: "Agent",
+    category: "Agent Token",
     chain: "Base",
     trustScore: 7.2,
     riskLevel: "LOW",
@@ -243,7 +244,7 @@ const SEED_ITEMS: ExploreItem[] = [
     id: "10",
     address: "0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825",
     name: "AIXBT by Virtuals",
-    category: "Agent",
+    category: "Agent Token",
     chain: "Base",
     trustScore: 6.2,
     riskLevel: "MEDIUM",
@@ -260,7 +261,7 @@ const SEED_ITEMS: ExploreItem[] = [
     id: "11",
     address: "0x55cd6469f597452b5a7536e2cd98fde4c1247ee4",
     name: "Luna by Virtuals",
-    category: "Agent",
+    category: "Agent Token",
     chain: "Base",
     trustScore: 5.1,
     riskLevel: "MEDIUM",
@@ -277,7 +278,7 @@ const SEED_ITEMS: ExploreItem[] = [
     id: "15",
     address: "0x731814e491571a2e9ee3c5b1f7f3b962ee8f4870",
     name: "VaderAI by Virtuals",
-    category: "Agent",
+    category: "Agent Token",
     chain: "Base",
     trustScore: 5.6,
     riskLevel: "MEDIUM",
@@ -294,7 +295,7 @@ const SEED_ITEMS: ExploreItem[] = [
     id: "16",
     address: "0x3e466dad6695879fd783e2bfcb98e16ce15a3caf",
     name: "Freysa AI",
-    category: "Agent",
+    category: "Agent Token",
     chain: "Base",
     trustScore: 6.8,
     riskLevel: "LOW",
@@ -311,7 +312,7 @@ const SEED_ITEMS: ExploreItem[] = [
     id: "17",
     address: "0x1185cb5122edad199bdbc0cbd7a0457e448f23c7",
     name: "Sekoia by Virtuals",
-    category: "Agent",
+    category: "Agent Token",
     chain: "Base",
     trustScore: 4.8,
     riskLevel: "MEDIUM",
@@ -797,10 +798,11 @@ export default function ExplorePage() {
 
     if (category !== "all") {
       const map: Record<string, string[]> = {
-        defi: ["DEX", "Lending", "DeFi", "Yield"],
-        tokens: ["Token", "Stablecoin"],
-        agents: ["Agent"],
-        protocols: ["Oracle", "Bridge", "Infrastructure"],
+        defi:          ["DEX", "Lending", "DeFi", "Yield"],
+        tokens:        ["Token", "Stablecoin"],
+        "agent-tokens":  ["Agent Token"],
+        "agent-wallets": ["Agent Wallet"],
+        protocols:     ["Oracle", "Bridge", "Infrastructure"],
       };
       const allowed = map[category] || [];
       result = result.filter((item) => allowed.includes(item.category));
