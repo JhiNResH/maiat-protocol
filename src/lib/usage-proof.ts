@@ -5,21 +5,22 @@
  * before allowing reviews. Supports multiple chains.
  */
 
-const EXPLORERS: Record<string, { api: string; key?: string }> = {
-  // Ethereum mainnet
+// Etherscan V2 unified endpoint (chainId distinguishes networks)
+const EXPLORERS: Record<string, { api: string; key?: string; chainId: number }> = {
   ethereum: {
-    api: 'https://api.etherscan.io/api',
-    key: process.env.ETHERSCAN_API_KEY || '', // works without key (rate limited)
+    api: 'https://api.etherscan.io/v2/api',
+    key: process.env.ETHERSCAN_API_KEY || '',
+    chainId: 1,
   },
-  // Base
   base: {
-    api: 'https://api.basescan.org/api',
-    key: process.env.BASESCAN_API_KEY || '',
+    api: 'https://api.etherscan.io/v2/api',
+    key: process.env.BASESCAN_API_KEY || process.env.ETHERSCAN_API_KEY || '',
+    chainId: 8453,
   },
-  // BNB Chain
   bsc: {
-    api: 'https://api.bscscan.com/api',
-    key: process.env.BSCSCAN_API_KEY || '',
+    api: 'https://api.etherscan.io/v2/api',
+    key: process.env.BSCSCAN_API_KEY || process.env.ETHERSCAN_API_KEY || '',
+    chainId: 56,
   },
 }
 
@@ -96,10 +97,11 @@ export async function verifyUsage(
 async function checkChain(
   wallet: string,
   contract: string,
-  explorer: { api: string; key?: string },
+  explorer: { api: string; key?: string; chainId: number },
   chain: string
 ): Promise<UsageProof> {
   const params = new URLSearchParams({
+    chainid: String(explorer.chainId),
     module: 'account',
     action: 'txlist',
     address: wallet.toLowerCase(),
@@ -145,10 +147,11 @@ async function checkChain(
 async function checkTokenTransfers(
   wallet: string,
   contractAddress: string,
-  explorer: { api: string; key?: string },
+  explorer: { api: string; key?: string; chainId: number },
   chain: string
 ): Promise<UsageProof> {
   const params = new URLSearchParams({
+    chainid: String(explorer.chainId),
     module: 'account',
     action: 'tokentx',
     address: wallet.toLowerCase(),

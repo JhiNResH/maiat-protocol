@@ -19,10 +19,11 @@ const clients = {
 
 export type SupportedChain = keyof typeof clients;
 
-const EXPLORER_APIS: Record<SupportedChain, { url: string; key: string }> = {
-  base: { url: "https://api.basescan.org/api",  key: BASESCAN_API_KEY  },
-  eth:  { url: "https://api.etherscan.io/api",   key: ETHERSCAN_API_KEY },
-  bnb:  { url: "https://api.bscscan.com/api",    key: BSCSCAN_API_KEY   },
+// Etherscan V2 unified endpoint (works for ETH, Base, BNB via chainId param)
+const EXPLORER_APIS: Record<SupportedChain, { url: string; key: string; chainId: number }> = {
+  base: { url: "https://api.etherscan.io/v2/api", key: BASESCAN_API_KEY  || ETHERSCAN_API_KEY, chainId: 8453 },
+  eth:  { url: "https://api.etherscan.io/v2/api", key: ETHERSCAN_API_KEY, chainId: 1    },
+  bnb:  { url: "https://api.etherscan.io/v2/api", key: BSCSCAN_API_KEY   || ETHERSCAN_API_KEY, chainId: 56   },
 };
 
 // ─── Known Protocol interface ────────────────────────────────────────────────
@@ -169,10 +170,10 @@ function getRisk(score: number): RiskLevel {
 }
 
 async function getFirstTxTimestamp(address: string, chain: SupportedChain): Promise<number | null> {
-  const { url, key } = EXPLORER_APIS[chain];
+  const { url, key, chainId } = EXPLORER_APIS[chain];
   if (!key) return null;
   try {
-    const res  = await fetch(`${url}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=1&sort=asc&apikey=${key}`);
+    const res  = await fetch(`${url}?chainid=${chainId}&module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=1&sort=asc&apikey=${key}`);
     const data = await res.json() as { status: string; result: Array<{ timeStamp: string }> };
     if (data.status === "1" && data.result?.length > 0) return parseInt(data.result[0].timeStamp) * 1000;
   } catch { /* ignore */ }
@@ -180,10 +181,10 @@ async function getFirstTxTimestamp(address: string, chain: SupportedChain): Prom
 }
 
 async function getLastTxTimestamp(address: string, chain: SupportedChain): Promise<number | null> {
-  const { url, key } = EXPLORER_APIS[chain];
+  const { url, key, chainId } = EXPLORER_APIS[chain];
   if (!key) return null;
   try {
-    const res  = await fetch(`${url}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=1&sort=desc&apikey=${key}`);
+    const res  = await fetch(`${url}?chainid=${chainId}&module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=1&sort=desc&apikey=${key}`);
     const data = await res.json() as { status: string; result: Array<{ timeStamp: string }> };
     if (data.status === "1" && data.result?.length > 0) return parseInt(data.result[0].timeStamp) * 1000;
   } catch { /* ignore */ }
