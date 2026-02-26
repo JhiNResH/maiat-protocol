@@ -360,5 +360,6 @@ class MaiatTrustPlugin {
   }
 }
 
-export { MaiatTrustPlugin, IMaiatTrustPluginOptions, TrustResponse };
+export { MaiatTrustPlugin };
+export type { IMaiatTrustPluginOptions, TrustResponse };
 export default MaiatTrustPlugin;
