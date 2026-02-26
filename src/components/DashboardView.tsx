@@ -258,7 +258,7 @@ export function DashboardView() {
                         <div className="text-sm font-black" style={{ color: scoreColor(score) }}>{score.toFixed(1)}</div>
                         <div className="text-[10px] text-[#818384] font-mono">{p.reviewCount} reviews</div>
                       </div>
-                      <Link href={`/agent/${p.slug || p.id}`}
+                      <Link href={`/m/${p.category?.includes('agent') || p.category === 'm/ai-agents' ? 'agents' : 'defi'}/${p.slug || p.id}`}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d4a017]/10 hover:bg-[#d4a017]/20 border border-[#d4a017]/20 text-[#d4a017] rounded-lg text-xs font-bold font-mono uppercase transition-all">
                         <MessageSquare className="w-3 h-3" />
                         Review
