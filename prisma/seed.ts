@@ -70,7 +70,7 @@ const projects = [
   {
     name: 'Base USDC', slug: 'base-usdc', symbol: 'USDC',
     address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-    description: 'Native USDC on Base — Circle\'s stablecoin bridged and issued directly. The most liquid asset on Base.',
+    description: 'Native USDC on Base — Circle stablecoin bridged and issued directly. The most liquid asset on Base.',
     website: 'https://www.circle.com/usdc',
     category: 'm/defi', chain: 'Base', status: 'active', avgRating: 4.9, reviewCount: 0,
   },
@@ -162,8 +162,7 @@ const projects = [
     description: 'Curve yield optimizer. Boost CRV rewards without locking. Dominant platform for Curve liquidity providers.',
     website: 'https://convexfinance.com',
     category: 'm/defi', chain: 'Ethereum', status: 'active', avgRating: 4.3, reviewCount: 0,
-  },
-]
+    },
 
   // ── Ethereum: AI Agent Infrastructure ────────────────────────────
   {
