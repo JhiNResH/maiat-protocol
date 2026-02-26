@@ -1,6 +1,6 @@
 /**
  * Maiat Seed — Multi-chain AI Agents + DeFi
- * 20 verified on-chain addresses across Base, Ethereum, BNB
+ * 22 verified on-chain addresses across Base + Ethereum only
  * Updated: 2026-02-26
  */
 
