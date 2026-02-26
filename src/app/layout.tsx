@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import { PrivyProvider } from '@/components/PrivyProvider'
 import { Sidebar } from '@/components/Sidebar'
+import { Suspense } from 'react'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -34,7 +35,7 @@ export default function RootLayout({
           <div className="flex flex-col min-h-screen">
             {/* Header is fixed inside its own component */}
             <div className="flex flex-1 pt-[73px]">
-              <Sidebar />
+              <Suspense fallback={null}><Sidebar /></Suspense>
               <main className="flex-1 lg:pl-[240px] w-full">
                 {children}
               </main>
