@@ -215,7 +215,19 @@ export async function GET(req: NextRequest) {
     getOutcomeStats(addr),
   ]);
 
-  const score: number = trustData?.score ?? 0;
+  // Address not in DB → return 404 so SDK/guard treats it as unknown (fail-open)
+  if (!trustData || trustData.score === undefined) {
+    return NextResponse.json(
+      {
+        error: "Address not found",
+        address: addr,
+        detail: "This address is not in the Maiat database. Submit a review to add it.",
+      },
+      { status: 404, headers: CORS }
+    );
+  }
+
+  const score: number = trustData.score;
 
   // Verdict logic
   let verdict: "proceed" | "caution" | "block";
