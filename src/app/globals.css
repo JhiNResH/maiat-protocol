@@ -20,6 +20,17 @@
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-muted: #475569;
+
+  /* Terminal/Deckard-style colors */
+  --terminal-bg: #0A0A0A;
+  --terminal-surface: #111111;
+  --terminal-border: #1F1F1F;
+  --terminal-text: #E5E5E5;
+  --terminal-text-dim: #666666;
+  --terminal-safe: #22C55E;
+  --terminal-medium: #F59E0B;
+  --terminal-high: #EF4444;
+  --terminal-glow: rgba(0, 82, 255, 0.4);
 }
 
 @layer base {
