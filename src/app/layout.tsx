@@ -34,9 +34,9 @@ export default function RootLayout({
         <PrivyProvider>
           <div className="flex flex-col min-h-screen">
             {/* Header is fixed inside its own component */}
-            <div className="flex flex-1 pt-[73px]">
+            <div className="flex flex-1 pt-[64px]">
               <Suspense fallback={null}><Sidebar /></Suspense>
-              <main className="flex-1 lg:pl-[240px] w-full">
+              <main className="flex-1 lg:pl-[220px] w-full">
                 {children}
               </main>
             </div>
