@@ -1,594 +1,277 @@
 'use client'
 
 import { usePrivy } from '@privy-io/react-auth'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Header } from './Header'
-import { Footer } from './Footer'
-import { Shield, Coins, Activity, Zap, Star, ExternalLink, MessageSquare } from 'lucide-react'
-import toast from 'react-hot-toast'
+import Link from 'next/link'
+import {
+  Shield, Flame, Trophy, ArrowRight, Star, Clock,
+  MessageSquare, Zap, CheckCircle, ExternalLink
+} from 'lucide-react'
 
-// Types
-type PassportData = {
-  trustLevel: string
-  reputationScore: number
-  totalReviews: number
-  scarabBalance: number
-  feeTier: string
-  interactedContracts: number
-  reviewedContracts: number
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface ScarabState {
+  balance: number
+  totalEarned: number
+  streak: number
 }
 
-type InteractionData = {
-  address: string
-  name: string
-  category: string
-  trustScore: number | null
-  txCount: number
-  canReview: boolean
-  existingReview: boolean
-  isKnown: boolean
-}
-
-type EASReceipt = {
+interface Project {
   id: string
-  attester: string
-  recipient: string
-  timeCreated: number
-  decodedDataJson: string
-  txid: string
+  slug: string
+  name: string
+  symbol?: string
+  chain: string
+  category: string
+  trustScore: number
+  avgRating: number
+  reviewCount: number
+  address: string
 }
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function chainColor(chain: string) {
+  const c = chain?.toLowerCase()
+  if (c === 'base') return '#0052FF'
+  if (c === 'ethereum' || c === 'eth') return '#627EEA'
+  if (c === 'bnb') return '#F3BA2F'
+  return '#818384'
+}
+
+function scoreColor(s: number) {
+  const n = s > 10 ? s / 10 : s
+  if (n >= 7) return '#10b981'
+  if (n >= 4) return '#f59e0b'
+  return '#ef4444'
+}
+
+function truncate(addr: string) {
+  if (!addr || addr.length < 12) return addr
+  return addr.slice(0, 6) + '...' + addr.slice(-4)
+}
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, sub, icon, gold }: {
+  label: string; value: string | number; sub?: string; icon: React.ReactNode; gold?: boolean
+}) {
+  return (
+    <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-5 flex items-center gap-4">
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${gold ? 'bg-[#d4a017]/15 text-[#d4a017]' : 'bg-[#272729] text-[#818384]'}`}>
+        {icon}
+      </div>
+      <div>
+        <div className={`text-xl font-black ${gold ? 'text-[#d4a017]' : 'text-[#d7dadc]'}`}>{value}</div>
+        <div className="text-xs text-[#818384] font-mono uppercase tracking-wider">{label}</div>
+        {sub && <div className="text-[10px] text-[#4a4a4e] mt-0.5">{sub}</div>}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function DashboardView() {
-  const { ready, authenticated, user } = usePrivy()
-  const router = useRouter()
-  
-  const [passport, setPassport] = useState<PassportData | null>(null)
-  const [interactions, setInteractions] = useState<InteractionData[]>([])
-  const [receipts, setReceipts] = useState<EASReceipt[]>([])
-  const [loading, setLoading] = useState(true)
-  const [reviewModalOpen, setReviewModalOpen] = useState(false)
-  const [selectedContract, setSelectedContract] = useState<InteractionData | null>(null)
-  const [activeTab, setActiveTab] = useState<'reviewable' | 'raw' | 'receipts'>('reviewable')
+  const { ready, authenticated, user, login } = usePrivy()
+  const walletAddress = user?.wallet?.address
 
-  // Review form state
-  const [rating, setRating] = useState(5)
-  const [comment, setComment] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [scarab, setScarab] = useState<ScarabState | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [claiming, setClaiming] = useState(false)
+  const [claimMsg, setClaimMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [activeTab, setActiveTab] = useState<'agents' | 'defi'>('agents')
 
+  // Load scarab balance
   useEffect(() => {
-    if (ready && !authenticated) {
-      router.push('/')
-      return
-    }
+    if (!walletAddress) return
+    fetch(`/api/v1/scarab?address=${walletAddress}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setScarab(d))
+  }, [walletAddress, claimMsg])
 
-    if (authenticated && user?.wallet?.address) {
-      fetchDashboardData(user.wallet.address)
-    }
-  }, [ready, authenticated, user?.wallet?.address, router])
+  // Load projects
+  useEffect(() => {
+    fetch('/api/v1/explore')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d?.projects && setProjects(d.projects))
+  }, [])
 
-  async function fetchDashboardData(address: string) {
-    setLoading(true)
+  async function claimDaily() {
+    if (!walletAddress || claiming) return
+    setClaiming(true)
+    setClaimMsg(null)
     try {
-      // Step 1: Trigger the off-chain receipt indexer Airdrop check
-      await fetch(`/api/v1/wallet/${address}/airdrop-check`, { method: 'POST' })
-        .catch(err => console.error('Airdrop check failed', err));
-
-      const [passportRes, interactionsRes, receiptsRes] = await Promise.all([
-        fetch(`/api/v1/wallet/${address}/passport`),
-        fetch(`/api/v1/wallet/${address}/interactions`),
-        fetch(`/api/v1/wallet/${address}/receipts`)
-      ])
-
-      if (passportRes.ok) {
-        const data = await passportRes.json()
-        setPassport({
-          trustLevel: data.passport?.trustLevel || 'Newcomer',
-          reputationScore: data.passport?.reputationScore || 0,
-          totalReviews: data.passport?.totalReviews || 0,
-          scarabBalance: data.scarab?.balance || 0,
-          feeTier: data.passport?.feeTier?.label || 'Standard',
-          interactedContracts: data.reviews?.count || 0,
-          reviewedContracts: data.reviews?.count || 0,
-        })
-      }
-      
-      if (interactionsRes.ok) {
-        const data = await interactionsRes.json()
-        setInteractions(data.interacted || [])
-      }
-
-      if (receiptsRes.ok) {
-        const data = await receiptsRes.json()
-        setReceipts(data.receipts || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch dashboard data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function handleOpenReview(contract: InteractionData) {
-    if (!contract.canReview) {
-      toast.error('You need more on-chain interactions to review this contract.')
-      return
-    }
-    if (contract.existingReview) {
-      toast.error('You have already reviewed this contract.')
-      return
-    }
-    setSelectedContract(contract)
-    setRating(5)
-    setComment('')
-    setReviewModalOpen(true)
-  }
-
-  async function submitReview() {
-    if (!selectedContract || !user?.wallet?.address) return
-    
-    // Check Scarab balance
-    if ((passport?.scarabBalance || 0) < 2) {
-      toast.error('Insufficient Scarab. Reviews cost 2 🪲.')
-      return
-    }
-
-    if (comment.length < 10) {
-      toast.error('Review must be at least 10 characters long.')
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      // Step 1: Request signature for EIP-191 proof
-      const message = `Maiat Review: ${selectedContract.address} Rating: ${rating} Nonce: ${Date.now()}`
-      
-      // We assume Privy provider is injected as window.ethereum for simple personal_sign
-      // In a real app we'd use the useWallets hook from Privy to get the correct EIP1193 provider
-      const provider = (window as any).ethereum
-      let signature = ''
-      
-      try {
-         signature = await provider.request({
-           method: 'personal_sign',
-           params: [message, user.wallet.address]
-         })
-      } catch (signErr) {
-         toast.error('Signature rejected.')
-         setSubmitting(false)
-         return
-      }
-
-      // Step 2: Submit to API
-      const res = await fetch('/api/v1/review', {
+      const res = await fetch('/api/v1/scarab/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address: selectedContract.address,
-          reviewer: user.wallet.address,
-          rating,
-          comment,
-          type: 'trust',
-          signature,
-          message
-        })
+        body: JSON.stringify({ address: walletAddress }),
       })
-
       const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit review')
+      if (data.alreadyClaimed) {
+        setClaimMsg({ ok: false, text: 'Already claimed today. Come back tomorrow!' })
+      } else {
+        setClaimMsg({ ok: true, text: `+${data.amount ?? 5} 🪲 claimed! Streak: ${data.streak ?? 1} day${(data.streak ?? 1) > 1 ? 's' : ''}` })
       }
-
-      toast.success(
-        <div>
-          Review submitted successfully!<br/>
-          <span className="text-sm text-gold">Earned {data.rewardAmount} 🪲</span>
-        </div>
-      )
-      
-      setReviewModalOpen(false)
-      // Refresh dashboard data
-      fetchDashboardData(user.wallet.address)
-      
-    } catch (err: any) {
-      toast.error(err.message || 'Error submitting review')
-    } finally {
-      setSubmitting(false)
-    }
+    } catch {
+      setClaimMsg({ ok: false, text: 'Claim failed. Try again.' })
+    } finally { setClaiming(false) }
   }
 
-  if (!ready || !authenticated) {
-    return (
-      <div className="flex flex-col min-h-screen bg-page">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold" />
-        </div>
+  // Not connected
+  if (!ready) return (
+    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-[#d4a017] border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  if (!authenticated) return (
+    <div className="min-h-screen bg-[#030303] flex flex-col items-center justify-center gap-6 px-4">
+      <div className="text-5xl">🪲</div>
+      <div className="text-center">
+        <h2 className="text-2xl font-black text-[#d7dadc] mb-2">Reputation Passport</h2>
+        <p className="text-[#818384] text-sm max-w-sm">Connect your wallet to view your Scarab balance, review history, and trust activity.</p>
       </div>
-    )
-  }
+      <button onClick={login}
+        className="px-8 py-3 bg-[#d4a017] hover:bg-[#c49010] text-black font-bold rounded-xl transition-colors">
+        Connect Wallet
+      </button>
+    </div>
+  )
 
-  const shortAddress = user?.wallet?.address 
-    ? `${user.wallet.address.slice(0, 6)}...${user.wallet.address.slice(-4)}`
-    : ''
+  const agents = projects.filter(p => p.category === 'Agent' || p.category === 'm/ai-agents')
+  const defi = projects.filter(p => p.category !== 'Agent' && p.category !== 'm/ai-agents')
+  const displayProjects = activeTab === 'agents' ? agents : defi
 
   return (
-    <div className="flex flex-col min-h-screen bg-page relative">
-      <Header />
+    <div className="min-h-screen bg-[#030303] text-[#d7dadc]">
+      <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col gap-6">
 
-      <main className="flex-1 flex flex-col px-[60px] py-12 max-w-[1200px] mx-auto w-full gap-12">
-        {/* Header Section */}
-        <div className="flex items-end justify-between">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-[32px] font-bold text-txt-primary">Reputation Passport</h1>
-            <p className="text-txt-secondary font-mono text-sm">{shortAddress}</p>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-black flex items-center gap-2">
+              <Shield className="w-5 h-5 text-[#d4a017]" />
+              Reputation Passport
+            </h1>
+            <p className="text-xs text-[#818384] font-mono mt-1">{truncate(walletAddress ?? '')}</p>
+          </div>
+          <Link href="/explore"
+            className="flex items-center gap-1.5 text-xs text-[#818384] hover:text-[#d4a017] font-mono uppercase tracking-widest transition-colors">
+            Explorer <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard label="Scarab Balance" value={`🪲 ${scarab?.balance ?? 0}`} icon={<Flame className="w-5 h-5" />} gold />
+          <StatCard label="Total Earned" value={`🪲 ${scarab?.totalEarned ?? 0}`} icon={<Trophy className="w-5 h-5" />} />
+          <StatCard label="Daily Streak" value={`${scarab?.streak ?? 0}d`} sub="Consecutive days" icon={<Zap className="w-5 h-5" />} />
+          <StatCard label="Reviews" value={0} sub="Coming soon" icon={<MessageSquare className="w-5 h-5" />} />
+        </div>
+
+        {/* Daily Claim */}
+        <div className="bg-[#d4a017]/8 border border-[#d4a017]/25 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="font-bold text-[#d4a017] flex items-center gap-2 mb-1">
+              <span className="text-lg">🪲</span> Daily Scarab Claim
+            </div>
+            <div className="text-xs text-[#818384]">
+              Claim <strong className="text-[#d7dadc]">+5 🪲</strong> every day · Streak bonus: up to <strong className="text-[#d7dadc]">+10 🪲</strong> extra · Reviews earn up to <strong className="text-[#d7dadc]">+10 🪲</strong>
+            </div>
+            {claimMsg && (
+              <div className={`mt-2 text-xs font-mono ${claimMsg.ok ? 'text-emerald-400' : 'text-[#818384]'}`}>
+                {claimMsg.text}
+              </div>
+            )}
+          </div>
+          <button onClick={claimDaily} disabled={claiming}
+            className="shrink-0 px-6 py-2.5 bg-[#d4a017] hover:bg-[#c49010] disabled:opacity-50 text-black font-bold text-sm rounded-xl transition-colors font-mono uppercase tracking-wide whitespace-nowrap">
+            {claiming ? 'Claiming...' : 'Claim Daily 🪲'}
+          </button>
+        </div>
+
+        {/* Scarab Economy Guide */}
+        <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-base">🪲</span>
+            <span className="text-xs font-bold font-mono uppercase tracking-widest text-[#adadb0]">Scarab Economy</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Initial Claim', val: '+20 🪲', note: 'One-time', color: 'text-emerald-400' },
+              { label: 'Daily Claim', val: '+5 🪲', note: 'Up to +10 streak', color: 'text-emerald-400' },
+              { label: 'Write Review', val: '−2 🪲', note: 'Spend to review', color: 'text-red-400' },
+              { label: 'Quality Review', val: '+10 🪲', note: 'AI-scored reward', color: 'text-[#d4a017]' },
+            ].map(({ label, val, note, color }) => (
+              <div key={label} className="bg-[#111113] rounded-lg p-3 text-center">
+                <div className={`text-lg font-black ${color}`}>{val}</div>
+                <div className="text-[10px] text-[#818384] font-mono uppercase tracking-wider mt-1">{label}</div>
+                <div className="text-[10px] text-[#4a4a4e] mt-0.5">{note}</div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold" />
-          </div>
-        ) : (
-          <>
-            {/* Passport Cards */}
-            <div className="grid grid-cols-4 gap-6">
-              {/* Trust Level */}
-              <div className="bg-surface border border-border-subtle rounded-2xl p-6 flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-emerald" />
-                  <span className="text-sm font-medium text-txt-secondary">Trust Level</span>
-                </div>
-                <div className="text-[28px] font-bold text-txt-primary capitalize">
-                  {passport?.trustLevel || 'Newcomer'}
-                </div>
-                <div className="text-xs text-txt-muted mt-auto pt-2 border-t border-border-subtle">
-                  Unlocks {passport?.feeTier || 'Standard'} Swap Fees
-                </div>
-              </div>
-
-              {/* Reputation */}
-              <div className="bg-surface border border-border-subtle rounded-2xl p-6 flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-turquoise" />
-                  <span className="text-sm font-medium text-txt-secondary">Reputation Score</span>
-                </div>
-                <div className="text-[28px] font-bold text-txt-primary">
-                  {passport?.reputationScore || 0}
-                </div>
-                <div className="text-xs text-txt-muted mt-auto pt-2 border-t border-border-subtle">
-                  Based on {passport?.totalReviews || 0} valid reviews
-                </div>
-              </div>
-
-              {/* Scarab Balance */}
-              <div className="bg-surface border border-border-subtle rounded-2xl p-6 flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-gold" />
-                  <span className="text-sm font-medium text-txt-secondary">Scarab Balance</span>
-                </div>
-                <div className="text-[28px] font-bold text-gold">
-                  {passport?.scarabBalance || 0} <span className="text-lg">🪲</span>
-                </div>
-                <div className="text-xs text-txt-muted mt-auto pt-2 border-t border-border-subtle">
-                  Cost per review: <span className="text-gold">2 🪲</span>
-                </div>
-              </div>
-
-               {/* Activity */}
-               <div className="bg-surface border border-border-subtle rounded-2xl p-6 flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-purple-400" />
-                  <span className="text-sm font-medium text-txt-secondary">On-Chain Activity</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-txt-muted">Interacted</span>
-                    <span className="font-mono text-txt-primary">{passport?.interactedContracts || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-txt-muted">Reviewed</span>
-                    <span className="font-mono text-txt-primary">{passport?.reviewedContracts || 0}</span>
-                  </div>
-                </div>
-              </div>
+        {/* Projects to Review */}
+        <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-[#d4a017]" />
+              <span className="text-xs font-bold font-mono uppercase tracking-widest text-[#adadb0]">Projects to Review</span>
             </div>
+            <div className="flex gap-1">
+              {(['agents', 'defi'] as const).map(tab => (
+                <button key={tab} onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1 rounded text-[10px] font-bold font-mono uppercase transition-all ${activeTab === tab ? 'bg-[#d4a017] text-black' : 'text-[#818384] hover:text-[#d7dadc]'}`}>
+                  {tab === 'agents' ? `AI Agents (${agents.length})` : `DeFi (${defi.length})`}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {/* Interaction Discovery */}
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                  <h2 className="text-2xl font-bold text-txt-primary">Your Passport Traces</h2>
-                  <p className="text-sm text-txt-secondary">
-                    Review contracts, track your raw blockchain history, or manage cryptographic service receipts.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setActiveTab('reviewable')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                      activeTab === 'reviewable' ? 'bg-gold text-bg-primary shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'bg-surface text-txt-secondary hover:text-txt-primary border border-border-subtle'
-                    }`}
-                  >
-                    Reviewable Protocols ({interactions.filter(i => i.isKnown).length})
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('raw')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                      activeTab === 'raw' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-surface text-txt-secondary hover:text-txt-primary border border-border-subtle'
-                    }`}
-                  >
-                    Raw Traces ({interactions.filter(i => !i.isKnown).length})
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('receipts')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                      activeTab === 'receipts' ? 'bg-emerald text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-surface text-txt-secondary hover:text-txt-primary border border-border-subtle'
-                    }`}
-                  >
-                    Your Receipts 
-                    {receipts.length > 0 && (
-                      <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{receipts.length}</span>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {activeTab === 'receipts' ? (
-                receipts.length === 0 ? (
-                  <div className="text-center py-12 bg-surface border border-border-subtle rounded-2xl">
-                    <p className="text-txt-secondary">No EAS Service Receipts found for this wallet.</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-4">
-                    {receipts.map(receipt => {
-                      let parsedData: any[] = []
-                      try {
-                        parsedData = JSON.parse(receipt.decodedDataJson)
-                      } catch(e){}
-
-                      const getParsedVal = (name: string) => {
-                        const item = parsedData.find(d => d.name === name)
-                        if (!item) return null
-                        return typeof item.value === 'object' && item.value !== null ? item.value.value : item.value
-                      }
-
-                      const serviceProvider = getParsedVal('serviceProvider') || 'Unknown Provider'
-                      const serviceType = getParsedVal('serviceType') || 'Unknown Service'
-                      const valuePaid = getParsedVal('valuePaid') || '0'
-
-                      return (
-                        <div key={receipt.id} className="bg-surface border border-emerald/50 rounded-2xl p-6 flex flex-col gap-4 relative overflow-hidden">
-                          {/* Receipt visual styling */}
-                          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald/5 rounded-bl-full -z-10" />
-                          
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-full bg-emerald/10 border border-emerald/30 flex items-center justify-center">
-                                <span className="text-xl">🧾</span>
-                              </div>
-                              <div className="flex flex-col">
-                                <h3 className="text-lg font-bold text-txt-primary flex items-center gap-2">
-                                  {serviceProvider}
-                                  <span className="text-[10px] bg-emerald/20 text-emerald px-2 py-0.5 rounded uppercase tracking-wider font-bold">Verified Receipt</span>
-                                </h3>
-                                <p className="text-sm text-txt-secondary">{serviceType}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-lg font-bold text-txt-primary">{valuePaid}</div>
-                              <div className="text-xs font-mono text-txt-muted mt-1">
-                                {new Date(receipt.timeCreated * 1000).toLocaleDateString()}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-2 pt-4 border-t border-border-subtle border-dashed flex items-center justify-between">
-                            <div className="flex items-center gap-4 text-xs font-mono text-txt-muted">
-                              <span className="flex items-center gap-1">
-                                EAS ID <a href={`https://base.easscan.org/attestation/view/${receipt.id}`} target="_blank" rel="noopener noreferrer" className="text-emerald hover:underline flex items-center gap-1">{receipt.id.slice(0,10)}... <ExternalLink className="w-3 h-3"/></a>
-                              </span>
-                              {receipt.txid && receipt.txid.startsWith('0x') && receipt.txid.length > 40 && (
-                                <span className="flex items-center gap-1">
-                                  Tx <a href={`https://basescan.org/tx/${receipt.txid}`} target="_blank" rel="noopener noreferrer" className="text-emerald hover:underline flex items-center gap-1">{receipt.txid.slice(0,10)}... <ExternalLink className="w-3 h-3"/></a>
-                                </span>
-                              )}
-                            </div>
-                            
-                            <button
-                                onClick={() => {
-                                  // Mock review action for receipt
-                                  setSelectedContract({
-                                    address: receipt.attester,
-                                    name: serviceProvider,
-                                    category: serviceType,
-                                    trustScore: null,
-                                    txCount: 1,
-                                    canReview: true,
-                                    existingReview: false,
-                                    isKnown: true
-                                  })
-                                  setRating(5)
-                                  setComment('')
-                                  setReviewModalOpen(true)
-                                }}
-                                className="px-4 py-2 bg-emerald/10 text-emerald border border-emerald/30 hover:bg-emerald hover:text-white rounded-lg text-sm font-semibold transition-all flex items-center gap-2"
-                              >
-                                <MessageSquare className="w-4 h-4" />
-                                Review Service
-                              </button>
-                          </div>
+          {displayProjects.length === 0 ? (
+            <div className="text-center py-8 text-[#4a4a4e] text-sm font-mono">Loading projects...</div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {displayProjects.map(p => {
+                const score = p.trustScore > 10 ? p.trustScore / 10 : p.trustScore
+                return (
+                  <div key={p.id} className="bg-[#111113] border border-[#2a2a2e] rounded-lg px-4 py-3 flex items-center justify-between gap-4 hover:border-[#343536] transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black text-white shrink-0"
+                        style={{ backgroundColor: chainColor(p.chain) }}>
+                        {p.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm truncate">{p.name}</div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[10px] font-mono" style={{ color: chainColor(p.chain) }}>{p.chain}</span>
+                          {p.reviewCount === 0 && (
+                            <span className="text-[10px] bg-[#d4a017]/10 text-[#d4a017] border border-[#d4a017]/20 px-1.5 rounded font-mono">Be first!</span>
+                          )}
                         </div>
-                      )
-                    })}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right hidden sm:block">
+                        <div className="text-sm font-black" style={{ color: scoreColor(score) }}>{score.toFixed(1)}</div>
+                        <div className="text-[10px] text-[#818384] font-mono">{p.reviewCount} reviews</div>
+                      </div>
+                      <Link href={`/agent/${p.slug || p.id}`}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d4a017]/10 hover:bg-[#d4a017]/20 border border-[#d4a017]/20 text-[#d4a017] rounded-lg text-xs font-bold font-mono uppercase transition-all">
+                        <MessageSquare className="w-3 h-3" />
+                        Review
+                      </Link>
+                    </div>
                   </div>
                 )
-              ) : interactions.length === 0 ? (
-                <div className="text-center py-12 bg-surface border border-border-subtle rounded-2xl">
-                  <p className="text-txt-secondary">No contract interactions found on Base.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-                  {interactions
-                    .filter(contract => activeTab === 'reviewable' ? contract.isKnown : !contract.isKnown)
-                    .map(contract => (
-                    <div key={contract.address} className="bg-surface border border-border-subtle rounded-2xl p-5 flex flex-col gap-4 hover:border-gold/30 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-bg-primary border border-border-subtle flex items-center justify-center">
-                            <span className="text-lg font-bold text-txt-primary">
-                              {contract.name ? contract.name[0] : '?'}
-                            </span>
-                          </div>
-                          <div className="flex flex-col">
-                            <h3 className="text-base font-bold text-txt-primary">{contract.name || 'Unknown Contract'}</h3>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] font-mono text-txt-muted shrink-0">
-                                {contract.address.slice(0,6)}...{contract.address.slice(-4)}
-                              </span>
-                              <a href={`https://basescan.org/address/${contract.address}`} target="_blank" rel="noopener noreferrer" className="text-txt-muted hover:text-turquoise">
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        <div className="flex flex-col p-2 bg-bg-primary rounded-lg border border-border-subtle">
-                           <span className="text-[10px] text-txt-muted uppercase tracking-wider">Score</span>
-                           <span className="text-sm font-bold text-txt-primary">{contract.trustScore ? contract.trustScore.toFixed(1) : 'N/A'}</span>
-                        </div>
-                        <div className="flex flex-col p-2 bg-bg-primary rounded-lg border border-border-subtle">
-                           <span className="text-[10px] text-txt-muted uppercase tracking-wider">Your Txs</span>
-                           <span className="text-sm font-bold text-turquoise">{contract.txCount}</span>
-                        </div>
-                      </div>
-
-                      {contract.isKnown ? (
-                        <button
-                          onClick={() => handleOpenReview(contract)}
-                          disabled={!contract.canReview || contract.existingReview || (passport?.scarabBalance || 0) < 2}
-                          className={`mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all
-                            ${contract.existingReview 
-                              ? 'bg-border-subtle text-txt-muted cursor-not-allowed hidden' 
-                              : !contract.canReview || (passport?.scarabBalance || 0) < 2
-                                  ? 'bg-bg-primary text-txt-muted border border-border-subtle cursor-not-allowed'
-                                  : 'bg-gold/10 text-gold border border-gold/30 hover:bg-gold hover:text-page'
-                            }`}
-                        >
-                          {contract.existingReview ? (
-                            'Reviewed'
-                          ) : !contract.canReview ? (
-                            'Need More Txs'
-                          ) : (passport?.scarabBalance || 0) < 2 ? (
-                            'Need 2 Scarab'
-                          ) : (
-                            <>
-                              <MessageSquare className="w-4 h-4" />
-                              Write Review <span className="opacity-70 text-xs ml-1 font-normal">(-2 🪲)</span>
-                            </>
-                          )}
-                        </button>
-                      ) : (
-                        <div className="mt-2 w-full flex items-center justify-center py-2.5 rounded-lg text-xs font-mono text-txt-muted bg-bg-primary border border-border-subtle">
-                          Raw Interaction
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              })}
             </div>
-          </>
-        )}
-      </main>
-
-      <Footer />
-
-      {/* Review Modal */}
-      {reviewModalOpen && selectedContract && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-surface border border-gold/30 rounded-2xl w-full max-w-[500px] flex flex-col overflow-hidden shadow-2xl">
-            <div className="px-6 py-5 border-b border-border-subtle flex items-center justify-between bg-bg-primary">
-              <h3 className="text-lg font-bold text-txt-primary flex items-center gap-2">
-                <Star className="w-5 h-5 text-gold" />
-                Review {selectedContract.name}
-              </h3>
-              <button onClick={() => setReviewModalOpen(false)} className="text-txt-muted hover:text-txt-primary p-1">
-                ✕
-              </button>
-            </div>
-            
-            <div className="p-6 flex flex-col gap-6">
-              {/* Rating */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-txt-secondary">Trust Rating</label>
-                <div className="flex items-center justify-between px-4 py-3 bg-bg-primary border border-border-subtle rounded-xl">
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={rating}
-                    onChange={(e) => setRating(parseInt(e.target.value))}
-                    className="flex-1 mr-4 accent-gold"
-                  />
-                  <div className="w-8 h-8 rounded bg-gold/20 flex items-center justify-center border border-gold/40">
-                    <span className="font-bold text-gold">{rating}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Comment */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-txt-secondary">Your Experience</label>
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Share details about your interaction with this protocol..."
-                  className="w-full h-[120px] bg-bg-primary border border-border-subtle rounded-xl p-4 text-sm text-txt-primary placeholder-txt-muted resize-none focus:outline-none focus:border-gold/50 transition-colors"
-                />
-              </div>
-
-              {/* Notice */}
-              <div className="bg-emerald/10 border border-emerald/20 rounded-xl p-4 flex gap-3 text-sm">
-                <div className="text-emerald shrink-0 mt-0.5">ℹ️</div>
-                <div className="text-txt-secondary">
-                  Your wallet will be asked to sign a message to prove ownership. No gas fees are required. This review costs <strong className="text-gold">2 Scarab 🪲</strong>.
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 pt-0 flex gap-4">
-              <button 
-                onClick={() => setReviewModalOpen(false)}
-                className="flex-1 py-3.5 rounded-xl border border-border-subtle text-txt-secondary hover:text-txt-primary hover:bg-bg-primary transition-colors font-medium"
-                disabled={submitting}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={submitReview}
-                disabled={submitting || comment.length < 10}
-                className="flex-[2] py-3.5 rounded-xl bg-gold text-page font-bold hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative overflow-hidden group"
-              >
-                {submitting ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-page" />
-                ) : (
-                  <>
-                    <MessageSquare className="w-5 h-5 relative z-10" />
-                    <span className="relative z-10">Sign & Submit Review</span>
-                    {/* Hover shine effect */}
-                    <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+          )}
         </div>
-      )}
+
+      </div>
     </div>
   )
 }

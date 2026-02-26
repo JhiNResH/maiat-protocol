@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { 
   Home, 
   Trophy, 
@@ -12,7 +13,8 @@ import {
   Github,
   TrendingUp,
   MessageSquare,
-  Users
+  Users,
+  Flame
 } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 
@@ -31,7 +33,33 @@ export function Sidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isLeaderboard = searchParams.get('tab') === 'leaderboard';
-  const { authenticated, ready } = usePrivy();
+  const { authenticated, ready, user } = usePrivy();
+  const walletAddress = user?.wallet?.address;
+  const [scarabBalance, setScarabBalance] = useState<number | null>(null);
+  const [claiming, setClaiming] = useState(false);
+  const [claimResult, setClaimResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!walletAddress) return;
+    fetch(`/api/v1/scarab?address=${walletAddress}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setScarabBalance(d.balance));
+  }, [walletAddress, claimResult]);
+
+  async function handleClaim() {
+    if (!walletAddress || claiming) return;
+    setClaiming(true);
+    try {
+      const res = await fetch('/api/v1/scarab/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: walletAddress }),
+      });
+      const data = await res.json();
+      setClaimResult(data.alreadyClaimed ? 'done' : `+${data.amount ?? 5}`);
+      setTimeout(() => setClaimResult(null), 3000);
+    } finally { setClaiming(false); }
+  }
 
   return (
     <aside className="fixed top-[73px] left-0 h-[calc(100vh-73px)] w-[240px] bg-[#030303] border-r border-[#1a1a1b] overflow-y-auto z-40 hidden lg:flex flex-col p-4 gap-2">
@@ -127,6 +155,28 @@ export function Sidebar() {
             </Link>
           ))}
         </div>
+        {/* Scarab daily claim */}
+        {authenticated && (
+          <div className="mx-2 mb-3 bg-[#d4a017]/8 border border-[#d4a017]/20 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5 text-[#d4a017]">
+                <Flame className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold font-mono uppercase tracking-wider">Scarab</span>
+              </div>
+              {scarabBalance !== null && (
+                <span className="text-xs font-bold text-[#d4a017] font-mono">🪲 {scarabBalance}</span>
+              )}
+            </div>
+            <button
+              onClick={handleClaim}
+              disabled={claiming || claimResult === 'done'}
+              className="w-full py-1.5 rounded text-[10px] font-bold font-mono uppercase tracking-wide transition-all bg-[#d4a017]/15 hover:bg-[#d4a017]/25 disabled:opacity-50 text-[#d4a017]"
+            >
+              {claiming ? '...' : claimResult && claimResult !== 'done' ? `${claimResult} 🪲` : claimResult === 'done' ? 'Claimed ✓' : 'Daily Claim'}
+            </button>
+          </div>
+        )}
+
         <p className="px-3 py-4 text-[9px] text-[#4a4a4e] font-mono uppercase tracking-tighter">
           © 2026 Maiat Protocol v1.2
         </p>
