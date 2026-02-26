@@ -133,27 +133,13 @@ const projects = [
     category: 'm/defi', chain: 'Ethereum', status: 'active', avgRating: 4.4, reviewCount: 0,
   },
 
-  // ── BNB: DeFi ─────────────────────────────────────────────────────
+  // ── Ethereum: AI Agent Infrastructure ────────────────────────────
   {
-    name: 'PancakeSwap', slug: 'pancakeswap', symbol: 'CAKE',
-    address: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
-    description: 'Largest DEX on BNB Chain. AMM with farming, lottery, and prediction markets. Migrated to V3 concentrated liquidity.',
-    website: 'https://pancakeswap.finance',
-    category: 'm/defi', chain: 'BNB', status: 'active', avgRating: 4.3, reviewCount: 0,
-  },
-  {
-    name: 'Venus Protocol', slug: 'venus', symbol: 'XVS',
-    address: '0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63',
-    description: 'BNB Chain\'s leading lending protocol. Supply and borrow BEP-20 assets with algorithmic interest rates.',
-    website: 'https://venus.io',
-    category: 'm/defi', chain: 'BNB', status: 'active', avgRating: 4.2, reviewCount: 0,
-  },
-  {
-    name: 'WBNB', slug: 'wbnb', symbol: 'WBNB',
-    address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
-    description: 'Wrapped BNB on BNB Chain. Required for DEX interactions and DeFi protocols on BNB.',
-    website: 'https://www.bnbchain.org',
-    category: 'm/defi', chain: 'BNB', status: 'active', avgRating: 4.6, reviewCount: 0,
+    name: 'Autonolas', slug: 'autonolas', symbol: 'OLAS',
+    address: '0x0001A500A6B18995B03f44bb040A5fFc28E45CB0',
+    description: 'Decentralized protocol for creating and running autonomous AI agent services on-chain. Powers 1000+ live agents across DeFi and data markets.',
+    website: 'https://olas.network',
+    category: 'm/ai-agents', chain: 'Ethereum', status: 'active', avgRating: 4.5, reviewCount: 0,
   },
 ]
 
@@ -166,7 +152,7 @@ const seedUsers = [
 ]
 
 async function main() {
-  console.log('🌱 Seeding Maiat — 20 verified projects across Base, ETH, BNB\n')
+  console.log('🌱 Seeding Maiat — Base + Ethereum (18 projects)\n')
 
   await prisma.vote.deleteMany({})
   await prisma.review.deleteMany({})
@@ -185,7 +171,7 @@ async function main() {
     console.log(`   [${p.chain}] ✅ ${p.name}`)
   }
 
-  console.log(`\n✅ Done! ${projects.length} projects, ${seedUsers.length} users`)
+  console.log(`\n✅ Done! ${projects.length} projects (BNB removed), ${seedUsers.length} users`)
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect())
