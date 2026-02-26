@@ -206,7 +206,7 @@ async function verifyTxHash(
 //
 // Flow:
 //   1. Verify EIP-191 signature OR txHash → proves wallet ownership
-//   2. Check wallet-contract interaction → must have ≥1 tx on Base
+//   2. GATE: must have interacted with contract (txHash / EAS / Alchemy)
 //   3. Deduct 2 Scarab → prevents spam (costs something to review)
 //   4. Gemini quality check → filters gibberish/spam
 //   5. Save review → persist to DB
@@ -293,14 +293,34 @@ export async function POST(request: NextRequest) {
     // Note: both signature and txHash are optional for backward compat.
     // Will enforce one of them once all clients are updated.
 
-    // --- Step 2: Check wallet-contract interaction ---
-    // Skip the expensive Alchemy call when txHash already confirmed interaction.
+    // --- Step 2: Check wallet-contract interaction (GATE) ---
+    // You must have actually used this agent/contract to review it.
+    // Bypass paths (in order of strength):
+    //   A. txHash verified above → already confirmed reviewer → target
+    //   B. EAS receipt provided → claimed service proof (weight boost later)
+    //   C. Alchemy confirms ≥1 tx from reviewer to target
+    // None of the above → 403.
     let hasInteraction: boolean;
     if (txHashInteracts) {
+      // Already confirmed by verifyTxHash above
+      hasInteraction = true;
+    } else if (easReceiptId) {
+      // Claiming EAS receipt → bypass gate, weight verified at Step 4.5
       hasInteraction = true;
     } else {
       const interaction = await checkInteraction(checksumReviewer, checksumAddress);
       hasInteraction = interaction.hasInteracted;
+    }
+
+    if (!hasInteraction) {
+      return NextResponse.json(
+        {
+          error: "No interaction found",
+          detail: `Wallet ${checksumReviewer} has no on-chain interaction with ${checksumAddress}.`,
+          hint: "Provide a txHash of your interaction, an EAS receipt, or interact with the contract first.",
+        },
+        { status: 403, headers: CORS_HEADERS }
+      );
     }
 
     // --- Step 3: Deduct Scarab (if DB available) ---
