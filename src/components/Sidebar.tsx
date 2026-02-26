@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { 
   Home, 
   Trophy, 
@@ -29,6 +29,8 @@ const resourceNav = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isLeaderboard = searchParams.get('tab') === 'leaderboard';
   const { authenticated, ready } = usePrivy();
 
   return (
@@ -40,7 +42,7 @@ export function Sidebar() {
         <Link
           href="/explore"
           className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-bold transition-all ${
-            pathname === "/explore" && !window.location.search.includes('leaderboard')
+            pathname === "/explore" && !isLeaderboard
               ? "bg-[#1a1a1b] text-gold"
               : "text-[#d7dadc] hover:bg-[#1a1a1b]"
           }`}
@@ -51,7 +53,7 @@ export function Sidebar() {
         <Link
           href="/explore?tab=leaderboard"
           className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-bold transition-all ${
-            window.location.search.includes('leaderboard')
+            isLeaderboard
               ? "bg-[#1a1a1b] text-gold"
               : "text-[#d7dadc] hover:bg-[#1a1a1b]"
           }`}
