@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Clock,
   Star,
+  BarChart3,
 } from "lucide-react";
 import { isAddress } from "viem";
 
@@ -351,6 +352,15 @@ function ExplorePage() {
                     {tab.label}
                   </button>
                 ))}
+
+                {/* Markets Tab */}
+                <Link
+                  href="/markets"
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono uppercase tracking-wide transition-all rounded border border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#F59E0B] hover:bg-[#F59E0B]/20"
+                >
+                  <BarChart3 className="w-3 h-3" />
+                  MARKETS
+                </Link>
               </div>
 
               {/* Sort Toggle */}
@@ -445,7 +455,9 @@ function ExplorePage() {
                 {filtered.map((item, idx) => (
                   <Link
                     key={item.id}
-                    href={`/agent/${item.slug}`}
+                    href={item.category === 'DeFi'
+                      ? `/defi/${item.slug}/${item.address}`
+                      : `/agent/${item.slug}/${item.address}`}
                     className="group grid grid-cols-[180px_1fr_120px_100px_60px] gap-4 items-center px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg transition-all duration-200 hover:border-[#0052FF]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.1)]"
                     style={{ minHeight: "72px" }}
                   >
