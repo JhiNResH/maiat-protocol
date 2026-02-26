@@ -186,3 +186,41 @@ model EASReceipt {
   @@index([attester])
   @@index([createdAt])
 }
+
+// ============================================================================
+// OPINION MARKETS - Stake Scarab on agent rankings
+// ============================================================================
+
+model Market {
+  id          String           @id @default(cuid())
+  title       String
+  description String
+  category    String           // "ai-agents" | "defi" | "mixed"
+  status      String           @default("open") // "open" | "closed" | "resolved"
+  opensAt     DateTime
+  closesAt    DateTime         // opensAt + 14 days
+  resolvedAt  DateTime?
+  totalPool   Int              @default(0) // total Scarab in market
+  winnerIds   String[]         @default([]) // project IDs that "won"
+  createdAt   DateTime         @default(now())
+  positions   MarketPosition[]
+
+  @@index([status])
+  @@index([category])
+  @@index([closesAt])
+}
+
+model MarketPosition {
+  id        String   @id @default(cuid())
+  marketId  String
+  projectId String   // agent being bet on
+  voterId   String   // wallet address
+  amount    Int      // Scarab staked (min 50)
+  payout    Int?     // set at resolution
+  createdAt DateTime @default(now())
+  market    Market   @relation(fields: [marketId], references: [id])
+
+  @@index([marketId])
+  @@index([projectId])
+  @@index([voterId])
+}
