@@ -50,26 +50,46 @@ function AgentDetailPage() {
       if (!address) return
       try {
         setLoading(true)
-        const scoreRes = await fetch('/api/v1/score/' + address + '?summary=true')
-        const scoreData = await scoreRes.json()
-        if (!scoreRes.ok) { setError(scoreData.error); setLoading(false); return; }
+
+        // 1. Try slug/project lookup from DB first
+        const projRes = await fetch('/api/v1/project/' + address)
+        const projData = projRes.ok ? await projRes.json() : null
+        const dbProject = projData?.project ?? null
+        const resolvedAddress = dbProject?.address ?? address
+
+        // 2. Try on-chain score if it's a real EVM address
+        const isEVM = /^0x[0-9a-fA-F]{40}$/.test(resolvedAddress)
+        let scoreData: any = null
+        if (isEVM) {
+          const chain = dbProject?.chain?.toLowerCase() === 'bnb' ? 'bnb'
+            : dbProject?.chain?.toLowerCase() === 'ethereum' ? 'eth'
+            : 'base'
+          const scoreRes = await fetch(`/api/v1/score/${resolvedAddress}?summary=true&chain=${chain}`)
+          if (scoreRes.ok) scoreData = await scoreRes.json()
+        }
+
+        if (!dbProject && !scoreData) {
+          setError('Project not found')
+          setLoading(false)
+          return
+        }
 
         setResult({
-          address: scoreData.address,
-          name: scoreData.protocol?.name || 'Autonomous Agent',
-          symbol: scoreData.type === 'TOKEN' ? scoreData.protocol?.name?.slice(0, 4).toUpperCase() : 'AGENT',
-          chain: scoreData.chain || 'Base',
-          description: scoreData.summary,
-          score: scoreData.score,
-          risk: scoreData.risk,
-          aiAnalysis: {
+          address: resolvedAddress,
+          name: dbProject?.name ?? scoreData?.protocol?.name ?? 'Unknown Project',
+          symbol: dbProject?.symbol ?? (scoreData?.type === 'TOKEN' ? scoreData?.protocol?.name?.slice(0, 4).toUpperCase() : 'AGENT'),
+          chain: dbProject?.chain ?? scoreData?.chain ?? 'Base',
+          description: dbProject?.description ?? scoreData?.summary ?? undefined,
+          score: scoreData?.score ?? (dbProject?.trustScore ? dbProject.trustScore / 10 : 0),
+          risk: scoreData?.risk ?? (dbProject?.trustScore >= 70 ? 'LOW' : dbProject?.trustScore >= 40 ? 'MEDIUM' : 'HIGH'),
+          aiAnalysis: scoreData ? {
             sentiment: scoreData.score > 7 ? 'Bullish' : 'Neutral',
-            techMaturity: scoreData.flags.includes('VERIFIED') ? 'High' : 'Experimental',
+            techMaturity: (scoreData.flags ?? []).includes('VERIFIED') ? 'High' : 'Experimental',
             socialSignal: 'Active Community',
-            summary: scoreData.summary || 'Agent analysis completed.'
-          }
+            summary: scoreData.summary || dbProject?.description || 'Analysis completed.'
+          } : undefined
         })
-      } catch (err) { setError('Sync error'); }
+      } catch (err) { setError('Failed to load project') }
       finally { setLoading(false); }
     }
     fetchAgent()
