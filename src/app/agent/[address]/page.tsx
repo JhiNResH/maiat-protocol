@@ -120,7 +120,7 @@ function ScoreBar({ label, value, max, icon }: { label: string; value: number; m
           {icon}
           <span className="font-mono uppercase tracking-wider">{label}</span>
         </div>
-        <span className="font-bold font-mono" style={{ color }}>{value.toFixed(1)} / {max}</span>
+        <span className="font-bold font-mono" style={{ color }}>{(value ?? 0).toFixed(1)} / {max}</span>
       </div>
       <div className="h-1.5 bg-[#1a1a1b] rounded-full overflow-hidden">
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: color }} />
@@ -384,11 +384,11 @@ function AgentDetailPage() {
   const breakdown = scoreResult?.breakdown
 
   // Estimate breakdown from total score if not available
-  const estimatedBreakdown: ScoreBreakdown = breakdown ?? {
-    onchainHistory: score >= 7 ? 3.6 : score >= 4 ? 2.4 : 1.2,
-    contractAnalysis: score >= 7 ? 2.8 : score >= 4 ? 1.8 : 0.9,
-    blacklist: score >= 7 ? 1.9 : score >= 4 ? 1.4 : 0.8,
-    activity: score >= 7 ? 0.9 : score >= 4 ? 0.6 : 0.3,
+  const estimatedBreakdown: ScoreBreakdown = {
+    onchainHistory: breakdown?.onchainHistory ?? (score >= 7 ? 3.6 : score >= 4 ? 2.4 : 1.2),
+    contractAnalysis: breakdown?.contractAnalysis ?? (score >= 7 ? 2.8 : score >= 4 ? 1.8 : 0.9),
+    blacklist: breakdown?.blacklist ?? (score >= 7 ? 1.9 : score >= 4 ? 1.4 : 0.8),
+    activity: breakdown?.activity ?? (score >= 7 ? 0.9 : score >= 4 ? 0.6 : 0.3),
   }
 
   const isEVM = /^0x[0-9a-fA-F]{40}$/.test(project.address)
