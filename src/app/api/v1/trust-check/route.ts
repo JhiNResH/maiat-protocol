@@ -1,18 +1,25 @@
 /**
  * GET /api/v1/trust-check?agent=0x...&threshold=60
  *
- * Agent-native trust oracle. Paid via x402 ($0.001 USDC on Base).
+ * Agent-native trust oracle. Three access tiers:
  *
- * x402 flow:
- *   1. Agent calls this endpoint (no header)
- *   2. Maiat returns 402 + X-Payment-Required details
- *   3. Agent pays $0.001 USDC → gets txHash
- *   4. Agent retries with X-Payment: <txHash>
- *   5. Maiat verifies payment → returns trust verdict
+ * 1. FREE tier (SDK / dApp use):
+ *    - No payment header, no key → rate-limited (10 req/min per IP)
+ *    - Use `X-Maiat-Key` for paid unlimited tier
+ *
+ * 2. PAID tier (developer key):
+ *    - Header: X-Maiat-Key: mk_...
+ *    - No rate limit
+ *
+ * 3. x402 tier (agent-to-agent, proves payment on-chain):
+ *    - Header: X-Payment: <txHash>
+ *    - $0.001 USDC on Base per check
+ *
+ * Internal bypass: X-Internal-Token (maiat-agent only, skips all gates)
  *
  * Returns agent-only fields not available on the public website:
  *   - verdict: "proceed" | "caution" | "block"
- *   - x402_checks: how many times this agent has been checked via x402
+ *   - x402_checks: how many times this agent has been checked
  *   - outcome_score: computed from buyer outcome reports (0-100)
  *   - dispute_rate: % of outcomes that were disputes
  *   - bond_amount: USDC bonded (null until bond contract live)
@@ -25,8 +32,30 @@ import { calculateTrustScore } from "@/lib/trust-score";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Payment",
+  "Access-Control-Allow-Headers": "Content-Type, X-Payment, X-Maiat-Key",
 };
+
+// ── Free tier rate limiter (in-memory, per IP) ────────────────────────────────
+// 10 requests/min per IP — resets every minute
+const FREE_RATE_LIMIT = 10;
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+
+  if (!entry || now >= entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+    return { allowed: true, remaining: FREE_RATE_LIMIT - 1 };
+  }
+
+  if (entry.count >= FREE_RATE_LIMIT) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  entry.count++;
+  return { allowed: true, remaining: FREE_RATE_LIMIT - entry.count };
+}
 
 // Maiat's USDC receiving address on Base (set in Vercel env)
 const PAYMENT_ADDRESS =
@@ -101,6 +130,7 @@ export async function GET(req: NextRequest) {
   const agent     = req.nextUrl.searchParams.get("agent") ?? "";
   const threshold = parseInt(req.nextUrl.searchParams.get("threshold") ?? "60");
   const payment   = req.headers.get("x-payment");
+  const maiatKey  = req.headers.get("x-maiat-key");
 
   if (!agent || !/^0x[a-fA-F0-9]{40}$/i.test(agent)) {
     return NextResponse.json(
@@ -109,53 +139,63 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // ── Step 1: x402 gate ──────────────────────────────────────────────────────
-  // Internal bypass: maiat-agent can call with X-Internal-Token to skip x402
+  // ── Step 1: Access tier resolution ────────────────────────────────────────
+  // Priority: internal token > x402 payment > paid key > free tier (rate-limited)
+
+  // Internal bypass: maiat-agent calls (ACP seller, no x402 circular payment)
   const internalToken = req.headers.get("x-internal-token");
   const validInternalToken =
     process.env.MAIAT_INTERNAL_TOKEN &&
     internalToken === process.env.MAIAT_INTERNAL_TOKEN;
 
-  // No payment header → return 402 with instructions
-  if (!payment && !validInternalToken) {
-    return NextResponse.json(
-      {
-        error: "Payment required",
-        x402: {
-          scheme: "exact",
-          network: "base",
-          amount: PAYMENT_AMOUNT_USDC,
-          asset: "usdc",
-          asset_address: USDC_BASE,
-          pay_to: PAYMENT_ADDRESS,
-          memo: `maiat-trust-check:${agent}`,
-        },
-        instructions:
-          "Pay $0.001 USDC on Base to the address above, then retry with header: X-Payment: <txHash>",
-      },
-      {
-        status: 402,
-        headers: {
-          ...CORS,
-          "X-Payment-Required": JSON.stringify({
+  // Paid developer key (TODO: validate against DB when key system is built)
+  const isPaidKey = !!maiatKey && maiatKey.startsWith("mk_");
+
+  // x402 payment path (agent-to-agent, proves on-chain payment)
+  const isX402 = !!payment;
+
+  // Free tier: rate-limited by IP
+  let isFree = false;
+  if (!validInternalToken && !isPaidKey && !isX402) {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      ?? req.headers.get("x-real-ip")
+      ?? "unknown";
+    const rateCheck = checkRateLimit(ip);
+
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: "Rate limit exceeded",
+          detail: "Free tier: 10 requests/min per IP. Use X-Maiat-Key for unlimited access.",
+          upgrade: "https://maiat-protocol.vercel.app/api-keys",
+          x402: {
             scheme: "exact",
             network: "base",
             amount: PAYMENT_AMOUNT_USDC,
             asset: "usdc",
-            payTo: PAYMENT_ADDRESS,
-          }),
+            asset_address: USDC_BASE,
+            pay_to: PAYMENT_ADDRESS,
+          },
         },
-      }
-    );
+        {
+          status: 429,
+          headers: {
+            ...CORS,
+            "X-RateLimit-Limit": String(FREE_RATE_LIMIT),
+            "X-RateLimit-Remaining": "0",
+          },
+        }
+      );
+    }
+    isFree = true;
   }
 
-  // ── Step 2: Verify payment tx ──────────────────────────────────────────────
-  // Bypass: dev mode OR internal token (maiat-agent calls skip x402)
+  // ── Step 2: Verify x402 payment tx ────────────────────────────────────────
   const isDev = !process.env.MAIAT_PAYMENT_ADDRESS ||
                 process.env.NODE_ENV === "development";
 
   let checkerAddress: string | undefined;
-  if (!validInternalToken && payment) {
+  if (!validInternalToken && !isFree && !isPaidKey && payment) {
     const result = await verifyPayment(payment, PAYMENT_ADDRESS);
     checkerAddress = result.from;
     if (!result.valid && !isDev) {
@@ -222,6 +262,7 @@ export async function GET(req: NextRequest) {
       // ── Meta ──
       checked_at: new Date().toISOString(),
       powered_by: "Maiat Protocol",
+      tier: validInternalToken ? "internal" : isPaidKey ? "paid" : isX402 ? "x402" : "free",
     },
     { status: 200, headers: CORS }
   );
