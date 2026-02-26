@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { Search, Shield, Star, Zap, Trophy, Clock, ExternalLink, Copy, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
+import { Search, Shield, Star, Zap, Activity, ChevronRight, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
-interface TrustPassport {
+interface Passport {
   address: string
   trustLevel: 'new' | 'trusted' | 'verified' | 'guardian'
   reputationScore: number
@@ -16,308 +15,297 @@ interface TrustPassport {
   totalUpvotes: number
   feeTier: number
   feeDiscount: string
+  reviewsGiven?: Array<{
+    projectName: string
+    projectSlug: string
+    rating: number
+    content: string
+    createdAt: string
+    weight: number
+  }>
 }
 
-interface Review {
-  id: string
-  rating: number
-  content: string
-  weight: number
-  createdAt: string
-  project: {
-    id: string
-    name: string
-    slug: string
-    category: string
-    chain: string
-    trustScore: number
-  } | null
+interface Interaction {
+  address: string
+  name: string
+  category: string
+  chain: string
+  trustScore: number
+  txCount: number
+  lastSeen?: string
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 const LEVEL_CONFIG = {
-  new:      { label: 'NEW',      color: '#666666', bg: 'rgba(102,102,102,0.15)', desc: 'Just getting started' },
-  trusted:  { label: 'TRUSTED',  color: '#0052FF', bg: 'rgba(0,82,255,0.15)',   desc: 'Active community member' },
-  verified: { label: 'VERIFIED', color: '#22C55E', bg: 'rgba(34,197,94,0.15)', desc: 'Base-verified identity' },
-  guardian: { label: 'GUARDIAN', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)', desc: 'Trusted community champion' },
+  guardian: { label: 'GUARDIAN', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', icon: '🛡️' },
+  verified: { label: 'VERIFIED', color: '#22C55E', bg: 'rgba(34,197,94,0.1)',   border: 'rgba(34,197,94,0.3)',  icon: '✅' },
+  trusted:  { label: 'TRUSTED',  color: '#0052FF', bg: 'rgba(0,82,255,0.1)',    border: 'rgba(0,82,255,0.3)',   icon: '🔵' },
+  new:      { label: 'NEW',      color: '#666666', bg: 'rgba(102,102,102,0.1)', border: 'rgba(102,102,102,0.3)', icon: '⚪' },
 }
 
-function truncateAddress(addr: string) {
+function truncate(addr: string) {
   if (!addr || addr.length < 12) return addr
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`
 }
 
-function isValidAddress(addr: string) {
-  return /^0x[0-9a-fA-F]{40}$/.test(addr)
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const h = Math.floor(diff / 3600000)
+  if (h < 1) return `${Math.floor(diff / 60000)}m ago`
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────────────────────
 
-function PassportCard({ passport }: { passport: TrustPassport }) {
-  const lvl = LEVEL_CONFIG[passport.trustLevel]
-  const [copied, setCopied] = useState(false)
-
-  const copy = () => {
-    navigator.clipboard.writeText(passport.address)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
-  return (
-    <div className="border border-[#1F1F1F] rounded-xl bg-[#111111] overflow-hidden">
-      {/* Header bar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-[#1F1F1F] bg-[#0D0D0D]">
-        <span className="font-mono text-xs text-[#666666] tracking-widest uppercase">// TRUST PASSPORT</span>
-        <span className="font-mono text-xs" style={{ color: lvl.color, background: lvl.bg, padding: '2px 8px', borderRadius: 4 }}>
-          {lvl.label}
-        </span>
-      </div>
-
-      <div className="p-5">
-        {/* Address */}
-        <div className="flex items-center gap-3 mb-6">
-          <div
-            className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold font-mono"
-            style={{ background: lvl.bg, color: lvl.color }}
-          >
-            {passport.address.slice(2, 4).toUpperCase()}
-          </div>
-          <div>
-            <div className="font-mono text-sm text-[#E5E5E5] flex items-center gap-2">
-              {truncateAddress(passport.address)}
-              <button onClick={copy} className="text-[#666666] hover:text-[#E5E5E5] transition-colors">
-                {copied ? '✓' : <Copy size={12} />}
-              </button>
-              <a
-                href={`https://basescan.org/address/${passport.address}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#666666] hover:text-[#0052FF] transition-colors"
-              >
-                <ExternalLink size={12} />
-              </a>
-            </div>
-            <div className="text-xs text-[#666666] mt-0.5">{lvl.desc}</div>
-          </div>
-        </div>
-
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-3 mb-5">
-          <StatBox icon={<Zap size={14} />} label="SCARAB" value={passport.scarabPoints.toLocaleString()} color="#F59E0B" />
-          <StatBox icon={<Trophy size={14} />} label="REP SCORE" value={passport.reputationScore.toString()} color="#0052FF" />
-          <StatBox icon={<Star size={14} />} label="REVIEWS GIVEN" value={passport.totalReviews.toString()} color="#22C55E" />
-          <StatBox icon={<Shield size={14} />} label="UPVOTES EARNED" value={passport.totalUpvotes.toString()} color="#7C3AED" />
-        </div>
-
-        {/* Fee tier */}
-        <div className="flex items-center justify-between bg-[#0D0D0D] rounded-lg px-4 py-3 border border-[#1F1F1F]">
-          <span className="font-mono text-xs text-[#666666]">PROTOCOL FEE TIER</span>
-          <span className="font-mono text-xs" style={{ color: lvl.color }}>{passport.feeDiscount}</span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function StatBox({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
-  return (
-    <div className="bg-[#0D0D0D] border border-[#1F1F1F] rounded-lg px-4 py-3">
-      <div className="flex items-center gap-1.5 mb-1" style={{ color }}>
-        {icon}
-        <span className="font-mono text-[10px] text-[#666666] tracking-widest">{label}</span>
-      </div>
-      <div className="font-mono text-xl font-bold text-[#E5E5E5]">{value}</div>
-    </div>
-  )
-}
-
-function ReviewRow({ review }: { review: Review }) {
-  const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating)
-  const timeAgo = (() => {
-    const diff = Date.now() - new Date(review.createdAt).getTime()
-    const d = Math.floor(diff / 86400000)
-    if (d > 0) return `${d}d ago`
-    const h = Math.floor(diff / 3600000)
-    if (h > 0) return `${h}h ago`
-    return 'just now'
-  })()
-
-  const href = review.project
-    ? (review.project.category === 'DeFi'
-        ? `/defi/${review.project.slug}/${review.project.id}`
-        : `/agent/${review.project.slug}`)
-    : '#'
-
-  return (
-    <Link href={href} className="flex items-start gap-4 px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg hover:border-[#0052FF]/50 transition-colors group">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-mono text-xs text-[#E5E5E5] truncate">{review.project?.name ?? 'Unknown'}</span>
-          <span className="font-mono text-[10px] text-[#666666] shrink-0">{review.project?.chain}</span>
-          {review.weight > 1 && (
-            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,82,255,0.15)', color: '#0052FF' }}>
-              {review.weight}x
-            </span>
-          )}
-        </div>
-        <div className="font-mono text-[10px] text-[#F59E0B] mb-1">{stars}</div>
-        {review.content && (
-          <div className="text-xs text-[#666666] truncate">"{review.content}"</div>
-        )}
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="font-mono text-[10px] text-[#666666]">{timeAgo}</span>
-        <ChevronRight size={12} className="text-[#333333] group-hover:text-[#0052FF] transition-colors" />
-      </div>
-    </Link>
-  )
-}
-
-// ─── Main scan component ──────────────────────────────────────────────────────
-
-function ScanContent() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const [input, setInput] = useState(searchParams.get('address') ?? '')
+export default function ScanPage() {
+  const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
-  const [passport, setPassport] = useState<TrustPassport | null>(null)
-  const [reviews, setReviews] = useState<Review[]>([])
-  const [error, setError] = useState('')
+  const [passport, setPassport] = useState<Passport | null>(null)
+  const [interactions, setInteractions] = useState<Interaction[]>([])
+  const [error, setError] = useState<string | null>(null)
 
-  const handleScan = async (addr: string = input.trim()) => {
-    if (!addr) return
-    if (!isValidAddress(addr)) {
-      setError('Invalid Ethereum address')
+  async function scan(addr: string) {
+    const address = addr.trim()
+    if (!address) return
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      setError('Invalid address — must be a valid 0x EVM address')
       return
     }
-    setError('')
+
     setLoading(true)
+    setError(null)
     setPassport(null)
-    setReviews([])
+    setInteractions([])
 
     try {
-      // Parallel fetch
-      const [repRes, reviewRes] = await Promise.all([
-        fetch(`/api/reputation?address=${addr}`),
-        fetch(`/api/v1/project?reviewer=${addr}&limit=20`).catch(() => null),
+      const [passportRes, interactionsRes] = await Promise.all([
+        fetch(`/api/v1/wallet/${address}/passport`),
+        fetch(`/api/v1/wallet/${address}/interactions`),
       ])
 
-      if (!repRes.ok) throw new Error('Address not found')
-      const rep = await repRes.json()
-      setPassport(rep)
-      router.replace(`/m/scan?address=${addr}`, { scroll: false })
+      if (!passportRes.ok) throw new Error('Passport lookup failed')
 
-      // Reviews are best-effort
-      if (reviewRes?.ok) {
-        const rv = await reviewRes.json()
-        setReviews(rv.reviews ?? [])
+      const passportData = await passportRes.json()
+      setPassport(passportData)
+
+      if (interactionsRes.ok) {
+        const iData = await interactionsRes.json()
+        setInteractions(iData.interactions ?? [])
       }
     } catch (e: any) {
-      setError(e.message || 'Failed to load passport')
+      setError(e.message ?? 'Scan failed')
     } finally {
       setLoading(false)
     }
   }
 
-  // Auto-scan if address in URL
-  useEffect(() => {
-    const addr = searchParams.get('address')
-    if (addr && isValidAddress(addr)) {
-      setInput(addr)
-      handleScan(addr)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const cfg = passport ? LEVEL_CONFIG[passport.trustLevel] : null
 
   return (
-    <div className="flex-1 p-6 max-w-2xl mx-auto w-full">
+    <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5] font-mono">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="font-mono text-xs text-[#666666] tracking-widest uppercase mb-1">// SCAN ADDRESS</h1>
-        <p className="font-mono text-lg text-[#E5E5E5]">Trust Passport Viewer</p>
-        <p className="text-xs text-[#666666] mt-1">Enter any wallet address to view their Trust Passport on Base</p>
+      <div className="border-b border-[#1F1F1F] px-6 py-4 flex items-center gap-3">
+        <Link href="/explore" className="text-[#444] hover:text-[#888] transition-colors text-xs">
+          ← EXPLORE
+        </Link>
+        <span className="text-[#333]">/</span>
+        <span className="text-[#888] text-xs uppercase tracking-widest">// SCAN ADDRESS</span>
       </div>
 
-      {/* Search input */}
-      <div className="flex gap-2 mb-6">
-        <div className="flex-1 relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666]" />
-          <input
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleScan()}
-            placeholder="0x... wallet address"
-            className="w-full bg-[#111111] border border-[#1F1F1F] rounded-lg pl-9 pr-4 py-3 font-mono text-sm text-[#E5E5E5] placeholder-[#333333] focus:outline-none focus:border-[#0052FF]/50 focus:shadow-[0_0_0_1px_rgba(0,82,255,0.3)] transition-all"
-          />
+      <div className="max-w-3xl mx-auto px-6 py-12">
+        {/* Title */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold tracking-tight text-white mb-1">
+            // Trust Passport Scanner
+          </h1>
+          <p className="text-xs text-[#555]">
+            Enter any EVM wallet address to view its Trust Passport — reputation level, Scarab balance, and on-chain activity.
+          </p>
         </div>
-        <button
-          onClick={() => handleScan()}
-          disabled={loading}
-          className="px-5 py-3 bg-[#0052FF] hover:bg-[#0040CC] disabled:opacity-50 text-white font-mono text-sm rounded-lg transition-colors"
-        >
-          {loading ? '...' : 'SCAN'}
-        </button>
-      </div>
 
-      {/* Error */}
-      {error && (
-        <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg font-mono text-xs text-red-400">
-          {error}
-        </div>
-      )}
-
-      {/* Loading */}
-      {loading && (
-        <div className="text-center py-12">
-          <div className="font-mono text-xs text-[#666666] animate-pulse">// SCANNING CHAIN...</div>
-        </div>
-      )}
-
-      {/* Passport */}
-      {passport && !loading && (
-        <div className="space-y-4">
-          <PassportCard passport={passport} />
-
-          {/* Reviews section */}
-          <div className="border border-[#1F1F1F] rounded-xl bg-[#111111] overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-[#1F1F1F] bg-[#0D0D0D]">
-              <span className="font-mono text-xs text-[#666666] tracking-widest uppercase">// REVIEWS GIVEN</span>
-              <span className="font-mono text-xs text-[#0052FF]">{passport.totalReviews} total</span>
-            </div>
-            <div className="p-3 space-y-2">
-              {reviews.length > 0 ? (
-                reviews.map(r => <ReviewRow key={r.id} review={r} />)
-              ) : (
-                <div className="text-center py-6 font-mono text-xs text-[#333333]">
-                  // no reviews indexed yet
-                </div>
-              )}
-            </div>
+        {/* Search */}
+        <div className="flex gap-2 mb-8">
+          <div className="flex-1 relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#444]" />
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && scan(query)}
+              placeholder="0x..."
+              className="w-full bg-[#111] border border-[#1F1F1F] rounded-lg pl-9 pr-4 py-3 text-sm text-[#E5E5E5] placeholder-[#333] focus:outline-none focus:border-[#0052FF]/50 transition-colors"
+            />
           </div>
+          <button
+            onClick={() => scan(query)}
+            disabled={loading}
+            className="px-5 py-3 bg-[#0052FF] text-white text-xs font-bold rounded-lg hover:bg-[#0047DD] disabled:opacity-40 transition-colors"
+          >
+            {loading ? 'SCANNING...' : 'SCAN'}
+          </button>
         </div>
-      )}
 
-      {/* Empty state */}
-      {!passport && !loading && !error && (
-        <div className="text-center py-16">
-          <Shield size={32} className="text-[#1F1F1F] mx-auto mb-4" />
-          <div className="font-mono text-xs text-[#333333]">// ENTER AN ADDRESS TO VIEW TRUST PASSPORT</div>
-        </div>
-      )}
-    </div>
-  )
-}
+        {/* Error */}
+        {error && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-lg text-[#EF4444] text-xs mb-6">
+            <AlertTriangle size={13} />
+            {error}
+          </div>
+        )}
 
-export default function ScanPage() {
-  return (
-    <Suspense fallback={
-      <div className="flex-1 flex items-center justify-center">
-        <div className="font-mono text-xs text-[#666666] animate-pulse">// LOADING...</div>
+        {/* Loading */}
+        {loading && (
+          <div className="text-center py-16 text-[#444] text-xs">
+            <div className="animate-pulse">// scanning on-chain data...</div>
+          </div>
+        )}
+
+        {/* Passport Result */}
+        {passport && cfg && (
+          <div className="space-y-4">
+            {/* Trust Level Card */}
+            <div
+              className="rounded-xl p-6 border"
+              style={{ background: cfg.bg, borderColor: cfg.border }}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{cfg.icon}</span>
+                    <span className="text-xl font-bold" style={{ color: cfg.color }}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                  <div className="text-[#888] text-xs">{truncate(passport.address)}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-white">{passport.reputationScore}</div>
+                  <div className="text-[#555] text-xs">REP SCORE</div>
+                </div>
+              </div>
+
+              {/* Stats Row */}
+              <div className="grid grid-cols-4 gap-3 pt-4 border-t" style={{ borderColor: cfg.border }}>
+                {[
+                  { label: 'SCARAB', value: `🪲 ${passport.scarabPoints.toLocaleString()}`, color: '#F59E0B' },
+                  { label: 'REVIEWS', value: passport.totalReviews, color: '#22C55E' },
+                  { label: 'UPVOTES', value: passport.totalUpvotes, color: '#0052FF' },
+                  { label: 'FEE TIER', value: passport.feeDiscount.split('(')[0].trim(), color: cfg.color },
+                ].map(s => (
+                  <div key={s.label} className="text-center">
+                    <div className="text-sm font-bold" style={{ color: s.color }}>{s.value}</div>
+                    <div className="text-[10px] text-[#444] mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Level Explanation */}
+            <div className="px-4 py-3 bg-[#111] border border-[#1F1F1F] rounded-lg text-xs text-[#666]">
+              {passport.trustLevel === 'guardian' && '// Guardian: 200+ rep score. Community champion. 0% platform fee, 3× review weight.'}
+              {passport.trustLevel === 'verified' && '// Verified: 50+ rep score. Identity confirmed via Base Verify. 0.1% fee, 2× weight.'}
+              {passport.trustLevel === 'trusted' && '// Trusted: 10+ rep score. Established contributor. 0.3% fee, 1× weight.'}
+              {passport.trustLevel === 'new' && '// New: 0-9 rep score. Earn Scarab by writing quality reviews. Standard 0.5% fee.'}
+            </div>
+
+            {/* Reviews Given */}
+            {passport.reviewsGiven && passport.reviewsGiven.length > 0 && (
+              <div className="bg-[#111] border border-[#1F1F1F] rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#1F1F1F] flex items-center gap-2">
+                  <Star size={12} className="text-[#F59E0B]" />
+                  <span className="text-xs text-[#888] uppercase tracking-widest">
+                    // Reviews Given ({passport.reviewsGiven.length})
+                  </span>
+                </div>
+                {passport.reviewsGiven.slice(0, 5).map((r, i) => (
+                  <Link
+                    key={i}
+                    href={`/agent/${r.projectSlug}`}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-[#161616] transition-colors border-b border-[#1A1A1A] last:border-0"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-white font-medium mb-0.5">{r.projectName}</div>
+                      <div className="text-[11px] text-[#555] truncate">{r.content}</div>
+                    </div>
+                    <div className="flex items-center gap-3 ml-3 flex-shrink-0">
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 5 }).map((_, j) => (
+                          <span key={j} className={`text-[10px] ${j < r.rating / 2 ? 'text-[#F59E0B]' : 'text-[#333]'}`}>★</span>
+                        ))}
+                      </div>
+                      <span className="text-[10px] text-[#444]">{timeAgo(r.createdAt)}</span>
+                      <ChevronRight size={12} className="text-[#333]" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* On-chain Interactions */}
+            {interactions.length > 0 && (
+              <div className="bg-[#111] border border-[#1F1F1F] rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#1F1F1F] flex items-center gap-2">
+                  <Activity size={12} className="text-[#0052FF]" />
+                  <span className="text-xs text-[#888] uppercase tracking-widest">
+                    // On-chain Interactions ({interactions.length})
+                  </span>
+                </div>
+                {interactions.slice(0, 8).map((item, i) => (
+                  <Link
+                    key={i}
+                    href={item.category === 'DeFi' ? `/defi/${item.address}/${item.address}` : `/agent/${item.address}`}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-[#161616] transition-colors border-b border-[#1A1A1A] last:border-0"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold"
+                        style={{
+                          background: item.category === 'DeFi' ? 'rgba(124,58,237,0.15)' : 'rgba(0,82,255,0.15)',
+                          color: item.category === 'DeFi' ? '#7C3AED' : '#0052FF',
+                        }}
+                      >
+                        {item.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-xs text-white">{item.name}</div>
+                        <div className="text-[10px] text-[#444]">{item.chain} · {item.category}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-right">
+                      <div>
+                        <div className="text-xs font-bold" style={{
+                          color: item.trustScore >= 70 ? '#22C55E' : item.trustScore >= 50 ? '#F59E0B' : '#EF4444'
+                        }}>
+                          {(item.trustScore / 10).toFixed(1)}
+                        </div>
+                        <div className="text-[10px] text-[#444]">TRUST</div>
+                      </div>
+                      <ChevronRight size={12} className="text-[#333]" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* No interactions */}
+            {!loading && interactions.length === 0 && (
+              <div className="text-center py-8 text-[#444] text-xs border border-[#1F1F1F] rounded-xl">
+                // No indexed interactions found on Base
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!passport && !loading && !error && (
+          <div className="text-center py-20 text-[#333]">
+            <Shield size={40} className="mx-auto mb-4 opacity-20" />
+            <div className="text-xs uppercase tracking-widest">// Enter a wallet address to scan</div>
+          </div>
+        )}
       </div>
-    }>
-      <ScanContent />
-    </Suspense>
+    </div>
   )
 }
