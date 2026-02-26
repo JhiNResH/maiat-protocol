@@ -110,8 +110,14 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Step 1: x402 gate ──────────────────────────────────────────────────────
+  // Internal bypass: maiat-agent can call with X-Internal-Token to skip x402
+  const internalToken = req.headers.get("x-internal-token");
+  const validInternalToken =
+    process.env.MAIAT_INTERNAL_TOKEN &&
+    internalToken === process.env.MAIAT_INTERNAL_TOKEN;
+
   // No payment header → return 402 with instructions
-  if (!payment) {
+  if (!payment && !validInternalToken) {
     return NextResponse.json(
       {
         error: "Payment required",
@@ -144,20 +150,20 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Step 2: Verify payment tx ──────────────────────────────────────────────
-  const { valid, from: checkerAddress, error: payErr } = await verifyPayment(
-    payment,
-    PAYMENT_ADDRESS
-  );
-
-  // Allow bypass in dev / if payment address not configured
+  // Bypass: dev mode OR internal token (maiat-agent calls skip x402)
   const isDev = !process.env.MAIAT_PAYMENT_ADDRESS ||
                 process.env.NODE_ENV === "development";
 
-  if (!valid && !isDev) {
-    return NextResponse.json(
-      { error: "Payment verification failed", detail: payErr },
-      { status: 402, headers: CORS }
-    );
+  let checkerAddress: string | undefined;
+  if (!validInternalToken && payment) {
+    const result = await verifyPayment(payment, PAYMENT_ADDRESS);
+    checkerAddress = result.from;
+    if (!result.valid && !isDev) {
+      return NextResponse.json(
+        { error: "Payment verification failed", detail: result.error },
+        { status: 402, headers: CORS }
+      );
+    }
   }
 
   // ── Step 3: Fetch trust data ───────────────────────────────────────────────
