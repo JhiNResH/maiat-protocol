@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Feather, Search } from 'lucide-react'
+import { Search, Shield } from 'lucide-react'
 import { ConnectButton } from './ConnectButton'
 
 export function Header() {
@@ -19,32 +19,32 @@ export function Header() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-[73px] flex items-center justify-between px-6 border-b border-[#1a1a1b] z-50 bg-[#030303]">
+    <header className="fixed top-0 left-0 right-0 h-[64px] flex items-center justify-between px-6 border-b border-[#1e2035] z-50 bg-[#050508]/95 backdrop-blur-sm">
       {/* Logo */}
-      <Link href="/explore" className="flex items-center gap-2.5 shrink-0">
-        <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center shadow-lg shadow-gold/10">
-          <Feather className="w-6 h-6 text-black" />
+      <Link href="/explore" className="flex items-center gap-2.5 shrink-0 group">
+        <div className="w-8 h-8 bg-[#0052FF] rounded-lg flex items-center justify-center shadow-lg shadow-[#0052FF]/20 group-hover:shadow-[#0052FF]/40 transition-shadow">
+          <Shield className="w-4.5 h-4.5 text-white" strokeWidth={2.5} />
         </div>
-        <span className="font-mono text-xl font-bold tracking-[3px] text-[#d7dadc] hidden sm:block">MAIAT</span>
+        <span className="font-mono text-sm font-bold tracking-[4px] text-white hidden sm:block">MAIAT</span>
       </Link>
 
-      {/* Search Bar (Reddit Style) */}
-      <div className="flex-1 max-w-2xl px-8">
+      {/* Search Bar */}
+      <div className="flex-1 max-w-xl px-8">
         <form onSubmit={handleSearch} className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#818384] group-focus-within:text-gold transition-colors" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#475569] group-focus-within:text-[#0052FF] transition-colors" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search communities, agents, or addresses..."
-            className="w-full bg-[#1a1a1b] hover:bg-[#272729] focus:bg-[#272729] border border-[#343536] focus:border-[#d7dadc] text-sm text-[#d7dadc] placeholder-[#818384] rounded-full py-2.5 pl-11 pr-4 outline-none transition-all font-mono"
+            placeholder="Search agents, protocols, or 0x addresses..."
+            className="w-full bg-[#0d0e17] hover:bg-[#13141f] focus:bg-[#13141f] border border-[#1e2035] focus:border-[#0052FF]/50 text-sm text-[#f1f5f9] placeholder-[#475569] rounded-lg py-2 pl-10 pr-4 outline-none transition-all"
             spellCheck={false}
           />
         </form>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-4 shrink-0">
+      {/* Actions */}
+      <div className="flex items-center gap-3 shrink-0">
         <ConnectButton />
       </div>
     </header>

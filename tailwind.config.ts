@@ -20,6 +20,8 @@ const config: Config = {
         'border-subtle': 'var(--border-subtle)',
         gold: 'var(--primary-gold)',
         'gold-light': 'var(--primary-gold-light)',
+        accent: 'var(--accent-blue)',
+        'accent-dim': 'var(--accent-blue-dim)',
         turquoise: 'var(--secondary-turquoise)',
         emerald: 'var(--success-emerald)',
         crimson: 'var(--danger-crimson)',
