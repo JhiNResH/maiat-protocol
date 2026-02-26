@@ -6,6 +6,51 @@ import Link from 'next/link'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+// Matches /api/v1/wallet/[address]/passport response
+interface PassportApiResponse {
+  address: string
+  passport: {
+    trustLevel: 'new' | 'trusted' | 'verified' | 'guardian'
+    reputationScore: number
+    totalReviews: number
+    totalUpvotes: number
+    feeTier: number
+    feeDiscount: string
+  }
+  scarab: {
+    balance: number
+  }
+  reviews: {
+    recent: Array<{
+      id: string
+      rating: number
+      comment: string
+      address: string   // project address
+      projectName?: string
+      projectSlug?: string
+      createdAt: string
+    }>
+    count: number
+    averageRating: number
+  }
+}
+
+// Matches /api/v1/wallet/[address]/interactions response
+interface InteractionApiResponse {
+  address: string
+  interactedCount: number
+  interacted: Array<{
+    name: string | null
+    address: string
+    category: string | null
+    txCount: number
+    isKnown: boolean
+    hasReviewed: boolean
+    trustScore: number | null
+  }>
+}
+
+// Normalized for display
 interface Passport {
   address: string
   trustLevel: 'new' | 'trusted' | 'verified' | 'guardian'
@@ -15,24 +60,17 @@ interface Passport {
   totalUpvotes: number
   feeTier: number
   feeDiscount: string
-  reviewsGiven?: Array<{
-    projectName: string
-    projectSlug: string
-    rating: number
-    content: string
-    createdAt: string
-    weight: number
-  }>
+  reviewsGiven: PassportApiResponse['reviews']['recent']
 }
 
 interface Interaction {
   address: string
   name: string
   category: string
-  chain: string
-  trustScore: number
+  trustScore: number | null
   txCount: number
-  lastSeen?: string
+  isKnown: boolean
+  hasReviewed: boolean
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -87,12 +125,33 @@ export default function ScanPage() {
 
       if (!passportRes.ok) throw new Error('Passport lookup failed')
 
-      const passportData = await passportRes.json()
-      setPassport(passportData)
+      // Map nested API response → flat display type
+      const raw: PassportApiResponse = await passportRes.json()
+      setPassport({
+        address: raw.address,
+        trustLevel: raw.passport.trustLevel,
+        reputationScore: raw.passport.reputationScore,
+        scarabPoints: raw.scarab.balance,
+        totalReviews: raw.reviews.count,
+        totalUpvotes: raw.passport.totalUpvotes,
+        feeTier: raw.passport.feeTier,
+        feeDiscount: raw.passport.feeDiscount,
+        reviewsGiven: raw.reviews.recent,
+      })
 
       if (interactionsRes.ok) {
-        const iData = await interactionsRes.json()
-        setInteractions(iData.interactions ?? [])
+        const iRaw: InteractionApiResponse = await interactionsRes.json()
+        setInteractions(
+          iRaw.interacted.map(i => ({
+            address: i.address,
+            name: i.name ?? i.address.slice(0, 8) + '...',
+            category: i.category ?? 'Unknown',
+            trustScore: i.trustScore,
+            txCount: i.txCount,
+            isKnown: i.isKnown,
+            hasReviewed: i.hasReviewed,
+          }))
+        )
       }
     } catch (e: any) {
       setError(e.message ?? 'Scan failed')
@@ -222,12 +281,14 @@ export default function ScanPage() {
                 {passport.reviewsGiven.slice(0, 5).map((r, i) => (
                   <Link
                     key={i}
-                    href={`/agent/${r.projectSlug}`}
+                    href={`/agent/${r.projectSlug ?? r.address}`}
                     className="flex items-center justify-between px-4 py-3 hover:bg-[#161616] transition-colors border-b border-[#1A1A1A] last:border-0"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-white font-medium mb-0.5">{r.projectName}</div>
-                      <div className="text-[11px] text-[#555] truncate">{r.content}</div>
+                      <div className="text-xs text-white font-medium mb-0.5">
+                        {r.projectName ?? truncate(r.address)}
+                      </div>
+                      <div className="text-[11px] text-[#555] truncate">{r.comment}</div>
                     </div>
                     <div className="flex items-center gap-3 ml-3 flex-shrink-0">
                       <div className="flex gap-0.5">
@@ -255,33 +316,38 @@ export default function ScanPage() {
                 {interactions.slice(0, 8).map((item, i) => (
                   <Link
                     key={i}
-                    href={item.category === 'DeFi' ? `/defi/${item.address}/${item.address}` : `/agent/${item.address}`}
+                    href={`/agent/${item.address}`}
                     className="flex items-center justify-between px-4 py-3 hover:bg-[#161616] transition-colors border-b border-[#1A1A1A] last:border-0"
                   >
                     <div className="flex items-center gap-3">
                       <div
                         className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold"
                         style={{
-                          background: item.category === 'DeFi' ? 'rgba(124,58,237,0.15)' : 'rgba(0,82,255,0.15)',
-                          color: item.category === 'DeFi' ? '#7C3AED' : '#0052FF',
+                          background: item.isKnown ? 'rgba(0,82,255,0.15)' : 'rgba(102,102,102,0.15)',
+                          color: item.isKnown ? '#0052FF' : '#666',
                         }}
                       >
                         {item.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <div className="text-xs text-white">{item.name}</div>
-                        <div className="text-[10px] text-[#444]">{item.chain} · {item.category}</div>
+                        <div className="text-xs text-white flex items-center gap-1.5">
+                          {item.name}
+                          {item.hasReviewed && <span className="text-[9px] text-[#22C55E]">✓ reviewed</span>}
+                        </div>
+                        <div className="text-[10px] text-[#444]">{item.txCount} txs · {item.category}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 text-right">
-                      <div>
-                        <div className="text-xs font-bold" style={{
-                          color: item.trustScore >= 70 ? '#22C55E' : item.trustScore >= 50 ? '#F59E0B' : '#EF4444'
-                        }}>
-                          {(item.trustScore / 10).toFixed(1)}
+                      {item.trustScore !== null && (
+                        <div>
+                          <div className="text-xs font-bold" style={{
+                            color: (item.trustScore ?? 0) >= 70 ? '#22C55E' : (item.trustScore ?? 0) >= 50 ? '#F59E0B' : '#EF4444'
+                          }}>
+                            {((item.trustScore ?? 0) / 10).toFixed(1)}
+                          </div>
+                          <div className="text-[10px] text-[#444]">TRUST</div>
                         </div>
-                        <div className="text-[10px] text-[#444]">TRUST</div>
-                      </div>
+                      )}
                       <ChevronRight size={12} className="text-[#333]" />
                     </div>
                   </Link>
