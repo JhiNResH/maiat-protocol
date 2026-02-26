@@ -63,7 +63,7 @@ const projects = [
   {
     name: 'Aerodrome', slug: 'aerodrome', symbol: 'AERO',
     address: '0x940181a94A35A4569E4529A3CDfB74e38FD98631',
-    description: 'Base's native DEX and liquidity hub. Built on Velodrome V2 architecture. Dominant trading volume on Base.',
+    description: 'Base native DEX and liquidity hub. Built on Velodrome V2 architecture. Dominant trading volume on Base.',
     website: 'https://aerodrome.finance',
     category: 'm/defi', chain: 'Base', status: 'active', avgRating: 4.6, reviewCount: 0,
   },
