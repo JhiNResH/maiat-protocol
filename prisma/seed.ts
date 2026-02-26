@@ -133,6 +133,38 @@ const projects = [
     category: 'm/defi', chain: 'Ethereum', status: 'active', avgRating: 4.4, reviewCount: 0,
   },
 
+
+  // ── Ethereum: More DeFi ───────────────────────────────────────────
+  {
+    name: 'Pendle Finance', slug: 'pendle', symbol: 'PENDLE',
+    address: '0x808507121b80c02388fad14726482e061b8da827',
+    description: 'Yield tokenization protocol. Split yield-bearing assets into principal and yield tokens — trade future yield at a fixed rate.',
+    website: 'https://pendle.finance',
+    category: 'm/defi', chain: 'Ethereum', status: 'active', avgRating: 4.4, reviewCount: 0,
+  },
+  {
+    name: 'Morpho', slug: 'morpho', symbol: 'MORPHO',
+    address: '0x58d97b57bb95320f9a05dc918aef65434969c2b2',
+    description: 'Peer-to-peer lending optimizer built on top of Aave and Compound. Matches lenders and borrowers directly for better rates.',
+    website: 'https://morpho.org',
+    category: 'm/defi', chain: 'Ethereum', status: 'active', avgRating: 4.6, reviewCount: 0,
+  },
+  {
+    name: 'Rocket Pool', slug: 'rocketpool', symbol: 'RPL',
+    address: '0xD33526068D116cE69F19A9ee46F0bd304F21A51f',
+    description: 'Decentralized ETH staking protocol. Node operators stake 8 ETH minimum and earn both ETH and RPL rewards.',
+    website: 'https://rocketpool.net',
+    category: 'm/defi', chain: 'Ethereum', status: 'active', avgRating: 4.5, reviewCount: 0,
+  },
+  {
+    name: 'Convex Finance', slug: 'convex', symbol: 'CVX',
+    address: '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B',
+    description: 'Curve yield optimizer. Boost CRV rewards without locking. Dominant platform for Curve liquidity providers.',
+    website: 'https://convexfinance.com',
+    category: 'm/defi', chain: 'Ethereum', status: 'active', avgRating: 4.3, reviewCount: 0,
+  },
+]
+
   // ── Ethereum: AI Agent Infrastructure ────────────────────────────
   {
     name: 'Autonolas', slug: 'autonolas', symbol: 'OLAS',
@@ -152,7 +184,7 @@ const seedUsers = [
 ]
 
 async function main() {
-  console.log('🌱 Seeding Maiat — Base + Ethereum (18 projects)\n')
+  console.log('🌱 Seeding Maiat — Base + Ethereum (22 projects)\n')
 
   await prisma.vote.deleteMany({})
   await prisma.review.deleteMany({})
@@ -171,7 +203,7 @@ async function main() {
     console.log(`   [${p.chain}] ✅ ${p.name}`)
   }
 
-  console.log(`\n✅ Done! ${projects.length} projects (BNB removed), ${seedUsers.length} users`)
+  console.log(`\n✅ Done! ${projects.length} projects, ${seedUsers.length} users`)
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect())
