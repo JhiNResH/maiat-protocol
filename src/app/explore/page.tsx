@@ -57,6 +57,13 @@ const CATEGORIES = [
   { id: "protocols", label: "Protocols" },
 ];
 
+const CHAINS = [
+  { id: "all",      label: "All Chains" },
+  { id: "Base",     label: "Base" },
+  { id: "Ethereum", label: "Ethereum" },
+  { id: "BNB",      label: "BNB" },
+];
+
 const SORT_OPTIONS = [
   { id: "score_desc", label: "Score High→Low" },
   { id: "most_reviewed", label: "Most Reviewed" },
@@ -369,6 +376,231 @@ const SEED_ITEMS: ExploreItem[] = [
     iconColor: "#0052FF",
     dataSource: "seed" as const,
   },
+
+  // ── Ethereum Mainnet ─────────────────────────────────────────────────────
+  {
+    id: "eth-1",
+    address: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+    name: "Uniswap V3 Router",
+    category: "DEX",
+    chain: "Ethereum",
+    trustScore: 9.0,
+    riskLevel: "LOW",
+    txCount: 4800000,
+    reviewCount: 112,
+    ageLabel: "4y",
+    starRating: 4.9,
+    latestReview: "The most battle-tested DEX router in existence.",
+    iconLetter: "U",
+    iconColor: "#FF007A",
+    dataSource: "seed" as const,
+  },
+  {
+    id: "eth-2",
+    address: "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+    name: "Aave V3 Pool",
+    category: "Lending",
+    chain: "Ethereum",
+    trustScore: 9.3,
+    riskLevel: "LOW",
+    txCount: 2900000,
+    reviewCount: 89,
+    ageLabel: "5y",
+    starRating: 4.8,
+    latestReview: "Industry standard for DeFi lending. Excellent risk controls.",
+    iconLetter: "A",
+    iconColor: "#B6509E",
+    dataSource: "seed" as const,
+  },
+  {
+    id: "eth-3",
+    address: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+    name: "Lido stETH",
+    category: "Yield",
+    chain: "Ethereum",
+    trustScore: 8.8,
+    riskLevel: "LOW",
+    txCount: 1650000,
+    reviewCount: 67,
+    ageLabel: "4y",
+    starRating: 4.6,
+    latestReview: "Largest liquid staking protocol. Multiple audits.",
+    iconLetter: "Li",
+    iconColor: "#00A3FF",
+    dataSource: "seed" as const,
+  },
+  {
+    id: "eth-4",
+    address: "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
+    name: "Compound V3",
+    category: "Lending",
+    chain: "Ethereum",
+    trustScore: 8.9,
+    riskLevel: "LOW",
+    txCount: 980000,
+    reviewCount: 54,
+    ageLabel: "4y",
+    starRating: 4.4,
+    latestReview: "Reliable lending with conservative risk management.",
+    iconLetter: "C",
+    iconColor: "#00D395",
+    dataSource: "seed" as const,
+  },
+  {
+    id: "eth-5",
+    address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+    name: "Chainlink ETH/USD",
+    category: "Oracle",
+    chain: "Ethereum",
+    trustScore: 9.4,
+    riskLevel: "LOW",
+    txCount: 5200000,
+    reviewCount: 73,
+    ageLabel: "5y",
+    starRating: 4.9,
+    latestReview: "The gold standard oracle. Never goes down.",
+    iconLetter: "C",
+    iconColor: "#375BD2",
+    dataSource: "seed" as const,
+  },
+  {
+    id: "eth-6",
+    address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    name: "USDT (Tether)",
+    category: "Stablecoin",
+    chain: "Ethereum",
+    trustScore: 8.5,
+    riskLevel: "LOW",
+    txCount: 12000000,
+    reviewCount: 145,
+    ageLabel: "6y",
+    starRating: 4.0,
+    latestReview: "Most used stablecoin. Centralized but widespread trust.",
+    iconLetter: "T",
+    iconColor: "#26A17B",
+    dataSource: "seed" as const,
+  },
+  {
+    id: "eth-7",
+    address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+    name: "WBTC",
+    category: "Token",
+    chain: "Ethereum",
+    trustScore: 8.7,
+    riskLevel: "LOW",
+    txCount: 890000,
+    reviewCount: 48,
+    ageLabel: "5y",
+    starRating: 4.5,
+    latestReview: "Canonical wrapped Bitcoin on Ethereum.",
+    iconLetter: "W",
+    iconColor: "#F7931A",
+    dataSource: "seed" as const,
+  },
+
+  // ── BNB Chain ────────────────────────────────────────────────────────────
+  {
+    id: "bnb-1",
+    address: "0x13f4EA83D0bd40E75C8222255bc855a974568Dd4",
+    name: "PancakeSwap V3",
+    category: "DEX",
+    chain: "BNB",
+    trustScore: 8.2,
+    riskLevel: "LOW",
+    txCount: 6700000,
+    reviewCount: 91,
+    ageLabel: "4y",
+    starRating: 4.5,
+    latestReview: "Dominant DEX on BSC. High volume, good liquidity.",
+    iconLetter: "P",
+    iconColor: "#1FC7D4",
+    dataSource: "seed" as const,
+  },
+  {
+    id: "bnb-2",
+    address: "0xfD36E2c2a6789Db23113685031d7F16329158384",
+    name: "Venus Comptroller",
+    category: "Lending",
+    chain: "BNB",
+    trustScore: 7.8,
+    riskLevel: "LOW",
+    txCount: 1200000,
+    reviewCount: 43,
+    ageLabel: "3y",
+    starRating: 4.1,
+    latestReview: "BSC's leading lending protocol. Has had issues but recovered.",
+    iconLetter: "V",
+    iconColor: "#9C4221",
+    dataSource: "seed" as const,
+  },
+  {
+    id: "bnb-3",
+    address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82",
+    name: "CAKE",
+    category: "Token",
+    chain: "BNB",
+    trustScore: 7.5,
+    riskLevel: "LOW",
+    txCount: 3400000,
+    reviewCount: 67,
+    ageLabel: "4y",
+    starRating: 3.9,
+    latestReview: "PancakeSwap governance token. High emission historically.",
+    iconLetter: "CK",
+    iconColor: "#1FC7D4",
+    dataSource: "seed" as const,
+  },
+  {
+    id: "bnb-4",
+    address: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c",
+    name: "BTCB",
+    category: "Token",
+    chain: "BNB",
+    trustScore: 8.5,
+    riskLevel: "LOW",
+    txCount: 780000,
+    reviewCount: 29,
+    ageLabel: "4y",
+    starRating: 4.4,
+    latestReview: "BSC's wrapped BTC. Lower fees than WBTC.",
+    iconLetter: "BT",
+    iconColor: "#F7931A",
+    dataSource: "seed" as const,
+  },
+  {
+    id: "bnb-5",
+    address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+    name: "WBNB",
+    category: "Token",
+    chain: "BNB",
+    trustScore: 9.0,
+    riskLevel: "LOW",
+    txCount: 9800000,
+    reviewCount: 82,
+    ageLabel: "4y",
+    starRating: 4.7,
+    latestReview: "Native wrapped BNB. Canonical and widely used.",
+    iconLetter: "WB",
+    iconColor: "#F3BA2F",
+    dataSource: "seed" as const,
+  },
+  {
+    id: "bnb-6",
+    address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+    name: "USDC (BEP-20)",
+    category: "Stablecoin",
+    chain: "BNB",
+    trustScore: 9.0,
+    riskLevel: "LOW",
+    txCount: 4500000,
+    reviewCount: 56,
+    ageLabel: "3y",
+    starRating: 4.6,
+    latestReview: "Circle's USDC on BSC. Fully backed.",
+    iconLetter: "U",
+    iconColor: "#2775CA",
+    dataSource: "seed" as const,
+  },
 ];
 
 const TOP_MOVERS = [
@@ -469,6 +701,7 @@ function Stars({ rating }: { rating: number }) {
 export default function ExplorePage() {
   const { authenticated, login } = usePrivy();
   const [category, setCategory] = useState("all");
+  const [selectedChain, setSelectedChain] = useState("all");
   const [sortBy, setSortBy] = useState("score_desc");
   const [search, setSearch] = useState("");
   const [showSort, setShowSort] = useState(false);
@@ -508,8 +741,9 @@ export default function ExplorePage() {
       const updated = await Promise.all(
         SEED_ITEMS.map(async (item) => {
           try {
+            const chainParam = item.chain === "Ethereum" ? "eth" : item.chain === "BNB" ? "bnb" : "base";
             const [scoreRes, reviewRes] = await Promise.all([
-              fetch(`/api/v1/score/${item.address}`),
+              fetch(`/api/v1/score/${item.address}?chain=${chainParam}`),
               fetch(`/api/v1/review?address=${item.address}`),
             ]);
             const scoreData = scoreRes.ok ? await scoreRes.json() : null;
@@ -556,9 +790,14 @@ export default function ExplorePage() {
   const filtered = useMemo(() => {
     let result = [...items];
 
+    // Chain filter
+    if (selectedChain !== "all") {
+      result = result.filter((item) => item.chain === selectedChain);
+    }
+
     if (category !== "all") {
       const map: Record<string, string[]> = {
-        defi: ["DEX", "Lending", "DeFi"],
+        defi: ["DEX", "Lending", "DeFi", "Yield"],
         tokens: ["Token", "Stablecoin"],
         agents: ["Agent"],
         protocols: ["Oracle", "Bridge", "Infrastructure"],
@@ -590,7 +829,7 @@ export default function ExplorePage() {
     }
 
     return result;
-  }, [category, search, sortBy]);
+  }, [category, selectedChain, search, sortBy, items]);
 
   function openReview(item: ExploreItem) {
     if (!authenticated) {
@@ -631,8 +870,25 @@ export default function ExplorePage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Explore</h1>
           <p className="text-sm text-txt-muted mt-1">
-            Browse scored protocols, tokens, and addresses on Base
+            Browse trust scores for protocols, tokens, and agents across Base, Ethereum, and BNB
           </p>
+        </div>
+
+        {/* Chain filter */}
+        <div className="flex gap-2 mb-3 overflow-x-auto">
+          {CHAINS.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setSelectedChain(c.id)}
+              className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all whitespace-nowrap ${
+                selectedChain === c.id
+                  ? "bg-[#1a1a1e] text-gold border border-gold/30"
+                  : "text-txt-muted hover:text-txt-secondary border border-transparent hover:border-border-subtle"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
         </div>
 
         {/* Filters */}
@@ -732,7 +988,11 @@ export default function ExplorePage() {
                       <span className="px-2 py-0.5 rounded-md bg-gold/10 text-gold text-[9px] font-bold uppercase tracking-wider">
                         {item.category}
                       </span>
-                      <span className="px-2 py-0.5 rounded-md bg-bg-primary text-txt-muted text-[9px] font-bold uppercase tracking-wider">
+                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${
+                        item.chain === "Ethereum" ? "bg-[#627EEA]/15 text-[#627EEA]" :
+                        item.chain === "BNB"      ? "bg-[#F3BA2F]/15 text-[#F3BA2F]" :
+                                                    "bg-[#0052FF]/15 text-[#0052FF]"
+                      }`}>
                         {item.chain}
                       </span>
                     </div>
