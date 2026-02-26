@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 
-// The main Maiat landing page is served from https://maiat.xyz (maiat-landing repo).
-// This route redirects there so maiat-protocol.vercel.app/  doesn't show a stale page.
-// App routes (/explore, /dashboard, /score, /token, /swap) remain here.
+// Redirect root → /explore until a custom domain is set up for the landing page.
+// When maiat.xyz (or maiat-landing.vercel.app) is live, update this to:
+//   redirect('https://maiat.xyz')
 export default function HomePage() {
-  redirect('https://maiat.xyz')
+  redirect('/explore')
 }
