@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { Header } from "@/components/Header";
 import {
   Search,
   TrendingUp,
@@ -626,7 +625,6 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-bg-primary text-txt-primary">
-      <Header />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Page Title */}

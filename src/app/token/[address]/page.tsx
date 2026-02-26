@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Header } from '@/components/Header'
 import { TrustGauge } from '@/components/TrustGauge'
 import { ScoreBreakdown } from '@/components/ScoreBreakdown'
 import {
@@ -120,7 +119,6 @@ export default function TokenDetailPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-page">
-      <Header />
 
       <div className="flex flex-col gap-8 px-[60px] py-10 w-full">
         {/* Token Header */}

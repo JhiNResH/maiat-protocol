@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Header } from '@/components/Header'
 import {
   Wallet, ChevronDown, ArrowLeftRight, CircleCheck, Repeat, Zap
 } from 'lucide-react'
@@ -105,7 +104,6 @@ export default function SwapPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-page">
-      <Header />
 
       <div className="flex flex-col items-center gap-8 py-[60px] w-full">
         <h1 className="text-[36px] font-bold text-txt-primary">Trust-Gated Swap</h1>
