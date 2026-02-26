@@ -1,46 +1,40 @@
-'use client'
+import type { Metadata } from 'next'
+import { prisma } from '@/lib/prisma'
+import AgentDetailClient from './AgentDetailClient'
 
-import { useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-
-// Category → URL segment mapping
-function toCategorySlug(cat: string): string {
-  const c = cat?.toLowerCase() ?? ''
-  if (c.includes('agent') || c === 'm/ai-agents') return 'agents'
-  if (c.includes('defi') || c === 'dex' || c === 'lending') return 'defi'
-  if (c.includes('token') || c.includes('meme')) return 'tokens'
-  return 'explore'
+interface Props {
+  params: Promise<{ address: string }>
 }
 
-export default function AgentRedirect() {
-  const params = useParams()
-  const router = useRouter()
-  const slug = params.address as string
-
-  useEffect(() => {
-    async function redirect() {
-      try {
-        // Look up project to get its category for proper URL
-        const res = await fetch(`/api/v1/project/${slug}`)
-        if (res.ok) {
-          const { project } = await res.json()
-          const cat = toCategorySlug(project.category)
-          const projectSlug = project.slug || slug
-          router.replace(`/m/${cat}/${projectSlug}`)
-        } else {
-          // Unknown address — send to /m/explore/[address] for auto-create
-          router.replace(`/m/explore/${slug}`)
-        }
-      } catch {
-        router.replace(`/m/explore/${slug}`)
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { address } = await params
+  try {
+    const project = await prisma.project.findFirst({
+      where: { OR: [{ slug: address }, { address }] },
+    })
+    if (project) {
+      const score = project.trustScore ? (project.trustScore / 10).toFixed(1) : '—'
+      return {
+        title: `${project.name} — Trust Score ${score}/10 | Maiat`,
+        description:
+          project.description ??
+          `On-chain trust score and reviews for ${project.name} on ${project.chain}. Powered by Maiat Protocol.`,
+        openGraph: {
+          title: `${project.name} Trust Score: ${score}/10`,
+          description:
+            project.description ??
+            `Verified on-chain intelligence for ${project.name}.`,
+          url: `https://maiat-protocol.vercel.app/agent/${address}`,
+        },
       }
     }
-    if (slug) redirect()
-  }, [slug, router])
+  } catch {}
+  return {
+    title: `${address} — Trust Score | Maiat`,
+    description: 'On-chain trust scoring powered by Maiat Protocol.',
+  }
+}
 
-  return (
-    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
-      <div className="w-6 h-6 border-2 border-[#d4a017] border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
+export default function AgentPage() {
+  return <AgentDetailClient />
 }
