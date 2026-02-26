@@ -4,20 +4,22 @@
 
 :root {
   /* Design system colors */
-  --bg-page: #0a0b14;
-  --bg-surface: #12131f;
-  --bg-elevated: #1a1b2e;
-  --border-default: #2a2b45;
-  --border-subtle: #1e2035;
+  --bg-page: #050508;
+  --bg-surface: #0d0e17;
+  --bg-elevated: #13141f;
+  --border-default: #1e2035;
+  --border-subtle: #181928;
   --primary-gold: #d4a017;
   --primary-gold-light: #e8b84a;
+  --accent-blue: #0052FF;
+  --accent-blue-dim: #0041cc;
   --secondary-turquoise: #00b4d8;
   --success-emerald: #00c9a7;
-  --danger-crimson: #c0392b;
+  --danger-crimson: #ef4444;
   --warning-amber: #f59e0b;
-  --text-primary: #e2e8f0;
+  --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-muted: #475569;
 }
 
 @layer base {
@@ -35,3 +37,13 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
 }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* No-scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
