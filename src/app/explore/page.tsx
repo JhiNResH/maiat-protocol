@@ -301,7 +301,7 @@ function ExplorePage() {
 
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1">
-                      <Link href={`/agent/${item.address}`} className="text-lg font-medium text-[#d7dadc] hover:underline block mb-1">
+                      <Link href={`/agent/${item.slug}`} className="text-lg font-medium text-[#d7dadc] hover:underline block mb-1">
                         {item.name}
                       </Link>
                       <p className="text-sm text-[#818384] line-clamp-2 leading-snug">
@@ -315,7 +315,7 @@ function ExplorePage() {
                   </div>
 
                   <div className="flex items-center gap-4 mt-3">
-                    <Link href={`/agent/${item.address}`} className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-[#272729] rounded text-[#818384] text-xs font-bold transition-all uppercase font-mono tracking-tighter">
+                    <Link href={`/agent/${item.slug}`} className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-[#272729] rounded text-[#818384] text-xs font-bold transition-all uppercase font-mono tracking-tighter">
                       <MessageSquare className="w-4 h-4" /> {item.reviewCount} Reports
                     </Link>
                     <button onClick={() => { setReviewTarget(item); setReviewOpen(true); }} className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-[#272729] rounded text-[#818384] text-xs font-bold transition-all uppercase font-mono tracking-tighter">
