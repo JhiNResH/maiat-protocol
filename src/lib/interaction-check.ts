@@ -72,8 +72,8 @@ export async function checkInteraction(
 
   const rpcUrl = getRpcUrlForChain(chainId);
   if (!rpcUrl) {
-     console.warn(`[interaction-check] No RPC URL found for chain ${chainId}`);
-     return { hasInteracted: true, txCount: 0, firstTxDate: null, lastTxDate: null };
+     console.warn(`[interaction-check] No RPC URL found for chain ${chainId} — failing closed`);
+     return { hasInteracted: false, txCount: 0, firstTxDate: null, lastTxDate: null };
   }
 
   // 2. Prevent Solana addresses from being queried on EVM and vice versa
