@@ -54,12 +54,13 @@ export default function DocsPage() {
                 </span>
               )
             }
-            const Icon = item.icon
-            const isActive = 'active' in item && item.active
+            const navItem = item as { id: string; icon: React.ElementType; label: string; active?: boolean }
+            const Icon = navItem.icon
+            const isActive = navItem.active
             return (
               <button
                 key={i}
-                onClick={() => scrollTo(item.id)}
+                onClick={() => scrollTo(navItem.id)}
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left w-full transition-colors ${
                   isActive
                     ? 'bg-[#d4a01715] text-gold'
