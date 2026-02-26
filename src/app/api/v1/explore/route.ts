@@ -21,15 +21,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         projects: projects.map((p) => {
-          let category = p.category === 'm/ai-agents' ? 'Agent' : p.category;
-          
-          // Heuristic for Memecoins
-          if (p.symbol && memeSymbols.includes(p.symbol.toUpperCase())) {
+          // Normalize categories (DB stores m/defi, m/ai-agents etc.)
+          let category: string;
+          if (p.category === 'm/ai-agents') {
+            category = 'Agent';
+          } else if (p.category === 'm/defi' || p.category === 'DEX' || p.category === 'Lending' || p.category === 'DeFi') {
+            category = 'DeFi';
+          } else if (p.category === 'm/memecoin' || p.category === 'Memecoins') {
             category = 'Memecoins';
+          } else {
+            category = 'DeFi'; // fallback
           }
 
-          if (p.category === 'DEX' || p.category === 'Lending' || p.category === 'DeFi') {
-            category = 'DeFi';
+          // Heuristic override for known memecoins
+          if (p.symbol && memeSymbols.includes(p.symbol.toUpperCase())) {
+            category = 'Memecoins';
           }
 
           return {
