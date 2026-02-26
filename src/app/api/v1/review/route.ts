@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAddress, getAddress, verifyMessage } from "viem";
+import { isAddress, getAddress, verifyMessage, type Hash } from "viem";
 import { checkInteraction } from "@/lib/interaction-check";
 import { apiLog } from "@/lib/logger";
 
@@ -138,6 +138,57 @@ export async function GET(request: NextRequest) {
   }, { status: 200, headers: CORS_HEADERS });
 }
 
+// ── Agent-friendly txHash verification ──────────────────────────────────────
+// Agents often can't do personal_sign. Instead they can supply the txHash of
+// their on-chain interaction with the target. We verify:
+//   1. tx.from === reviewer (proves wallet ownership)
+//   2. tx.to  === target   (proves interaction)
+// If both pass, signature is not required and interactionProof is set true.
+
+interface TxVerifyResult {
+  valid: boolean;
+  interacts: boolean; // reviewer → target
+  error?: string;
+}
+
+async function verifyTxHash(
+  txHash: string,
+  reviewer: string,
+  target: string
+): Promise<TxVerifyResult> {
+  const rpcUrl = process.env.ALCHEMY_BASE_RPC;
+  if (!rpcUrl) return { valid: false, interacts: false, error: "No RPC configured" };
+
+  try {
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_getTransactionByHash",
+        params: [txHash],
+      }),
+      signal: AbortSignal.timeout(5_000),
+    });
+
+    const data = await res.json();
+    const tx = data?.result;
+
+    if (!tx) return { valid: false, interacts: false, error: "Transaction not found" };
+
+    const fromMatch = tx.from?.toLowerCase() === reviewer.toLowerCase();
+    const toMatch   = tx.to?.toLowerCase()   === target.toLowerCase();
+
+    return {
+      valid: fromMatch,
+      interacts: fromMatch && toMatch,
+    };
+  } catch (e: any) {
+    return { valid: false, interacts: false, error: e.message };
+  }
+}
+
 // POST /api/v1/review
 //
 // Required fields:
@@ -145,13 +196,16 @@ export async function GET(request: NextRequest) {
 //   - rating: 1-10
 //   - reviewer: reviewer wallet address (0x...)
 //   - signature: EIP-191 personal_sign of the review message
+//     (OR txHash for agent-friendly auth — see below)
 //
 // Optional fields:
 //   - comment: review text
 //   - tags: string[] of tags
+//   - txHash: on-chain tx proving reviewer → target interaction
+//            (agent-friendly alternative to signature)
 //
 // Flow:
-//   1. Verify EIP-191 signature → proves wallet ownership
+//   1. Verify EIP-191 signature OR txHash → proves wallet ownership
 //   2. Check wallet-contract interaction → must have ≥1 tx on Base
 //   3. Deduct 2 Scarab → prevents spam (costs something to review)
 //   4. Gemini quality check → filters gibberish/spam
@@ -174,9 +228,10 @@ export async function POST(request: NextRequest) {
       reviewer?: string;
       signature?: string;
       easReceiptId?: string;
+      txHash?: string; // agent-friendly: on-chain proof (replaces signature)
     };
 
-    const { address, rating, comment, tags, reviewer, signature, easReceiptId } = body;
+    const { address, rating, comment, tags, reviewer, signature, easReceiptId, txHash } = body;
 
     // --- Validation ---
     if (!address || !isAddress(address)) {
@@ -192,14 +247,31 @@ export async function POST(request: NextRequest) {
     const checksumAddress = getAddress(address);
     const checksumReviewer = getAddress(reviewer);
 
-    // --- Step 1: Verify wallet signature (EIP-191 personal_sign) ---
-    if (signature) {
+    // --- Step 1: Verify wallet ownership (signature OR txHash) ---
+    // txHash path: agent-friendly, no personal_sign needed.
+    //   verifyTxHash confirms tx.from === reviewer (proves wallet ownership)
+    //   and tx.to === target (proves interaction) in one shot.
+    let txHashVerified = false;
+    let txHashInteracts = false;
+
+    if (txHash) {
+      const txResult = await verifyTxHash(txHash, checksumReviewer, checksumAddress);
+      if (!txResult.valid) {
+        return NextResponse.json(
+          { error: "txHash verification failed", detail: txResult.error ?? "tx.from does not match reviewer" },
+          { status: 401, headers: CORS_HEADERS }
+        );
+      }
+      txHashVerified  = true;
+      txHashInteracts = txResult.interacts;
+    } else if (signature) {
+      // Traditional EIP-191 signature path (human wallet)
       try {
         let message = `Maiat Review: ${checksumAddress} Rating: ${rating} Reviewer: ${checksumReviewer}`;
         if (easReceiptId) {
           message += ` Receipt: ${easReceiptId}`;
         }
-        
+
         const isValid = await verifyMessage({
           address: checksumReviewer as `0x${string}`,
           message,
@@ -218,12 +290,18 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-    // Note: signature is currently optional to maintain backward compatibility
-    // Will be required once all clients are updated
+    // Note: both signature and txHash are optional for backward compat.
+    // Will enforce one of them once all clients are updated.
 
     // --- Step 2: Check wallet-contract interaction ---
-    const interaction = await checkInteraction(checksumReviewer, checksumAddress);
-    const hasInteraction = interaction.hasInteracted;
+    // Skip the expensive Alchemy call when txHash already confirmed interaction.
+    let hasInteraction: boolean;
+    if (txHashInteracts) {
+      hasInteraction = true;
+    } else {
+      const interaction = await checkInteraction(checksumReviewer, checksumAddress);
+      hasInteraction = interaction.hasInteracted;
+    }
 
     // --- Step 3: Deduct Scarab (if DB available) ---
     const db = await getDb();
@@ -287,9 +365,18 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Step 4.5: Verify EAS Receipt (if provided) and compute weight ---
+    // Weight ladder:
+    //   1  = anonymous / unverified
+    //   2  = txHash-verified on-chain interaction (agent-friendly)
+    //   5  = EAS Receipt (strongest — cryptographic service proof)
     let weight = 1; // Default
     let verifiedReceiptId: string | undefined = undefined;
-    
+
+    // txHash interaction proof → 2x weight baseline
+    if (txHashInteracts) {
+      weight = 2;
+    }
+
     if (db && easReceiptId) {
       const receiptMatch = await db.eASReceipt.findFirst({
          where: {
@@ -297,11 +384,10 @@ export async function POST(request: NextRequest) {
             recipient: checksumReviewer
          }
       });
-      
-      // Optionally check if the receipt serviceProtocol matches the Review target
-      // This is a safety measure so uses can't re-use unrelated receipts.
+
+      // Safety: receipt must belong to this reviewer.
       if (receiptMatch) {
-         weight = 5; // 5x Reputation Weight
+         weight = 5; // EAS always wins — 5x Reputation Weight
          verifiedReceiptId = receiptMatch.id;
       }
     }
@@ -412,7 +498,9 @@ export async function POST(request: NextRequest) {
         scarabDeducted,
         scarabReward,
         signatureVerified: !!signature,
-        easWeight: weight, // Include for frontend display info
+        txHashVerified,       // true if txHash was provided and verified on-chain
+        txHashInteracts,      // true if txHash proved reviewer → target interaction
+        easWeight: weight,    // final weight (1 | 2 | 5) for frontend display
       },
     }, { status: 201, headers: CORS_HEADERS });
   } catch (err) {
