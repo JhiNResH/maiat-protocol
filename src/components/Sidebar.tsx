@@ -1,131 +1,134 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import {
-  Compass,
-  LayoutDashboard,
-  FileText,
-  Search,
-  Repeat2,
-  PanelLeftClose,
-  ChevronDown,
-  Cpu,
-  Coins,
-  Zap,
-} from 'lucide-react'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { 
+  Home, 
+  Trophy, 
+  LayoutDashboard, 
+  Search, 
+  Repeat, 
+  FileText, 
+  Github,
+  TrendingUp,
+  MessageSquare,
+  Users
+} from "lucide-react";
+import { usePrivy } from "@privy-io/react-auth";
 
-interface SidebarProps {
-  collapsed: boolean
-  setCollapsed: (v: boolean) => void
-}
+const mainNav = [
+  { href: "/explore", label: "Explore", icon: Search },
+  { href: "/explore?tab=leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/swap", label: "Swap", icon: Repeat },
+];
 
-const NAV_ITEMS = [
-  { href: '/explore', icon: Compass, label: 'Explore' },
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/swap', icon: Repeat2, label: 'Swap' },
-  { href: '/docs', icon: FileText, label: 'API Docs' },
-]
+const resourceNav = [
+  { href: "/docs", label: "API Docs", icon: FileText },
+  { href: "https://github.com/JhiNResH/maiat", label: "GitHub", icon: Github, external: true },
+];
 
-const CATEGORIES = [
-  { slug: 'ai-agents', icon: Cpu, label: 'AI Agents' },
-  { slug: 'defi', icon: Coins, label: 'DeFi' },
-  { slug: 'infrastructure', icon: Zap, label: 'Infrastructure' },
-]
-
-export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
-  const pathname = usePathname()
-  const [catOpen, setCatOpen] = useState(true)
-
-  if (collapsed) return null
+export function Sidebar() {
+  const pathname = usePathname();
+  const { authenticated, ready } = usePrivy();
 
   return (
-    <aside className="fixed top-[65px] left-0 h-[calc(100vh-65px)] w-[240px] flex flex-col bg-[#0c0c0e] border-r border-[#1f1f23] z-40 hidden md:flex overflow-hidden">
-      {/* Collapse button */}
-      <div className="flex items-center justify-end px-3 pt-4 pb-2 shrink-0">
-        <button
-          onClick={() => setCollapsed(true)}
-          className="p-1.5 text-[#6b6b70] hover:text-white hover:bg-[#1a1a1e] rounded-md transition-colors"
-          title="Collapse sidebar"
-        >
-          <PanelLeftClose className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Nav links */}
-      <nav className="flex flex-col gap-0.5 px-2 shrink-0">
-        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-          const active = pathname === href || pathname.startsWith(href + '/')
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                active
-                  ? 'bg-gold/10 text-gold border border-gold/20'
-                  : 'text-[#adadb0] hover:bg-[#1a1a1e] hover:text-white border border-transparent'
-              }`}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              {label}
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* Score lookup */}
-      <div className="px-2 mt-2 shrink-0">
+    <aside className="fixed top-[73px] left-0 h-[calc(100vh-73px)] w-[240px] bg-[#030303] border-r border-[#1a1a1b] overflow-y-auto z-40 hidden lg:flex flex-col p-4 gap-2">
+      
+      {/* Feed Section */}
+      <div className="flex flex-col gap-1">
+        <p className="px-3 text-[10px] font-bold text-[#818384] uppercase tracking-widest mb-2 font-mono">Feeds</p>
         <Link
-          href="/score"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-            pathname.startsWith('/score')
-              ? 'bg-gold/10 text-gold border border-gold/20'
-              : 'text-[#adadb0] hover:bg-[#1a1a1e] hover:text-white border border-transparent'
+          href="/explore"
+          className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-bold transition-all ${
+            pathname === "/explore" && !window.location.search.includes('leaderboard')
+              ? "bg-[#1a1a1b] text-gold"
+              : "text-[#d7dadc] hover:bg-[#1a1a1b]"
           }`}
         >
-          <Search className="w-4 h-4 shrink-0" />
-          Score Lookup
+          <TrendingUp className="w-5 h-5" />
+          <span>Hot Projects</span>
+        </Link>
+        <Link
+          href="/explore?tab=leaderboard"
+          className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-bold transition-all ${
+            window.location.search.includes('leaderboard')
+              ? "bg-[#1a1a1b] text-gold"
+              : "text-[#d7dadc] hover:bg-[#1a1a1b]"
+          }`}
+        >
+          <Trophy className="w-5 h-5" />
+          <span>Leaderboard</span>
         </Link>
       </div>
 
-      <div className="h-px bg-[#1f1f23] mx-3 my-3 shrink-0" />
+      <div className="h-px bg-[#1a1a1b] my-4 mx-2" />
 
-      {/* Categories */}
-      <div className="px-2 shrink-0">
-        <button
-          onClick={() => setCatOpen(!catOpen)}
-          className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-bold text-[#6b6b70] uppercase tracking-widest hover:text-[#adadb0] transition-colors"
-        >
-          <span>Categories</span>
-          <ChevronDown className={`w-3 h-3 transition-transform ${catOpen ? '' : '-rotate-90'}`} />
-        </button>
-
-        {catOpen && (
-          <div className="flex flex-col gap-0.5 mt-1">
-            {CATEGORIES.map(({ slug, icon: Icon, label }) => (
-              <Link
-                key={slug}
-                href={`/explore?cat=${slug}`}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#adadb0] hover:bg-[#1a1a1e] hover:text-white transition-all border border-transparent"
-              >
-                <Icon className="w-3.5 h-3.5 shrink-0 text-[#6b6b70]" />
-                {label}
-              </Link>
-            ))}
-          </div>
+      {/* Account Section */}
+      <div className="flex flex-col gap-1">
+        <p className="px-3 text-[10px] font-bold text-[#818384] uppercase tracking-widest mb-2 font-mono">Account</p>
+        {ready && authenticated ? (
+          <Link
+            href="/dashboard"
+            className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-bold transition-all ${
+              pathname === "/dashboard"
+                ? "bg-[#1a1a1b] text-gold"
+                : "text-[#d7dadc] hover:bg-[#1a1a1b]"
+            }`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span>Reputation Passport</span>
+          </Link>
+        ) : (
+          <div className="px-3 py-2 text-xs text-[#818384] italic">Connect wallet to view passport</div>
         )}
+        <Link
+          href="/swap"
+          className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-bold transition-all ${
+            pathname === "/swap"
+              ? "bg-[#1a1a1b] text-gold"
+              : "text-[#d7dadc] hover:bg-[#1a1a1b]"
+          }`}
+        >
+          <Repeat className="w-5 h-5" />
+          <span>Protected Swap</span>
+        </Link>
       </div>
 
-      {/* Spacer */}
-      <div className="flex-1" />
+      <div className="h-px bg-[#1a1a1b] my-4 mx-2" />
 
-      {/* Footer */}
-      <div className="shrink-0 px-3 py-4 border-t border-[#1f1f23]">
-        <p className="text-[10px] text-[#4a4a4e] text-center font-mono">
-          Maiat Protocol · Base
+      {/* Communities Section (Categories) */}
+      <div className="flex flex-col gap-1">
+        <p className="px-3 text-[10px] font-bold text-[#818384] uppercase tracking-widest mb-2 font-mono">Communities</p>
+        <Link href="/explore?cat=agents" className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-[#d7dadc] hover:bg-[#1a1a1b]">
+          <Users className="w-4 h-4" /> m/agents
+        </Link>
+        <Link href="/explore?cat=defi" className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-[#d7dadc] hover:bg-[#1a1a1b]">
+          <Users className="w-4 h-4" /> m/defi
+        </Link>
+        <Link href="/explore?cat=memecoins" className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-[#d7dadc] hover:bg-[#1a1a1b]">
+          <Users className="w-4 h-4" /> m/memecoins
+        </Link>
+      </div>
+
+      <div className="mt-auto">
+        <div className="h-px bg-[#1a1a1b] mb-4 mx-2" />
+        <div className="flex flex-col gap-1">
+          {resourceNav.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              target={item.external ? "_blank" : undefined}
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-xs font-bold text-[#818384] hover:text-white transition-all uppercase font-mono tracking-tighter"
+            >
+              <item.icon className="w-4 h-4" />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </div>
+        <p className="px-3 py-4 text-[9px] text-[#4a4a4e] font-mono uppercase tracking-tighter">
+          © 2026 Maiat Protocol v1.2
         </p>
       </div>
     </aside>
-  )
+  );
 }
