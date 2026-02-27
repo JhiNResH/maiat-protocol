@@ -4,6 +4,34 @@
 
 Verified reviews, AI-powered trust scores, and Uniswap v4 trust-gated swaps — so agents and users can make informed decisions before transacting.
 
+> **TL;DR** — Before your AI agent transacts with an unknown smart contract or wallet, call Maiat. Get a `proceed / caution / block` verdict in one API call.
+
+## Quick Start
+
+```bash
+# Free tier — no API key needed (10 req/min)
+curl "https://maiat-protocol.vercel.app/api/v1/trust-check?agent=0xYourAddress"
+
+# Response
+# { "verdict": "proceed", "score": 82, "address": "0x...", "breakdown": {...} }
+```
+
+**x402-native endpoint** (for AI agents — $0.02 USDC / call via Coinbase x402):
+```bash
+curl "https://maiat-protocol.vercel.app/api/v1/trust-gate?agent=0xYourAddress" \
+  -H "X-Payment: <txHash>"
+```
+
+Listed on [x402.org/ecosystem](https://x402.org/ecosystem) → Services/Endpoints.
+
+## Use Cases
+
+- **AI agent pre-swap trust gate** — verify a DeFi protocol before routing a swap
+- **Smart contract safety check** — on-chain risk scoring for any EVM address
+- **AI agent reputation verification** — screen counterparties in multi-agent workflows
+- **DeFi due diligence** — community reviews + on-chain analytics in one API
+- **Virtuals ACP integration** — available as `trust_gate`, `trust_score_query`, `onchain_report`, `deep_insight_report` offerings
+
 ---
 
 ## Architecture
