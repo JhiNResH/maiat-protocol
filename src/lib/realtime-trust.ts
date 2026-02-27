@@ -98,13 +98,19 @@ async function fetchDEXScreener(address: string): Promise<{
     );
     if (!res.ok) return { volume24h: null, liquidity: null, marketCap: null, priceChange24h: null };
     const data: any = await res.json();
-    const pair = data.pairs?.[0];
-    if (!pair) return { volume24h: null, liquidity: null, marketCap: null, priceChange24h: null };
+    const pairs: any[] = data.pairs ?? [];
+    if (!pairs.length) return { volume24h: null, liquidity: null, marketCap: null, priceChange24h: null };
+
+    // Aggregate across all pairs (Base + Ethereum + others)
+    const totalVolume   = pairs.reduce((s, p) => s + (p.volume?.h24 ?? 0), 0);
+    const totalLiquidity = pairs.reduce((s, p) => s + (p.liquidity?.usd ?? 0), 0);
+    const bestPair = pairs.sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
+
     return {
-      volume24h:    pair.volume?.h24   ?? null,
-      liquidity:    pair.liquidity?.usd ?? null,
-      marketCap:    pair.marketCap      ?? pair.fdv ?? null,
-      priceChange24h: pair.priceChange?.h24 ?? null,
+      volume24h:     totalVolume     > 0 ? totalVolume     : null,
+      liquidity:     totalLiquidity  > 0 ? totalLiquidity  : null,
+      marketCap:     bestPair.marketCap ?? bestPair.fdv ?? null,
+      priceChange24h: bestPair.priceChange?.h24 ?? null,
     };
   } catch {
     return { volume24h: null, liquidity: null, marketCap: null, priceChange24h: null };
@@ -244,16 +250,16 @@ function scoreCommunity(
 function toGrade(score: number): "S" | "A" | "B" | "C" | "D" | "F" {
   if (score >= 90) return "S";
   if (score >= 80) return "A";
-  if (score >= 70) return "B";
-  if (score >= 55) return "C";
-  if (score >= 40) return "D";
+  if (score >= 65) return "B";
+  if (score >= 50) return "C";
+  if (score >= 35) return "D";
   return "F";
 }
 
 function toRisk(score: number): "Low" | "Medium" | "High" | "Critical" {
-  if (score >= 70) return "Low";
-  if (score >= 50) return "Medium";
-  if (score >= 30) return "High";
+  if (score >= 65) return "Low";
+  if (score >= 45) return "Medium";
+  if (score >= 25) return "High";
   return "Critical";
 }
 
@@ -292,13 +298,22 @@ export async function computeRealtimeTrust(opts: {
   const communityScore   = scoreCommunity(reviewCount, avgRating, verifiedReviews);
 
   // Weighted final score
-  const score = Math.round(
+  let score = Math.round(
     tvlLiquidity     * 0.25 +
     auditCodeQuality * 0.20 +
     contractSafety   * 0.20 +
     marketActivity   * 0.15 +
     communityScore   * 0.20
   );
+
+  // Floor: $1B+ TVL + audited = established protocol, minimum Medium (60)
+  if ((llama.tvl ?? 0) >= 1_000_000_000 && llama.audited) {
+    score = Math.max(score, 60);
+  }
+  // Floor: $100M+ TVL + audited = at least 50
+  if ((llama.tvl ?? 0) >= 100_000_000 && llama.audited) {
+    score = Math.max(score, 50);
+  }
 
   // Flags
   const flags: string[] = [];
