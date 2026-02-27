@@ -163,9 +163,9 @@ model TrustReview {
   comment      String   @default("")
   tags         String[] @default([])
   reviewer     String
-  easReceiptId String?  // Optional Reference to the EASReceipt used for 5x weight
-  weight       Int      @default(1) // 1x for raw, 5x for receipt-verified
   createdAt    DateTime @default(now())
+  easReceiptId String?
+  weight       Int      @default(1)
 
   @@index([address])
   @@index([reviewer])
@@ -174,11 +174,11 @@ model TrustReview {
 
 model EASReceipt {
   id              String   @id @default(cuid())
-  recipient       String   // The wallet address of the user who receives the receipt
-  attester        String   // The service provider or Maiat Admin
-  serviceProtocol String?  // e.g "Uniswap", "Virtuals Protocol"
-  txHash          String?  // Reference to the on-chain transaction
-  receiptJson     String   @db.Text // The actual signed EAS off-chain JSON
+  recipient       String
+  attester        String
+  serviceProtocol String?
+  txHash          String?
+  receiptJson     String
   isOffchain      Boolean  @default(true)
   createdAt       DateTime @default(now())
 
@@ -187,21 +187,17 @@ model EASReceipt {
   @@index([createdAt])
 }
 
-// ============================================================================
-// OPINION MARKETS - Stake Scarab on agent rankings
-// ============================================================================
-
 model Market {
   id          String           @id @default(cuid())
   title       String
   description String
-  category    String           // "ai-agents" | "defi" | "mixed"
-  status      String           @default("open") // "open" | "closed" | "resolved"
+  category    String
+  status      String           @default("open")
   opensAt     DateTime
-  closesAt    DateTime         // opensAt + 14 days
+  closesAt    DateTime
   resolvedAt  DateTime?
-  totalPool   Int              @default(0) // total Scarab in market
-  winnerIds   String[]         @default([]) // project IDs that "won"
+  totalPool   Int              @default(0)
+  winnerIds   String[]         @default([])
   createdAt   DateTime         @default(now())
   positions   MarketPosition[]
 
@@ -213,10 +209,10 @@ model Market {
 model MarketPosition {
   id        String   @id @default(cuid())
   marketId  String
-  projectId String   // agent being bet on
-  voterId   String   // wallet address
-  amount    Int      // Scarab staked (min 50)
-  payout    Int?     // set at resolution
+  projectId String
+  voterId   String
+  amount    Int
+  payout    Int?
   createdAt DateTime @default(now())
   market    Market   @relation(fields: [marketId], references: [id])
 
@@ -225,30 +221,26 @@ model MarketPosition {
   @@index([voterId])
 }
 
-// ── Agent Trust Check Log ─────────────────────────────────────────────────────
-// Records every x402 trust-check API call. Powers `x402_checks` counter.
 model AgentCheckLog {
   id             String   @id @default(cuid())
-  checkedAddress String   // agent/protocol being checked
-  checkerAddress String?  // who's checking (from x402 payment proof)
-  paymentTxHash  String?  // USDC tx hash proving payment
-  score          Int      // trust score at time of check
-  verdict        String   // "proceed" | "caution" | "block"
+  checkedAddress String
+  checkerAddress String?
+  paymentTxHash  String?
+  score          Int
+  verdict        String
   createdAt      DateTime @default(now())
 
   @@index([checkedAddress])
   @@index([checkerAddress])
 }
 
-// ── Outcome Report ────────────────────────────────────────────────────────────
-// Buyer agents report job outcomes → feeds outcome_score in trust-check.
 model OutcomeReport {
   id            String   @id @default(cuid())
-  sellerAddress String   // agent/protocol that delivered
-  buyerAddress  String   // who's reporting (verified via paymentTxHash)
-  jobId         String?  // ACP job ID or x402 tx reference
-  result        String   // "success" | "failed" | "dispute"
-  paymentTxHash String?  // on-chain proof buyer paid seller (prevents fake reports)
+  sellerAddress String
+  buyerAddress  String
+  jobId         String?
+  result        String
+  paymentTxHash String?
   notes         String?
   createdAt     DateTime @default(now())
 

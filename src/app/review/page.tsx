@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Header } from '@/components/Header'
 
 const POPULAR = [
   { name: 'Uniswap', address: '0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD', chain: 'Base' },
@@ -28,13 +29,8 @@ export default function ReviewIndexPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
-      <header className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between">
-        <Link href="/explore" className="text-[#0052FF] font-mono font-bold text-sm tracking-wider">
-          MAIAT
-        </Link>
-        <span className="font-mono text-xs text-gray-600">// REVIEW A PROJECT</span>
-      </header>
+    <div className="min-h-screen bg-[#0A0A0A] flex flex-col text-[#E5E5E5]">
+      <Header />
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 pb-16">
         <div className="w-full max-w-md">
