@@ -107,7 +107,10 @@ export async function checkInteraction(
   }
 
   try {
-    const res = await fetch(rpcUrl, {
+    const targetLower = targetAddress.toLowerCase();
+
+    // Primary: asset transfers (ERC20/ETH/NFT)
+    const assetRes = await fetch(rpcUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -118,24 +121,55 @@ export async function checkInteraction(
           fromBlock: "0x0",
           toBlock: "latest",
           fromAddress: walletAddress,
-          category: ["external", "erc20", "erc721", "erc1155"],
+          category: ["external", "internal", "erc20", "erc721", "erc1155"],
           withMetadata: true,
-          maxCount: "0x3e8" // 1000
+          maxCount: "0x3e8"
         }]
       })
     });
-    
-    const data = await res.json();
-    if (!data.result || !Array.isArray(data.result.transfers)) {
-      return { hasInteracted: false, txCount: 0, firstTxDate: null, lastTxDate: null };
-    }
-    
-    const targetLower = targetAddress.toLowerCase();
-    
-    const matchingTxs = data.result.transfers.filter((tx: any) => 
-      (tx.to && tx.to.toLowerCase() === targetLower) || 
-      (tx.rawContract && tx.rawContract.address && tx.rawContract.address.toLowerCase() === targetLower)
+
+    const assetData = await assetRes.json();
+    const assetTransfers = assetData?.result?.transfers ?? [];
+
+    // Secondary: direct contract calls (approve/stake/vote — no token transfer)
+    const txRes = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: chainId + 1,
+        method: "alchemy_getTransactions",
+        params: [{
+          fromAddress: walletAddress,
+          toAddress: targetAddress,
+          maxCount: "0x64" // 100
+        }]
+      })
+    });
+
+    const txData = await txRes.json();
+    const directTxs = txData?.result?.transactions ?? [];
+
+    // Merge: asset transfers TO target + direct txs TO target
+    const assetMatches = assetTransfers.filter((tx: any) =>
+      (tx.to && tx.to.toLowerCase() === targetLower) ||
+      (tx.rawContract?.address && tx.rawContract.address.toLowerCase() === targetLower)
     );
+
+    const directMatches = directTxs.filter((tx: any) =>
+      tx.to && tx.to.toLowerCase() === targetLower
+    );
+
+    // Deduplicate by hash
+    const seenHashes = new Set<string>();
+    const matchingTxs: any[] = [];
+    for (const tx of [...assetMatches, ...directMatches]) {
+      const hash = tx.hash || tx.transactionHash;
+      if (hash && !seenHashes.has(hash)) {
+        seenHashes.add(hash);
+        matchingTxs.push(tx);
+      }
+    }
     
     // Sort by timestamp if metadata exists
     matchingTxs.sort((a: any, b: any) => {
@@ -158,7 +192,8 @@ export async function checkInteraction(
 
   } catch (error) {
     console.error(`[interaction-check] Error checking interaction on chain ${chainId} via Alchemy:`, error);
-    return { hasInteracted: true, txCount: 0, firstTxDate: null, lastTxDate: null };
+    // Fail-closed on error: don't allow reviews if we can't verify interaction
+    return { hasInteracted: false, txCount: 0, firstTxDate: null, lastTxDate: null };
   }
 }
 
