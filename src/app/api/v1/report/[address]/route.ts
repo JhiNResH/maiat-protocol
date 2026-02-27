@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserReputation } from "@/lib/reputation";
-import { calculateTrustScore } from "@/lib/trust-score";
+import { computeTrustScore } from "@/lib/scoring";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -56,13 +56,28 @@ export async function GET(
 
     if (project) {
       // ── Contract / Protocol report ──────────────────────────────────────────
-      const trustData = await calculateTrustScore(addr).catch(() => null);
-      const score: number | null = trustData?.score ?? null;
+      // Use computeTrustScore (real on-chain: tx count, age, blacklist, contract analysis)
+      const onChainData = await computeTrustScore(address, "base").catch(() => null);
+
+      // Blend: on-chain dynamic score + DB stored score (community reviews + seeded)
+      const onChainScore = onChainData?.score ?? null;
+      const dbScore = project.trustScore ?? null;
+
+      // Final score: prefer on-chain if available, blend with DB if both exist
+      let finalScore: number | null = null;
+      if (onChainScore !== null && dbScore !== null) {
+        // 60% on-chain real data + 40% community/seed data
+        finalScore = Math.round(onChainScore * 0.6 + dbScore * 0.4);
+      } else {
+        finalScore = onChainScore ?? dbScore;
+      }
+
       const riskLevel =
-        score === null ? "Unknown"
-        : score >= 70 ? "Low"
-        : score >= 40 ? "Medium"
-        : "High";
+        finalScore === null ? "Unknown"
+        : finalScore >= 70 ? "Low"
+        : finalScore >= 40 ? "Medium"
+        : finalScore >= 20 ? "High"
+        : "Critical";
 
       const avgRating =
         project.reviews.length > 0
@@ -71,7 +86,31 @@ export async function GET(
                 project.reviews.length) *
                 10
             ) / 10
-          : null;
+          : (project.avgRating ?? null);
+
+      // Build breakdown from real on-chain data
+      const breakdown = onChainData?.breakdown
+        ? {
+            onChainHistory:    Math.round((onChainData.breakdown.onChainHistory    ?? 0) * 10),
+            contractAnalysis:  Math.round((onChainData.breakdown.contractAnalysis  ?? 0) * 10),
+            blacklistCheck:    Math.round((onChainData.breakdown.blacklistCheck    ?? 0) * 10),
+            activityPattern:   Math.round((onChainData.breakdown.activityPattern   ?? 0) * 10),
+            communityReviews:  project.reviewCount ?? 0,
+            dbTrustScore:      dbScore ?? null,
+          }
+        : null;
+
+      const flags = onChainData?.flags ?? [];
+      const strengths: string[] = [];
+      const riskFlags: string[] = [];
+
+      if (flags.includes("KNOWN_PROTOCOL")) strengths.push("Known audited protocol");
+      if (flags.includes("AUDITED")) strengths.push("Audited by security firms");
+      if (flags.includes("VERIFIED")) strengths.push("Verified on-chain identity");
+      if (onChainData?.details?.txCount && onChainData.details.txCount > 1000)
+        strengths.push(`High on-chain activity (${onChainData.details.txCount.toLocaleString()} txs)`);
+      if (flags.includes("KNOWN_SCAM_ADDRESS")) riskFlags.push("⚠️ Known scam address");
+      if (onChainScore !== null && onChainScore < 20) riskFlags.push("Very low on-chain trust score");
 
       return NextResponse.json(
         {
@@ -82,19 +121,26 @@ export async function GET(
           category: project.category,
           description: project.description,
           website: project.website,
-          trustScore: score,
+          chain: onChainData?.chain ?? project.chain ?? "base",
+          trustScore: finalScore,
+          onChainScore,
+          dbScore,
           riskLevel,
-          reviewCount: project.reviews.length,
+          risk: onChainData?.risk ?? riskLevel,
+          dataSource: onChainData?.dataSource ?? "db",
+          reviewCount: project.reviewCount ?? project.reviews.length,
           avgRating,
-          breakdown: trustData?.breakdown ?? null,
+          breakdown,
+          flags,
+          riskFlags,
+          strengths,
           recentReviews: project.reviews.map((r) => ({
             rating: r.rating,
             comment: r.content,
             reviewer: r.reviewer?.address?.slice(0, 8) + "...",
             createdAt: r.createdAt.toISOString(),
           })),
-          riskFlags: [],
-          strengths: [],
+          details: onChainData?.details ?? null,
         },
         { status: 200, headers: CORS_HEADERS }
       );
