@@ -34,12 +34,16 @@ function ScoreBadge({ score }: { score: number | null }) {
 }
 
 function ChainBadge({ chain }: { chain: string }) {
-  const isBase = chain?.toLowerCase() === 'base'
+  const c = chain?.toLowerCase()
+  const [color, label] =
+    c === 'base'                         ? ['#0052FF', 'Base'] :
+    c === 'ethereum' || c === 'eth'      ? ['#8B5CF6', 'Ethereum'] :
+    c === 'bnb' || c === 'bsc'           ? ['#F3BA2F', 'BNB'] :
+    c === 'solana' || c === 'sol'        ? ['#9945FF', 'Solana'] :
+                                           ['#6B7280', chain || 'Unknown']
   return (
-    <span className={`text-xs font-mono px-2 py-0.5 rounded border ${
-      isBase ? 'border-[#0052FF] text-[#0052FF]' : 'border-gray-500 text-gray-400'
-    }`}>
-      {chain || 'Base'}
+    <span className="text-xs font-mono px-2 py-0.5 rounded border" style={{ color, borderColor: color }}>
+      {label}
     </span>
   )
 }
