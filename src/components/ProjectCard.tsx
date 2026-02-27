@@ -42,6 +42,13 @@ function getChainDot(chain?: string) {
     case 'ethereum':
     case 'eth':
       return 'bg-purple-500'
+    case 'bnb':
+    case 'bsc':
+    case 'binance':
+      return 'bg-[#F3BA2F]'
+    case 'solana':
+    case 'sol':
+      return 'bg-[#9945FF]'
     default:
       return 'bg-[#666666]'
   }
