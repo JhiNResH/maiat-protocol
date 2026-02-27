@@ -18,10 +18,10 @@ export async function OPTIONS() {
 // Called by Vercel cron every 2 weeks on Sunday at 00:00 UTC
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret if configured
+    // Verify cron secret (mandatory)
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401, headers: CORS_HEADERS }
