@@ -9,11 +9,28 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains-mono' })
 
 export const metadata: Metadata = {
-  title: 'Maiat - Trust Layer for the Agent Economy',
-  description: 'On-chain trust scoring for any blockchain address or token. Powered by Maiat Protocol.',
+  title: 'Maiat Protocol — Trust Infrastructure for AI Agents',
+  description: 'Verify any smart contract or AI agent before you transact. On-chain trust scores, community reviews, and x402-gated trust gate API. Built on Base.',
+  keywords: ['smart contract trust score', 'AI agent verification', 'DeFi safety check', 'trust infrastructure', 'x402 payment', 'on-chain reputation'],
+  authors: [{ name: 'Maiat Protocol', url: 'https://maiat-protocol.vercel.app' }],
   icons: {
     icon: '/favicon.png',
     apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: 'Maiat Protocol — Trust Infrastructure for AI Agents',
+    description: 'Verify any smart contract or AI agent before you transact. On-chain trust scores + community reviews.',
+    url: 'https://maiat-protocol.vercel.app',
+    siteName: 'Maiat Protocol',
+    type: 'website',
+    images: [{ url: 'https://maiat-protocol.vercel.app/maiat.jpg', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Maiat Protocol — Trust Infrastructure for AI Agents',
+    description: 'Verify any smart contract or AI agent before you transact.',
+    images: ['https://maiat-protocol.vercel.app/maiat.jpg'],
+    creator: '@0xmaiat',
   },
 }
 
