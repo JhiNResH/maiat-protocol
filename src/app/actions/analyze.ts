@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 import { prisma } from "@/lib/prisma"
 
 // Initialize Google GenAI with the API Key
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '')
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
 // Cache TTL: 24 hours
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000
@@ -144,7 +144,7 @@ SCORING GUIDE:
         errorDetails = ['Request exceeded 30 seconds']
       } else if (error.message.includes('API key')) {
         errorMsg = 'API configuration error'
-        errorDetails = ['Check GOOGLE_GENERATIVE_AI_API_KEY']
+        errorDetails = ['Check GEMINI_API_KEY']
       }
     }
     

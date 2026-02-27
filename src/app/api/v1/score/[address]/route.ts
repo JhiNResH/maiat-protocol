@@ -2,27 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { computeTrustScore, type SupportedChain } from "@/lib/scoring";
 import { generateSummary } from "@/lib/ai-summary";
 import { apiLog } from "@/lib/logger";
+import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
 
 const SUPPORTED_CHAINS: SupportedChain[] = ["base", "eth", "bnb"];
-
-// --- Simple in-memory IP rate limiter ---
-const ipHits = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 30;        // requests
-const RATE_WINDOW_MS = 60_000; // per 1 minute
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = ipHits.get(ip);
-
-  if (!entry || entry.resetAt < now) {
-    ipHits.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
-  }
-
-  if (entry.count >= RATE_LIMIT) return true;
-  entry.count++;
-  return false;
-}
+const rateLimiter = createRateLimiter("score", 30, 60);
 
 // --- CORS helpers ---
 const CORS_HEADERS = {
@@ -42,12 +25,8 @@ export async function GET(
   const { address } = await params;
 
   // Rate limit
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown";
-
-  if (isRateLimited(ip)) {
+  const { success: rateLimitOk } = await checkIpRateLimit(request, rateLimiter);
+  if (!rateLimitOk) {
     return NextResponse.json(
       { error: "Too many requests. Retry after 1 minute." },
       { status: 429, headers: CORS_HEADERS }

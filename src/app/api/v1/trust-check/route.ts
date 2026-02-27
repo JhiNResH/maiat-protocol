@@ -27,6 +27,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -34,27 +35,10 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type, X-Payment, X-Maiat-Key",
 };
 
-// ── Free tier rate limiter (in-memory, per IP) ────────────────────────────────
-// 10 requests/min per IP — resets every minute
+// ── Free tier rate limiter (Upstash Redis, per IP, graceful fallback) ─────────
+// 10 requests/min per IP — persists across cold starts
 const FREE_RATE_LIMIT = 10;
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-
-  if (!entry || now >= entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
-    return { allowed: true, remaining: FREE_RATE_LIMIT - 1 };
-  }
-
-  if (entry.count >= FREE_RATE_LIMIT) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  entry.count++;
-  return { allowed: true, remaining: FREE_RATE_LIMIT - entry.count };
-}
+const freeTierLimiter = createRateLimiter("trust-check:free", FREE_RATE_LIMIT, 60);
 
 // Maiat's USDC receiving address on Base (set in Vercel env)
 const PAYMENT_ADDRESS =
@@ -156,12 +140,9 @@ export async function GET(req: NextRequest) {
   // Free tier: rate-limited by IP
   let isFree = false;
   if (!validInternalToken && !isPaidKey && !isX402) {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-      ?? req.headers.get("x-real-ip")
-      ?? "unknown";
-    const rateCheck = checkRateLimit(ip);
+    const { success: rlOk } = await checkIpRateLimit(req, freeTierLimiter);
 
-    if (!rateCheck.allowed) {
+    if (!rlOk) {
       return NextResponse.json(
         {
           error: "Rate limit exceeded",
