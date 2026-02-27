@@ -15,8 +15,8 @@ interface ReviewQualityCheck {
 }
 
 const genAI = new GoogleGenerativeAI(
-  process.env.GOOGLE_GEMINI_API_KEY ||
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+  process.env.GEMINI_API_KEY ||
+    process.env.GEMINI_API_KEY ||
     "",
 );
 
@@ -26,7 +26,7 @@ export async function checkReviewQuality(
   projectCategory: string,
 ): Promise<ReviewQualityCheck> {
   try {
-    if (!process.env.GOOGLE_GEMINI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       console.warn("Gemini API key not configured, skipping quality check");
       return {
         score: 80,
