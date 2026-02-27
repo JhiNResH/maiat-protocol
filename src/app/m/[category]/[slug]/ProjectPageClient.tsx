@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { usePrivy } from '@privy-io/react-auth'
+import { useInteractionCheck } from '@/hooks/useInteractionCheck'
 
 function toCategorySlug(cat: string): string {
   const c = cat?.toLowerCase() ?? ''
@@ -167,9 +168,14 @@ function ReviewFormInline({
   const walletAddress = user?.wallet?.address
   const canAfford = scarabBalance === null || scarabBalance >= 2
 
+  // ── Interaction gate ──────────────────────────────────────────────────────
+  const { status: interactionStatus, proof: interactionProof, check: checkInteraction } =
+    useInteractionCheck(walletAddress, projectAddress)
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!walletAddress || !canAfford) return
+    if (interactionStatus === 'blocked') return
     setSubmitting(true)
     setResult(null)
     try {
@@ -209,8 +215,57 @@ function ReviewFormInline({
     )
   }
 
+  // ── Interaction gate states ───────────────────────────────────────────────
+  if (interactionStatus === 'idle') return (
+    <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6">
+      <p className="text-[#adadb0] text-sm font-semibold mb-1">Verify On-Chain Interaction</p>
+      <p className="text-[#818384] text-xs mb-4 font-mono">Only wallets that have interacted with this project can leave a review.</p>
+      <button onClick={checkInteraction} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-lg transition-colors">
+        🔍 Verify Interaction
+      </button>
+    </div>
+  )
+
+  if (interactionStatus === 'loading') return (
+    <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6 text-center">
+      <p className="text-[#adadb0] text-sm font-mono animate-pulse">⏳ Checking on-chain history…</p>
+    </div>
+  )
+
+  if (interactionStatus === 'blocked') return (
+    <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6">
+      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-3">
+        <p className="text-red-400 text-sm font-semibold mb-1">❌ No Interaction Found</p>
+        <p className="text-red-400/70 text-xs font-mono">
+          Wallet {walletAddress?.slice(0,6)}…{walletAddress?.slice(-4)} has no recorded txs with {projectName}.
+        </p>
+      </div>
+      <p className="text-[#818384] text-xs font-mono mb-3">Interact with this project on-chain first, then re-check.</p>
+      <button onClick={checkInteraction} className="w-full py-2 border border-[#343536] hover:border-[#4a4a4b] text-[#adadb0] text-sm rounded-lg transition-colors">
+        🔄 Re-check
+      </button>
+    </div>
+  )
+
   return (
     <form onSubmit={handleSubmit} className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6 flex flex-col gap-4">
+      {/* Interaction badge */}
+      {interactionStatus === 'verified' && interactionProof && (
+        <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 text-xs text-green-400 font-mono flex items-center gap-2">
+          <span>✅</span>
+          <span>
+            Interaction verified
+            {interactionProof.txCount > 0 && ` · ${interactionProof.txCount} tx${interactionProof.txCount > 1 ? 's' : ''}`}
+            {interactionProof.firstTxDate && ` · since ${new Date(interactionProof.firstTxDate).toLocaleDateString()}`}
+          </span>
+        </div>
+      )}
+      {interactionStatus === 'error' && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 text-xs text-yellow-400 font-mono">
+          ⚠️ Could not verify on-chain — backend will re-check on submit.
+        </div>
+      )}
+
       {/* Scarab cost/earn info */}
       <div className="flex items-center justify-between text-xs font-mono">
         <div className="flex items-center gap-3">
