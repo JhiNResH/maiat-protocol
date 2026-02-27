@@ -4,6 +4,7 @@ import { checkInteraction } from "@/lib/interaction-check";
 import { getUserReputation } from "@/lib/reputation";
 import { apiLog } from "@/lib/logger";
 import { blendTrustScore } from "@/lib/scoring";
+import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
 
 // --- DB: Prisma (Supabase) with in-memory fallback for local dev ---
 let prisma: import("@prisma/client").PrismaClient | null = null;
@@ -33,22 +34,8 @@ interface ReviewRecord {
 const memReviews: ReviewRecord[] = [];
 let nextMemId = 1;
 
-// --- Rate limiter ---
-const ipHits = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 30;
-const RATE_WINDOW_MS = 60_000;
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = ipHits.get(ip);
-  if (!entry || entry.resetAt < now) {
-    ipHits.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
-  }
-  if (entry.count >= RATE_LIMIT) return true;
-  entry.count++;
-  return false;
-}
+// --- Rate limiter (Upstash Redis, graceful fallback) ---
+const rateLimiter = createRateLimiter("review", 30, 60);
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -62,8 +49,8 @@ export async function OPTIONS() {
 
 // GET /api/v1/review?address=0x...
 export async function GET(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
-  if (isRateLimited(ip)) {
+  const { success: rlOk } = await checkIpRateLimit(request, rateLimiter);
+  if (!rlOk) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: CORS_HEADERS });
   }
 
@@ -216,8 +203,8 @@ async function verifyTxHash(
 //   7. Update reviewer reputation → builds trust passport
 //
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
-  if (isRateLimited(ip)) {
+  const { success: rlOk } = await checkIpRateLimit(request, rateLimiter);
+  if (!rlOk) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: CORS_HEADERS });
   }
 

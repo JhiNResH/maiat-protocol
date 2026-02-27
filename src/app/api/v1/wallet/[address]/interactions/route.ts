@@ -1,24 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
 
-// --- Simple in-memory IP rate limiter ---
-const ipHits = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 30;
-const RATE_WINDOW_MS = 60_000;
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = ipHits.get(ip);
-
-  if (!entry || entry.resetAt < now) {
-    ipHits.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
-  }
-
-  if (entry.count >= RATE_LIMIT) return true;
-  entry.count++;
-  return false;
-}
+const rateLimiter = createRateLimiter("wallet:interactions", 30, 60);
 
 // --- CORS helpers ---
 const CORS_HEADERS = {
@@ -115,12 +99,8 @@ export async function GET(
   }
 
   // Rate limit
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown";
-
-  if (isRateLimited(ip)) {
+  const { success: rateLimitOk } = await checkIpRateLimit(request, rateLimiter);
+  if (!rateLimitOk) {
     return NextResponse.json(
       { error: "Too many requests. Retry after 1 minute." },
       { status: 429, headers: CORS_HEADERS }

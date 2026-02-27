@@ -8,6 +8,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
+
+// Protect against DoS writes — 20 queue requests/min per IP
+const rateLimiter = createRateLimiter("project:queue", 20, 60);
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +24,11 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: NextRequest) {
+  const { success: rlOk } = await checkIpRateLimit(req, rateLimiter);
+  if (!rlOk) {
+    return NextResponse.json({ ok: false, error: "Rate limit exceeded" }, { status: 429, headers: CORS });
+  }
+
   try {
     const body = await req.json() as {
       query: string;       // raw query (project name or address)
