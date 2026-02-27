@@ -20,10 +20,11 @@ const navItems = [
   { href: "/explore", label: "Explore", icon: Compass, exact: true },
   { href: "/explore?tab=leaderboard", label: "Leaderboard", icon: Trophy, tabMatch: "leaderboard" },
   { href: "/markets", label: "Markets 🪲", icon: BarChart2, exact: false },
+  { href: "/review", label: "Write Review", icon: Shield, exact: false },
 ];
 
 const accountItems = [
-  { href: "/dashboard", label: "Trust Passport", icon: LayoutDashboard },
+  { href: "/passport", label: "Trust Passport", icon: LayoutDashboard },
   { href: "/swap", label: "Protected Swap", icon: Repeat },
 ];
 
@@ -103,11 +104,14 @@ export function Sidebar() {
         <p className="px-3 text-[9px] font-bold text-[#475569] uppercase tracking-widest mb-2 font-mono">Account</p>
         {ready && authenticated ? (
           accountItems.map((item) => {
-            const active = pathname === item.href;
+            const href = item.href === '/passport' && walletAddress
+              ? `/passport/${walletAddress}`
+              : item.href;
+            const active = pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={href}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   active
                     ? "bg-[#0052FF]/10 text-[#0052FF] border border-[#0052FF]/20"
