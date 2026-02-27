@@ -1,7 +1,7 @@
 {
   "schedule": "*/30 * * * * *",
-  "maiatApiUrl": "https://maiat-protocol.vercel.app/api/v1/agents",
-  "geminiApiUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_GEMINI_API_KEY",
+  "maiatApiUrl": "https://maiat-protocol.vercel.app/api/v1/explore",
+  "geminiApiUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyD5oGMuikQV66hbNgjqmG7Zi-FgQgDQ4Ns",
   "evms": [
     {
       "consumerAddress": "0x1080cf8074130ba6e491ba3424b07baff2b92204",
