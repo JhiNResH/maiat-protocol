@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
             symbol: p.symbol,
             category,
             chain: p.chain || 'Base',
-            trustScore: (p.trustScore || 0) / 10,
+            trustScore: p.trustScore != null ? p.trustScore / 10 : null,
             description: p.description,
             marketCap: p.marketCap,
             reviewCount: p.reviewCount,
