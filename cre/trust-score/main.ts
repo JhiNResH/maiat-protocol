@@ -38,7 +38,7 @@ type EvmConfig = {
 type Config = {
   schedule: string
   maiatApiUrl: string
-  geminiApiUrl: string
+  geminiBaseUrl: string  // key injected at runtime via GEMINI_API_KEY env var
   evms: EvmConfig[]
 }
 
@@ -222,7 +222,7 @@ const fetchGeminiSentiment = (nodeRuntime: NodeRuntime<Config>): bigint => {
   })
 
   const resp = httpClient.sendRequest(nodeRuntime, {
-    url: nodeRuntime.config.geminiApiUrl,
+    url: `${nodeRuntime.config.geminiBaseUrl}?key=${process.env.GEMINI_API_KEY ?? ""}`,
     method: "POST" as const,
     headers: { "Content-Type": "application/json" },
     body: new TextEncoder().encode(prompt),
