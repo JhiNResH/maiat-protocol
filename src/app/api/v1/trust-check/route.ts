@@ -27,7 +27,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { calculateTrustScore } from "@/lib/trust-score";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -206,21 +205,29 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // ── Step 3: Fetch trust data ───────────────────────────────────────────────
+  // ── Step 3: Fetch trust data from DB ───────────────────────────────────────
   const addr = agent.toLowerCase();
 
-  const [trustData, checkCount, outcomeStats] = await Promise.all([
-    calculateTrustScore(addr).catch(() => null),
+  const [project, checkCount, outcomeStats] = await Promise.all([
+    prisma.project.findFirst({
+      where: {
+        OR: [
+          { address: { equals: addr, mode: 'insensitive' } },
+          { slug: addr.toLowerCase() },
+        ]
+      },
+      select: { trustScore: true, reviewCount: true, avgRating: true, name: true, slug: true }
+    }),
     prisma.agentCheckLog.count({ where: { checkedAddress: addr } }),
     getOutcomeStats(addr),
   ]);
 
-  // Address not in DB (on-the-fly generated or failed) → return 404
+  // Address not in DB → return 404
   // Guard/SDK uses 404 as fail-open signal
-  if (!trustData || !trustData.breakdown) {
+  if (!project) {
     return NextResponse.json(
       {
-        error: "Address not found",
+        error: "Not indexed",
         address: addr,
         known: false,
         detail: "This address has no Maiat community data. Submit a review to add it.",
@@ -229,16 +236,23 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const score: number = trustData.score;
+  const score: number = project.trustScore ?? 0; // already 0-100
 
   // Verdict logic
   let verdict: "proceed" | "caution" | "block";
-  if (score >= threshold) {
+  let riskLevel: "Low" | "Medium" | "High" | "Critical";
+  if (score >= 60) {
     verdict = "proceed";
-  } else if (score >= threshold * 0.7) {
+    riskLevel = "Low";
+  } else if (score >= 40) {
     verdict = "caution";
+    riskLevel = "Medium";
+  } else if (score >= 20) {
+    verdict = "block";
+    riskLevel = "High";
   } else {
     verdict = "block";
+    riskLevel = "Critical";
   }
 
   // ── Step 4: Log this check ─────────────────────────────────────────────────
@@ -262,16 +276,18 @@ export async function GET(req: NextRequest) {
 
       // ── Agent-only fields ──
       verdict,                                    // "proceed" | "caution" | "block"
+      riskLevel,                                  // "Low" | "Medium" | "High" | "Critical"
       x402_checks: checkCount + 1,               // total times this addr was checked
       outcome_score: outcomeStats.outcome_score,  // null if no outcome reports yet
       dispute_rate: outcomeStats.dispute_rate,    // null if no outcomes
       outcome_count: outcomeStats.outcome_count,
       bond_amount: null,                          // coming in Bond Contract (Layer 2)
 
-      // ── Breakdown ──
-      breakdown: trustData?.breakdown ?? null,
-      review_count: trustData?.metadata?.totalReviews ?? 0,
-      avg_rating: trustData?.metadata?.avgRating ?? null,
+      // ── Project info ──
+      name: project.name,
+      slug: project.slug,
+      review_count: project.reviewCount ?? 0,
+      avg_rating: project.avgRating ?? null,
 
       // ── Meta ──
       checked_at: new Date().toISOString(),

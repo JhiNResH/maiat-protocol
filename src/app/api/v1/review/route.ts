@@ -3,6 +3,7 @@ import { isAddress, getAddress, verifyMessage, type Hash } from "viem";
 import { checkInteraction } from "@/lib/interaction-check";
 import { getUserReputation } from "@/lib/reputation";
 import { apiLog } from "@/lib/logger";
+import { blendTrustScore } from "@/lib/scoring";
 
 // --- DB: Prisma (Supabase) with in-memory fallback for local dev ---
 let prisma: import("@prisma/client").PrismaClient | null = null;
@@ -531,6 +532,35 @@ export async function POST(request: NextRequest) {
         });
       } catch {
         // Best effort reputation update
+      }
+    }
+
+    // --- Step 8: Update Project stats (best-effort) ---
+    if (db) {
+      try {
+        const allReviews = await db.trustReview.findMany({
+          where: { address: { equals: checksumAddress, mode: 'insensitive' } },
+          select: { rating: true, weight: true },
+        });
+        const totalWeight = allReviews.reduce((s, r) => s + r.weight, 0);
+        const weightedSum = allReviews.reduce((s, r) => s + r.rating * r.weight, 0);
+        const newAvgRating = totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 10) / 10 : 0;
+
+        const project = await db.project.findFirst({ where: { address: { equals: checksumAddress, mode: 'insensitive' } } });
+        if (project && project.trustScore != null) {
+          const onChainScore = project.trustScore / 10;
+          const { blended } = blendTrustScore(onChainScore, newAvgRating, allReviews.length);
+          await db.project.update({
+            where: { id: project.id },
+            data: {
+              reviewCount: allReviews.length,
+              avgRating: newAvgRating,
+              trustScore: Math.round(blended * 10),
+            },
+          });
+        }
+      } catch (e) {
+        console.error('[review] failed to update project stats:', e);
       }
     }
 
