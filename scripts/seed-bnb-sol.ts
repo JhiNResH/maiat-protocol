@@ -46,50 +46,8 @@ const BNB_PROJECTS = [
     description: "Largest BNB Chain lending/borrowing protocol. $1.7B TVL.",
     website: "https://venus.io",
   },
-  {
-    address: "0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63",
-    name: "Venus (XVS)",
-    symbol: "XVS",
-    category: "m/defi",
-    chain: "BNB",
-    description: "Venus Protocol governance token (XVS).",
-    website: "https://venus.io",
-  },
-  {
-    address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-    name: "Wrapped BNB",
-    symbol: "WBNB",
-    category: "m/defi",
-    chain: "BNB",
-    description: "Wrapped BNB — native token of BNB Smart Chain.",
-    website: "https://www.bnbchain.org",
-  },
-  {
-    address: "0x55d398326f99059fF775485246999027B3197955",
-    name: "BSC-USD (USDT)",
-    symbol: "USDT",
-    category: "m/defi",
-    chain: "BNB",
-    description: "Tether USDT on BNB Smart Chain. Most-used stablecoin on BSC.",
-  },
-  {
-    address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
-    name: "USDC (BNB Chain)",
-    symbol: "USDC",
-    category: "m/defi",
-    chain: "BNB",
-    description: "Circle USDC on BNB Smart Chain.",
-  },
-  // AI Agents on BNB
-  {
-    address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82",
-    name: "PancakeSwap (CAKE)",
-    symbol: "CAKE",
-    category: "m/defi",
-    chain: "BNB",
-    description: "CAKE token — PancakeSwap governance and reward token.",
-    website: "https://pancakeswap.finance",
-  },
+  // NOTE: XVS token, WBNB, BSC-USDT, USDC BNB, CAKE token removed —
+  // these are pure token contracts, not DeFi protocols users review.
 ];
 
 // ── Solana projects (base58 → hardcoded scores, EVM scoring N/A) ──────────────
