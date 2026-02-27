@@ -109,6 +109,12 @@ export async function checkInteraction(
   try {
     const targetLower = targetAddress.toLowerCase();
 
+    // "internal" category is only supported on ETH (chainId 1) and MATIC, not Base
+    const supportsInternal = chainId === 1 || chainId === 137;
+    const categories = supportsInternal
+      ? ["external", "internal", "erc20", "erc721", "erc1155"]
+      : ["external", "erc20", "erc721", "erc1155"];
+
     // Primary: asset transfers (ERC20/ETH/NFT)
     const assetRes = await fetch(rpcUrl, {
       method: "POST",
@@ -121,7 +127,7 @@ export async function checkInteraction(
           fromBlock: "0x0",
           toBlock: "latest",
           fromAddress: walletAddress,
-          category: ["external", "internal", "erc20", "erc721", "erc1155"],
+          category: categories,
           withMetadata: true,
           maxCount: "0x3e8"
         }]
