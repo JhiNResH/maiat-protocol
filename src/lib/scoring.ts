@@ -367,3 +367,54 @@ export async function computeTrustScore(
   cache.set(key, { result, expiresAt: Date.now() + CACHE_TTL_MS });
   return result;
 }
+
+// ─── Dynamic Weight System ───────────────────────────────────────────────────
+//
+// As community reviews accumulate, their signal becomes more reliable.
+// Weights shift from on-chain dominant → community dominant over time.
+//
+//  Phase        Reviews   On-chain   Community
+//  cold         0         100%       0%
+//  seeding      1–4        75%       25%
+//  growing      5–19       50%       50%
+//  mature       20–49      30%       70%
+//  established  50+        15%       85%
+
+export interface DynamicWeights {
+  onChain: number;    // 0–1 weight for Alchemy on-chain score
+  community: number;  // 0–1 weight for community review score
+  phase: "cold" | "seeding" | "growing" | "mature" | "established";
+}
+
+export function getDynamicWeights(reviewCount: number): DynamicWeights {
+  if (reviewCount === 0)  return { onChain: 1.00, community: 0.00, phase: "cold" };
+  if (reviewCount < 5)    return { onChain: 0.75, community: 0.25, phase: "seeding" };
+  if (reviewCount < 20)   return { onChain: 0.50, community: 0.50, phase: "growing" };
+  if (reviewCount < 50)   return { onChain: 0.30, community: 0.70, phase: "mature" };
+  return                         { onChain: 0.15, community: 0.85, phase: "established" };
+}
+
+/**
+ * Blend on-chain Alchemy score with community review score.
+ *
+ * @param onChainScore   — 0–10 from computeTrustScore()
+ * @param avgRating      — 1–5 star average from reviews (or null if no reviews)
+ * @param reviewCount    — total review count
+ * @returns blended score 0–10
+ */
+export function blendTrustScore(
+  onChainScore: number,
+  avgRating: number | null,
+  reviewCount: number,
+): { blended: number; weights: DynamicWeights } {
+  const weights = getDynamicWeights(reviewCount);
+
+  // Convert avgRating (1–5 stars) → 0–10 scale
+  const communityScore = avgRating != null ? (avgRating / 5) * 10 : 0;
+
+  const blended = Math.max(0, Math.min(10,
+    Math.round((onChainScore * weights.onChain + communityScore * weights.community) * 10) / 10,
+  ));
+
+  return { blended, weights };
+}

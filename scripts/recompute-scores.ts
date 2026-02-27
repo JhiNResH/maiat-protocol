@@ -11,7 +11,7 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { getAddress } from "viem";
-import { computeTrustScore, type SupportedChain } from "../src/lib/scoring";
+import { computeTrustScore, blendTrustScore, type SupportedChain } from "../src/lib/scoring";
 
 const db = new PrismaClient();
 
@@ -31,7 +31,10 @@ async function main() {
 
   const projects = await db.project.findMany({
     where: forceAll ? {} : { trustScore: null },
-    select: { id: true, name: true, address: true, chain: true, trustScore: true },
+    select: {
+      id: true, name: true, address: true, chain: true, trustScore: true,
+      reviewCount: true, avgRating: true,
+    },
     orderBy: { name: "asc" },
   });
 
@@ -51,16 +54,22 @@ async function main() {
       const normalizedAddr = getAddress(p.address);
       const result = await computeTrustScore(normalizedAddr, chain);
 
-      // DB stores 0–100, computeTrustScore returns 0–10
-      const scoreDb = Math.round(result.score * 10);
+      // Blend on-chain score with community reviews (dynamic weights)
+      const reviewCount = p.reviewCount ?? 0;
+      const avgRating   = p.avgRating   ?? null;
+      const { blended, weights } = blendTrustScore(result.score, avgRating, reviewCount);
+
+      // DB stores 0–100; blendTrustScore returns 0–10
+      const scoreDb = Math.round(blended * 10);
 
       await db.project.update({
         where: { id: p.id },
         data: { trustScore: scoreDb },
       });
 
-      const bar = "█".repeat(Math.floor(result.score)) + "░".repeat(10 - Math.floor(result.score));
-      console.log(`${progress} ✅ ${p.name.padEnd(32)} ${chain.padEnd(5)} ${bar} ${result.score.toFixed(1)} → DB:${scoreDb} [${result.risk}]`);
+      const bar = "█".repeat(Math.floor(blended)) + "░".repeat(10 - Math.floor(blended));
+      const phaseTag = `[${weights.phase}]`;
+      console.log(`${progress} ✅ ${p.name.padEnd(32)} ${chain.padEnd(5)} ${bar} ${blended.toFixed(1)} → DB:${scoreDb} [${result.risk}] ${phaseTag}`);
       updated++;
     } catch (err: any) {
       console.log(`${progress} ❌ ${p.name.padEnd(32)} ${chain.padEnd(5)} FAILED: ${err.message?.slice(0, 60)}`);
