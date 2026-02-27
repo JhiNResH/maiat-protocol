@@ -10,7 +10,6 @@ import {
   Repeat, 
   FileText, 
   Github,
-  Scan,
   Flame,
   Shield,
   BarChart2,
@@ -20,7 +19,6 @@ import { usePrivy } from "@privy-io/react-auth";
 const navItems = [
   { href: "/explore", label: "Explore", icon: Compass, exact: true },
   { href: "/explore?tab=leaderboard", label: "Leaderboard", icon: Trophy, tabMatch: "leaderboard" },
-  { href: "/m/scan", label: "Scan Address", icon: Scan, exact: false },
   { href: "/markets", label: "Markets 🪲", icon: BarChart2, exact: false },
 ];
 
