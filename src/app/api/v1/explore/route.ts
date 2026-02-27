@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
           } else if (p.category === 'm/memecoin' || p.category === 'Memecoins') {
             category = 'Memecoins';
           } else {
-            category = 'DeFi'; // fallback
+            category = p.category || 'Other'; // fallback to actual category or 'Other'
           }
 
           // Heuristic override for known memecoins
