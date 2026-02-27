@@ -459,7 +459,7 @@ function ExplorePage() {
                     key={item.id}
                     href={item.category === 'DeFi'
                       ? `/defi/${item.slug}/${item.address}`
-                      : `/agent/${item.slug}`}
+                      : `/agent/${item.address}`}
                     className="group grid grid-cols-[180px_1fr_120px_100px_60px] gap-4 items-center px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg transition-all duration-200 hover:border-[#0052FF]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.1)]"
                     style={{ minHeight: "72px" }}
                   >
