@@ -294,39 +294,32 @@ export async function POST(request: NextRequest) {
     // Note: both signature and txHash are optional for backward compat.
     // Will enforce one of them once all clients are updated.
 
-    // --- Step 2: GATE — Passport + EAS interaction check ---
-    // Trust Passport integrates multiple trust signals:
-    //   On-chain interaction + EAS service receipts + Base Verify + Scarab reputation
+    // --- Step 2: GATE — Interaction proof required (no passport bypass) ---
+    // Passport level ONLY affects review weight — not the interaction gate.
+    // Even guardian users must prove they've used the contract.
     //
-    // Bypass hierarchy (weakest → strongest):
-    //   A. txHash verified → reviewer sent tx to target (on-chain proof)
-    //   B. EAS receipt provided → claimed service proof (DB-verified at Step 4.5)
-    //   C. Passport trust level: trusted/verified/guardian → no Alchemy needed
-    //   D. Alchemy confirms ≥1 tx → baseline interaction check
+    // Gate passes when ANY of:
+    //   A. txHash verified → tx.from===reviewer AND tx.to===target (strongest proof)
+    //   B. EAS receipt provided → cryptographic service receipt (DB-verified at Step 4.5)
+    //   C. Alchemy confirms ≥1 tx → baseline on-chain interaction check
     //   None → 403
 
-    // Fetch passport reputation (fail open if DB unavailable)
+    // Fetch passport reputation — used for weight only (Step 4.5), not for gate bypass
     let passportLevel: 'new' | 'trusted' | 'verified' | 'guardian' = 'new';
     try {
       const reputation = await getUserReputation(checksumReviewer);
       passportLevel = reputation.trustLevel;
     } catch { /* DB unavailable — treat as new user */ }
 
-    const PASSPORT_BYPASS_LEVELS: Array<typeof passportLevel> = ['trusted', 'verified', 'guardian'];
-
     let hasInteraction: boolean;
     if (txHashInteracts) {
-      // Strongest on-chain proof — already confirmed by verifyTxHash
+      // Strongest on-chain proof — tx.from===reviewer AND tx.to===target confirmed
       hasInteraction = true;
     } else if (easReceiptId) {
-      // EAS receipt claim — bypass gate, weight resolved at Step 4.5
-      hasInteraction = true;
-    } else if (PASSPORT_BYPASS_LEVELS.includes(passportLevel)) {
-      // Established passport holders skip per-review Alchemy check
-      // (They've already proven themselves through past interactions)
+      // EAS receipt claim — gate passes, weight boosted to 5× at Step 4.5
       hasInteraction = true;
     } else {
-      // Baseline: check Alchemy for on-chain tx history
+      // Always run Alchemy check — passport level does NOT bypass this gate
       const interaction = await checkInteraction(checksumReviewer, checksumAddress);
       hasInteraction = interaction.hasInteracted;
     }
