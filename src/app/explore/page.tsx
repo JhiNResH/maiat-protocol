@@ -29,7 +29,7 @@ interface ExploreItem {
   name: string;
   category: string;
   chain: string;
-  trustScore: number;
+  trustScore: number | null;
   riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   txCount: number;
   reviewCount: number;
@@ -231,7 +231,7 @@ function ExplorePage() {
           chain: p.chain,
           trustScore: p.trustScore,
           riskLevel:
-            p.trustScore >= 7.0 ? "LOW" : p.trustScore >= 4.0 ? "MEDIUM" : "HIGH",
+            p.trustScore == null ? "HIGH" : p.trustScore >= 7.0 ? "LOW" : p.trustScore >= 4.0 ? "MEDIUM" : "HIGH",
           txCount: 0,
           reviewCount: p.reviewCount || 0,
           ageLabel: "Active",
@@ -285,12 +285,14 @@ function ExplorePage() {
       );
     }
 
+    const scoreOf = (x: { trustScore: number | null }) => x.trustScore ?? -1;
+
     switch (sortBy) {
       case "score_desc":
-        result.sort((a, b) => b.trustScore - a.trustScore);
+        result.sort((a, b) => scoreOf(b) - scoreOf(a));
         break;
       case "score_asc":
-        result.sort((a, b) => a.trustScore - b.trustScore);
+        result.sort((a, b) => scoreOf(a) - scoreOf(b));
         break;
       case "most_reviewed":
         result.sort((a, b) => b.reviewCount - a.reviewCount);
@@ -298,7 +300,7 @@ function ExplorePage() {
     }
 
     if (activeTab === "leaderboard") {
-      result = result.sort((a, b) => b.trustScore - a.trustScore);
+      result = result.sort((a, b) => scoreOf(b) - scoreOf(a));
     }
 
     return result;
@@ -513,9 +515,9 @@ function ExplorePage() {
                     {/* Trust Score */}
                     <div className="flex flex-col items-end">
                       <span
-                        className={`text-lg font-bold font-mono leading-none ${getScoreColor(item.trustScore)}`}
+                        className={`text-lg font-bold font-mono leading-none ${item.trustScore != null ? getScoreColor(item.trustScore) : "text-gray-500"}`}
                       >
-                        {item.trustScore.toFixed(1)}
+                        {item.trustScore != null ? item.trustScore.toFixed(1) : "—"}
                       </span>
                     </div>
                   </Link>
