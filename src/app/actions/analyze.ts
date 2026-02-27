@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 import { prisma } from "@/lib/prisma"
 
 // Initialize Google GenAI with the API Key
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '')
 
 // Cache TTL: 24 hours
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000
@@ -43,7 +43,7 @@ export async function analyzeProject(query: string): Promise<AIAgentAnalysisResu
       : `Search for comprehensive information about the AI Agent or DeFi project: "${query}"`
 
     console.log('[Maiat] Starting analysis for:', query)
-    console.log('[Maiat] API Key exists:', !!process.env.GOOGLE_GENERATIVE_AI_API_KEY)
+    console.log('[Maiat] API Key exists:', !!process.env.GEMINI_API_KEY)
 
     // Use Gemini 2.0 Flash
     const model = genAI.getGenerativeModel({ 
