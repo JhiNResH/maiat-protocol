@@ -1,14 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { claimDaily } from "@/lib/scarab";
+import { verifyMessage, getAddress } from "viem";
 
 export async function POST(req: NextRequest) {
   try {
-    const { address } = await req.json();
-    if (!address) {
-      return NextResponse.json({ error: "Missing address" }, { status: 400 });
+    const { address, signature } = await req.json();
+    if (!address || !signature) {
+      return NextResponse.json(
+        { error: "Missing address or signature" },
+        { status: 400 }
+      );
     }
 
-    const claimResult: any = await claimDaily(address, false);
+    // Verify EIP-191 signature
+    const checksumAddress = getAddress(address);
+    const message = `Claim daily Scarab for ${checksumAddress}`;
+
+    let isValid = false;
+    try {
+      isValid = await verifyMessage({
+        address: checksumAddress,
+        message,
+        signature,
+      });
+    } catch {
+      isValid = false;
+    }
+
+    if (!isValid) {
+      return NextResponse.json(
+        { error: "Invalid signature" },
+        { status: 401 }
+      );
+    }
+
+    const claimResult: any = await claimDaily(checksumAddress, false);
     
     // Return 200 even if already claimed to reduce log noise, 
     // the client will handle the alreadyClaimed flag.
