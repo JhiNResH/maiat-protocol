@@ -1,9 +1,9 @@
 import { Metadata } from 'next'
-import { LandingPage } from '@/components/LandingPage'
+import { RedirectToExplore } from '@/components/RedirectToExplore'
 
 export const metadata: Metadata = {
-  title: 'Maiat Protocol — The Trust Layer for the Agent Economy',
-  description: 'One API call. Instant trust scores for any on-chain address. Built for AI agents, secured by Chainlink, enforced on-chain via Uniswap v4 Hooks.',
+  title: 'Maiat Protocol — Trust Infrastructure for AI Agents',
+  description: 'Verify any smart contract or AI agent before you transact. On-chain trust scores, community reviews, and x402-gated trust gate API. Built on Base.',
 }
 
 // JSON-LD structured data for AEO
@@ -44,7 +44,7 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <LandingPage />
+      <RedirectToExplore />
     </>
   )
 }
