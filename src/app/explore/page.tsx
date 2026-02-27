@@ -89,6 +89,7 @@ function getChainDot(chain: string) {
 function categoryColor(cat: string) {
   if (cat === "Agent") return "#0052FF";
   if (cat === "DeFi" || cat === "DEX") return "#7C3AED";
+  if (cat === "Memecoins" || cat === "Memecoin") return "#F59E0B";
   if (cat === "Lending") return "#0EA5E9";
   return "#666666";
 }
@@ -270,6 +271,7 @@ function ExplorePage() {
       const catMap: Record<string, string[]> = {
         defi: ["DEX", "Lending", "DeFi"],
         agents: ["Agent"],
+        memecoins: ["Memecoins", "Memecoin"],
       };
       const allowed = catMap[category] || [];
       result = result.filter((item) => allowed.includes(item.category));
@@ -383,7 +385,7 @@ function ExplorePage() {
             <div className="flex items-center gap-3 mb-4">
               {/* Category Pills */}
               <div className="flex gap-1.5">
-                {["all", "agents", "defi"].map((cat) => (
+                {["all", "agents", "defi", "memecoins"].map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setCategory(cat)}
@@ -393,7 +395,7 @@ function ExplorePage() {
                         : "border-[#1F1F1F] text-[#666666] hover:border-[#333] hover:text-[#999]"
                     }`}
                   >
-                    [{cat === "all" ? "ALL" : cat === "agents" ? "AI AGENTS" : "DEFI"}]
+                    [{cat === "all" ? "ALL" : cat === "agents" ? "AI AGENTS" : cat === "defi" ? "DEFI" : "MEMES"}]
                   </button>
                 ))}
               </div>
