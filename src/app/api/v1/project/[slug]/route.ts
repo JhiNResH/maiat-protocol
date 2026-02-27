@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
 import { computeTrustScore } from "@/lib/scoring";
+import { computeRealtimeTrust } from "@/lib/realtime-trust";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,36 @@ export async function GET(
     });
 
     if (existing) {
+      const realtime = req.nextUrl.searchParams.get("realtime") === "1";
+
+      // ?realtime=1 → compute live score from DeFiLlama + DEXScreener + Basescan
+      if (realtime && existing.address) {
+        try {
+          const chain = (existing.chain?.toLowerCase().includes("eth") ? "eth" : "base") as "base" | "eth";
+          const rt = await computeRealtimeTrust({
+            name: existing.name,
+            address: existing.address,
+            chain,
+            reviewCount:     existing.reviewCount ?? 0,
+            avgRating:       existing.avgRating ?? null,
+            verifiedReviews: 0,
+          });
+
+          // Write-back to DB so next call is fast
+          await prisma.project.update({
+            where: { id: existing.id },
+            data: { trustScore: rt.score },
+          }).catch(() => {/* non-fatal */});
+
+          return NextResponse.json({
+            project: { ...existing, trustScore: rt.score },
+            realtime: rt,
+          }, { headers: CORS_HEADERS });
+        } catch {
+          // Fall through to DB result if real-time fails
+        }
+      }
+
       return NextResponse.json({ project: existing }, { headers: CORS_HEADERS });
     }
 
