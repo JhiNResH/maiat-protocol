@@ -19,12 +19,20 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = rawSlug.toLowerCase(); // normalize: "VIRTUAL" → "virtual"
 
   try {
-    // 1. Try DB lookup by slug or address
+    // 1. Try DB lookup by slug, address, or symbol (case-insensitive)
     const existing = await prisma.project.findFirst({
-      where: { OR: [{ slug }, { address: slug }] },
+      where: {
+        OR: [
+          { slug },
+          { address: { equals: rawSlug, mode: 'insensitive' } },
+          { symbol: { equals: rawSlug, mode: 'insensitive' } },
+          { name: { equals: rawSlug, mode: 'insensitive' } },
+        ],
+      },
     });
 
     if (existing) {
@@ -32,11 +40,11 @@ export async function GET(
     }
 
     // 2. Auto-create if it's a valid EVM address not in DB
-    if (!isAddress(slug)) {
+    if (!isAddress(rawSlug)) {
       return NextResponse.json({ error: "Not found" }, { status: 404, headers: CORS_HEADERS });
     }
 
-    const checksummed = getAddress(slug);
+    const checksummed = getAddress(rawSlug);
     const chainParam = req.nextUrl.searchParams.get("chain") ?? "base";
 
     // Score it on-chain
