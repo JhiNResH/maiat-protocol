@@ -4,7 +4,7 @@
   "geminiBaseUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
   "evms": [
     {
-      "consumerAddress": "0xf662902ca227baba3a4d11a1bc58073e0b0d1139",
+      "consumerAddress": "0xYOUR_CONSUMER_CONTRACT_ADDRESS",
       "chainName": "ethereum-testnet-sepolia-base-1",
       "gasLimit": "500000"
     }
