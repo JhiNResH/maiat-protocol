@@ -248,3 +248,21 @@ model OutcomeReport {
   @@index([buyerAddress])
   @@index([result])
 }
+
+/// ACP Behavioral Trust Scores — indexed from Virtuals ACP on-chain job history
+model AgentScore {
+  id            String   @id @default(cuid())
+  walletAddress String   @unique @map("wallet_address")
+  trustScore    Int      @map("trust_score")      // 0–100
+  completionRate Float   @map("completion_rate")  // 0.0–1.0
+  paymentRate   Float    @map("payment_rate")     // 0.0–1.0
+  expireRate    Float    @map("expire_rate")      // 0.0–1.0 (ghosting)
+  totalJobs     Int      @map("total_jobs")
+  dataSource    String   @default("ACP_BEHAVIORAL") @map("data_source")
+  lastUpdated   DateTime @updatedAt @map("last_updated")
+  rawMetrics    Json     @map("raw_metrics")
+
+  @@map("agent_scores")
+  @@index([walletAddress])
+  @@index([trustScore])
+}

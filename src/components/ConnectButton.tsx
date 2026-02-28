@@ -49,6 +49,8 @@ export function ConnectButton() {
           params: [message, checksumAddress], // checksumAddress used consistently
         })
 
+        if (!signature) throw new Error('Wallet returned empty signature')
+
         const res = await fetch('/api/v1/scarab/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
