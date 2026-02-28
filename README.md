@@ -106,6 +106,23 @@ Plug-and-play trust scoring for every major agent framework.
 
 Also available on [GitHub Packages](https://github.com/JhiNResH/maiat-protocol/packages).
 
+### x402 Trust-Gated Payments ⭐ NEW
+
+```typescript
+import { createTrustGatedClient } from "@maiat/x402-plugin";
+
+// Every x402 payment is trust-checked before signing
+const client = createTrustGatedClient({
+  minScore: 3.0,       // Block payments to addresses scoring below 3/10
+  maxPriceUsd: 1.0,    // Safety cap per request
+});
+
+const result = await client.fetch("https://api.example.com/paid-endpoint");
+// → Checks recipient trust → Pays if trusted → Blocks if not
+```
+
+See [`packages/x402-plugin`](./packages/x402-plugin) for full docs.
+
 ### Coinbase AgentKit
 
 ```typescript

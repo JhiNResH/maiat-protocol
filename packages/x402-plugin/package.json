@@ -1,0 +1,33 @@
+{
+  "name": "@maiat/x402-plugin",
+  "version": "0.1.0",
+  "description": "Trust-gated x402 payments — wraps Coinbase x402 with Maiat trust verification",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["maiat", "x402", "trust", "agent", "coinbase", "payment", "ai-agent"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JhiNResH/maiat-protocol",
+    "directory": "packages/x402-plugin"
+  },
+  "peerDependencies": {
+    "viem": ">=2.0.0"
+  },
+  "dependencies": {
+    "@maiat/agentkit-plugin": "file:../agentkit-plugin"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "viem": "^2.21.0",
+    "vitest": "^2.0.0"
+  }
+}
