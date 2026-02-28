@@ -47,6 +47,9 @@ export interface RealtimeTrustResult {
     reviewCount:       number;
     avgRating:         number | null;
     verifiedReviews:   number;
+    /** Opinion Market: Scarab staked on this project (skin-in-the-game signal) */
+    totalStaked:       number;
+    stakeCount:        number;
   };
   flags: string[];
   dataSource: "realtime";
@@ -261,20 +264,32 @@ function scoreMarket(
 function scoreCommunity(
   reviewCount: number,
   avgRating: number | null,
-  verifiedReviews: number
+  verifiedReviews: number,
+  marketStake: { totalStaked: number; stakeCount: number } = { totalStaked: 0, stakeCount: 0 }
 ): number {
-  if (reviewCount === 0) return 20; // neutral, no data
+  if (reviewCount === 0 && marketStake.stakeCount === 0) return 20; // neutral, no data
   let s = 20;
-  if (reviewCount >= 50)   s += 30;
+
+  // Review signals
+  if (reviewCount >= 50)      s += 30;
   else if (reviewCount >= 10) s += 20;
   else if (reviewCount >= 3)  s += 10;
-  if (verifiedReviews >= 5) s += 20;
+
+  if (verifiedReviews >= 5)   s += 20;
   else if (verifiedReviews >= 1) s += 10;
+
   if (avgRating !== null) {
-    if (avgRating >= 4.5) s += 20;
+    if (avgRating >= 4.5)      s += 20;
     else if (avgRating >= 4.0) s += 10;
     else if (avgRating < 2.5)  s -= 15;
   }
+
+  // Opinion Market signals: Scarab stakers have skin-in-the-game (stronger than star reviews)
+  // stakeCount = unique wallets that put Scarab on this project
+  if (marketStake.stakeCount >= 20) s += 20;
+  else if (marketStake.stakeCount >= 5) s += 10;
+  else if (marketStake.stakeCount >= 1) s += 5;
+
   return Math.max(0, Math.min(s, 100));
 }
 
@@ -303,11 +318,14 @@ export async function computeRealtimeTrust(opts: {
   reviewCount?: number;
   avgRating?: number | null;
   verifiedReviews?: number;
+  /** Opinion Market: total Scarab staked on this project + number of unique stakers */
+  marketStake?: { totalStaked: number; stakeCount: number };
 }): Promise<RealtimeTrustResult> {
   const { name, address, chain = "base" } = opts;
   const reviewCount     = opts.reviewCount     ?? 0;
   const avgRating       = opts.avgRating       ?? null;
   const verifiedReviews = opts.verifiedReviews ?? 0;
+  const marketStake     = opts.marketStake     ?? { totalStaked: 0, stakeCount: 0 };
 
   // Fetch all sources in parallel
   const [llama, dex, contract] = await Promise.all([
@@ -326,7 +344,7 @@ export async function computeRealtimeTrust(opts: {
     contract.contractAgeYears
   );
   const marketActivity   = scoreMarket(dex.volume24h, dex.marketCap, dex.priceChange24h);
-  const communityScore   = scoreCommunity(reviewCount, avgRating, verifiedReviews);
+  const communityScore   = scoreCommunity(reviewCount, avgRating, verifiedReviews, marketStake);
 
   // Weighted final score
   let score = Math.round(
@@ -354,7 +372,8 @@ export async function computeRealtimeTrust(opts: {
   if (contract.contractAgeYears !== null && contract.contractAgeYears < 0.25) flags.push("NEW_CONTRACT");
   if (llama.tvl && llama.tvl >= 100e6)   flags.push("HIGH_TVL");
   if (dex.marketCap && dex.marketCap >= 100e6) flags.push("LARGE_CAP");
-  if (reviewCount === 0)                 flags.push("NO_COMMUNITY_DATA");
+  if (reviewCount === 0 && marketStake.stakeCount === 0) flags.push("NO_COMMUNITY_DATA");
+  if (marketStake.stakeCount >= 5)       flags.push("OPINION_MARKET_ACTIVE");
   if (dex.priceChange24h !== null && dex.priceChange24h < -30) flags.push("PRICE_CRASH_24H");
 
   return {
@@ -382,6 +401,8 @@ export async function computeRealtimeTrust(opts: {
       reviewCount,
       avgRating,
       verifiedReviews,
+      totalStaked:       marketStake.totalStaked,
+      stakeCount:        marketStake.stakeCount,
     },
     flags,
     dataSource: "realtime",
