@@ -43,13 +43,30 @@ export async function GET(
       if (realtime && existing.address) {
         try {
           const chain = (existing.chain?.toLowerCase().includes("eth") ? "eth" : "base") as "base" | "eth";
+
+          // Fetch verified review count + opinion market stake in parallel (non-fatal)
+          const [verifiedCount, marketAgg] = await Promise.allSettled([
+            prisma.review.count({ where: { projectId: existing.id, verified: true } }),
+            prisma.marketPosition.aggregate({
+              where: { projectId: existing.id },
+              _sum: { amount: true },
+              _count: { id: true },
+            }),
+          ]);
+
+          const verifiedReviews = verifiedCount.status === "fulfilled" ? verifiedCount.value : 0;
+          const marketStake = marketAgg.status === "fulfilled"
+            ? { totalStaked: marketAgg.value._sum.amount ?? 0, stakeCount: marketAgg.value._count.id ?? 0 }
+            : { totalStaked: 0, stakeCount: 0 };
+
           const rt = await computeRealtimeTrust({
             name: existing.name,
             address: existing.address,
             chain,
             reviewCount:     existing.reviewCount ?? 0,
             avgRating:       existing.avgRating ?? null,
-            verifiedReviews: 0,
+            verifiedReviews,
+            marketStake,
           });
 
           // Write-back to DB so next call is fast (persist both score + grade)
