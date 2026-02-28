@@ -131,8 +131,12 @@ async function fetchContractInfo(address: string, chain: "base" | "eth" = "base"
   if (!apiKey) return { sourceVerified: null, ownershipRenounced: null, isProxy: null, contractAgeYears: null };
 
   try {
-    const [abiRes, creationRes] = await Promise.allSettled([
-      fetch(`${baseUrl}?module=contract&action=getabi&address=${address}&apikey=${apiKey}`, {
+    const [sourceRes, creationRes] = await Promise.allSettled([
+      // getsourcecode is more reliable than getabi:
+      // - Works correctly for proxy contracts (getabi returns status=0 for proxy addresses)
+      // - Returns Proxy="1" + Implementation address when it's a proxy
+      // - SourceCode non-empty means verified
+      fetch(`${baseUrl}?module=contract&action=getsourcecode&address=${address}&apikey=${apiKey}`, {
         signal: AbortSignal.timeout(5_000),
       }),
       fetch(`${baseUrl}?module=contract&action=getcontractcreation&contractaddresses=${address}&apikey=${apiKey}`, {
@@ -140,10 +144,37 @@ async function fetchContractInfo(address: string, chain: "base" | "eth" = "base"
       }),
     ]);
 
-    const sourceVerified =
-      abiRes.status === "fulfilled" && abiRes.value.ok
-        ? await abiRes.value.json().then((d: any) => d.status === "1")
-        : null;
+    let sourceVerified: boolean | null = null;
+    let isProxy: boolean | null = null;
+
+    if (sourceRes.status === "fulfilled" && sourceRes.value.ok) {
+      const d: any = await sourceRes.value.json();
+      const result = d.result?.[0];
+      if (result) {
+        // SourceCode is non-empty string when verified
+        sourceVerified = typeof result.SourceCode === "string" && result.SourceCode.length > 0;
+        // Proxy field is "1" when the contract is a proxy
+        isProxy = result.Proxy === "1";
+        // If it's a proxy and the proxy itself isn't verified, check implementation
+        if (isProxy && !sourceVerified && result.Implementation) {
+          try {
+            const implRes = await fetch(
+              `${baseUrl}?module=contract&action=getsourcecode&address=${result.Implementation}&apikey=${apiKey}`,
+              { signal: AbortSignal.timeout(5_000) }
+            );
+            if (implRes.ok) {
+              const implData: any = await implRes.json();
+              const implResult = implData.result?.[0];
+              if (implResult && typeof implResult.SourceCode === "string") {
+                sourceVerified = implResult.SourceCode.length > 0;
+              }
+            }
+          } catch {
+            // Silently fail — implementation check is best-effort
+          }
+        }
+      }
+    }
 
     let contractAgeYears: number | null = null;
     if (creationRes.status === "fulfilled" && creationRes.value.ok) {
@@ -158,7 +189,7 @@ async function fetchContractInfo(address: string, chain: "base" | "eth" = "base"
     return {
       sourceVerified,
       ownershipRenounced: null, // would need owner() call
-      isProxy: null,
+      isProxy,
       contractAgeYears,
     };
   } catch {
