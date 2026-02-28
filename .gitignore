@@ -14,3 +14,4 @@ cre/.env
 # CRE config files — may contain secrets (use *.example.json as template)
 cre/trust-score/config.production.json
 cre/trust-score/config.staging.json
+*.tgz
