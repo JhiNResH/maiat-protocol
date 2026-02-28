@@ -12,6 +12,12 @@ export function ConnectButton() {
   const { wallets } = useWallets()
   const [claimed, setClaimed] = useState(false)
 
+  // Stable ref: resolves to the connected wallet object (or undefined), not the
+  // whole array — prevents spurious effect re-runs when Privy re-renders wallets.
+  const connectedWallet = wallets.find(
+    (w) => w.address.toLowerCase() === user?.wallet?.address?.toLowerCase()
+  )
+
   useEffect(() => {
     async function claimDailyScarab() {
       if (!authenticated || !user?.wallet?.address || claimed) return
@@ -19,24 +25,34 @@ export function ConnectButton() {
       try {
         const rawAddress = user.wallet.address
         const checksumAddress = getAddress(rawAddress)
-        const message = `Claim daily Scarab for ${checksumAddress}`
+
+        if (!connectedWallet) return // wallet not ready yet — effect will re-run
+
+        // Fetch a fresh single-use nonce from the server
+        const nonceRes = await fetch(
+          `/api/v1/scarab/nonce?address=${encodeURIComponent(checksumAddress)}`
+        )
+        if (!nonceRes.ok) throw new Error('Failed to fetch claim nonce')
+        const { nonce, expiresAt } = await nonceRes.json()
+
+        // EIP-191 message includes nonce + expiry — prevents replay attacks
+        const message = [
+          `Claim daily Scarab for ${checksumAddress}`,
+          `Nonce: ${nonce}`,
+          `Expiration: ${expiresAt}`,
+        ].join('\n')
 
         // Sign with connected wallet (silent for Privy embedded, prompt for external)
-        const wallet = wallets.find(
-          (w) => w.address.toLowerCase() === rawAddress.toLowerCase()
-        )
-        if (!wallet) return // wallet not ready yet — effect will re-run
-
-        const provider = await wallet.getEthereumProvider()
+        const provider = await connectedWallet.getEthereumProvider()
         const signature = await provider.request({
           method: 'personal_sign',
-          params: [message, rawAddress],
+          params: [message, checksumAddress], // checksumAddress used consistently
         })
 
         const res = await fetch('/api/v1/scarab/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: checksumAddress, signature }),
+          body: JSON.stringify({ address: checksumAddress, signature, nonce, expiresAt }),
         })
 
         if (!res.ok) {
@@ -94,7 +110,7 @@ export function ConnectButton() {
     }
 
     claimDailyScarab()
-  }, [authenticated, user?.wallet?.address, claimed, wallets])
+  }, [authenticated, user?.wallet?.address, claimed, connectedWallet])
 
   if (!ready) return null
 
