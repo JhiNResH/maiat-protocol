@@ -1,5 +1,5 @@
 {
-  "name": "@virtuals-protocol/game-maiat-plugin",
+  "name": "@jhinresh/game-maiat-plugin",
   "version": "0.1.0",
   "description": "Maiat Trust Score plugin for the GAME SDK — lets your Virtuals agent verify trust before swapping or transacting",
   "main": "./dist/index.js",
@@ -29,7 +29,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/game-by-virtuals/game-node"
+    "url": "https://github.com/JhiNResH/maiat-protocol"
   },
   "homepage": "https://maiat-protocol.vercel.app",
   "dependencies": {
