@@ -1,13 +1,15 @@
 'use client'
 
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { Wallet, LogOut } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { getAddress } from 'viem'
 import confetti from 'canvas-confetti'
 import toast from 'react-hot-toast'
 
 export function ConnectButton() {
   const { ready, authenticated, login, logout, user } = usePrivy()
+  const { wallets } = useWallets()
   const [claimed, setClaimed] = useState(false)
 
   useEffect(() => {
@@ -15,13 +17,31 @@ export function ConnectButton() {
       if (!authenticated || !user?.wallet?.address || claimed) return
 
       try {
+        const rawAddress = user.wallet.address
+        const checksumAddress = getAddress(rawAddress)
+        const message = `Claim daily Scarab for ${checksumAddress}`
+
+        // Sign with connected wallet (silent for Privy embedded, prompt for external)
+        const wallet = wallets.find(
+          (w) => w.address.toLowerCase() === rawAddress.toLowerCase()
+        )
+        if (!wallet) return // wallet not ready yet — effect will re-run
+
+        const provider = await wallet.getEthereumProvider()
+        const signature = await provider.request({
+          method: 'personal_sign',
+          params: [message, rawAddress],
+        })
+
         const res = await fetch('/api/v1/scarab/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: user.wallet.address }),
+          body: JSON.stringify({ address: checksumAddress, signature }),
         })
 
         if (!res.ok) {
+          // 429 = already claimed today — treat as success silently
+          if (res.status === 429) { setClaimed(true); return }
           throw new Error('Failed to claim')
         }
 
@@ -74,7 +94,7 @@ export function ConnectButton() {
     }
 
     claimDailyScarab()
-  }, [authenticated, user?.wallet?.address, claimed])
+  }, [authenticated, user?.wallet?.address, claimed, wallets])
 
   if (!ready) return null
 
