@@ -52,10 +52,10 @@ export async function GET(
             verifiedReviews: 0,
           });
 
-          // Write-back to DB so next call is fast
+          // Write-back to DB so next call is fast (persist both score + grade)
           await prisma.project.update({
             where: { id: existing.id },
-            data: { trustScore: rt.score },
+            data: { trustScore: rt.score, trustGrade: rt.grade },
           }).catch(() => {/* non-fatal */});
 
           return NextResponse.json({
