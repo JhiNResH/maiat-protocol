@@ -59,7 +59,7 @@ export async function GET(
           }).catch(() => {/* non-fatal */});
 
           return NextResponse.json({
-            project: { ...existing, trustScore: rt.score },
+            project: { ...existing, trustScore: rt.score, trustGrade: rt.grade },
             realtime: rt,
           }, { headers: CORS_HEADERS });
         } catch {
