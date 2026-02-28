@@ -216,7 +216,7 @@ export async function GET(req: NextRequest) {
           { slug: addr.toLowerCase() },
         ]
       },
-      select: { trustScore: true, reviewCount: true, avgRating: true, name: true, slug: true }
+      select: { trustScore: true, trustGrade: true, reviewCount: true, avgRating: true, name: true, slug: true }
     }),
     prisma.agentCheckLog.count({ where: { checkedAddress: addr } }),
     getOutcomeStats(addr),
@@ -286,6 +286,7 @@ export async function GET(req: NextRequest) {
       // ── Project info ──
       name: project.name,
       slug: project.slug,
+      grade: project.trustGrade ?? null,          // "S"|"A"|"B"|"C"|"D"|"F" — populated after first realtime query
       review_count: project.reviewCount ?? 0,
       avg_rating: project.avgRating ?? null,
 
