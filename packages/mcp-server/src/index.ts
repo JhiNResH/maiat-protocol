@@ -1,483 +1,479 @@
 #!/usr/bin/env node
-
 /**
  * Maiat Trust Score MCP Server
- * 
- * Provides trust scoring tools to AI agents via the Model Context Protocol.
- * 
+ *
+ * Exposes Maiat's trust scoring API as MCP tools so any
+ * AI assistant (Claude, GPT, etc.) can check if an on-chain
+ * address, token, or protocol is trustworthy — in one call.
+ *
  * Tools:
- *   - maiat_check_trust: Get trust score for any on-chain address
- *   - maiat_check_token: Check if a token contract is safe
- *   - maiat_batch_check: Check multiple addresses at once
- *   - maiat_submit_review: Submit a trust review (costs 2 Scarab)
- *   - maiat_get_interactions: Discover wallet contract interactions
- *   - maiat_get_passport: Get wallet reputation passport
- *   - maiat_defi_info: Query DeFi protocol by slug/address
- *   - maiat_agent_info: Query AI agent by slug/address
- * 
- * Usage with Claude Desktop:
- * ```json
- * {
- *   "mcpServers": {
- *     "maiat": {
- *       "command": "npx",
- *       "args": ["@maiat/mcp-server"],
- *       "env": {
- *         "MAIAT_API_URL": "https://api.maiat.xyz",
- *         "MAIAT_API_KEY": "optional-for-higher-limits"
- *       }
- *     }
- *   }
- * }
- * ```
+ *   - trust_score        — get trust score for an address
+ *   - token_safety       — token-specific safety check (honeypot, rug, liquidity)
+ *   - protocol_rating    — protocol safety rating by name
+ *   - batch_score        — score multiple addresses at once
+ *   - explain_score      — human-readable explanation of a score breakdown
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const API_URL = process.env.MAIAT_API_URL || "https://maiat-protocol.vercel.app";
-const API_KEY = process.env.MAIAT_API_KEY || "";
+// ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
 
-// ═══════════════════════════════════════════
-//  API Client
-// ═══════════════════════════════════════════
+const MAIAT_API_BASE =
+  process.env.MAIAT_API_URL || "https://maiat.xyz/api/v1";
+const MAIAT_API_KEY = process.env.MAIAT_API_KEY || "";
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
+const ALCHEMY_BASE_RPC =
+  process.env.ALCHEMY_BASE_RPC ||
+  `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
 
-interface TrustScoreResponse {
-  address: string;
-  score: number;
-  risk: string;
-  type: string;
-  flags: string[];
-  breakdown: {
-    onChainHistory: number;
-    contractAnalysis: number;
-    blacklistCheck: number;
-    activityPattern: number;
-  };
-  details: {
-    txCount: number;
-    balanceETH: number;
-    isContract: boolean;
-    walletAge: string | null;
-    lastActive: string | null;
-  };
-  protocol?: {
-    name: string;
-    category: string;
-    auditedBy?: string[];
-  };
-}
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-async function fetchTrustScore(address: string, chain: string = "base"): Promise<TrustScoreResponse> {
+async function maiatFetch(path: string, body?: Record<string, unknown>) {
+  const url = `${MAIAT_API_BASE}${path}`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "User-Agent": "maiat-mcp-server/0.1.0",
+    ...(MAIAT_API_KEY ? { "x-api-key": MAIAT_API_KEY } : {}),
   };
-  if (API_KEY) {
-    headers["Authorization"] = `Bearer ${API_KEY}`;
-  }
 
-  const url = `${API_URL}/api/v1/score/${address}?chain=${chain}`;
-  const res = await fetch(url, { headers });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Maiat API error (${res.status}): ${text}`);
-  }
+  const res = await fetch(url, {
+    method: body ? "POST" : "GET",
+    headers,
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
 
   return res.json();
 }
 
-// ═══════════════════════════════════════════
-//  Risk Formatting
-// ═══════════════════════════════════════════
+async function alchemyCall(method: string, params: unknown[]) {
+  const res = await fetch(ALCHEMY_BASE_RPC, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+  });
+  const json = await res.json();
+  return json.result;
+}
 
-function formatRiskEmoji(risk: string): string {
-  switch (risk.toUpperCase()) {
-    case "LOW": return "🟢";
-    case "MEDIUM": return "🟡";
-    case "HIGH": return "🟠";
-    case "CRITICAL": return "🔴";
-    default: return "⚪";
+function riskLabel(score: number): string {
+  if (score >= 800) return "very_low";
+  if (score >= 600) return "low";
+  if (score >= 400) return "medium";
+  if (score >= 200) return "high";
+  return "critical";
+}
+
+/** Compute a live trust score from on-chain data when Maiat DB has no record */
+async function liveScore(address: string) {
+  if (!ALCHEMY_API_KEY) return null;
+
+  try {
+    const addr = address.toLowerCase();
+
+    // Parallel RPC calls
+    const [balance, txCount, code] = await Promise.all([
+      alchemyCall("eth_getBalance", [addr, "latest"]),
+      alchemyCall("eth_getTransactionCount", [addr, "latest"]),
+      alchemyCall("eth_getCode", [addr, "latest"]),
+    ]);
+
+    const balanceEth = parseInt(balance, 16) / 1e18;
+    const txCountNum = parseInt(txCount, 16);
+    const isContract = code && code !== "0x";
+
+    // Simple scoring algorithm (matches PRODUCT_VISION v1)
+    let score = 100; // base
+    score += Math.min(txCountNum / 5, 200); // tx history, cap 200
+    score += balanceEth > 0.1 ? 100 : balanceEth > 0 ? 50 : 0;
+    score += isContract ? 50 : 0;
+    // Capped at 550 without audit/verification data
+    score = Math.min(Math.round(score), 1000);
+
+    return {
+      address: addr,
+      score,
+      risk: riskLabel(score),
+      source: "live_onchain",
+      chain: "base",
+      breakdown: {
+        base: 100,
+        txHistory: Math.min(txCountNum / 5, 200),
+        balanceSignal: balanceEth > 0.1 ? 100 : balanceEth > 0 ? 50 : 0,
+        contractBonus: isContract ? 50 : 0,
+      },
+      raw: {
+        balanceEth: Math.round(balanceEth * 10000) / 10000,
+        txCount: txCountNum,
+        isContract,
+      },
+    };
+  } catch {
+    return null;
   }
 }
 
-function formatTrustReport(data: TrustScoreResponse): string {
-  const emoji = formatRiskEmoji(data.risk);
-  const lines = [
-    `## ${emoji} Trust Score: ${data.score}/10 — ${data.risk.toUpperCase()} Risk`,
-    "",
-    `**Address:** \`${data.address}\``,
-    `**Type:** ${data.type}${data.protocol ? ` (${data.protocol.name})` : ""}`,
-    "",
-    "### Score Breakdown",
-    `- On-chain History: ${data.breakdown.onChainHistory}/4.0`,
-    `- Contract Analysis: ${data.breakdown.contractAnalysis}/3.0`,
-    `- Blacklist Check: ${data.breakdown.blacklistCheck}/2.0`,
-    `- Activity Pattern: ${data.breakdown.activityPattern}/1.0`,
-    "",
-    "### Details",
-    `- Transactions: ${data.details.txCount === -1 ? "N/A (known protocol)" : data.details.txCount.toLocaleString()}`,
-    `- Balance: ${data.details.balanceETH} ETH`,
-    `- Is Contract: ${data.details.isContract ? "Yes" : "No"}`,
-    data.details.walletAge ? `- Wallet Age: ${data.details.walletAge}` : null,
-    data.details.lastActive ? `- Last Active: ${data.details.lastActive}` : null,
-    "",
-    `### Flags: ${data.flags.length > 0 ? data.flags.join(", ") : "None"}`,
-  ];
-
-  if (data.protocol?.auditedBy?.length) {
-    lines.push("", `### Audited By: ${data.protocol.auditedBy.join(", ")}`);
-  }
-
-  return lines.filter((l) => l !== null).join("\n");
-}
-
-// ═══════════════════════════════════════════
-//  MCP Server
-// ═══════════════════════════════════════════
+// ---------------------------------------------------------------------------
+// MCP Server
+// ---------------------------------------------------------------------------
 
 const server = new McpServer({
   name: "maiat-trust",
-  version: "0.2.0",
+  version: "0.1.0",
 });
 
-// Tool: Check trust score for a single address
+// ---- Tool: trust_score ----
 server.tool(
-  "maiat_check_trust",
-  "Check the trust score of any on-chain address. Returns a 0-10 score with risk level, flags, and detailed breakdown. Use this before interacting with any unknown address.",
+  "trust_score",
+  "Get the Maiat trust score for any on-chain address. Returns a score (0-1000), risk level, and breakdown. Works for wallets, tokens, and contracts on Base chain.",
   {
-    address: z.string().describe("The on-chain address to check (0x...)"),
-    chain: z.string().optional().describe("Chain to check on (base, ethereum, bnb). Default: base"),
+    address: z
+      .string()
+      .describe("Ethereum/Base address (0x...) to score"),
+    chain: z
+      .enum(["base", "ethereum"])
+      .default("base")
+      .describe("Chain to query (default: base)"),
+    realtime: z
+      .boolean()
+      .default(false)
+      .describe("Force live on-chain scoring even if cached data exists"),
   },
-  async ({ address, chain }) => {
-    try {
-      const data = await fetchTrustScore(address, chain || "base");
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: formatTrustReport(data),
-          },
-        ],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ Error checking trust score: ${error instanceof Error ? error.message : String(error)}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  }
-);
-
-// Tool: Check if a token is safe
-server.tool(
-  "maiat_check_token",
-  "Check if a token contract is safe to interact with. Returns safety assessment including honeypot detection, rug pull risk, and liquidity analysis.",
-  {
-    address: z.string().describe("The token contract address (0x...)"),
-    chain: z.string().optional().describe("Chain (base, ethereum, bnb). Default: base"),
-  },
-  async ({ address, chain }) => {
-    try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        "User-Agent": "maiat-mcp-server/0.1.0",
-      };
-      if (API_KEY) headers["Authorization"] = `Bearer ${API_KEY}`;
-
-      const url = `${API_URL}/api/v1/token/${address}?chain=${chain || "base"}`;
-      const res = await fetch(url, { headers });
-
-      if (!res.ok) {
-        throw new Error(`API error (${res.status}): ${await res.text()}`);
-      }
-
-      const data = await res.json();
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `## Token Safety Check\n\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``,
-          },
-        ],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ Error checking token: ${error instanceof Error ? error.message : String(error)}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  }
-);
-
-// Tool: Batch check multiple addresses
-server.tool(
-  "maiat_batch_check",
-  "Check trust scores for multiple addresses at once. Returns a summary table. Useful for evaluating a set of addresses before batch operations.",
-  {
-    addresses: z.array(z.string()).describe("Array of addresses to check"),
-    chain: z.string().optional().describe("Chain (base, ethereum, bnb). Default: base"),
-  },
-  async ({ addresses, chain }) => {
-    const results: string[] = ["| Address | Score | Risk | Type | Flags |", "|---------|-------|------|------|-------|"];
-
-    for (const addr of addresses.slice(0, 10)) {
+  async ({ address, chain, realtime }) => {
+    // Try Maiat API first (has richer data from DB)
+    if (!realtime) {
       try {
-        const data = await fetchTrustScore(addr, chain || "base");
-        const emoji = formatRiskEmoji(data.risk);
-        const shortAddr = `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-        results.push(
-          `| \`${shortAddr}\` | ${emoji} ${data.score}/10 | ${data.risk} | ${data.type} | ${data.flags.slice(0, 3).join(", ")} |`
-        );
+        const data = await maiatFetch("/trust-score", {
+          agentAddress: address,
+        });
+        if (data.found) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(
+                  {
+                    address,
+                    score: data.trustScore?.overall ?? null,
+                    risk: riskLabel(data.trustScore?.overall ?? 0),
+                    source: "maiat_db",
+                    chain,
+                    project: data.project,
+                    trustScore: data.trustScore,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
       } catch {
-        results.push(`| \`${addr.slice(0, 6)}...${addr.slice(-4)}\` | ❌ Error | - | - | - |`);
+        // Fall through to live scoring
       }
     }
 
-    if (addresses.length > 10) {
-      results.push("", `*Showing 10 of ${addresses.length} addresses. Query remaining separately.*`);
+    // Live on-chain scoring
+    const live = await liveScore(address);
+    if (live) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(live, null, 2) }],
+      };
     }
 
     return {
       content: [
         {
           type: "text" as const,
-          text: `## Batch Trust Check\n\n${results.join("\n")}`,
+          text: JSON.stringify({
+            address,
+            score: null,
+            risk: "unknown",
+            message:
+              "Unable to score. Set ALCHEMY_API_KEY for live on-chain scoring.",
+          }),
         },
       ],
     };
   }
 );
 
-// Tool: Submit a trust review
+// ---- Tool: token_safety ----
 server.tool(
-  "maiat_submit_review",
-  "Submit a trust review for a contract address. Costs 2 Scarab points. Quality reviews earn 3-10 Scarab rewards.",
+  "token_safety",
+  "Check if a token is safe: honeypot detection, rug pull risk, liquidity analysis. Returns safety flags and risk assessment.",
   {
-    address: z.string().describe("Contract address to review (0x...)"),
-    rating: z.number().min(1).max(10).describe("Rating from 1-10"),
-    comment: z.string().optional().describe("Review text"),
-    reviewer: z.string().describe("Your wallet address (0x...)"),
+    address: z.string().describe("Token contract address (0x...)"),
+    chain: z.enum(["base", "ethereum"]).default("base"),
   },
-  async ({ address, rating, comment, reviewer }) => {
+  async ({ address, chain }) => {
+    // Try Maiat API
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        "User-Agent": "maiat-mcp-server/0.2.0",
-      };
-      if (API_KEY) headers["Authorization"] = `Bearer ${API_KEY}`;
-
-      const res = await fetch(`${API_URL}/api/v1/review`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ address, rating, comment: comment || "", reviewer }),
+      const data = await maiatFetch("/trust-check", {
+        address,
+        type: "token",
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (data && !data.error) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+        };
+      }
+    } catch {
+      // fall through
+    }
+
+    // Live analysis
+    const live = await liveScore(address);
+    if (live) {
+      const flags: string[] = [];
+      if (!live.raw.isContract) flags.push("NOT_A_CONTRACT");
+      if (live.raw.txCount < 10) flags.push("LOW_ACTIVITY");
+      if (live.score < 200) flags.push("HIGH_RISK");
 
       return {
         content: [
           {
             type: "text" as const,
-            text: `## ✅ Review Submitted\n\n- **Address:** \`${address}\`\n- **Rating:** ${rating}/10\n- **Scarab Reward:** ${data.meta?.scarabReward || 0} 🪲\n- **Quality Score:** ${data.meta?.qualityScore || "N/A"}/100\n- **Interaction Verified:** ${data.meta?.interactionVerified ? "Yes ✅" : "No"}`,
+            text: JSON.stringify(
+              {
+                address,
+                chain,
+                type: "token",
+                safe: live.score >= 400 && live.raw.isContract,
+                score: live.score,
+                risk: live.risk,
+                flags,
+                breakdown: live.breakdown,
+              },
+              null,
+              2
+            ),
           },
         ],
       };
-    } catch (error) {
-      return {
-        content: [{ type: "text" as const, text: `❌ Review failed: ${error instanceof Error ? error.message : String(error)}` }],
-        isError: true,
-      };
     }
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({ address, safe: null, error: "Unable to analyze" }),
+        },
+      ],
+    };
   }
 );
 
-// Tool: Discover wallet interactions
+// ---- Tool: protocol_rating ----
 server.tool(
-  "maiat_get_interactions",
-  "Discover which contracts a wallet has interacted with on Base. Shows reviewable contracts.",
+  "protocol_rating",
+  "Get safety rating for a DeFi protocol by name (e.g. 'Uniswap', 'Aave'). Returns trust score, audit status, and TVL data.",
   {
-    wallet: z.string().describe("Wallet address to check (0x...)"),
+    name: z.string().describe("Protocol name (e.g. 'Uniswap', 'Aave', 'Morpho')"),
   },
-  async ({ wallet }) => {
+  async ({ name }) => {
     try {
-      const headers: Record<string, string> = { "User-Agent": "maiat-mcp-server/0.2.0" };
-      if (API_KEY) headers["Authorization"] = `Bearer ${API_KEY}`;
-
-      const res = await fetch(`${API_URL}/api/v1/wallet/${wallet}/interactions`, { headers });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-
-      const lines = [`## Wallet Interactions: \`${wallet.slice(0, 10)}...\`\n`];
-      lines.push(`Found **${data.interactedCount}** known contracts\n`);
-      if (data.interacted?.length > 0) {
-        lines.push("| Contract | Category | Txs | Can Review |\n|----------|----------|-----|----------|");
-        for (const c of data.interacted) {
-          lines.push(`| ${c.name} | ${c.category} | ${c.txCount} | ${c.canReview && !c.hasReviewed ? "✅ Yes" : c.hasReviewed ? "📝 Already reviewed" : "❌ No"} |`);
-        }
+      const data = await maiatFetch("/trust-score", { projectName: name });
+      if (data.found) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+        };
       }
-
-      return { content: [{ type: "text" as const, text: lines.join("\n") }] };
-    } catch (error) {
-      return {
-        content: [{ type: "text" as const, text: `❌ Error: ${error instanceof Error ? error.message : String(error)}` }],
-        isError: true,
-      };
+    } catch {
+      // fall through
     }
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({
+            name,
+            found: false,
+            message: `No trust data for "${name}". Submit it at https://maiat.xyz`,
+          }),
+        },
+      ],
+    };
   }
 );
 
-// Tool: Get reputation passport
+// ---- Tool: batch_score ----
 server.tool(
-  "maiat_get_passport",
-  "Get a wallet's reputation passport — trust level, Scarab balance, review history, and fee tier.",
+  "batch_score",
+  "Score multiple addresses at once. Returns an array of trust scores. Max 10 addresses per call.",
   {
-    wallet: z.string().describe("Wallet address (0x...)"),
+    addresses: z
+      .array(z.string())
+      .max(10)
+      .describe("Array of addresses to score (max 10)"),
+    chain: z.enum(["base", "ethereum"]).default("base"),
   },
-  async ({ wallet }) => {
-    try {
-      const headers: Record<string, string> = { "User-Agent": "maiat-mcp-server/0.2.0" };
-      if (API_KEY) headers["Authorization"] = `Bearer ${API_KEY}`;
+  async ({ addresses, chain }) => {
+    const results = await Promise.all(
+      addresses.map(async (addr) => {
+        try {
+          const data = await maiatFetch("/trust-score", {
+            agentAddress: addr,
+          });
+          if (data.found) {
+            return {
+              address: addr,
+              score: data.trustScore?.overall ?? null,
+              risk: riskLabel(data.trustScore?.overall ?? 0),
+              source: "maiat_db",
+            };
+          }
+        } catch {
+          // fall through
+        }
 
-      const res = await fetch(`${API_URL}/api/v1/wallet/${wallet}/passport`, { headers });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+        const live = await liveScore(addr);
+        if (live) {
+          return {
+            address: addr,
+            score: live.score,
+            risk: live.risk,
+            source: "live_onchain",
+          };
+        }
 
-      const p = data.passport;
-      const text = [
-        `## 🛡️ Reputation Passport\n`,
-        `**Trust Level:** ${p.trustLevel.toUpperCase()}`,
-        `**Reputation Score:** ${p.reputationScore}`,
-        `**Total Reviews:** ${p.totalReviews}`,
-        `**Scarab Balance:** ${data.scarab?.balance || 0} 🪲`,
-        `**Fee Tier:** ${p.feeTier.discount}`,
-        ``,
-        `### Progression`,
-        data.progression.nextLevel
-          ? `Next level: **${data.progression.nextLevel}** (${data.progression.pointsToNext} points needed)`
-          : `🏆 **Maximum level reached!**`,
-        `\nBenefits: ${data.progression.benefits.join(", ")}`,
-      ].join("\n");
+        return { address: addr, score: null, risk: "unknown" };
+      })
+    );
 
-      return { content: [{ type: "text" as const, text }] };
-    } catch (error) {
-      return {
-        content: [{ type: "text" as const, text: `❌ Error: ${error instanceof Error ? error.message : String(error)}` }],
-        isError: true,
-      };
-    }
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({ chain, results }, null, 2),
+        },
+      ],
+    };
   }
 );
 
-// Tool: DeFi protocol info
+// ---- Tool: explain_score ----
 server.tool(
-  "maiat_defi_info",
-  "Get trust data for a DeFi protocol by name or address. Examples: 'usdc', 'aerodrome', 'aave', '0x833589...'",
+  "explain_score",
+  "Get a human-readable explanation of what a trust score means and what factors contribute to it. Useful for explaining risk to end users.",
   {
-    query: z.string().describe("Protocol slug (e.g. 'usdc') or address (0x...)"),
+    score: z.number().min(0).max(1000).describe("Trust score to explain"),
+    context: z
+      .enum(["swap", "transfer", "interact", "general"])
+      .default("general")
+      .describe("Transaction context for tailored advice"),
   },
-  async ({ query }) => {
-    try {
-      const headers: Record<string, string> = { "User-Agent": "maiat-mcp-server/0.2.0" };
-      if (API_KEY) headers["Authorization"] = `Bearer ${API_KEY}`;
+  async ({ score, context }) => {
+    const risk = riskLabel(score);
 
-      const res = await fetch(`${API_URL}/api/v1/defi/${query}`, { headers });
-      if (!res.ok) throw new Error(res.status === 404 ? `DeFi protocol "${query}" not found` : `HTTP ${res.status}`);
-      const data = await res.json();
+    const explanations: Record<string, string> = {
+      very_low: `Score ${score}/1000 — Very Low Risk. This address has strong trust signals: high transaction volume, verified source code, audit history, and no blacklist flags. Safe for ${context === "swap" ? "swapping" : context === "transfer" ? "sending funds" : "interaction"}.`,
+      low: `Score ${score}/1000 — Low Risk. Good trust signals with moderate transaction history. Generally safe, but always verify large transactions independently.`,
+      medium: `Score ${score}/1000 — Medium Risk. Mixed signals. Some positive indicators (activity, balance) but missing verification or audit data. Proceed with caution for ${context === "swap" ? "swaps" : "transactions"} over $1,000.`,
+      high: `Score ${score}/1000 — High Risk. Limited trust data. Low transaction count or recent creation. Consider starting with a small test transaction.`,
+      critical: `Score ${score}/1000 — Critical Risk. Very few or negative trust signals. Possible scam indicators. NOT recommended for any transaction. If this is a known legitimate address, please report at https://maiat.xyz.`,
+    };
 
-      const e = data.entity;
-      const text = [
-        `## ${e.name}\n`,
-        `**Address:** \`${e.address}\``,
-        `**Category:** ${e.category}`,
-        e.auditedBy?.length ? `**Audited By:** ${e.auditedBy.join(", ")}` : null,
-        data.trust ? `**Trust Score:** ${data.trust.score}/10` : null,
-        `**Reviews:** ${data.reviews?.total || 0} (avg ${data.reviews?.avgRating || 0})`,
-        `\nCanonical: \`${data.canonical?.url}\``,
-      ].filter(Boolean).join("\n");
+    const advice: Record<string, string> = {
+      swap: "For swaps: check liquidity depth and slippage before proceeding.",
+      transfer: "For transfers: send a small test amount first.",
+      interact: "For contract interaction: verify the source code on the block explorer.",
+      general: "Always verify addresses independently for large amounts.",
+    };
 
-      return { content: [{ type: "text" as const, text }] };
-    } catch (error) {
-      return {
-        content: [{ type: "text" as const, text: `❌ Error: ${error instanceof Error ? error.message : String(error)}` }],
-        isError: true,
-      };
-    }
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              score,
+              risk,
+              explanation: explanations[risk],
+              advice: advice[context],
+              thresholds: {
+                very_low: "800-1000",
+                low: "600-799",
+                medium: "400-599",
+                high: "200-399",
+                critical: "0-199",
+              },
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
   }
 );
 
-// Tool: Agent info
-server.tool(
-  "maiat_agent_info",
-  "Get trust data for an AI agent by name or address. Examples: 'aixbt', 'virtuals', 'luna', '0x4f9fd6...'",
-  {
-    query: z.string().describe("Agent slug (e.g. 'aixbt') or address (0x...)"),
-  },
-  async ({ query }) => {
-    try {
-      const headers: Record<string, string> = { "User-Agent": "maiat-mcp-server/0.2.0" };
-      if (API_KEY) headers["Authorization"] = `Bearer ${API_KEY}`;
-
-      const res = await fetch(`${API_URL}/api/v1/agent/${query}`, { headers });
-      if (!res.ok) throw new Error(res.status === 404 ? `Agent "${query}" not found` : `HTTP ${res.status}`);
-      const data = await res.json();
-
-      const e = data.entity;
-      const text = [
-        `## ${e.name}\n`,
-        `**Address:** \`${e.address}\``,
-        `**Category:** ${e.category}`,
-        e.description ? `**Description:** ${e.description}` : null,
-        data.trust ? `**Trust Score:** ${data.trust.score}/10` : null,
-        `**Reviews:** ${data.reviews?.total || 0} (avg ${data.reviews?.avgRating || 0})`,
-        `\nCanonical: \`${data.canonical?.url}\``,
-      ].filter(Boolean).join("\n");
-
-      return { content: [{ type: "text" as const, text }] };
-    } catch (error) {
-      return {
-        content: [{ type: "text" as const, text: `❌ Error: ${error instanceof Error ? error.message : String(error)}` }],
-        isError: true,
-      };
-    }
-  }
-);
-
-// Resource: Maiat API documentation
+// ---- Resource: scoring methodology ----
 server.resource(
-  "maiat-docs",
-  "maiat://docs",
+  "scoring-methodology",
+  "maiat://methodology",
   async () => ({
     contents: [
       {
-        uri: "maiat://docs",
+        uri: "maiat://methodology",
         mimeType: "text/markdown",
-        text: `# Maiat Trust Score API\n\n## Overview\nMaiat provides trust scoring for on-chain addresses. Query any address and get a 0-10 trust score with risk assessment.\n\n## Endpoints\n- \`GET /v1/score/{address}\` — Trust score\n- \`GET /v1/token/{address}\` — Token safety check\n- \`POST /v1/review\` — Submit a review (costs 2 Scarab)\n- \`GET /v1/wallet/{address}/interactions\` — Wallet contract discovery\n- \`GET /v1/wallet/{address}/passport\` — Reputation passport\n- \`GET /v1/defi/{slug}\` — DeFi protocol by slug/address\n- \`GET /v1/agent/{slug}\` — AI agent by slug/address\n- \`GET /v1/stats\` — Platform statistics\n\n## Score Scale (0-10)\n- **8-10**: LOW risk — Safe, established address\n- **4-7.9**: MEDIUM risk — Proceed with caution\n- **1-3.9**: HIGH risk — Significant concerns\n- **0-0.9**: CRITICAL risk — Likely malicious\n`,
+        text: `# Maiat Trust Scoring Methodology (v1)
+
+## Score Range: 0–1000
+
+| Range | Risk Level | Meaning |
+|-------|-----------|---------|
+| 800–1000 | Very Low | Highly trusted, audited, verified |
+| 600–799 | Low | Good history, generally safe |
+| 400–599 | Medium | Mixed signals, proceed with caution |
+| 200–399 | High | Limited data, risky |
+| 0–199 | Critical | Potential scam, avoid |
+
+## Scoring Factors (v1)
+
+- **Wallet Age** — Older = more trusted (up to +200)
+- **Transaction Count** — More activity = more trusted (up to +200)
+- **Source Verification** — Verified contract code (+100)
+- **Audit History** — Professional audit (+200)
+- **Blacklist Check** — On known scam list (−500)
+- **DeFi Interactions** — Protocol usage (×10 multiplier)
+- **Liquidity Health** — TVL and depth (weighted)
+
+## Data Sources
+
+- On-chain data via Alchemy (Base, Ethereum)
+- Blacklists: GoPlus, ScamSniffer
+- Audit databases: auto-scraped
+- Maiat user reports (v2)
+
+## On-Chain Contracts
+
+- TrustScoreOracle (Base Sepolia): \`0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139\`
+- TrustGateHook (Uniswap v4): \`0xF6065FB076090af33eE0402f7e902B2583e7721E\`
+
+Learn more: https://maiat.xyz/docs
+`,
       },
     ],
   })
 );
 
-// ═══════════════════════════════════════════
-//  Start
-// ═══════════════════════════════════════════
+// ---------------------------------------------------------------------------
+// Start
+// ---------------------------------------------------------------------------
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("Maiat MCP Server running on stdio");
+  console.error("🛡️ Maiat MCP Server running (stdio)");
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error("Fatal:", err);
+  process.exit(1);
+});
