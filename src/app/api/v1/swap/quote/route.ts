@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getQuote } from "@/lib/uniswap";
+import { getQuote, getSwap } from "@/lib/uniswap";
 import { computeTrustScore } from "@/lib/scoring";
 
 // --- Simple in-memory IP rate limiter ---
@@ -86,9 +86,29 @@ export async function POST(request: NextRequest) {
       computeTrustScore(tokenOut).catch(() => null),
     ]);
 
+    // Get swap calldata (unsigned tx) — safe, no on-chain side effects
+    let swapCalldata: string | null = null;
+    let swapTo: string | null = null;
+    let swapValue: string | null = null;
+    const isRealSwapper =
+      swapper !== "0x0000000000000000000000000000000000000000";
+    if (isRealSwapper) {
+      try {
+        const swapResult = await getSwap(quote);
+        swapCalldata = swapResult.swap?.data ?? null;
+        swapTo = swapResult.swap?.to ?? null;
+        swapValue = swapResult.swap?.value ?? null;
+      } catch {
+        // calldata unavailable — quote-only mode
+      }
+    }
+
     return NextResponse.json(
       {
         quote,
+        calldata: swapCalldata,
+        to: swapTo,
+        value: swapValue,
         trust: {
           tokenIn: tokenInScore
             ? { score: tokenInScore.score, risk: tokenInScore.risk }
