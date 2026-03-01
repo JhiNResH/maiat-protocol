@@ -28,6 +28,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { logQuery } from "@/lib/query-logger";
 import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
 import { computeTrustScore, type AcpAgent } from "@/lib/acp-indexer";
@@ -210,6 +211,15 @@ function buildResponse(
   }
 
   const verdict = scoreToVerdict(record.trustScore);
+
+  // Log for training data (fire-and-forget)
+  logQuery({
+    type: "agent_trust",
+    target: checksumAddress,
+    trustScore: record.trustScore,
+    verdict,
+    metadata: { totalJobs: record.totalJobs, dataSource: record.dataSource },
+  });
 
   return NextResponse.json(
     {
