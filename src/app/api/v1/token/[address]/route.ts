@@ -32,6 +32,10 @@ const KNOWN_SAFE: Record<string, { symbol: string; name: string }> = {
   "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c": { symbol: "WBTC", name: "Wrapped Bitcoin" },
   // DAI (Base)
   "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb": { symbol: "DAI",  name: "Dai Stablecoin" },
+  // VIRTUAL (Base) — Virtuals Protocol native token
+  "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b": { symbol: "VIRTUAL", name: "Virtual Protocol" },
+  // VIRTUAL (Ethereum)
+  "0x44ff8620b8Ca30902395A7bD3F2407e1A091BF73": { symbol: "VIRTUAL", name: "Virtual Protocol" },
 };
 
 // ── Prisma (optional — may not be configured) ──────────────────────────────────
@@ -276,6 +280,7 @@ function calculateScore(
   if (honeypot.buyTax !== null) {
     if (honeypot.buyTax > 25) {
       score -= 30;
+      riskFlags.push("HIGH_BUY_TAX");
     } else if (honeypot.buyTax > 10) {
       score -= 15;
     }
@@ -306,9 +311,7 @@ function calculateScore(
   let verdict: Verdict;
   if (score >= 70) {
     verdict = "proceed";
-  } else if (score >= 50) {
-    verdict = "caution";
-  } else if (score >= 30) {
+  } else if (score >= 40) {
     verdict = "caution";
   } else {
     verdict = "avoid";
@@ -316,6 +319,10 @@ function calculateScore(
 
   // ── Risk summary ─────────────────────────────────────────────────────────────
   const summaryParts: string[] = [];
+
+  if (riskFlags.includes("HIGH_BUY_TAX") && honeypot.buyTax !== null) {
+    summaryParts.push(`Token has elevated buy tax (${honeypot.buyTax}%).`);
+  }
 
   if (riskFlags.includes("HIGH_SELL_TAX") && honeypot.sellTax !== null) {
     summaryParts.push(`Token has elevated sell tax (${honeypot.sellTax}%).`);
@@ -409,9 +416,13 @@ export async function GET(
       });
 
       if (agentScore) {
+        const hasScore = agentScore.trustScore !== null;
         const score = agentScore.trustScore ?? 50;
         const verdict: Verdict =
           score >= 70 ? "proceed" : score >= 40 ? "caution" : "avoid";
+        const agentRiskFlags: string[] = [];
+        if (score < 40) agentRiskFlags.push("LOW_AGENT_TRUST");
+        if (!hasScore) agentRiskFlags.push("INSUFFICIENT_DATA");
         const scarabReviews = await getScarabReviews(checksumAddress);
         return NextResponse.json(
           {
@@ -419,8 +430,10 @@ export async function GET(
             tokenType: "agent_token",
             trustScore: score,
             verdict,
-            riskFlags: score < 40 ? ["LOW_AGENT_TRUST"] : [],
-            riskSummary: `ACP agent ${agentScore.name ?? checksumAddress}. Completion rate: ${agentScore.completionRate ?? "?"}%.`,
+            riskFlags: agentRiskFlags,
+            riskSummary: !hasScore
+              ? `ACP agent ${agentScore.name ?? checksumAddress} has no recorded jobs yet.`
+              : `ACP agent ${agentScore.name ?? checksumAddress}. Completion rate: ${agentScore.completionRate ?? "?"}%.`,
             agentData: {
               name: agentScore.name,
               completionRate: agentScore.completionRate,
