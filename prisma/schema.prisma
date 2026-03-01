@@ -207,14 +207,15 @@ model Market {
 }
 
 model MarketPosition {
-  id        String   @id @default(cuid())
-  marketId  String
-  projectId String
-  voterId   String
-  amount    Int
-  payout    Int?
-  createdAt DateTime @default(now())
-  market    Market   @relation(fields: [marketId], references: [id])
+  id           String   @id @default(cuid())
+  marketId     String
+  projectId    String
+  voterId      String
+  amount       Int
+  payout       Int?
+  agentAddress String?  @map("agent_address")  // For agent opinion markets (Phase 2)
+  createdAt    DateTime @default(now())
+  market       Market   @relation(fields: [marketId], references: [id])
 
   @@index([marketId])
   @@index([projectId])
