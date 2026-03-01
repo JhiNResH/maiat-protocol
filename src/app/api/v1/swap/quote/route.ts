@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getQuote, getSwap } from "@/lib/uniswap";
 import { computeTrustScore } from "@/lib/scoring";
 import { logQuery } from "@/lib/query-logger";
+import { Attribution } from "ox/erc8021";
+
+// Base Builder Code — bc_cozhkj23 (registered at base.dev)
+// Appended to every trust_swap calldata for Base attribution + rewards
+const BASE_DATA_SUFFIX = Attribution.toDataSuffix({ codes: ["bc_cozhkj23"] });
 
 // --- Simple in-memory IP rate limiter ---
 const ipHits = new Map<string, { count: number; resetAt: number }>();
@@ -96,7 +101,11 @@ export async function POST(request: NextRequest) {
     if (isRealSwapper) {
       try {
         const swapResult = await getSwap(quote);
-        swapCalldata = swapResult.swap?.data ?? null;
+        const rawCalldata = swapResult.swap?.data ?? null;
+        // Append Base Builder Code attribution suffix (ERC-8021, zero gas overhead)
+        swapCalldata = rawCalldata
+          ? rawCalldata + BASE_DATA_SUFFIX.slice(2)
+          : null;
         swapTo = swapResult.swap?.to ?? null;
         swapValue = swapResult.swap?.value ?? null;
       } catch {
