@@ -123,6 +123,8 @@ export async function getQuote(
     tokenOut,
     amount,
     chainId,
+    tokenInChainId: chainId,
+    tokenOutChainId: chainId,
   };
 
   if (slippage !== undefined) {
