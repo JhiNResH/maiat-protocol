@@ -32,7 +32,7 @@ const CORS = {
 
 // ── Initialize x402 server ────────────────────────────────────────────────────
 
-const facilitatorClient = new HTTPFacilitatorClient(FACILITATOR_URL);
+const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
 const x402Server = new x402ResourceServer(facilitatorClient).register(
   NETWORK,
   new ExactEvmScheme()

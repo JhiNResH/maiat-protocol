@@ -109,8 +109,8 @@ export async function checkInteraction(
   try {
     const targetLower = targetAddress.toLowerCase();
 
-    // "internal" category is only supported on ETH (chainId 1) and MATIC, not Base
-    const supportsInternal = chainId === 1 || chainId === 137;
+    // "internal" category is only supported on ETH (chainId 1), not BNB/Base
+    const supportsInternal = (chainId as number) === 1;
     const categories = supportsInternal
       ? ["external", "internal", "erc20", "erc721", "erc1155"]
       : ["external", "erc20", "erc721", "erc1155"];

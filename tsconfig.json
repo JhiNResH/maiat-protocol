@@ -39,6 +39,8 @@
     "node_modules",
     "contracts",
     "chainlink-cre",
-    "src/archive"
+    "src/archive",
+    "cre-project",
+    "cre"
   ]
 }
