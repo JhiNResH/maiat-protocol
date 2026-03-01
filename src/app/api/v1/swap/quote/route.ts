@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getQuote, getSwap } from "@/lib/uniswap";
 import { computeTrustScore } from "@/lib/scoring";
+import { logQuery } from "@/lib/query-logger";
 
 // --- Simple in-memory IP rate limiter ---
 const ipHits = new Map<string, { count: number; resetAt: number }>();
@@ -102,6 +103,22 @@ export async function POST(request: NextRequest) {
         // calldata unavailable — quote-only mode
       }
     }
+
+    // Log trust_swap query (fire-and-forget)
+    const innerQuote = ((quote as unknown) as Record<string, unknown>)?.quote as Record<string, unknown> | undefined;
+    const amountOut = String(innerQuote?.output && typeof innerQuote.output === "object"
+      ? (innerQuote.output as Record<string, unknown>).amount ?? ""
+      : "");
+    logQuery({
+      type: "trust_swap",
+      target: tokenOut,
+      buyer: swapper !== "0x0000000000000000000000000000000000000000" ? swapper : undefined,
+      trustScore: tokenOutScore?.score ?? null,
+      verdict: tokenOutScore ? (tokenOutScore.score >= 70 ? "proceed" : tokenOutScore.score >= 40 ? "caution" : "avoid") : null,
+      amountIn: amount,
+      amountOut: amountOut || undefined,
+      metadata: { tokenIn, calldataGenerated: !!swapCalldata },
+    });
 
     return NextResponse.json(
       {

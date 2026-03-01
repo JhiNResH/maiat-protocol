@@ -270,3 +270,24 @@ model AgentScore {
   @@index([trustScore])
   @@index([tokenAddress])
 }
+
+/// Query log for all ACP offering calls — training data for Maiat's trust model
+model QueryLog {
+  id          String   @id @default(cuid())
+  type        String   // "agent_trust" | "token_check" | "trust_swap"
+  target      String   // checked address (agent wallet or token address)
+  buyer       String?  // buyer wallet (who called the offering)
+  jobId       String?  // ACP job ID
+  trustScore  Int?     // 0-100
+  verdict     String?  // proceed | caution | avoid
+  amountIn    String?  // for trust_swap: input amount
+  amountOut   String?  // for trust_swap: quoted output
+  metadata    Json?    // full response snapshot for ML training
+  createdAt   DateTime @default(now())
+
+  @@map("query_logs")
+  @@index([type])
+  @@index([target])
+  @@index([createdAt])
+  @@index([verdict])
+}
