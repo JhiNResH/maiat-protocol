@@ -1,19 +1,38 @@
 /**
  * GET /api/v1/token/[address]
  *
- * Memecoin trust endpoint for trust_swap offering's second branch.
- * Checks honeypot status, token metadata, and Scarab reviews.
+ * Token trust endpoint. Resolution order:
+ *   1. KNOWN_SAFE_LIST  → return proceed immediately (no external calls)
+ *   2. AgentScore DB    → if agent token, return behavioral trust
+ *   3. Honeypot.is      → memecoin / unknown token safety check
  *
  * Response includes:
+ *   - tokenType: "known_safe" | "agent_token" | "memecoin"
  *   - trustScore (0-100)
- *   - verdict: "safe" | "caution" | "risky" | "blocked"
+ *   - verdict: "proceed" | "caution" | "avoid"
  *   - riskFlags: array of risk indicators
- *   - honeypot data from honeypot.is
- *   - scarabReviews from community
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
+
+// ── Known-safe whitelist ──────────────────────────────────────────────────────
+// Tokens that are universally trusted — skip all external checks.
+
+const KNOWN_SAFE: Record<string, { symbol: string; name: string }> = {
+  // ETH (zero address convention)
+  "0x0000000000000000000000000000000000000000": { symbol: "ETH",  name: "Ether" },
+  // Base WETH
+  "0x4200000000000000000000000000000000000006": { symbol: "WETH", name: "Wrapped Ether" },
+  // Base USDC
+  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": { symbol: "USDC", name: "USD Coin" },
+  // Ethereum USDC
+  "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": { symbol: "USDC", name: "USD Coin" },
+  // WBTC (Base)
+  "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c": { symbol: "WBTC", name: "Wrapped Bitcoin" },
+  // DAI (Base)
+  "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb": { symbol: "DAI",  name: "Dai Stablecoin" },
+};
 
 // ── Prisma (optional — may not be configured) ──────────────────────────────────
 let prisma: import("@prisma/client").PrismaClient | null = null;
@@ -50,7 +69,7 @@ interface ScarabReviews {
   reviewCount: number;
 }
 
-type Verdict = "safe" | "caution" | "risky" | "blocked";
+type Verdict = "proceed" | "caution" | "avoid";
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
 
@@ -236,7 +255,7 @@ function calculateScore(
     riskFlags.push("HONEYPOT_DETECTED");
     return {
       trustScore: 0,
-      verdict: "blocked",
+      verdict: "avoid",
       riskFlags,
       riskSummary: "Token is confirmed as a honeypot. Do not interact.",
     };
@@ -286,13 +305,13 @@ function calculateScore(
   // ── Verdict mapping ──────────────────────────────────────────────────────────
   let verdict: Verdict;
   if (score >= 70) {
-    verdict = "safe";
+    verdict = "proceed";
   } else if (score >= 50) {
     verdict = "caution";
   } else if (score >= 30) {
-    verdict = "risky";
+    verdict = "caution";
   } else {
-    verdict = "blocked";
+    verdict = "avoid";
   }
 
   // ── Risk summary ─────────────────────────────────────────────────────────────
@@ -311,7 +330,7 @@ function calculateScore(
   }
 
   if (summaryParts.length === 0) {
-    if (verdict === "safe") {
+    if (verdict === "proceed") {
       summaryParts.push("No major risks detected.");
     } else if (verdict === "caution") {
       summaryParts.push("Proceed with caution.");
@@ -349,6 +368,86 @@ export async function GET(
 
   const checksumAddress = getAddress(rawAddress);
 
+  // ── Step 1: KNOWN_SAFE whitelist ─────────────────────────────────────────────
+  if (KNOWN_SAFE[checksumAddress]) {
+    const { symbol, name } = KNOWN_SAFE[checksumAddress];
+    return NextResponse.json(
+      {
+        address: checksumAddress,
+        tokenType: "known_safe",
+        trustScore: 100,
+        verdict: "proceed" as Verdict,
+        riskFlags: [],
+        riskSummary: `${name} (${symbol}) is a verified safe token.`,
+        scarabReviews: { averageRating: null, reviewCount: 0 },
+        dataSource: "KNOWN_SAFE_LIST",
+      },
+      {
+        status: 200,
+        headers: {
+          ...CORS_HEADERS,
+          "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=3600",
+        },
+      }
+    );
+  }
+
+  // ── Step 2: AgentScore DB (agent tokens) ────────────────────────────────────
+  const db = await getDb();
+  if (db) {
+    try {
+      const agentScore = await db.agentScore.findFirst({
+        where: { walletAddress: { equals: checksumAddress.toLowerCase() } },
+        select: {
+          walletAddress: true,
+          name: true,
+          trustScore: true,
+          completionRate: true,
+          paymentRate: true,
+          totalJobs: true,
+        },
+      });
+
+      if (agentScore) {
+        const score = agentScore.trustScore ?? 50;
+        const verdict: Verdict =
+          score >= 70 ? "proceed" : score >= 40 ? "caution" : "avoid";
+        const scarabReviews = await getScarabReviews(checksumAddress);
+        return NextResponse.json(
+          {
+            address: checksumAddress,
+            tokenType: "agent_token",
+            trustScore: score,
+            verdict,
+            riskFlags: score < 40 ? ["LOW_AGENT_TRUST"] : [],
+            riskSummary: `ACP agent ${agentScore.name ?? checksumAddress}. Completion rate: ${agentScore.completionRate ?? "?"}%.`,
+            agentData: {
+              name: agentScore.name,
+              completionRate: agentScore.completionRate,
+              paymentRate: agentScore.paymentRate,
+              totalJobs: agentScore.totalJobs,
+            },
+            scarabReviews: {
+              averageRating: scarabReviews.averageRating,
+              reviewCount: scarabReviews.reviewCount,
+            },
+            dataSource: "AGENT_SCORE_DB",
+          },
+          {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+            },
+          }
+        );
+      }
+    } catch {
+      // AgentScore lookup failed — fall through to honeypot check
+    }
+  }
+
+  // ── Step 3: Honeypot.is (memecoin / unknown) ─────────────────────────────────
   try {
     // ── Run 3 parallel checks ──────────────────────────────────────────────────
     const [honeypot, tokenMetadata, scarabReviews] = await Promise.all([
@@ -381,6 +480,7 @@ export async function GET(
             averageRating: null,
             reviewCount: 0,
           },
+          tokenType: "memecoin",
           dataSource: "LIMITED",
         },
         {
@@ -417,6 +517,7 @@ export async function GET(
           averageRating: scarabReviews.averageRating,
           reviewCount: scarabReviews.reviewCount,
         },
+        tokenType: "memecoin",
         dataSource: "HONEYPOT_IS + ALCHEMY + SCARAB",
       },
       {
