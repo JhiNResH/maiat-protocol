@@ -58,15 +58,14 @@ export function ConnectButton() {
         })
 
         if (!res.ok) {
-          // 429 = already claimed today — treat as success silently
-          if (res.status === 429) { setClaimed(true); return }
-          throw new Error('Failed to claim')
+          throw new Error(`Claim failed: ${res.status}`)
         }
 
         const data = await res.json()
         setClaimed(true)
 
-        // If already claimed, don't show confetti or toast
+        // Server returns 200 with alreadyClaimed:true when the daily claim
+        // was already used — no confetti, no toast, just silently done.
         if (data.alreadyClaimed) {
           return
         }
