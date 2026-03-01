@@ -358,9 +358,9 @@ function calculateScore(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { address: string } }
+  { params }: { params: Promise<{ address: string }> }
 ) {
-  const rawAddress = params.address;
+  const { address: rawAddress } = await params;
 
   // ── Validate address ─────────────────────────────────────────────────────────
   if (!rawAddress || !isAddress(rawAddress)) {
