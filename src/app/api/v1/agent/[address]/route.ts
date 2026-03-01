@@ -30,6 +30,61 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
+import { computeTrustScore, type AcpAgent } from "@/lib/acp-indexer";
+
+const ACP_AGENTS_URL = "https://acpx.virtuals.io/api/agents";
+
+/**
+ * On-demand lookup: fetch a single agent from Virtuals API by wallet address.
+ * Uses the noAuth /api/agents?filters[walletAddress]=<addr> endpoint.
+ * If found, computes trust score and upserts into DB.
+ */
+async function fetchAndIndexAgent(
+  checksumAddress: string
+): Promise<AgentScoreRecord | null> {
+  try {
+    const url = `${ACP_AGENTS_URL}?filters[walletAddress]=${checksumAddress}`;
+    const res = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return null;
+
+    const json = (await res.json()) as { data?: AcpAgent[] };
+    const agent = json.data?.[0];
+    if (!agent?.walletAddress) return null;
+
+    const score = computeTrustScore(agent);
+
+    // Upsert into DB for future cache
+    const upserted = await prisma.agentScore.upsert({
+      where:  { walletAddress: checksumAddress },
+      update: {
+        trustScore:     score.trustScore,
+        completionRate: score.completionRate,
+        paymentRate:    score.paymentRate,
+        expireRate:     score.expireRate,
+        totalJobs:      score.totalJobs,
+        dataSource:     "ACP_BEHAVIORAL",
+        rawMetrics:     (agent.metrics as object) ?? {},
+      },
+      create: {
+        walletAddress:  checksumAddress,
+        trustScore:     score.trustScore,
+        completionRate: score.completionRate,
+        paymentRate:    score.paymentRate,
+        expireRate:     score.expireRate,
+        totalJobs:      score.totalJobs,
+        dataSource:     "ACP_BEHAVIORAL",
+        rawMetrics:     (agent.metrics as object) ?? {},
+      },
+    });
+
+    return upserted;
+  } catch {
+    return null;
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +134,13 @@ export async function GET(
       });
 
       if (!recordLower) {
+        // ── On-demand lookup from Virtuals API ──────────────────────────────
+        const onDemand = await fetchAndIndexAgent(checksumAddress);
+        if (onDemand) {
+          return buildResponse(checksumAddress, onDemand);
+        }
+
+        // Truly unknown — not in DB, not in Virtuals API
         return NextResponse.json(
           {
             address:     checksumAddress,
@@ -87,8 +149,8 @@ export async function GET(
             breakdown:   null,
             verdict:     "unknown",
             message:
-              "This address has no indexed ACP job history. " +
-              "They may not have participated in Virtuals ACP yet, or the indexer hasn't run.",
+              "This address has no ACP history on Virtuals. " +
+              "They may not be registered as an ACP agent yet.",
             lastUpdated: null,
           },
           {
