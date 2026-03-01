@@ -36,7 +36,7 @@ const KNOWN_SAFE: Record<string, { symbol: string; name: string }> = {
   // VIRTUAL (Base) — Virtuals Protocol native token
   "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b": { symbol: "VIRTUAL", name: "Virtual Protocol" },
   // VIRTUAL (Ethereum)
-  "0x44ff8620b8Ca30902395A7bD3F2407e1A091BF73": { symbol: "VIRTUAL", name: "Virtual Protocol" },
+  "0x44ff8620b8cA30902395A7bD3F2407e1A091BF73": { symbol: "VIRTUAL", name: "Virtual Protocol" },
 };
 
 // ── Prisma (optional — may not be configured) ──────────────────────────────────
