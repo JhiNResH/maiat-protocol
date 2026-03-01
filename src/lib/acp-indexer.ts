@@ -19,8 +19,8 @@ import { PrismaClient } from "@prisma/client";
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const SEARCH_URL = "http://acpx.virtuals.io/api/agents/v5/search";
-const QUERIES = ["ai", "trust", "defi", "agent", "data", "trade", "content", "code"];
-const TOP_K = 100; // max per query
+const PAGE_SIZE = 100;  // agents per page
+const MAX_PAGES = 20;   // safety cap — covers 2,000 agents
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,14 +119,44 @@ export function computeTrustScore(agent: AcpAgent): AgentScore {
   };
 }
 
-// ─── Fetch Agents from Virtuals API ──────────────────────────────────────────
+// ─── Fetch All Agents via Pagination ─────────────────────────────────────────
 
-export async function fetchAgents(query: string): Promise<AcpAgent[]> {
-  const url = `${SEARCH_URL}?query=${encodeURIComponent(query)}&topK=${TOP_K}`;
-  const res = await fetch(url);
+export async function fetchAgentsPage(page: number): Promise<AcpAgent[]> {
+  const url = `${SEARCH_URL}?page=${page}&limit=${PAGE_SIZE}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
   if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
   const json = (await res.json()) as { data: AcpAgent[] };
   return json.data ?? [];
+}
+
+export async function fetchAllAgents(verbose = false): Promise<AcpAgent[]> {
+  const seen = new Map<string, AcpAgent>();
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    if (verbose) process.stdout?.write?.(`   Fetching page ${page}... `);
+    try {
+      const agents = await fetchAgentsPage(page);
+      if (agents.length === 0) {
+        if (verbose) console.log("done (empty page)");
+        break;
+      }
+      let newCount = 0;
+      for (const a of agents) {
+        if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
+          seen.set(a.walletAddress.toLowerCase(), a);
+          newCount++;
+        }
+      }
+      if (verbose) console.log(`${agents.length} results (${newCount} new)`);
+      if (agents.length < PAGE_SIZE) break; // last page
+    } catch (e) {
+      if (verbose) console.log(`⚠️  page ${page} failed: ${(e as Error).message}`);
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 200)); // rate limit
+  }
+
+  return [...seen.values()];
 }
 
 // ─── Main Indexer Function ───────────────────────────────────────────────────
@@ -140,28 +170,9 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
   log(`   Source: ${SEARCH_URL}`);
   if (dryRun) log("   ⚠️  DRY RUN — no DB writes\n");
 
-  // 1. Collect agents from multiple queries (deduplicate by walletAddress)
-  const seen = new Map<string, AcpAgent>();
-
-  for (const query of QUERIES) {
-    if (verbose) process.stdout?.write?.(`   Fetching query "${query}"... `);
-    try {
-      const agents = await fetchAgents(query);
-      let newCount = 0;
-      for (const a of agents) {
-        if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
-          seen.set(a.walletAddress.toLowerCase(), a);
-          newCount++;
-        }
-      }
-      log(`${agents.length} results (${newCount} new)`);
-    } catch (e) {
-      log(`⚠️  failed: ${(e as Error).message}`);
-    }
-    await new Promise((r) => setTimeout(r, 300)); // rate limit
-  }
-
-  const allAgents = [...seen.values()];
+  // 1. Collect ALL agents via full pagination (no keyword filtering)
+  log("   Strategy: full pagination scan (no keyword filter)");
+  const allAgents = await fetchAllAgents(verbose);
   log(`\n📦 Total unique agents: ${allAgents.length}`);
 
   // 2. Compute trust scores
