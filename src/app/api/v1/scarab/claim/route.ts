@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { claimDaily } from '@/lib/scarab'
 import { verifyAndConsumeNonce } from '@/lib/claim-nonce'
-import { verifyMessage, getAddress } from 'viem'
+import { verifyMessage, getAddress, type Address } from 'viem'
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Checksum the address — rejects invalid hex
-    let checksumAddress: string
+    let checksumAddress: Address
     try {
       checksumAddress = getAddress(address)
     } catch {

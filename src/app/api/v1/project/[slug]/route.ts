@@ -46,7 +46,7 @@ export async function GET(
 
           // Fetch verified review count + opinion market stake in parallel (non-fatal)
           const [verifiedCount, marketAgg] = await Promise.allSettled([
-            prisma.review.count({ where: { projectId: existing.id, verified: true } }),
+            prisma.review.count({ where: { projectId: existing.id, txHash: { not: null } } }),
             prisma.marketPosition.aggregate({
               where: { projectId: existing.id },
               _sum: { amount: true },
