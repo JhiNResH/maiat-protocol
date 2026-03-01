@@ -15,6 +15,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
+import { logQuery } from "@/lib/query-logger";
 
 // ── Known-safe whitelist ──────────────────────────────────────────────────────
 // Tokens that are universally trusted — skip all external checks.
@@ -378,6 +379,7 @@ export async function GET(
   // ── Step 1: KNOWN_SAFE whitelist ─────────────────────────────────────────────
   if (KNOWN_SAFE[checksumAddress]) {
     const { symbol, name } = KNOWN_SAFE[checksumAddress];
+    logQuery({ type: "token_check", target: checksumAddress, trustScore: 100, verdict: "proceed", metadata: { tokenType: "known_safe", symbol } });
     return NextResponse.json(
       {
         address: checksumAddress,
@@ -424,6 +426,7 @@ export async function GET(
         if (score < 40) agentRiskFlags.push("LOW_AGENT_TRUST");
         if (!hasScore) agentRiskFlags.push("INSUFFICIENT_DATA");
         const scarabReviews = await getScarabReviews(checksumAddress);
+        logQuery({ type: "token_check", target: checksumAddress, trustScore: score, verdict, metadata: { tokenType: "agent_token", totalJobs: agentScore.totalJobs } });
         return NextResponse.json(
           {
             address: checksumAddress,
@@ -513,6 +516,7 @@ export async function GET(
     );
 
     // ── Build response ─────────────────────────────────────────────────────────
+    logQuery({ type: "token_check", target: checksumAddress, trustScore, verdict, metadata: { tokenType: "memecoin", isHoneypot: honeypot.isHoneypot, riskFlags } });
     return NextResponse.json(
       {
         address: checksumAddress,
