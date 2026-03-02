@@ -1,0 +1,64 @@
+# maiat-sdk
+
+Trust scores, token safety & swap verification for AI agents.
+
+## Install
+
+```bash
+npm install maiat-sdk
+```
+
+## Quick Start
+
+```typescript
+import { Maiat } from "maiat-sdk";
+
+const maiat = new Maiat();
+
+// Check if an agent is trustworthy
+const trusted = await maiat.isTrusted("0x...");
+
+// Token safety check
+const safe = await maiat.isTokenSafe("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913");
+
+// Full trust score
+const score = await maiat.agentTrust("0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9");
+console.log(score.trustScore, score.verdict); // 69, "caution"
+
+// Trust-verified swap quote
+const swap = await maiat.trustSwap({
+  swapper: "0x...",
+  tokenIn: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", // ETH
+  tokenOut: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
+  amount: "10000000000000000", // 0.01 ETH in wei
+});
+console.log(swap.trust.tokenOut?.score); // 100
+console.log(swap.calldata); // ready-to-sign tx calldata
+```
+
+## API
+
+### `new Maiat(config?)`
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `baseUrl` | `https://maiat-protocol.vercel.app` | API base URL |
+| `apiKey` | — | Optional API key for higher rate limits |
+| `timeout` | `15000` | Request timeout (ms) |
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `agentTrust(address)` | `AgentTrustResult` | Full trust score + breakdown |
+| `tokenCheck(address)` | `TokenCheckResult` | Token safety analysis |
+| `trustSwap(params)` | `TrustSwapResult` | Swap quote with trust verification |
+| `listAgents(limit?)` | `{ agents, total }` | Browse indexed agents |
+| `isTrusted(address, threshold?)` | `boolean` | Quick trust check (default ≥60) |
+| `isTokenSafe(address)` | `boolean` | Quick token safety check |
+
+## Links
+
+- Protocol: [maiat-protocol.vercel.app](https://maiat-protocol.vercel.app)
+- GitHub: [JhiNResH/maiat-protocol](https://github.com/JhiNResH/maiat-protocol)
+- ACP: [Agent #3723 on Virtuals](https://app.virtuals.io/acp)
