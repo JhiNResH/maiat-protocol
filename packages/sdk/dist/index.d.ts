@@ -3,16 +3,19 @@
  *
  * Usage:
  *   import { Maiat } from "maiat-sdk";
- *   const maiat = new Maiat();
+ *   const maiat = new Maiat({ clientId: "my-agent" });
  *   const score = await maiat.agentTrust("0x...");
  *   const token = await maiat.tokenCheck("0x...");
  *   const swap  = await maiat.trustSwap({ ... });
+ *   await maiat.reportOutcome({ agent: "0x...", action: "swap", result: "success" });
  */
 export interface MaiatConfig {
     /** Base URL for Maiat Protocol API. Default: https://maiat-protocol.vercel.app */
     baseUrl?: string;
     /** Optional API key for higher rate limits */
     apiKey?: string;
+    /** Client identifier — tracks which agent/app is making requests (training data) */
+    clientId?: string;
     /** Request timeout in ms. Default: 15000 */
     timeout?: number;
 }
@@ -64,9 +67,30 @@ export interface TrustSwapResult {
     };
     timestamp: string;
 }
+export interface OutcomeReport {
+    /** The agent or token address that was checked */
+    target: string;
+    /** What action was taken after checking trust */
+    action: "swap" | "delegate" | "hire" | "skip" | "block" | "other";
+    /** The outcome of that action */
+    result: "success" | "failure" | "scam" | "partial" | "pending";
+    /** On-chain tx hash as proof (optional) */
+    txHash?: string;
+    /** What Maiat verdict was at the time */
+    maiatVerdict?: "proceed" | "caution" | "avoid";
+    /** Trust score at the time of check */
+    maiatScore?: number;
+    /** Free-form context */
+    notes?: string;
+}
+export interface OutcomeResponse {
+    logged: boolean;
+    id?: string;
+}
 export declare class Maiat {
     private baseUrl;
     private apiKey?;
+    private clientId?;
     private timeout;
     constructor(config?: MaiatConfig);
     private request;
@@ -81,6 +105,16 @@ export declare class Maiat {
         agents: AgentTrustResult[];
         total: number;
     }>;
+    /**
+     * Report the outcome of an action taken after a Maiat trust check.
+     * This is the most valuable data for training the oracle.
+     *
+     * Example flow:
+     *   1. maiat.isTrusted("0x...") → true
+     *   2. You swap with that agent
+     *   3. maiat.reportOutcome({ target: "0x...", action: "swap", result: "success" })
+     */
+    reportOutcome(report: OutcomeReport): Promise<OutcomeResponse>;
     /** Quick check: is this agent trustworthy? Returns true if score >= threshold */
     isTrusted(address: string, threshold?: number): Promise<boolean>;
     /** Quick check: is this token safe to swap? */

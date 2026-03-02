@@ -57,6 +57,34 @@ console.log(swap.calldata); // ready-to-sign tx calldata
 | `isTrusted(address, threshold?)` | `boolean` | Quick trust check (default ≥60) |
 | `isTokenSafe(address)` | `boolean` | Quick token safety check |
 
+## Outcome Reporting (Training Data)
+
+The most valuable data for improving trust accuracy:
+
+```typescript
+const maiat = new Maiat({ clientId: "my-trading-bot" });
+
+// 1. Check trust
+const score = await maiat.agentTrust("0xCounterparty");
+
+// 2. Take action based on trust
+if (score.trustScore >= 60) {
+  // ... execute swap ...
+}
+
+// 3. Report what happened
+await maiat.reportOutcome({
+  target: "0xCounterparty",
+  action: "swap",
+  result: "success",        // or "failure", "scam"
+  txHash: "0x...",           // on-chain proof
+  maiatVerdict: score.verdict,
+  maiatScore: score.trustScore,
+});
+```
+
+This closes the feedback loop: check → act → report → oracle gets smarter.
+
 ## Links
 
 - Protocol: [maiat-protocol.vercel.app](https://maiat-protocol.vercel.app)
