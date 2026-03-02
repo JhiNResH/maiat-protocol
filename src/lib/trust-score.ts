@@ -171,7 +171,7 @@ export async function calculateTrustScore(
       // 3. Generate baseline description using AI
       let aiDescription = `An automatically profiled token on Base.`
       try {
-        const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY
+        const apiKey = process.env.GEMINI_API_KEY
         if (apiKey) {
           const { GoogleGenerativeAI } = await import('@google/generative-ai')
           const genAI = new GoogleGenerativeAI(apiKey)
