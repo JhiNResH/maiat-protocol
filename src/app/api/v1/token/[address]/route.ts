@@ -409,7 +409,7 @@ export async function GET(
         where: { walletAddress: { equals: checksumAddress.toLowerCase() } },
         select: {
           walletAddress: true,
-          name: true,
+          rawMetrics: true,
           trustScore: true,
           completionRate: true,
           paymentRate: true,
@@ -418,6 +418,8 @@ export async function GET(
       });
 
       if (agentScore) {
+        const raw = (agentScore.rawMetrics ?? {}) as Record<string, unknown>;
+        const agentName = typeof raw.name === 'string' ? raw.name : checksumAddress;
         const hasScore = agentScore.trustScore !== null;
         const score = agentScore.trustScore ?? 50;
         const verdict: Verdict =
@@ -435,10 +437,10 @@ export async function GET(
             verdict,
             riskFlags: agentRiskFlags,
             riskSummary: !hasScore
-              ? `ACP agent ${agentScore.name ?? checksumAddress} has no recorded jobs yet.`
-              : `ACP agent ${agentScore.name ?? checksumAddress}. Completion rate: ${agentScore.completionRate ?? "?"}%.`,
+              ? `ACP agent ${agentName} has no recorded jobs yet.`
+              : `ACP agent ${agentName}. Completion rate: ${agentScore.completionRate ?? "?"}%.`,
             agentData: {
-              name: agentScore.name,
+              name: agentName,
               completionRate: agentScore.completionRate,
               paymentRate: agentScore.paymentRate,
               totalJobs: agentScore.totalJobs,
