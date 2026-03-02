@@ -33,6 +33,7 @@ export interface AcpAgent {
   successRate?: number | null;
   uniqueBuyerCount?: number | null;
   createdAt?: string | null;
+  profilePic?: string | null;
 }
 
 export interface AgentScore {
@@ -108,6 +109,7 @@ export function computeTrustScore(agent: AcpAgent): AgentScore {
       category: agent.category,
       agentId: agent.id,
       name: agent.name,
+      profilePic: agent.profilePic,
       indexedAt: new Date().toISOString(),
     },
   };
