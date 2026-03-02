@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
       ? {
           OR: [
             { walletAddress: { contains: search, mode: 'insensitive' as const } },
+            { rawMetrics: { path: ['name'], string_contains: search } },
           ],
         }
       : {}

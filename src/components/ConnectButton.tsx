@@ -10,7 +10,13 @@ import toast from 'react-hot-toast'
 export function ConnectButton() {
   const { ready, authenticated, login, logout, user } = usePrivy()
   const { wallets } = useWallets()
-  const [claimed, setClaimed] = useState(false)
+  // Persist claimed state in sessionStorage to prevent re-prompting on navigation
+  const [claimed, setClaimed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('scarab-claimed-today') === new Date().toISOString().slice(0, 10)
+    }
+    return false
+  })
 
   // Stable ref: resolves to the connected wallet object (or undefined), not the
   // whole array — prevents spurious effect re-runs when Privy re-renders wallets.
@@ -63,6 +69,9 @@ export function ConnectButton() {
 
         const data = await res.json()
         setClaimed(true)
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('scarab-claimed-today', new Date().toISOString().slice(0, 10))
+        }
 
         // Server returns 200 with alreadyClaimed:true when the daily claim
         // was already used — no confetti, no toast, just silently done.
@@ -106,6 +115,11 @@ export function ConnectButton() {
           { duration: 4000 }
         )
       } catch (err) {
+        // If claim fails (already claimed, etc.), still mark as attempted to prevent re-prompt
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('scarab-claimed-today', new Date().toISOString().slice(0, 10))
+        }
+        setClaimed(true)
         console.error('Failed to claim daily Scarab:', err)
       }
     }
