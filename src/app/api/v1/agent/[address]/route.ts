@@ -138,7 +138,7 @@ export async function GET(
         // ── On-demand lookup from Virtuals API ──────────────────────────────
         const onDemand = await fetchAndIndexAgent(checksumAddress);
         if (onDemand) {
-          return buildResponse(checksumAddress, onDemand);
+          return buildResponse(checksumAddress, onDemand, request);
         }
 
         // Truly unknown — not in DB, not in Virtuals API
@@ -162,10 +162,10 @@ export async function GET(
       }
 
       // Use the case-insensitive match
-      return buildResponse(checksumAddress, recordLower);
+      return buildResponse(checksumAddress, recordLower, request);
     }
 
-    return buildResponse(checksumAddress, record);
+    return buildResponse(checksumAddress, record, request);
 
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -175,6 +175,50 @@ export async function GET(
       { status: 500 }
     );
   }
+}
+
+// ─── Analysis Generator ───────────────────────────────────────────────────────
+
+function generateAnalysis(
+  score: number,
+  verdict: string,
+  totalJobs: number,
+  completionRate: number,
+  expireRate: number,
+  uniqueBuyerCount: number | null,
+  name: string | null
+): string {
+  const agentName = name || "This agent";
+  const parts: string[] = [];
+
+  // Overall assessment
+  if (score >= 80) {
+    parts.push(`${agentName} is a highly reliable ACP agent with a strong track record.`);
+  } else if (score >= 60) {
+    parts.push(`${agentName} shows mixed reliability — some successful jobs but notable concerns.`);
+  } else if (totalJobs > 0) {
+    parts.push(`${agentName} has a poor track record and should be engaged with extreme caution.`);
+  } else {
+    parts.push(`${agentName} has no job history on ACP yet — trust cannot be determined from behavioral data.`);
+    return parts[0];
+  }
+
+  // Job volume
+  if (totalJobs >= 50) parts.push(`With ${totalJobs} completed jobs, there is strong statistical confidence in this score.`);
+  else if (totalJobs >= 10) parts.push(`${totalJobs} jobs provide moderate confidence — score may shift with more data.`);
+  else if (totalJobs > 0) parts.push(`Only ${totalJobs} jobs recorded — limited data, score is preliminary.`);
+
+  // Key strengths/weaknesses
+  if (completionRate >= 0.95) parts.push("Excellent completion rate — rarely abandons jobs.");
+  else if (completionRate < 0.5) parts.push("Low completion rate is a red flag — frequently fails to deliver.");
+
+  if (expireRate > 0.2) parts.push(`High expire rate (${(expireRate * 100).toFixed(0)}%) suggests the agent often lets jobs time out.`);
+
+  if (uniqueBuyerCount !== null && uniqueBuyerCount >= 5) {
+    parts.push(`Trusted by ${uniqueBuyerCount} unique buyers — indicates broad market acceptance.`);
+  }
+
+  return parts.join(" ");
 }
 
 // ─── Response Builder ─────────────────────────────────────────────────────────
@@ -193,7 +237,8 @@ interface AgentScoreRecord {
 
 function buildResponse(
   checksumAddress: string,
-  record: AgentScoreRecord
+  record: AgentScoreRecord,
+  request: NextRequest
 ): NextResponse {
   // Calculate ageWeeks from rawMetrics if available
   let ageWeeks: number | null = null;
@@ -212,18 +257,36 @@ function buildResponse(
 
   const verdict = scoreToVerdict(record.trustScore);
 
+  // Extract enrichment data from rawMetrics
+  const raw = record.rawMetrics as Record<string, unknown> | null;
+  const name = (raw?.name as string) || null;
+  const profilePic = (raw?.profilePic as string) || null;
+  const category = (raw?.category as string) || null;
+  const description = (raw?.description as string) || null;
+  const uniqueBuyerCount = (raw?.uniqueBuyerCount as number) ?? null;
+  const successRate = (raw?.successRate as number) ?? null;
+
+  // Generate analysis summary
+  const analysis = generateAnalysis(record.trustScore, verdict, record.totalJobs, record.completionRate, record.expireRate, uniqueBuyerCount, name);
+
   // Log for training data (fire-and-forget)
+  const clientId = request.headers.get("x-maiat-client") ?? undefined;
   logQuery({
     type: "agent_trust",
     target: checksumAddress,
     trustScore: record.trustScore,
     verdict,
+    clientId,
     metadata: { totalJobs: record.totalJobs, dataSource: record.dataSource },
   });
 
   return NextResponse.json(
     {
       address:    checksumAddress,
+      name,
+      profilePic,
+      category,
+      description,
       trustScore: record.trustScore,
       dataSource: record.dataSource,
       breakdown: {
@@ -232,8 +295,11 @@ function buildResponse(
         expireRate:     record.expireRate,
         totalJobs:      record.totalJobs,
         ageWeeks,
+        uniqueBuyerCount,
+        successRate,
       },
       verdict,
+      analysis,
       lastUpdated: record.lastUpdated.toISOString(),
     },
     {
