@@ -4,6 +4,7 @@ import { checkInteraction } from "@/lib/interaction-check";
 import { getUserReputation } from "@/lib/reputation";
 import { apiLog } from "@/lib/logger";
 import { blendTrustScore } from "@/lib/scoring";
+import { attestReview, EAS_REVIEW_SCHEMA_UID } from "@/lib/eas";
 
 // --- DB: Prisma (Supabase) with in-memory fallback for local dev ---
 let prisma: import("@prisma/client").PrismaClient | null = null;
@@ -534,6 +535,19 @@ export async function POST(request: NextRequest) {
       } catch {
         // Best effort reputation update
       }
+    }
+
+    // --- Step 7.5: EAS Attestation (fire-and-forget) ---
+    if (EAS_REVIEW_SCHEMA_UID) {
+      attestReview(
+        checksumAddress,
+        checksumReviewer,
+        rating,
+        comment ?? "",
+        txHash
+      ).catch((err) => {
+        console.warn("[review] EAS attestReview failed (non-blocking):", err.message);
+      });
     }
 
     // --- Step 8: Update Project stats (best-effort) ---
