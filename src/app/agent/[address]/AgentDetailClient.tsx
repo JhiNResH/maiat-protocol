@@ -19,11 +19,18 @@ interface AgentBreakdown {
   expireRate: number
   totalJobs: number
   ageWeeks: number
+  uniqueBuyerCount?: number | null
+  successRate?: number | null
   name?: string
 }
 
 interface AgentScore {
   address: string
+  name?: string | null
+  profilePic?: string | null
+  category?: string | null
+  description?: string | null
+  analysis?: string | null
   trustScore: number
   dataSource: string
   breakdown: AgentBreakdown
@@ -431,7 +438,7 @@ function AgentDetail() {
   const bd      = agent.breakdown
   const score   = agent.trustScore
   const verdict = agent.verdict
-  const name    = bd?.name || trunc(agent.address)
+  const name    = agent.name || bd?.name || trunc(agent.address)
   const col     = verdictColor(verdict)
   const avgRating = reviews.length
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length / 2
@@ -454,12 +461,22 @@ function AgentDetail() {
         <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-6">
           <div className="flex flex-col sm:flex-row items-start gap-6">
             {/* Avatar */}
-            <div
-              className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-black text-white shrink-0"
-              style={{ backgroundColor: col + '22', color: col, border: `1.5px solid ${col}44` }}
-            >
-              {name.charAt(0).toUpperCase()}
-            </div>
+            {agent.profilePic ? (
+              <img
+                src={agent.profilePic}
+                alt={name}
+                className="w-14 h-14 rounded-xl object-cover shrink-0 border"
+                style={{ borderColor: col + '44' }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+            ) : (
+              <div
+                className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-black text-white shrink-0"
+                style={{ backgroundColor: col + '22', color: col, border: `1.5px solid ${col}44` }}
+              >
+                {name.charAt(0).toUpperCase()}
+              </div>
+            )}
 
             {/* Info */}
             <div className="flex-1 min-w-0">
@@ -468,7 +485,17 @@ function AgentDetail() {
                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${verdictBg(verdict)}`}>
                   {verdictLabel(verdict)}
                 </span>
+                {agent.category && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-[#1e2035] text-[#64748b] bg-[#13141f]">
+                    {agent.category}
+                  </span>
+                )}
               </div>
+
+              {/* Description */}
+              {agent.description && (
+                <p className="text-sm text-[#94a3b8] mb-2 line-clamp-2">{agent.description}</p>
+              )}
 
               {/* Wallet address row */}
               <div className="flex items-center gap-2 mb-2">
@@ -539,6 +566,13 @@ function AgentDetail() {
             value={pct(bd?.paymentRate)}
             sub="payments received"
           />
+          {bd?.uniqueBuyerCount != null && (
+            <StatCard
+              label="Unique Buyers"
+              value={bd.uniqueBuyerCount.toString()}
+              sub="distinct clients"
+            />
+          )}
         </div>
 
         {/* ── Rate Bars ── */}
@@ -573,6 +607,17 @@ function AgentDetail() {
             <div className="text-[9px] opacity-60 font-mono uppercase">trust score</div>
           </div>
         </div>
+
+        {/* ── Analysis ── */}
+        {agent.analysis && (
+          <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <CheckCircle className="w-3.5 h-3.5 text-[#0052FF]" />
+              <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">Trust Analysis</span>
+            </div>
+            <p className="text-sm text-[#94a3b8] leading-relaxed">{agent.analysis}</p>
+          </div>
+        )}
 
         {/* ── Scarab Banner ── */}
         <div className="bg-[#d4a017]/6 border border-[#d4a017]/20 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
