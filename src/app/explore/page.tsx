@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/Header";
-import { Search, Shield, Bot, ArrowUpDown, TrendingUp, Zap } from "lucide-react";
+import { Search, Shield, Bot, ArrowUpDown, TrendingUp, Zap, Trophy } from "lucide-react";
 import { isAddress } from "viem";
 
 // ============================================================================
@@ -67,8 +67,8 @@ function verdictLabel(verdict: string) {
 
 function trustScoreColor(score: number | null) {
   if (score === null) return "text-[#666666]";
-  if (score >= 8.0) return "text-[#22C55E]";
-  if (score >= 6.0) return "text-[#F59E0B]";
+  if (score >= 80) return "text-[#22C55E]";
+  if (score >= 60) return "text-[#F59E0B]";
   return "text-[#EF4444]";
 }
 
@@ -113,6 +113,8 @@ export default function ExplorePageWrapper() {
 
 function ExplorePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isLeaderboard = searchParams.get("tab") === "leaderboard";
 
   const [agents, setAgents]   = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,6 +167,10 @@ function ExplorePage() {
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
+  if (isLeaderboard) {
+    return <LeaderboardView agents={agents} loading={loading} router={router} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
       <Header />
@@ -359,6 +365,115 @@ function ExplorePage() {
               Trust scores are derived from ACP behavioral history — completion rate,
               payment reliability, and on-chain activity age.
             </span>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+// ============================================================================
+// LEADERBOARD VIEW
+// ============================================================================
+
+function LeaderboardView({
+  agents,
+  loading,
+  router,
+}: {
+  agents: Agent[];
+  loading: boolean;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const top = [...agents]
+    .sort((a, b) => (b.trust.score ?? -1) - (a.trust.score ?? -1))
+    .slice(0, 50);
+
+  const rankStyle = (i: number) => {
+    if (i === 0) return "text-[#FFD700] text-lg";
+    if (i === 1) return "text-[#C0C0C0] text-base";
+    if (i === 2) return "text-[#CD7F32] text-base";
+    return "text-[#444444] text-sm";
+  };
+
+  const rankLabel = (i: number) => {
+    if (i === 0) return "🥇";
+    if (i === 1) return "🥈";
+    if (i === 2) return "🥉";
+    return `#${i + 1}`;
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
+      <Header />
+      <main className="max-w-3xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-1">
+            <Trophy className="w-4 h-4 text-[#FFD700]" />
+            <h1 className="text-xs font-mono text-[#666666] uppercase tracking-widest">
+              // TRUST LEADERBOARD — TOP ACP AGENTS
+            </h1>
+          </div>
+          <p className="text-[11px] text-[#444444] font-mono mt-1">
+            Ranked by behavioral trust score · sourced from Virtuals ACP job history
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Trophy className="w-6 h-6 text-[#FFD700] animate-pulse" />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {top.map((agent, i) => {
+              const score = agent.trust.score;
+              const verdict = scoreToVerdict(score);
+              return (
+                <div
+                  key={agent.id}
+                  onClick={() => router.push(`/agent/${agent.id}`)}
+                  className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#1a1a1a] bg-[#0D0D0D] hover:border-[#0052FF]/30 hover:bg-[#111111] cursor-pointer transition-all group"
+                >
+                  {/* Rank */}
+                  <div className={`w-10 text-center font-mono font-bold ${rankStyle(i)}`}>
+                    {rankLabel(i)}
+                  </div>
+
+                  {/* Avatar */}
+                  <div className="w-8 h-8 rounded-lg bg-[#0052FF]/10 border border-[#0052FF]/20 flex items-center justify-center text-xs font-bold text-[#0052FF] flex-shrink-0">
+                    {agent.name.charAt(0).toUpperCase()}
+                  </div>
+
+                  {/* Name + address */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-[#E5E5E5] truncate group-hover:text-white">
+                      {agent.name}
+                    </div>
+                    <div className="text-[10px] font-mono text-[#444444] truncate">
+                      {truncateAddress(agent.id)}
+                    </div>
+                  </div>
+
+                  {/* Jobs */}
+                  <div className="text-right hidden sm:block">
+                    <div className="text-[10px] font-mono text-[#444444]">JOBS</div>
+                    <div className="text-xs font-mono text-[#888888]">
+                      {agent.breakdown?.totalJobs?.toLocaleString() ?? "—"}
+                    </div>
+                  </div>
+
+                  {/* Verdict badge */}
+                  <div className={`text-[9px] font-mono px-2 py-0.5 rounded border uppercase tracking-wider ${verdictStyle(verdict)}`}>
+                    {verdictLabel(verdict)}
+                  </div>
+
+                  {/* Score */}
+                  <div className={`text-xl font-bold font-mono w-12 text-right ${trustScoreColor(score)}`}>
+                    {score ?? "?"}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </main>
