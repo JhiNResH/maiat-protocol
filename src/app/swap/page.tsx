@@ -44,6 +44,7 @@ export default function SwapPage() {
   const [quote, setQuote] = useState<QuoteData | null>(null)
   const [swapTx, setSwapTx] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [trustWarning, setTrustWarning] = useState<{ verdict: string; score: number; tokenSymbol: string } | null>(null)
 
   const tokenIn = TOKENS[tokenInIdx]
   const tokenOut = TOKENS[tokenOutIdx]
@@ -54,6 +55,28 @@ export default function SwapPage() {
     setQuote(null)
     setSwapTx(null)
     setError(null)
+    setTrustWarning(null)
+
+    // Pre-flight trust check on tokenOut
+    try {
+      const trustRes = await fetch(`/api/v1/token/${tokenOut.address}`)
+      if (trustRes.ok) {
+        const trustData = await trustRes.json()
+        const verdict = trustData.verdict as string | undefined
+        const score = trustData.trustScore as number | undefined
+        if (verdict === 'avoid') {
+          setTrustWarning({ verdict: 'avoid', score: score ?? 0, tokenSymbol: tokenOut.symbol })
+          setLoading(false)
+          return
+        }
+        if (verdict === 'caution') {
+          setTrustWarning({ verdict: 'caution', score: score ?? 0, tokenSymbol: tokenOut.symbol })
+        }
+      }
+    } catch {
+      // Trust check failure is non-blocking
+    }
+
     try {
       const res = await fetch('/api/v1/swap/quote', {
         method: 'POST',
@@ -101,6 +124,7 @@ export default function SwapPage() {
     setTokenOutIdx(tokenInIdx)
     setQuote(null)
     setSwapTx(null)
+    setTrustWarning(null)
   }
 
   return (
@@ -193,6 +217,20 @@ export default function SwapPage() {
             <span className="text-xs text-txt-muted">Route: UniswapX</span>
           </div>
 
+          {/* Trust warning */}
+          {trustWarning?.verdict === 'avoid' && (
+            <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2.5">
+              <span className="text-base">🚫</span>
+              <span><strong>{trustWarning.tokenSymbol}</strong> flagged as high risk (score {trustWarning.score}/100). Swap disabled for your protection.</span>
+            </div>
+          )}
+          {trustWarning?.verdict === 'caution' && (
+            <div className="flex items-center gap-2 text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2.5">
+              <span className="text-base">⚠️</span>
+              <span><strong>{trustWarning.tokenSymbol}</strong> has a low trust score ({trustWarning.score}/100). Proceed with caution.</span>
+            </div>
+          )}
+
           {error && <div className="text-xs text-crimson bg-[#c0392b12] rounded-lg px-3 py-2">{error}</div>}
 
           {/* Quote result */}
@@ -212,7 +250,7 @@ export default function SwapPage() {
           {/* Swap Button */}
           <button
             onClick={quote && !swapTx ? handleSwap : handleQuote}
-            disabled={loading || !swapper.trim() || !amount.trim()}
+            disabled={loading || !swapper.trim() || !amount.trim() || trustWarning?.verdict === 'avoid'}
             className="flex items-center justify-center gap-2.5 w-full h-[52px] bg-gold rounded-[14px] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             <Repeat className="w-5 h-5 text-page" />
