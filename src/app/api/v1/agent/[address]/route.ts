@@ -67,7 +67,7 @@ async function fetchAndIndexAgent(
         expireRate:     score.expireRate,
         totalJobs:      score.totalJobs,
         dataSource:     "ACP_BEHAVIORAL",
-        rawMetrics:     (agent.metrics as object) ?? {},
+        rawMetrics:     JSON.parse(JSON.stringify(agent ?? {})),
       },
       create: {
         walletAddress:  checksumAddress,
@@ -77,7 +77,7 @@ async function fetchAndIndexAgent(
         expireRate:     score.expireRate,
         totalJobs:      score.totalJobs,
         dataSource:     "ACP_BEHAVIORAL",
-        rawMetrics:     (agent.metrics as object) ?? {},
+        rawMetrics:     JSON.parse(JSON.stringify(agent ?? {})),
       },
     });
 

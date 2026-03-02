@@ -13,12 +13,16 @@ import { isAddress } from "viem";
 interface Agent {
   id: string;       // wallet address
   name: string;
-  symbol?: string;
+  category?: string | null;
   chain: string;
-  description?: string;
   trust: {
     score: number | null;
     grade: string | null;
+  };
+  breakdown?: {
+    completionRate?: number | null;
+    paymentRate?: number | null;
+    totalJobs?: number | null;
   };
 }
 
@@ -31,11 +35,11 @@ function truncateAddress(addr: string) {
   return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
-/** Derive verdict from trust score (0–10 scale). */
+/** Derive verdict from trust score (0–100 scale). */
 function scoreToVerdict(score: number | null): "proceed" | "caution" | "avoid" | "unknown" {
   if (score === null || score === undefined) return "unknown";
-  if (score >= 8.0) return "proceed";
-  if (score >= 6.0) return "caution";
+  if (score >= 80) return "proceed";
+  if (score >= 60) return "caution";
   return "avoid";
 }
 
@@ -298,11 +302,11 @@ function ExplorePage() {
                         <span className="text-[9px] font-mono text-[#555555] uppercase">
                           {agent.chain || "base"}
                         </span>
-                        {agent.symbol && (
+                        {agent.category && (
                           <>
                             <span className="text-[#333333]">·</span>
                             <span className="text-[9px] font-mono text-[#555555]">
-                              {agent.symbol}
+                              {agent.category}
                             </span>
                           </>
                         )}
