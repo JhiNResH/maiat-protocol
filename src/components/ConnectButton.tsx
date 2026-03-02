@@ -1,34 +1,71 @@
 'use client'
 
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { Wallet, LogOut } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { getAddress } from 'viem'
 import confetti from 'canvas-confetti'
 import toast from 'react-hot-toast'
 
 export function ConnectButton() {
   const { ready, authenticated, login, logout, user } = usePrivy()
+  const { wallets } = useWallets()
   const [claimed, setClaimed] = useState(false)
+
+  // Stable ref: resolves to the connected wallet object (or undefined), not the
+  // whole array — prevents spurious effect re-runs when Privy re-renders wallets.
+  const connectedWallet = wallets.find(
+    (w) => w.address.toLowerCase() === user?.wallet?.address?.toLowerCase()
+  )
 
   useEffect(() => {
     async function claimDailyScarab() {
       if (!authenticated || !user?.wallet?.address || claimed) return
 
       try {
+        const rawAddress = user.wallet.address
+        const checksumAddress = getAddress(rawAddress)
+
+        if (!connectedWallet) return // wallet not ready yet — effect will re-run
+
+        // Fetch a fresh single-use nonce from the server
+        const nonceRes = await fetch(
+          `/api/v1/scarab/nonce?address=${encodeURIComponent(checksumAddress)}`
+        )
+        if (!nonceRes.ok) throw new Error('Failed to fetch claim nonce')
+        const { nonce, expiresAt } = await nonceRes.json()
+
+        // EIP-191 message includes nonce + expiry — prevents replay attacks
+        const message = [
+          `Claim daily Scarab for ${checksumAddress}`,
+          `Nonce: ${nonce}`,
+          `Expiration: ${expiresAt}`,
+        ].join('\n')
+
+        // Sign with connected wallet (silent for Privy embedded, prompt for external)
+        const provider = await connectedWallet.getEthereumProvider()
+        const signature = await provider.request({
+          method: 'personal_sign',
+          params: [message, checksumAddress], // checksumAddress used consistently
+        })
+
+        if (!signature) throw new Error('Wallet returned empty signature')
+
         const res = await fetch('/api/v1/scarab/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: user.wallet.address }),
+          body: JSON.stringify({ address: checksumAddress, signature, nonce, expiresAt }),
         })
 
         if (!res.ok) {
-          throw new Error('Failed to claim')
+          throw new Error(`Claim failed: ${res.status}`)
         }
 
         const data = await res.json()
         setClaimed(true)
 
-        // If already claimed, don't show confetti or toast
+        // Server returns 200 with alreadyClaimed:true when the daily claim
+        // was already used — no confetti, no toast, just silently done.
         if (data.alreadyClaimed) {
           return
         }
@@ -74,7 +111,7 @@ export function ConnectButton() {
     }
 
     claimDailyScarab()
-  }, [authenticated, user?.wallet?.address, claimed])
+  }, [authenticated, user?.wallet?.address, claimed, connectedWallet])
 
   if (!ready) return null
 

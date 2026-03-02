@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
       data: {
         address: "0x0000000000000000000000000000000000000000",
         amount: 0,
+        balanceAfter: 0,
         type: "project_queue",
         description: JSON.stringify({
           query: query.trim().substring(0, 100),

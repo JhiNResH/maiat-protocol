@@ -5,6 +5,7 @@ import { getUserReputation } from "@/lib/reputation";
 import { apiLog } from "@/lib/logger";
 import { blendTrustScore } from "@/lib/scoring";
 import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
+import { attestReview, EAS_REVIEW_SCHEMA_UID } from "@/lib/eas";
 
 // --- DB: Prisma (Supabase) with in-memory fallback for local dev ---
 let prisma: import("@prisma/client").PrismaClient | null = null;
@@ -475,25 +476,26 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Step 6: Reward Scarab based on quality ---
+    // Quality reward tiers (qualityScore is 0-100):
+    //   >= 80 (0.8): 3 Scarab (high quality)
+    //   >= 60 (0.6): 1 Scarab (good quality)
+    //   < 60:        0 Scarab (no reward, just the -2 spend)
     let scarabReward = 0;
     if (db && qualityScore !== null) {
       try {
         const { rewardScarab } = await import("@/lib/scarab");
-        // Reward: 3-10 Scarab based on quality score (0-100)
-        // qualityScore 70+ → 3 Scarab (minimum reward for approved)
-        // qualityScore 80+ → 5 Scarab
-        // qualityScore 90+ → 8 Scarab
-        // qualityScore 95+ → 10 Scarab (exceptional)
-        if (qualityScore >= 95) scarabReward = 10;
-        else if (qualityScore >= 90) scarabReward = 8;
-        else if (qualityScore >= 80) scarabReward = 5;
-        else if (qualityScore >= 70) scarabReward = 3;
+
+        if (qualityScore >= 80) {
+          scarabReward = 3;
+        } else if (qualityScore >= 60) {
+          scarabReward = 1;
+        }
 
         if (scarabReward > 0) {
           await rewardScarab(
             checksumReviewer,
             scarabReward,
-            `Review reward: ${scarabReward} Scarab 🪲 (quality: ${qualityScore}/100)`
+            `Review quality reward: ${scarabReward} Scarab 🪲 (quality: ${qualityScore}/100)`
           );
         }
       } catch {
@@ -520,6 +522,19 @@ export async function POST(request: NextRequest) {
       } catch {
         // Best effort reputation update
       }
+    }
+
+    // --- Step 7.5: EAS Attestation (fire-and-forget) ---
+    if (EAS_REVIEW_SCHEMA_UID) {
+      attestReview(
+        checksumAddress,
+        checksumReviewer,
+        rating,
+        comment ?? "",
+        txHash
+      ).catch((err) => {
+        console.warn("[review] EAS attestReview failed (non-blocking):", err.message);
+      });
     }
 
     // --- Step 8: Update Project stats (best-effort) ---

@@ -4,44 +4,31 @@ import { useEffect, useState, Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import { usePrivy } from '@privy-io/react-auth'
 import { useInteractionCheck } from '@/hooks/useInteractionCheck'
+import { Header } from '@/components/Header'
 import {
   Copy, ExternalLink, Shield, Activity,
-  CheckCircle, Bug, Zap, MessageSquare, Trophy, Flame, ArrowLeft,
+  CheckCircle, MessageSquare, Trophy, Flame, ArrowLeft, TrendingUp,
 } from 'lucide-react'
 import Link from 'next/link'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface ScoreBreakdown {
-  onchainHistory: number
-  contractAnalysis: number
-  blacklist: number
-  activity: number
+interface AgentBreakdown {
+  completionRate: number
+  paymentRate: number
+  expireRate: number
+  totalJobs: number
+  ageWeeks: number
+  name?: string
 }
 
-interface Project {
-  id: string
-  name: string
-  symbol?: string
+interface AgentScore {
   address: string
-  chain: string
-  description?: string
-  website?: string
-  category: string
   trustScore: number
-  avgRating: number
-  reviewCount: number
-  slug?: string
-}
-
-interface ScoreResult {
-  score: number
-  risk: string
-  flags: string[]
-  type: string
-  details: { txCount: number; balanceETH: string; walletAge: string; ageLabel: string }
-  breakdown?: ScoreBreakdown
-  summary?: string
+  dataSource: string
+  breakdown: AgentBreakdown
+  verdict: 'proceed' | 'caution' | 'avoid' | 'unknown'
+  lastUpdated: string
 }
 
 interface Review {
@@ -60,81 +47,94 @@ function trunc(addr: string) {
   return addr.slice(0, 6) + '...' + addr.slice(-4)
 }
 
-function explorerUrl(address: string, chain: string) {
-  const c = chain?.toLowerCase()
-  if (c === 'ethereum' || c === 'eth') return `https://etherscan.io/address/${address}`
-  return `https://basescan.org/address/${address}`
-}
-
-function chainColor(chain: string) {
-  const c = chain?.toLowerCase()
-  if (c === 'base') return '#0052FF'
-  if (c === 'ethereum' || c === 'eth') return '#627EEA'
+function verdictColor(verdict: string): string {
+  if (verdict === 'proceed') return '#10b981'
+  if (verdict === 'caution') return '#f59e0b'
+  if (verdict === 'avoid')   return '#ef4444'
   return '#475569'
 }
 
-function chainLabel(chain: string) {
-  const c = chain?.toLowerCase()
-  if (c === 'base') return 'Base'
-  if (c === 'ethereum' || c === 'eth') return 'Ethereum'
-  return chain
+function verdictBg(verdict: string): string {
+  if (verdict === 'proceed') return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+  if (verdict === 'caution') return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+  if (verdict === 'avoid')   return 'bg-red-500/10 border-red-500/30 text-red-400'
+  return 'bg-slate-500/10 border-slate-500/30 text-slate-400'
 }
 
-function scoreColor(s: number) {
-  if (s >= 7) return '#10b981'
-  if (s >= 4) return '#f59e0b'
+function verdictLabel(verdict: string): string {
+  if (verdict === 'proceed') return '✅ PROCEED'
+  if (verdict === 'caution') return '⚠️ CAUTION'
+  if (verdict === 'avoid')   return '🚫 AVOID'
+  return '❓ UNKNOWN'
+}
+
+function scoreColor(s: number): string {
+  if (s >= 80) return '#10b981'
+  if (s >= 60) return '#f59e0b'
   return '#ef4444'
 }
 
-function riskStyle(risk: string) {
-  if (risk === 'LOW')      return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-  if (risk === 'MEDIUM')   return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-  if (risk === 'HIGH')     return 'bg-orange-500/10 border-orange-500/30 text-orange-400'
-  return 'bg-red-500/10 border-red-500/30 text-red-400'
-}
-
-function apiChain(chain: string) {
-  const c = chain?.toLowerCase()
-  if (c === 'ethereum' || c === 'eth') return 'eth'
-  return 'base'
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function ScoreBar({ label, value, max, icon }: { label: string; value: number; max: number; icon: React.ReactNode }) {
-  const pct = Math.min(100, ((value ?? 0) / max) * 100)
-  const color = pct >= 66 ? '#10b981' : pct >= 33 ? '#f59e0b' : '#ef4444'
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2 text-[#94a3b8]">
-          {icon}
-          <span className="font-mono uppercase tracking-wider">{label}</span>
-        </div>
-        <span className="font-bold font-mono" style={{ color }}>{(value ?? 0).toFixed(1)} / {max}</span>
-      </div>
-      <div className="h-1.5 bg-[#1e2035] rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: color }} />
-      </div>
-    </div>
-  )
+function pct(rate: number | undefined): string {
+  if (rate === undefined || rate === null) return '—'
+  return `${(rate * 100).toFixed(1)}%`
 }
 
 function StarRow({ rating }: { rating: number }) {
   return (
     <span className="flex gap-0.5">
-      {[1,2,3,4,5].map(i => (
+      {[1, 2, 3, 4, 5].map(i => (
         <span key={i} className={i <= Math.round(rating) ? 'text-[#d4a017]' : 'text-[#2a2d45]'}>★</span>
       ))}
     </span>
   )
 }
 
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="bg-[#13141f] rounded-xl p-4 border border-[#1e2035] flex flex-col gap-1">
+      <div className="text-[9px] text-[#475569] font-mono uppercase tracking-wider">{label}</div>
+      <div className="text-lg font-black text-[#f1f5f9]">{value}</div>
+      {sub && <div className="text-[10px] text-[#475569] font-mono">{sub}</div>}
+    </div>
+  )
+}
+
+// ─── Rate Bar ─────────────────────────────────────────────────────────────────
+
+function RateBar({ label, value, good = true }: { label: string; value: number | undefined; good?: boolean }) {
+  const v = value ?? 0
+  const pctNum = Math.min(100, v * 100)
+  const color = good
+    ? pctNum >= 80 ? '#10b981' : pctNum >= 50 ? '#f59e0b' : '#ef4444'
+    : pctNum <= 5  ? '#10b981' : pctNum <= 20 ? '#f59e0b' : '#ef4444'
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-[#94a3b8] font-mono uppercase tracking-wider">{label}</span>
+        <span className="font-bold font-mono" style={{ color }}>{pct(value)}</span>
+      </div>
+      <div className="h-1.5 bg-[#1e2035] rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${pctNum}%`, backgroundColor: color }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ─── Review Form ──────────────────────────────────────────────────────────────
+
 function ReviewFormInline({
-  projectAddress, projectName, scarabBalance, onSuccess,
+  agentAddress,
+  agentName,
+  scarabBalance,
+  onSuccess,
 }: {
-  projectAddress: string
-  projectName: string
+  agentAddress: string
+  agentName: string
   scarabBalance: number | null
   onSuccess: () => void
 }) {
@@ -148,9 +148,8 @@ function ReviewFormInline({
   const walletAddress = user?.wallet?.address
   const canAfford = scarabBalance === null || scarabBalance >= 2
 
-  // ── Interaction gate ──────────────────────────────────────────────────────
   const { status: interactionStatus, proof: interactionProof, check: checkInteraction } =
-    useInteractionCheck(walletAddress, projectAddress)
+    useInteractionCheck(walletAddress, agentAddress)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -162,7 +161,7 @@ function ReviewFormInline({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          address: projectAddress,
+          address: agentAddress,
           reviewer: walletAddress,
           rating,
           comment: comment.trim() || undefined,
@@ -178,23 +177,29 @@ function ReviewFormInline({
     finally { setSubmitting(false) }
   }
 
+  // ── Inline wallet gate (NOT full-page) ────────────────────────────────────
   if (!authenticated) return (
     <div className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6 text-center">
       <div className="text-2xl mb-2">🪲</div>
       <p className="text-[#94a3b8] text-sm mb-1">Connect wallet to review and earn Scarab</p>
       <p className="text-[#475569] text-xs mb-4 font-mono">Reviews cost 2 🪲 · Quality reviews earn up to +10 🪲</p>
-      <button onClick={login} className="px-6 py-2 bg-[#0052FF] hover:bg-[#0041cc] text-white font-semibold text-sm rounded-xl transition-colors">
+      <button
+        onClick={login}
+        className="px-6 py-2 bg-[#0052FF] hover:bg-[#0041cc] text-white font-semibold text-sm rounded-xl transition-colors"
+      >
         Connect Wallet
       </button>
     </div>
   )
 
-  // ── Interaction gate states ───────────────────────────────────────────────
   if (interactionStatus === 'idle') return (
     <div className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6">
       <p className="text-[#94a3b8] text-sm mb-1 font-semibold">Verify On-Chain Interaction</p>
-      <p className="text-[#475569] text-xs mb-4 font-mono">Only wallets that have interacted with this project can leave a review.</p>
-      <button onClick={checkInteraction} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl transition-colors">
+      <p className="text-[#475569] text-xs mb-4 font-mono">Only wallets that have interacted with this agent can leave a review.</p>
+      <button
+        onClick={checkInteraction}
+        className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl transition-colors"
+      >
         🔍 Verify Interaction
       </button>
     </div>
@@ -211,11 +216,14 @@ function ReviewFormInline({
       <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-3">
         <p className="text-red-400 text-sm font-semibold mb-1">❌ No Interaction Found</p>
         <p className="text-red-400/70 text-xs font-mono">
-          Wallet {walletAddress?.slice(0,6)}…{walletAddress?.slice(-4)} has no recorded txs with {projectName}.
+          Wallet {walletAddress?.slice(0, 6)}…{walletAddress?.slice(-4)} has no recorded txs with {agentName}.
         </p>
       </div>
-      <p className="text-[#475569] text-xs font-mono mb-3">Interact with this project on-chain first, then re-check.</p>
-      <button onClick={checkInteraction} className="w-full py-2 border border-[#1e2035] hover:border-[#2a2d45] text-[#94a3b8] text-sm rounded-xl transition-colors">
+      <p className="text-[#475569] text-xs font-mono mb-3">Interact with this agent on-chain first, then re-check.</p>
+      <button
+        onClick={checkInteraction}
+        className="w-full py-2 border border-[#1e2035] hover:border-[#2a2d45] text-[#94a3b8] text-sm rounded-xl transition-colors"
+      >
         🔄 Re-check
       </button>
     </div>
@@ -223,7 +231,6 @@ function ReviewFormInline({
 
   return (
     <form onSubmit={handleSubmit} className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6 flex flex-col gap-4">
-      {/* Interaction badge */}
       {interactionStatus === 'verified' && interactionProof && (
         <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 text-xs text-green-400 font-mono flex items-center gap-2">
           <span>✅</span>
@@ -241,44 +248,55 @@ function ReviewFormInline({
       )}
 
       <div className="flex items-center justify-between text-xs font-mono">
-        <span className="text-[#475569]">Costs <span className="text-[#d4a017]">2 🪲</span> · Earn up to <span className="text-[#d4a017]">+10 🪲</span></span>
+        <span className="text-[#475569]">
+          Costs <span className="text-[#d4a017]">2 🪲</span> · Earn up to <span className="text-[#d4a017]">+10 🪲</span>
+        </span>
         {scarabBalance !== null && (
-          <span className="text-[#475569]">Balance: <span className={canAfford ? 'text-[#d4a017]' : 'text-red-400'}>🪲 {scarabBalance}</span></span>
+          <span className="text-[#475569]">
+            Balance: <span className={canAfford ? 'text-[#d4a017]' : 'text-red-400'}>🪲 {scarabBalance}</span>
+          </span>
         )}
       </div>
 
       {!canAfford && (
-        <div className="bg-red-500/8 border border-red-500/20 rounded-lg px-3 py-2 text-xs text-red-400 font-mono">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-xs text-red-400 font-mono">
           Insufficient Scarab. Claim daily 🪲 from sidebar.
         </div>
       )}
 
-      {/* Star Rating */}
       <div>
         <label className="text-xs text-[#475569] font-mono uppercase tracking-wider block mb-2">Rating</label>
         <div className="flex gap-1">
-          {[1,2,3,4,5].map(s => (
-            <button type="button" key={s} onClick={() => setRating(s)}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all border ${s <= rating ? 'text-[#d4a017] bg-[#d4a017]/10 border-[#d4a017]/30' : 'text-[#1e2035] bg-[#13141f] border-[#1e2035] hover:border-[#2a2d45]'}`}>
+          {[1, 2, 3, 4, 5].map(s => (
+            <button
+              type="button"
+              key={s}
+              onClick={() => setRating(s)}
+              className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all border ${
+                s <= rating
+                  ? 'text-[#d4a017] bg-[#d4a017]/10 border-[#d4a017]/30'
+                  : 'text-[#1e2035] bg-[#13141f] border-[#1e2035] hover:border-[#2a2d45]'
+              }`}
+            >
               ★
             </button>
           ))}
         </div>
       </div>
 
-      {/* Comment */}
       <div>
-        <label className="text-xs text-[#475569] font-mono uppercase tracking-wider block mb-2">Analysis <span className="normal-case text-[#2a2d45]">(optional)</span></label>
+        <label className="text-xs text-[#475569] font-mono uppercase tracking-wider block mb-2">
+          Analysis <span className="normal-case text-[#2a2d45]">(optional)</span>
+        </label>
         <textarea
           value={comment}
           onChange={e => setComment(e.target.value)}
-          placeholder={`Share your experience with ${projectName}...`}
+          placeholder={`Share your experience with ${agentName}...`}
           rows={3}
           className="w-full bg-[#13141f] border border-[#1e2035] focus:border-[#0052FF]/40 rounded-xl px-4 py-3 text-sm text-[#f1f5f9] placeholder-[#2a2d45] focus:outline-none resize-none transition-all"
         />
       </div>
 
-      {/* EAS Receipt */}
       <div>
         <label className="text-xs text-[#475569] font-mono uppercase tracking-wider block mb-2">
           EAS Receipt <span className="normal-case text-[#2a2d45]">(optional — 5× weight boost)</span>
@@ -296,8 +314,11 @@ function ReviewFormInline({
         <p className="text-xs text-emerald-400 font-mono">✓ {result.msg} {result.earned ? `+${result.earned} 🪲` : ''}</p>
       )}
 
-      <button type="submit" disabled={submitting || !canAfford}
-        className="w-full py-2.5 bg-[#0052FF] hover:bg-[#0041cc] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl transition-colors">
+      <button
+        type="submit"
+        disabled={submitting || !canAfford}
+        className="w-full py-2.5 bg-[#0052FF] hover:bg-[#0041cc] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl transition-colors"
+      >
         {submitting ? 'Submitting...' : 'Submit Review (−2 🪲)'}
       </button>
     </form>
@@ -308,64 +329,77 @@ function ReviewFormInline({
 
 export default function AgentDetailClient() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#050508] flex items-center justify-center">
-        <div className="w-7 h-7 border-2 border-[#0052FF] border-t-transparent rounded-full animate-spin" />
-      </div>
-    }>
-      <AgentDetail />
-    </Suspense>
+    <>
+      <Header />
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center pt-16">
+            <div className="w-7 h-7 border-2 border-[#0052FF] border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <AgentDetail />
+      </Suspense>
+    </>
   )
 }
 
 // ─── Core Detail Page ─────────────────────────────────────────────────────────
 
 function AgentDetail() {
-  const params       = useParams()
-  const slug         = params.address as string
-  const { user }     = usePrivy()
+  const params    = useParams()
+  const slug      = params.address as string
+  const { user }  = usePrivy()
   const walletAddress = user?.wallet?.address
 
-  const [project,     setProject]     = useState<Project | null>(null)
-  const [scoreResult, setScoreResult] = useState<ScoreResult | null>(null)
-  const [reviews,     setReviews]     = useState<Review[]>([])
-  const [scarabBal,   setScarabBal]   = useState<number | null>(null)
-  const [loading,     setLoading]     = useState(true)
-  const [error,       setError]       = useState<string | null>(null)
-  const [copied,      setCopied]      = useState(false)
-  const [reviewKey,   setReviewKey]   = useState(0)
+  const [agent,     setAgent]     = useState<AgentScore | null>(null)
+  const [reviews,   setReviews]   = useState<Review[]>([])
+  const [scarabBal, setScarabBal] = useState<number | null>(null)
+  const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState<string | null>(null)
+  const [copied,    setCopied]    = useState(false)
+  const [reviewKey, setReviewKey] = useState(0)
 
-  // Load project + score
+  // ── Detect wallet address ───────────────────────────────────────────────
+  const isWalletAddr = /^0x[0-9a-fA-F]{40}$/.test(slug)
+
+  // ── Load agent score ────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
       if (!slug) return
       setLoading(true)
+      setError(null)
       try {
-        const projRes = await fetch(`/api/v1/project/${slug}`)
-        if (!projRes.ok) { setError('Project not found'); return }
-        const { project: p } = await projRes.json()
-        setProject(p)
-
-        const isEVM = /^0x[0-9a-fA-F]{40}$/.test(p.address)
-        if (isEVM) {
-          const sRes = await fetch(`/api/v1/score/${p.address}?summary=true&chain=${apiChain(p.chain)}`)
-          if (sRes.ok) setScoreResult(await sRes.json())
+        if (isWalletAddr) {
+          // Fetch from ACP behavioral data
+          const res = await fetch(`/api/v1/agent/${slug}`)
+          if (!res.ok) {
+            setError('Agent not found')
+            return
+          }
+          const data: AgentScore = await res.json()
+          setAgent(data)
+        } else {
+          setError('Invalid address — must be a 0x wallet address')
         }
-      } catch { setError('Failed to load') }
-      finally { setLoading(false) }
+      } catch {
+        setError('Failed to load agent data')
+      } finally {
+        setLoading(false)
+      }
     }
     load()
-  }, [slug])
+  }, [slug, isWalletAddr])
 
-  // Load reviews
+  // ── Load reviews ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!project?.address) return
-    fetch(`/api/v1/review?address=${project.address}`)
+    if (!slug) return
+    fetch(`/api/v1/review?address=${slug}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setReviews(d.reviews || []))
-  }, [project?.address, reviewKey])
+  }, [slug, reviewKey])
 
-  // Load scarab balance
+  // ── Load scarab balance (wallet-optional) ───────────────────────────────
   useEffect(() => {
     if (!walletAddress) return
     fetch(`/api/v1/scarab?address=${walletAddress}`)
@@ -373,41 +407,38 @@ function AgentDetail() {
       .then(d => d && setScarabBal(d.balance))
   }, [walletAddress, reviewKey])
 
+  // ── Loading state ────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="min-h-screen bg-[#050508] flex items-center justify-center">
+    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center pt-16">
       <div className="flex flex-col items-center gap-4">
         <div className="w-8 h-8 border-2 border-[#0052FF] border-t-transparent rounded-full animate-spin" />
-        <span className="text-[#475569] font-mono text-xs uppercase tracking-widest">Loading...</span>
+        <span className="text-[#475569] font-mono text-xs uppercase tracking-widest">Loading agent data…</span>
       </div>
     </div>
   )
 
-  if (error || !project) return (
-    <div className="min-h-screen bg-[#050508] flex items-center justify-center">
+  // ── Error state ──────────────────────────────────────────────────────────
+  if (error || !agent) return (
+    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center pt-16">
       <div className="text-center">
         <Shield className="w-12 h-12 text-[#1e2035] mx-auto mb-4" />
-        <p className="text-[#f1f5f9] font-semibold mb-2">{error || 'Project not found'}</p>
+        <p className="text-[#f1f5f9] font-semibold mb-2">{error || 'Agent not found'}</p>
         <Link href="/explore" className="text-[#0052FF] text-sm hover:underline">← Back to Explore</Link>
       </div>
     </div>
   )
 
-  const score = scoreResult?.score ?? (project.trustScore ? project.trustScore / 10 : 0)
-  const risk  = scoreResult?.risk  ?? (score >= 7 ? 'LOW' : score >= 4 ? 'MEDIUM' : 'HIGH')
-  const bd    = scoreResult?.breakdown
-
-  const est = {
-    onchainHistory:  bd?.onchainHistory  ?? (score >= 7 ? 3.6 : score >= 4 ? 2.4 : 1.2),
-    contractAnalysis:bd?.contractAnalysis ?? (score >= 7 ? 2.8 : score >= 4 ? 1.8 : 0.9),
-    blacklist:       bd?.blacklist        ?? (score >= 7 ? 1.9 : score >= 4 ? 1.4 : 0.8),
-    activity:        bd?.activity         ?? (score >= 7 ? 0.9 : score >= 4 ? 0.6 : 0.3),
-  }
-
-  const isEVM = /^0x[0-9a-fA-F]{40}$/.test(project.address)
-  const col   = chainColor(project.chain)
+  const bd      = agent.breakdown
+  const score   = agent.trustScore
+  const verdict = agent.verdict
+  const name    = bd?.name || trunc(agent.address)
+  const col     = verdictColor(verdict)
+  const avgRating = reviews.length
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length / 2
+    : 0
 
   return (
-    <div className="min-h-screen bg-[#050508] text-[#f1f5f9]">
+    <div className="min-h-screen bg-[#0A0A0A] text-[#f1f5f9] pt-16">
       <div className="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-5">
 
         {/* Breadcrumb */}
@@ -416,7 +447,7 @@ function AgentDetail() {
             <ArrowLeft className="w-3 h-3" /> Explore
           </Link>
           <span>/</span>
-          <span className="text-[#94a3b8]">{project.name}</span>
+          <span className="text-[#94a3b8] font-mono">{trunc(agent.address)}</span>
         </div>
 
         {/* ── Hero ── */}
@@ -427,103 +458,119 @@ function AgentDetail() {
               className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-black text-white shrink-0"
               style={{ backgroundColor: col + '22', color: col, border: `1.5px solid ${col}44` }}
             >
-              {project.name.charAt(0)}
+              {name.charAt(0).toUpperCase()}
             </div>
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h1 className="text-xl font-bold">{project.name}</h1>
-                {project.symbol && (
-                  <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-[#13141f] border border-[#1e2035] text-[#d4a017]">{project.symbol}</span>
-                )}
-                <span
-                  className="text-[10px] font-medium font-mono px-2 py-0.5 rounded-full border"
-                  style={{ color: col, borderColor: col + '40', backgroundColor: col + '12' }}
-                >
-                  {chainLabel(project.chain)}
-                </span>
-                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${riskStyle(risk)}`}>
-                  {risk} RISK
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <h1 className="text-xl font-bold">{name}</h1>
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${verdictBg(verdict)}`}>
+                  {verdictLabel(verdict)}
                 </span>
               </div>
 
-              {isEVM && (
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs text-[#475569] font-mono">{trunc(project.address)}</span>
-                  <button onClick={() => { navigator.clipboard.writeText(project.address); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
-                    className="text-[#475569] hover:text-[#0052FF] transition-colors">
-                    <Copy className="w-3 h-3" />
-                  </button>
-                  {copied && <span className="text-[10px] text-emerald-400 font-mono">Copied</span>}
-                  <a href={explorerUrl(project.address, project.chain)} target="_blank" rel="noopener noreferrer"
-                    className="text-[#475569] hover:text-[#0052FF] transition-colors">
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              )}
+              {/* Wallet address row */}
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-[#475569] font-mono">{trunc(agent.address)}</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(agent.address)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 1500)
+                  }}
+                  className="text-[#475569] hover:text-[#0052FF] transition-colors"
+                  title="Copy address"
+                >
+                  <Copy className="w-3 h-3" />
+                </button>
+                {copied && <span className="text-[10px] text-emerald-400 font-mono">Copied!</span>}
+                <a
+                  href={`https://basescan.org/address/${agent.address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#475569] hover:text-[#0052FF] transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
 
-              {project.description && (
-                <p className="text-sm text-[#64748b] leading-relaxed">{project.description}</p>
-              )}
+              <div className="text-xs text-[#475569] font-mono">
+                Source: <span className="text-[#94a3b8]">{agent.dataSource}</span>
+                {agent.lastUpdated && (
+                  <> · Updated {new Date(agent.lastUpdated).toLocaleDateString()}</>
+                )}
+              </div>
             </div>
 
-            {/* Score */}
-            <div className="shrink-0 flex flex-col items-center justify-center bg-[#13141f] border border-[#1e2035] rounded-xl px-5 py-4 min-w-[88px]">
-              <span className="text-3xl font-black leading-none" style={{ color: scoreColor(score) }}>
-                {score.toFixed(1)}
+            {/* Trust Score Badge */}
+            <div className="shrink-0 flex flex-col items-center justify-center bg-[#13141f] border border-[#1e2035] rounded-xl px-5 py-4 min-w-[96px]">
+              <span
+                className="text-4xl font-black leading-none"
+                style={{ color: scoreColor(score) }}
+              >
+                {score}
               </span>
               <span className="text-[9px] text-[#475569] font-mono uppercase tracking-widest mt-1">Trust Score</span>
-              <StarRow rating={project.avgRating || 0} />
-              <span className="text-[9px] text-[#475569] mt-0.5">{reviews.length} reviews</span>
+              <span className="text-[9px] text-[#475569] font-mono mt-1">/ 100</span>
             </div>
           </div>
         </div>
 
-        {/* ── Score Breakdown + On-chain Stats ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-5 flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5 text-[#0052FF]" />
-              <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">Score Breakdown</span>
-            </div>
-            <ScoreBar label="On-Chain History"   value={est.onchainHistory}   max={4.0} icon={<Activity className="w-3 h-3" />} />
-            <ScoreBar label="Contract Analysis"  value={est.contractAnalysis} max={3.0} icon={<Bug className="w-3 h-3" />} />
-            <ScoreBar label="Blacklist Check"     value={est.blacklist}        max={2.0} icon={<CheckCircle className="w-3 h-3" />} />
-            <ScoreBar label="Activity"            value={est.activity}         max={1.0} icon={<Zap className="w-3 h-3" />} />
-          </div>
+        {/* ── ACP Breakdown ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard
+            label="Total Jobs"
+            value={bd?.totalJobs?.toString() ?? '—'}
+            sub="ACP missions"
+          />
+          <StatCard
+            label="Age"
+            value={bd?.ageWeeks !== undefined ? `${bd.ageWeeks}w` : '—'}
+            sub="weeks active"
+          />
+          <StatCard
+            label="Completion"
+            value={pct(bd?.completionRate)}
+            sub="jobs completed"
+          />
+          <StatCard
+            label="Payment"
+            value={pct(bd?.paymentRate)}
+            sub="payments received"
+          />
+        </div>
 
-          <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-5 flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <Activity className="w-3.5 h-3.5 text-[#0052FF]" />
-              <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">On-Chain Details</span>
+        {/* ── Rate Bars ── */}
+        <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-5 flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-3.5 h-3.5 text-[#0052FF]" />
+            <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">Behavioral Breakdown</span>
+          </div>
+          <RateBar label="Completion Rate" value={bd?.completionRate} good={true} />
+          <RateBar label="Payment Rate"    value={bd?.paymentRate}    good={true} />
+          <RateBar label="Expire Rate"     value={bd?.expireRate}     good={false} />
+        </div>
+
+        {/* ── Verdict Banner ── */}
+        <div
+          className={`rounded-2xl p-5 flex items-center gap-4 border ${verdictBg(verdict)}`}
+        >
+          <div className="text-3xl">
+            {verdict === 'proceed' ? '✅' : verdict === 'caution' ? '⚠️' : verdict === 'avoid' ? '🚫' : '❓'}
+          </div>
+          <div>
+            <div className="font-bold text-sm uppercase tracking-wide">{verdict.toUpperCase()}</div>
+            <div className="text-xs opacity-80 mt-0.5">
+              {verdict === 'proceed' && 'This agent has a strong track record. Safe to engage.'}
+              {verdict === 'caution' && 'Mixed signals — review on-chain history before engaging.'}
+              {verdict === 'avoid'   && 'High failure/expire rate. Engage with caution or avoid.'}
+              {verdict === 'unknown' && 'Not enough data to determine reliability.'}
             </div>
-            {scoreResult?.details ? (
-              <div className="grid grid-cols-2 gap-2.5">
-                {[
-                  { label: 'Transactions', val: scoreResult.details.txCount?.toLocaleString() ?? '—' },
-                  { label: 'Balance',      val: scoreResult.details.balanceETH ? `${scoreResult.details.balanceETH} ETH` : '—' },
-                  { label: 'Wallet Age',   val: scoreResult.details.ageLabel ?? '—' },
-                  { label: 'Type',         val: scoreResult.type ?? '—' },
-                ].map(({ label, val }) => (
-                  <div key={label} className="bg-[#13141f] rounded-xl p-3 border border-[#1e2035]">
-                    <div className="text-[9px] text-[#475569] font-mono uppercase tracking-wider mb-1">{label}</div>
-                    <div className="text-sm font-semibold">{val}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-sm text-[#2a2d45] font-mono">
-                {isEVM ? 'Fetching on-chain data...' : 'Scoring not available'}
-              </div>
-            )}
-            {scoreResult?.flags && scoreResult.flags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {scoreResult.flags.map(f => (
-                  <span key={f} className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-[#13141f] border border-[#1e2035] text-[#475569] uppercase">{f}</span>
-                ))}
-              </div>
-            )}
+          </div>
+          <div className="ml-auto shrink-0 text-right">
+            <div className="text-2xl font-black" style={{ color: scoreColor(score) }}>{score}</div>
+            <div className="text-[9px] opacity-60 font-mono uppercase">trust score</div>
           </div>
         </div>
 
@@ -534,28 +581,19 @@ function AgentDetail() {
             <div>
               <div className="font-semibold text-[#d4a017] text-sm">Earn Scarab by Reviewing</div>
               <div className="text-xs text-[#64748b] mt-0.5">
-                Costs <strong className="text-[#f1f5f9]">2 🪲</strong> · Quality reviews earn up to <strong className="text-[#f1f5f9]">+10 🪲</strong> · EAS gets <strong className="text-[#f1f5f9]">5× weight</strong>
+                Costs <strong className="text-[#f1f5f9]">2 🪲</strong> · Quality reviews earn up to{' '}
+                <strong className="text-[#f1f5f9]">+10 🪲</strong> · EAS gets{' '}
+                <strong className="text-[#f1f5f9]">5× weight</strong>
               </div>
             </div>
           </div>
-          {scarabBal !== null ? (
+          {scarabBal !== null && (
             <div className="text-center shrink-0">
               <div className="text-lg font-black text-[#d4a017]">🪲 {scarabBal}</div>
               <div className="text-[9px] text-[#475569] font-mono">your balance</div>
             </div>
-          ) : null}
+          )}
         </div>
-
-        {/* ── AI Summary ── */}
-        {(scoreResult?.summary || project.description) && (
-          <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Flame className="w-3.5 h-3.5 text-[#d4a017]" />
-              <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">Analysis</span>
-            </div>
-            <p className="text-sm text-[#64748b] leading-relaxed">{scoreResult?.summary || project.description}</p>
-          </div>
-        )}
 
         {/* ── Community Reviews ── */}
         <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-5 flex flex-col gap-4">
@@ -564,13 +602,15 @@ function AgentDetail() {
               <MessageSquare className="w-3.5 h-3.5 text-[#0052FF]" />
               <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">Reviews</span>
               {reviews.length > 0 && (
-                <span className="text-[10px] bg-[#13141f] border border-[#1e2035] text-[#475569] px-2 py-0.5 rounded-full font-mono">{reviews.length}</span>
+                <span className="text-[10px] bg-[#13141f] border border-[#1e2035] text-[#475569] px-2 py-0.5 rounded-full font-mono">
+                  {reviews.length}
+                </span>
               )}
             </div>
             {reviews.length > 0 && (
               <div className="flex items-center gap-1 text-xs text-[#475569]">
-                <StarRow rating={project.avgRating || 0} />
-                <span className="font-mono ml-1">{(project.avgRating || 0).toFixed(1)}</span>
+                <StarRow rating={avgRating} />
+                <span className="font-mono ml-1">{avgRating.toFixed(1)}</span>
               </div>
             )}
           </div>
@@ -614,8 +654,8 @@ function AgentDetail() {
             <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">Write a Review</span>
           </div>
           <ReviewFormInline
-            projectAddress={project.address}
-            projectName={project.name}
+            agentAddress={agent.address}
+            agentName={name}
             scarabBalance={scarabBal}
             onSuccess={() => setReviewKey(k => k + 1)}
           />
@@ -624,16 +664,24 @@ function AgentDetail() {
         {/* ── ACP API Snippet ── */}
         <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Shield className="w-3.5 h-3.5 text-[#0052FF]" />
+            <Activity className="w-3.5 h-3.5 text-[#0052FF]" />
             <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">ACP Agent Query</span>
           </div>
-          <pre className="text-xs font-mono text-[#64748b] leading-relaxed overflow-x-auto">
-{`GET /api/v1/score/${project.address}?chain=${apiChain(project.chain)}
+          <pre className="text-xs font-mono text-[#64748b] leading-relaxed overflow-x-auto whitespace-pre-wrap break-all">
+{`GET /api/v1/agent/${agent.address}
 
-→ { "score": ${score.toFixed(1)}, "risk": "${risk}", "verdict": "${risk === 'LOW' ? 'SAFE' : risk === 'MEDIUM' ? 'CAUTION' : 'AVOID'}" }`}
+→ { "trustScore": ${score}, "verdict": "${verdict}", "dataSource": "${agent.dataSource}" }`}
           </pre>
         </div>
 
+        {/* ── Footer spacer ── */}
+        <div className="flex items-center gap-2">
+          <Shield className="w-3 h-3 text-[#1e2035]" />
+          <span className="text-[10px] text-[#2a2d45] font-mono">
+            Powered by Maiat Protocol · ACP Behavioral Intelligence
+          </span>
+          <Flame className="w-3 h-3 text-[#1e2035]" />
+        </div>
       </div>
     </div>
   )

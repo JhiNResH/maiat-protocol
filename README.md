@@ -1,462 +1,166 @@
 # Maiat Protocol
 
-**Trust infrastructure for agentic commerce.**
+**The trust layer for the onchain economy.**
 
-Verified reviews, AI-powered trust scores, and Uniswap v4 trust-gated swaps — so agents and users can make informed decisions before transacting.
+Maiat scores AI agents and tokens on trustworthiness using on-chain job history, honeypot detection, and community reviews. ERC-8004 compliant. Powers safe agent-to-agent commerce on ACP.
 
-> **TL;DR** — Before your AI agent transacts with an unknown smart contract or wallet, call Maiat. Get a `proceed / caution / block` verdict in one API call.
+> Like Chainlink is a price oracle, Maiat is a trust oracle.
 
-## Quick Start
-
-```bash
-# Free tier — no API key needed (10 req/min)
-curl "https://maiat-protocol.vercel.app/api/v1/trust-check?agent=0xYourAddress"
-
-# Response
-# { "verdict": "proceed", "score": 82, "address": "0x...", "breakdown": {...} }
-```
-
-**x402-native endpoint** (for AI agents — $0.02 USDC / call via Coinbase x402):
-```bash
-curl "https://maiat-protocol.vercel.app/api/v1/trust-gate?agent=0xYourAddress" \
-  -H "X-Payment: <txHash>"
-```
-
-Listed on [x402.org/ecosystem](https://x402.org/ecosystem) → Services/Endpoints.
-
-## Use Cases
-
-- **AI agent pre-swap trust gate** — verify a DeFi protocol before routing a swap
-- **Smart contract safety check** — on-chain risk scoring for any EVM address
-- **AI agent reputation verification** — screen counterparties in multi-agent workflows
-- **DeFi due diligence** — community reviews + on-chain analytics in one API
-- **Virtuals ACP integration** — available as `trust_gate`, `trust_score_query`, `onchain_report`, `deep_insight_report` offerings
+Live: [maiat-protocol.vercel.app](https://maiat-protocol.vercel.app) · Agent ID: [3723 on Virtuals ACP](https://app.virtuals.io/acp)
 
 ---
 
-## Architecture
+## What It Does
 
-```
-                    ┌─────────────────────────────────────┐
-                    │           Maiat Protocol             │
-                    └─────────────┬───────────────────────┘
-                                  │
-         ┌────────────────────────┼────────────────────────┐
-         │                        │                        │
-   ┌─────▼─────┐          ┌──────▼──────┐          ┌──────▼──────┐
-   │  Review    │          │  Trust Score │          │  Swap Trust  │
-   │  Engine    │          │  Oracle      │          │  Gate (v4)   │
-   └─────┬─────┘          └──────┬──────┘          └──────┬──────┘
-         │                       │                        │
-   ┌─────▼─────┐          ┌──────▼──────┐          ┌──────▼──────┐
-   │  Gemini AI │          │  Base        │          │  Uniswap    │
-   │  Verify    │          │  (on-chain)  │          │  PoolManager│
-   └───────────┘          └─────────────┘          └─────────────┘
-```
-
-### How It Works
-
-1. **Users/Agents submit reviews** for crypto projects (DeFi protocols, AI agents, tokens)
-2. **Gemini AI verifies** each review for authenticity (spam detection, sentiment analysis)
-3. **Trust scores are computed** by the Scarab engine based on verified reviews
-4. **Scores are stored on-chain** via TrustScoreOracle (Base)
-5. **TrustGateHook blocks risky swaps** — Uniswap v4 hook checks trust score before allowing trades
-
-### Core Components
-
-| Component | Description |
-|-----------|-------------|
-| **TrustScoreOracle** | On-chain registry of trust scores per token/agent (Solidity) |
-| **TrustGateHook** | Uniswap v4 `beforeSwap` hook — blocks swaps for low-trust tokens |
-| **Review API** | Submit & verify reviews with AI-powered authenticity detection |
-| **Scarab Engine** | Automated reputation scoring from verified reviews |
-| **Agent API (v1)** | Open REST endpoints for agent-to-agent trust queries |
-
----
-
-## Supported Chains
-
-| Chain | Status | Components |
-|-------|--------|------------|
-| **Base** | ✅ Deployed (Sepolia) | Oracle + TrustGateHook |
-| **BNB** | 🔜 Planned | Oracle |
-| **ARC (Circle)** | 🔜 Planned | Oracle + USDC payments |
-| **Solana** | 🔜 API-only | REST API |
-
-### Deployed Contracts (Base Sepolia)
-
-| Contract | Address |
-|----------|---------|
-| TrustScoreOracle | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` |
-| TrustGateHook | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` |
-| MaiatTrustConsumer | `0x1080cf8074130ba6e491ba3424b07baff2b92204` |
-
----
-
-## Agent SDKs
-
-Plug-and-play trust scoring for every major agent framework.
-
-| Package | Registry | Install |
-|---------|----------|---------|
-| [![npm](https://img.shields.io/npm/v/@jhinresh/agentkit-plugin?label=%40jhinresh%2Fagentkit-plugin&color=blue)](https://www.npmjs.com/package/@jhinresh/agentkit-plugin) | npm | `npm i @jhinresh/agentkit-plugin` |
-| [![npm](https://img.shields.io/npm/v/@jhinresh/elizaos-plugin?label=%40jhinresh%2Felizaos-plugin&color=blue)](https://www.npmjs.com/package/@jhinresh/elizaos-plugin) | npm | `npm i @jhinresh/elizaos-plugin` |
-| [![npm](https://img.shields.io/npm/v/@jhinresh/mcp-server?label=%40jhinresh%2Fmcp-server&color=blue)](https://www.npmjs.com/package/@jhinresh/mcp-server) | npm | `npm i @jhinresh/mcp-server` |
-| [![npm](https://img.shields.io/npm/v/@jhinresh/virtuals-plugin?label=%40jhinresh%2Fvirtuals-plugin&color=blue)](https://www.npmjs.com/package/@jhinresh/virtuals-plugin) | npm | `npm i @jhinresh/virtuals-plugin` |
-
-Also available on [GitHub Packages](https://github.com/JhiNResH/maiat-protocol/packages).
-
-### Coinbase AgentKit
-
-```typescript
-import { AgentKit } from "@coinbase/agentkit";
-import { maiatTrustPlugin } from "@jhinresh/agentkit-plugin";
-
-const plugin = maiatTrustPlugin({ minScore: 3.0 });
-// Provides: maiat_check_trust, maiat_gate_transaction actions
-agent.use(plugin);
-```
-
-### ElizaOS (ai16z)
-
-```typescript
-import { maiatPlugin } from "@jhinresh/elizaos-plugin";
-
-const agent = new ElizaAgent({
-  plugins: [maiatPlugin({ minScore: 3.0 })],
-});
-// Agent can now answer: "Is 0x... safe?" with live trust data
-```
-
-### Virtuals GAME SDK
-
-```typescript
-import { GameAgent } from "@virtuals-protocol/game";
-import { createMaiatWorker } from "@jhinresh/virtuals-plugin";
-
-const maiatWorker = await createMaiatWorker({ minScore: 3.0 });
-
-const agent = new GameAgent(process.env.GAME_API_KEY!, {
-  name: "TrustGuardAgent",
-  goal: "Only interact with trusted on-chain addresses",
-  workers: [maiatWorker],
-});
-
-await agent.init();
-await agent.run(10);
-```
-
-### Claude / Any MCP-compatible LLM
-
-```json
-// claude_desktop_config.json
-{
-  "mcpServers": {
-    "maiat": {
-      "command": "npx",
-      "args": ["@jhinresh/mcp-server"],
-      "env": { "MAIAT_API_URL": "https://maiat-protocol.vercel.app" }
-    }
-  }
-}
-```
-
-```bash
-# Or run standalone
-npx @jhinresh/mcp-server
-```
-
----
-
-## Quick Start
-
-```bash
-# Clone
-git clone https://github.com/JhiNResH/maiat-protocol.git
-cd maiat-protocol
-
-# Install
-npm install
-
-# Environment
-cp .env.example .env
-# Fill in: DATABASE_URL, GEMINI_API_KEY, PRIVY_APP_ID, UPSTASH_REDIS_*
-
-# Database
-npx prisma generate
-npx prisma db push
-npm run seed
-
-# Run
-npm run dev
-# → http://localhost:3000
-```
-
-### Contracts
-
-```bash
-cd contracts
-forge build
-forge test
-
-# Deploy
-forge script script/Deploy.s.sol \
-  --rpc-url https://sepolia.base.org \
-  --private-key $PRIVATE_KEY \
-  --broadcast
-
-# Seed scores
-ORACLE_ADDRESS=0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139 forge script script/Interact.s.sol:SeedScores \
-  --rpc-url https://sepolia.base.org \
-  --private-key $PRIVATE_KEY \
-  --broadcast
-```
+| Use Case | Endpoint | Fee |
+|---|---|---|
+| Check if a token is a honeypot | `GET /api/v1/token/:address` | Free |
+| Get trust score for an ACP agent | `GET /api/v1/agent/:address` | Free |
+| Trust-verified token swap | `POST /api/v1/swap/quote` | Free |
+| Browse all indexed agents | `GET /api/v1/agents` | Free |
 
 ---
 
 ## API Reference
 
-### Open API (v1)
-
-No SDK needed. Just HTTP.
-
-#### `POST /api/v1/trust-score`
-
-Query trust score for any project or agent.
+### Token Safety Check
 
 ```bash
-curl -X POST https://maiat.xyz/api/v1/trust-score \
-  -H "Content-Type: application/json" \
-  -d '{"projectName": "Uniswap"}'
+GET /api/v1/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
 ```
 
-**Response:**
 ```json
 {
-  "found": true,
-  "project": {
-    "id": "clm...",
-    "name": "Uniswap",
-    "category": "DeFi"
-  },
-  "trustScore": {
-    "overall": 85,
-    "reviewCount": 12,
-    "verifiedCount": 8,
-    "avgRating": 4.2
-  },
-  "recommendation": "TRUSTED",
-  "attestation": {
-    "chain": "base-sepolia",
-    "oracle": "0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139"
-  }
+  "address": "0x833589...",
+  "symbol": "USDC",
+  "verdict": "proceed",
+  "trustScore": 100,
+  "riskFlags": [],
+  "dataSource": "KNOWN_SAFE"
 }
 ```
 
-**Parameters:** `projectId`, `projectName`, or `agentAddress` (at least one required)
+**Verdicts:** `proceed` (≥70) · `caution` (40–69) · `avoid` (<40)
 
-**Rate Limits:** 100 req/day (free), unlimited with API key or x402 payment
+**Risk flags:** `HONEYPOT` · `HIGH_BUY_TAX` · `HIGH_SELL_TAX` · `UNVERIFIED_CONTRACT` · `INSUFFICIENT_DATA`
 
 ---
 
-#### `POST /api/v1/deep-insight`
-
-AI-powered deep analysis with risk assessment.
+### ACP Agent Trust Score
 
 ```bash
-curl -X POST https://maiat.xyz/api/v1/deep-insight \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your-key" \
-  -d '{"projectName": "Aave"}'
+GET /api/v1/agent/0x57795bef2feC610CAa1330A99237fD9dDB3790BE
 ```
 
-**Response:**
 ```json
 {
-  "project": { "id": "...", "name": "Aave", "category": "DeFi" },
-  "analysis": {
-    "score": 88,
-    "status": "established",
-    "summary": "Well-audited lending protocol with strong TVL...",
-    "features": ["Multi-chain", "Audited", "DAO-governed"],
-    "warnings": ["Smart contract risk"]
+  "address": "0x57795b...",
+  "trustScore": 95,
+  "dataSource": "ACP_BEHAVIORAL",
+  "breakdown": {
+    "completionRate": 0.8889,
+    "paymentRate": 0.9333,
+    "expireRate": 0.0611,
+    "totalJobs": 1176
   },
-  "reviews": {
-    "total": 24,
-    "verified": 18,
-    "avgRating": 4.5,
-    "ratingDistribution": { "1": 0, "2": 1, "3": 2, "4": 8, "5": 13 }
-  },
-  "recommendation": {
-    "signals": ["HIGH_AI_SCORE", "STRONG_COMMUNITY", "MOSTLY_VERIFIED"],
-    "verdict": "LIKELY_SAFE",
-    "confidence": "HIGH"
-  }
+  "verdict": "proceed"
 }
 ```
 
+**Verdicts:** `proceed` (≥80) · `caution` (60–79) · `avoid` (<60) · `unknown` (not on ACP)
+
+**Data source:** On-chain Virtuals ACP job history. 449+ agents pre-indexed; all other registered agents fetched on-demand and cached.
+
+**Trust Score Formula:**
+```
+score = completionRate × 40 + volumeFactor × 25 + diversityFactor × 20 + paymentRate × 15
+```
+
 ---
 
-#### `POST /api/reviews`
-
-Submit a review.
+### List All Indexed Agents
 
 ```bash
-curl -X POST https://maiat.xyz/api/reviews \
-  -H "Content-Type: application/json" \
-  -d '{
-    "projectId": "clm...",
-    "content": "Great protocol, used it for 6 months...",
-    "rating": 5,
-    "walletAddress": "0x..."
-  }'
+GET /api/v1/agents?limit=20&offset=0
 ```
+
+Returns all agents sorted by trust score descending.
 
 ---
 
-#### `POST /api/agent-review`
+## Virtuals ACP Offerings
 
-AI agent submits an automated review (signed with agent wallet).
+Maiat is a seller on [Virtuals ACP](https://app.virtuals.io/acp) (agent ID: 3723, wallet: `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`).
 
-```bash
-curl -X POST https://maiat.xyz/api/agent-review \
-  -H "Content-Type: application/json" \
-  -d '{"projectName": "Uniswap"}'
-```
-
----
-
-### Internal APIs
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/trust-score` | GET | Get trust score for a project |
-| `/api/reputation` | GET | Get user reputation data |
-| `/api/leaderboard` | GET | Top reviewers leaderboard |
-| `/api/search` | GET | Search projects |
-| `/api/verify-review` | POST | AI verify a review |
-| `/api/verify-base` | POST | Base Verify (anti-sybil) |
-| `/api/scarab/*` | Various | Scarab token operations |
+| Offering | Fee | What you get |
+|---|---|---|
+| `token_check` | $0.01 USDC | Honeypot detection, tax check, verdict |
+| `agent_trust` | $0.02 USDC | ACP behavioral score, completionRate, totalJobs |
+| `trust_swap` | $0.05 + 0.15% | Trust-checked Uniswap swap quote |
 
 ---
 
-## Data Model
+## Contracts (Base Sepolia)
 
-```
-User ──┬── Review ──── Project
-       │      │
-       │      └── Vote
-       │
-       └── ScarabBalance
-                │
-                └── ScarabTransaction
-```
+| Contract | Address |
+|---|---|
+| TrustScoreOracle | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` |
+| TrustGateHook | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` |
 
-- **User** — wallet address, display name, reputation score
-- **Project** — crypto project/agent with category, avg rating, review count
-- **Review** — rating (1-5), content, verification status, on-chain hash
-- **Vote** — upvote/downvote on reviews
-- **Scarab** — gamified reputation tokens (earn by reviewing, spend on boosts)
+> ERC-8004 Agent Reputation Registry — agentId 20854 on [8004scan.io](https://8004scan.io)
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 16, React, Tailwind CSS |
-| Auth | Privy (wallet connect) |
-| Database | PostgreSQL + Prisma ORM |
-| AI | Google Gemini (review verification) |
-| Contracts | Solidity, Foundry, Uniswap v4 |
-| Chain | Base (primary), multi-chain planned |
-| Rate Limiting | Upstash Redis |
+| Layer | Tech |
+|---|---|
+| Framework | Next.js 15 (App Router) |
+| Database | PostgreSQL + Prisma (Supabase) |
+| AI | Google Gemini (deep insight reports) |
+| Chain | Base (primary) |
+| Deployment | Vercel |
+| ACP | Virtuals Protocol ACP node SDK |
 
 ---
 
-## Agent SDKs & Plugins
-
-Plug Maiat trust scoring directly into your agent framework — no custom API calls needed.
-
-### Available Packages
-
-| Package | Framework | npm |
-|---------|-----------|-----|
-| `@jhinresh/mcp-server` | Claude / OpenClaw / any MCP host | [![npm](https://img.shields.io/npm/v/@jhinresh/mcp-server)](https://www.npmjs.com/package/@jhinresh/mcp-server) |
-| `@jhinresh/elizaos-plugin` | ElizaOS / ai16z | [![npm](https://img.shields.io/npm/v/@jhinresh/elizaos-plugin)](https://www.npmjs.com/package/@jhinresh/elizaos-plugin) |
-| `@jhinresh/agentkit-plugin` | Coinbase AgentKit | [![npm](https://img.shields.io/npm/v/@jhinresh/agentkit-plugin)](https://www.npmjs.com/package/@jhinresh/agentkit-plugin) |
-
----
-
-### `@jhinresh/mcp-server` — MCP (Claude / OpenClaw)
+## Local Development
 
 ```bash
-npm install @jhinresh/mcp-server
+git clone https://github.com/JhiNResH/maiat-protocol.git
+cd maiat-protocol
+npm install
+
+cp .env.example .env
+# Fill in: DATABASE_URL, GEMINI_API_KEY
+
+npx prisma generate
+npx prisma db push
+
+npm run dev
+# → http://localhost:3000
 ```
 
-Add to your `claude_desktop_config.json`:
-```json
-{
-  "mcpServers": {
-    "maiat": {
-      "command": "npx",
-      "args": ["-y", "@jhinresh/mcp-server"],
-      "env": { "MAIAT_API_URL": "https://maiat-protocol.vercel.app" }
-    }
-  }
-}
-```
-
-Tools exposed: `maiat_check_trust`, `maiat_check_token`, `maiat_batch_check`
-
----
-
-### `@jhinresh/elizaos-plugin` — ElizaOS / ai16z
+### Run the ACP Indexer
 
 ```bash
-npm install @jhinresh/elizaos-plugin
-```
-
-```typescript
-import { maiatPlugin } from "@jhinresh/elizaos-plugin";
-
-const agent = new ElizaAgent({
-  plugins: [maiatPlugin({ minScore: 3.0 })],
-});
-// Agent now auto-gates swaps — rejects addresses with trust score < 3.0
-```
-
-Actions: `CHECK_TRUST` · Evaluators: `TRUST_GATE` · Providers: `TRUST_DATA`
-
----
-
-### `@jhinresh/agentkit-plugin` — Coinbase AgentKit
-
-```bash
-npm install @jhinresh/agentkit-plugin
-```
-
-```typescript
-import { MaiatTrustPlugin } from "@jhinresh/agentkit-plugin";
-
-const plugin = new MaiatTrustPlugin({ minScore: 3.0 });
-// Wrap any AgentKit action with trust gating
-const safeTransfer = plugin.wrapAction(transferAction);
+# Index all ACP agents (runs daily via Vercel Cron)
+npx tsx scripts/acp-indexer.ts
 ```
 
 ---
 
 ## Roadmap
 
-- [x] Review submission + AI verification
-- [x] TrustScoreOracle on Base
-- [x] TrustGateHook (Uniswap v4)
-- [x] Open API v1 (trust-score + deep-insight)
-- [ ] Multi-chain deployment (BNB, ARC, Solana)
-- [ ] x402 payment integration (USDC)
-- [ ] Trust badge embeds for project websites
-- [x] Agent SDK — MCP server, ElizaOS plugin, AgentKit plugin (npm)
-- [ ] Mainnet deployment
+- [x] Token honeypot + tax detection API
+- [x] ACP behavioral trust score (449+ agents indexed, on-demand for all others)
+- [x] Virtuals ACP offerings live (`token_check`, `agent_trust`, `trust_swap`)
+- [x] ERC-8004 compliant (agentId 20854)
+- [x] On-demand agent lookup + auto-cache
+- [ ] ACP Indexer v2 — on-chain `JobCreated` events for full coverage
+- [ ] Scarab community reviews v2
+- [ ] Multi-chain (BNB Chain)
+- [ ] Maiat token launch (Virtuals ACF)
 
 ---
 
