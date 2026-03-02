@@ -57,11 +57,13 @@ export async function GET(request: NextRequest) {
           const name =
             typeof raw.name === 'string' ? raw.name : a.walletAddress.slice(0, 10) + '...'
           const category = typeof raw.category === 'string' ? raw.category : null
+          const logo = typeof raw.profilePic === 'string' ? raw.profilePic : null
 
           return {
             id: a.walletAddress,
             name,
             category,
+            logo,
             chain: 'Base',
             trust: {
               score: a.trustScore,

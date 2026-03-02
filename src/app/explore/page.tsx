@@ -15,6 +15,7 @@ interface Agent {
   name: string;
   category?: string | null;
   chain: string;
+  logo?: string | null;
   trust: {
     score: number | null;
     grade: string | null;
@@ -293,11 +294,13 @@ function ExplorePage() {
                       #{idx + 1}
                     </span>
                     {/* Avatar */}
-                    <div className="w-8 h-8 rounded-full bg-[#0052FF]/10 border border-[#0052FF]/20 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-bold font-mono text-[#0052FF]">
+                    {agent.logo ? (
+                      <img src={agent.logo} alt={agent.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-[#0052FF]/10 border border-[#0052FF]/20 flex items-center justify-center text-xs font-bold text-[#0052FF] flex-shrink-0">
                         {agent.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
+                      </div>
+                    )}
                     {/* Name + chain */}
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#0052FF] transition-colors">
@@ -440,9 +443,13 @@ function LeaderboardView({
                   </div>
 
                   {/* Avatar */}
-                  <div className="w-8 h-8 rounded-lg bg-[#0052FF]/10 border border-[#0052FF]/20 flex items-center justify-center text-xs font-bold text-[#0052FF] flex-shrink-0">
-                    {agent.name.charAt(0).toUpperCase()}
-                  </div>
+                  {agent.logo ? (
+                    <img src={agent.logo} alt={agent.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-[#0052FF]/10 border border-[#0052FF]/20 flex items-center justify-center text-xs font-bold text-[#0052FF] flex-shrink-0">
+                      {agent.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
 
                   {/* Name + address */}
                   <div className="flex-1 min-w-0">
