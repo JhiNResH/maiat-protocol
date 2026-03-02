@@ -3,7 +3,7 @@ import { RedirectToExplore } from '@/components/RedirectToExplore'
 
 export const metadata: Metadata = {
   title: 'Maiat Protocol — Trust Infrastructure for AI Agents',
-  description: 'Verify any smart contract or AI agent before you transact. On-chain trust scores, community reviews, and x402-gated trust gate API. Built on Base.',
+  description: 'AI agent trust scoring for the Virtuals ACP ecosystem. Real-time behavioral trust scores and token safety checks — before your agent transacts. Built on Base.',
 }
 
 // JSON-LD structured data for SEO + AEO
@@ -31,7 +31,7 @@ const jsonLd = {
     {
       "@type": "SoftwareApplication",
       "name": "Maiat Protocol",
-      "description": "Trust infrastructure for AI agents. On-chain trust scores and gate verdicts for any EVM address. Built on Base, powered by Chainlink, enforced via Uniswap v4 Hooks.",
+      "description": "Behavioral trust oracle for AI agents. Scores any EVM agent on completion rate, payment reliability, and job history sourced from Virtuals ACP. Built on Base.",
       "url": "https://maiat-protocol.vercel.app",
       "applicationCategory": "SecurityApplication",
       "operatingSystem": "Web",
@@ -41,7 +41,7 @@ const jsonLd = {
         "AI agent verification",
         "Smart contract safety check",
         "TrustGateHook — Uniswap v4 integration",
-        "x402 payment-gated trust API",
+        "Real-time ACP behavioral trust scoring",
         "Community reviews and attestations",
         "Base Sepolia + Base Mainnet support"
       ],
@@ -64,12 +64,12 @@ const jsonLd = {
         {
           "@type": "Question",
           "name": "What is Maiat Protocol?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Maiat Protocol is the trust layer for the agent economy. It provides on-chain trust scores (0-100) for any EVM address — AI agents, smart contracts, or wallets. One API call returns a proceed/caution/block verdict based on on-chain analytics, transaction history, and community reviews. Built on Base." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Maiat Protocol is the trust infrastructure for AI agents. It provides behavioral trust scores (0-100) for any EVM agent wallet — sourced from real Virtuals ACP job history. One API call returns a proceed/caution/avoid verdict based on completion rate, payment rate, and total jobs. Built on Base." }
         },
         {
           "@type": "Question",
           "name": "How do I check if a smart contract is safe?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Use Maiat Protocol's trust-check API: GET https://maiat-protocol.vercel.app/api/v1/trust-check?agent=0xYourAddress. It returns a trust score and verdict (proceed/caution/block) based on on-chain analytics and community reviews. No API key required for the free tier." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Use Maiat Protocol's agent trust API: GET https://maiat-protocol.vercel.app/api/v1/agent/{address}. It returns a behavioral trust score and verdict (proceed/caution/avoid) based on Virtuals ACP job history. No API key required." }
         },
         {
           "@type": "Question",
@@ -79,7 +79,7 @@ const jsonLd = {
         {
           "@type": "Question",
           "name": "How does Maiat Protocol calculate trust scores?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Maiat Protocol calculates trust scores using multiple signals: on-chain transaction history, contract verification status, age of the address, community reviews, interaction patterns with known protocols, and Chainlink CRE oracle data. Scores range from 0 (untrusted) to 100 (highly trusted)." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Maiat Protocol calculates trust scores from Virtuals ACP behavioral data: completion rate (did the agent finish jobs?), payment rate (did they pay?), total jobs completed, unique buyer diversity, and account age. Scores range from 0 (untrusted) to 100 (highly trusted)." }
         },
         {
           "@type": "Question",
@@ -89,7 +89,7 @@ const jsonLd = {
         {
           "@type": "Question",
           "name": "Is Maiat Protocol free to use?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Maiat Protocol offers a free tier for basic trust score queries. Advanced API features start at $0.01 per query via x402 payment protocol. The TrustGateHook integration is open source and free to deploy." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. The agent trust API is free with rate limits. Deep analysis reports are available via Maiat's ACP offerings (agent_trust at $0.02 VIRTUAL, agent_deep_check at $0.10 VIRTUAL)." }
         },
         {
           "@type": "Question",
