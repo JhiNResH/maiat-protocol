@@ -1,181 +1,102 @@
 /**
  * POST /api/v1/outcome
  *
- * Buyer agents report job outcomes after delivery.
- * Closes the data flywheel: payment → delivery → outcome → trust score update.
+ * Receives outcome reports from SDK users — the most valuable training data.
+ * Records what happened AFTER a Maiat trust check was used to make a decision.
  *
- * Anti-fraud: reporterAddress must match a real tx.to === sellerAddress on-chain
- * (buyer paid seller → proves the job happened → outcome report is legit)
- *
- * Score impact (applied to Project or AgentCheckLog aggregate):
- *   success → outcomeReport stored, positive signal
- *   failed  → outcomeReport stored, negative signal
- *   dispute → outcomeReport stored, heavy negative signal
- *
- * Trust score recalculation happens at query time (outcome_score in trust-check).
+ * Flow: check trust → take action → report outcome
+ * This closes the feedback loop for oracle accuracy.
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { isAddress } from "viem";
 import { prisma } from "@/lib/prisma";
+import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
 
-const CORS = {
+const rateLimiter = createRateLimiter("outcome", 30, 60);
+
+const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, X-Maiat-Key, X-Maiat-Client",
 };
 
+const VALID_ACTIONS = ["swap", "delegate", "hire", "skip", "block", "other"];
+const VALID_RESULTS = ["success", "failure", "scam", "partial", "pending"];
+
 export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS });
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
-// ── Verify buyer actually paid seller (anti-fraud) ────────────────────────────
-async function verifyBuyerPaidSeller(
-  txHash: string,
-  buyer: string,
-  seller: string
-): Promise<{ valid: boolean; error?: string }> {
-  const rpcUrl = process.env.ALCHEMY_BASE_RPC;
-  if (!rpcUrl) return { valid: false, error: "No RPC" };
-
-  try {
-    const res = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "eth_getTransactionByHash",
-        params: [txHash],
-      }),
-      signal: AbortSignal.timeout(5_000),
-    });
-
-    const data = await res.json();
-    const tx = data?.result;
-    if (!tx) return { valid: false, error: "Transaction not found" };
-
-    const fromMatch = tx.from?.toLowerCase() === buyer.toLowerCase();
-    const toMatch   = tx.to?.toLowerCase()   === seller.toLowerCase();
-
-    // Also accept USDC transfers (to = USDC contract, with transfer event)
-    // For now: direct tx match is sufficient
-    return { valid: fromMatch && toMatch };
-  } catch (e: any) {
-    return { valid: false, error: e.message };
+export async function POST(request: NextRequest) {
+  const { success: rlOk } = await checkIpRateLimit(request, rateLimiter);
+  if (!rlOk) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: CORS_HEADERS }
+    );
   }
-}
 
-export async function POST(req: NextRequest) {
   try {
-    const body = await req.json() as {
-      sellerAddress?: string;
-      buyerAddress?: string;
-      jobId?: string;
+    const body = await request.json();
+
+    // Validate required fields
+    const { target, action, result, txHash, maiatVerdict, maiatScore, notes } = body as {
+      target?: string;
+      action?: string;
       result?: string;
-      paymentTxHash?: string;
+      txHash?: string;
+      maiatVerdict?: string;
+      maiatScore?: number;
       notes?: string;
     };
 
-    const { sellerAddress, buyerAddress, jobId, result, paymentTxHash, notes } = body;
-
-    // ── Validation ─────────────────────────────────────────────────────────
-    if (!sellerAddress || !/^0x[a-fA-F0-9]{40}$/i.test(sellerAddress)) {
+    if (!target || !isAddress(target)) {
       return NextResponse.json(
-        { error: "sellerAddress must be a valid 0x address" },
-        { status: 400, headers: CORS }
-      );
-    }
-    if (!buyerAddress || !/^0x[a-fA-F0-9]{40}$/i.test(buyerAddress)) {
-      return NextResponse.json(
-        { error: "buyerAddress must be a valid 0x address" },
-        { status: 400, headers: CORS }
-      );
-    }
-    if (!result || !["success", "failed", "dispute"].includes(result)) {
-      return NextResponse.json(
-        { error: "result must be: success | failed | dispute" },
-        { status: 400, headers: CORS }
+        { error: "Valid target address required" },
+        { status: 400, headers: CORS_HEADERS }
       );
     }
 
-    const seller = sellerAddress.toLowerCase();
-    const buyer  = buyerAddress.toLowerCase();
-
-    // ── Anti-fraud: verify buyer paid seller ────────────────────────────────
-    if (paymentTxHash) {
-      const { valid, error } = await verifyBuyerPaidSeller(paymentTxHash, buyer, seller);
-      if (!valid) {
-        return NextResponse.json(
-          {
-            error: "Payment verification failed",
-            detail: error ?? "tx.from !== buyerAddress or tx.to !== sellerAddress",
-            hint: "Provide the txHash of a transaction where buyer paid seller.",
-          },
-          { status: 403, headers: CORS }
-        );
-      }
-    }
-    // Note: paymentTxHash is recommended but not mandatory.
-    // Reports without txHash are stored with lower weight in outcome_score.
-
-    // ── Duplicate check (same jobId from same buyer) ────────────────────────
-    if (jobId) {
-      const exists = await prisma.outcomeReport.findFirst({
-        where: { jobId, buyerAddress: buyer },
-      });
-      if (exists) {
-        return NextResponse.json(
-          { error: "Outcome already reported for this jobId + buyer" },
-          { status: 409, headers: CORS }
-        );
-      }
+    if (!action || !VALID_ACTIONS.includes(action)) {
+      return NextResponse.json(
+        { error: `action must be one of: ${VALID_ACTIONS.join(", ")}` },
+        { status: 400, headers: CORS_HEADERS }
+      );
     }
 
-    // ── Save outcome report ─────────────────────────────────────────────────
-    const report = await prisma.outcomeReport.create({
+    if (!result || !VALID_RESULTS.includes(result)) {
+      return NextResponse.json(
+        { error: `result must be one of: ${VALID_RESULTS.join(", ")}` },
+        { status: 400, headers: CORS_HEADERS }
+      );
+    }
+
+    // Extract client identifier
+    const clientId = request.headers.get("x-maiat-client") ?? undefined;
+
+    const outcome = await prisma.outcome.create({
       data: {
-        sellerAddress: seller,
-        buyerAddress:  buyer,
-        jobId:         jobId ?? null,
+        target: target.toLowerCase(),
+        action,
         result,
-        paymentTxHash: paymentTxHash ?? null,
-        notes:         notes ?? null,
+        txHash: txHash ?? null,
+        maiatVerdict: maiatVerdict ?? null,
+        maiatScore: typeof maiatScore === "number" ? maiatScore : null,
+        clientId: clientId ?? null,
+        notes: notes ?? null,
       },
     });
-
-    // ── Compute updated outcome stats (return live) ─────────────────────────
-    const allOutcomes = await prisma.outcomeReport.findMany({
-      where: { sellerAddress: seller },
-      select: { result: true },
-    });
-
-    const total   = allOutcomes.length;
-    const success = allOutcomes.filter((o) => o.result === "success").length;
-    const dispute = allOutcomes.filter((o) => o.result === "dispute").length;
-    const raw     = (success * 100 + dispute * -20) / total;
-    const outcomeScore  = Math.max(0, Math.min(100, Math.round(raw)));
-    const disputeRate   = Math.round((dispute / total) * 1000) / 10;
 
     return NextResponse.json(
-      {
-        success: true,
-        report_id: report.id,
-        seller: seller,
-        result,
-        verified: !!paymentTxHash,
-        updated_stats: {
-          outcome_score: outcomeScore,
-          dispute_rate: disputeRate,
-          total_outcomes: total,
-        },
-      },
-      { status: 201, headers: CORS }
+      { logged: true, id: outcome.id },
+      { status: 201, headers: CORS_HEADERS }
     );
   } catch (err) {
-    console.error("[/api/v1/outcome] error:", err);
+    console.error("[outcome]", err);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500, headers: CORS }
+      { error: "Failed to log outcome" },
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }

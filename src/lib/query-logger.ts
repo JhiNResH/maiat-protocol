@@ -9,6 +9,7 @@ export interface QueryLogInput {
   verdict?: string | null;
   amountIn?: string;
   amountOut?: string;
+  clientId?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any>;
 }
@@ -30,6 +31,7 @@ export function logQuery(input: QueryLogInput): void {
         verdict: input.verdict ?? null,
         amountIn: input.amountIn ?? null,
         amountOut: input.amountOut ?? null,
+        clientId: input.clientId ?? null,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         metadata: (input.metadata ?? null) as any,
       },

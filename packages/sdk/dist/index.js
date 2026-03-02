@@ -3,25 +3,29 @@
  *
  * Usage:
  *   import { Maiat } from "maiat-sdk";
- *   const maiat = new Maiat();
+ *   const maiat = new Maiat({ clientId: "my-agent" });
  *   const score = await maiat.agentTrust("0x...");
  *   const token = await maiat.tokenCheck("0x...");
  *   const swap  = await maiat.trustSwap({ ... });
+ *   await maiat.reportOutcome({ agent: "0x...", action: "swap", result: "success" });
  */
 // ─── Client ───────────────────────────────────────────────────────────────────
 export class Maiat {
     baseUrl;
     apiKey;
+    clientId;
     timeout;
     constructor(config = {}) {
         this.baseUrl = (config.baseUrl ?? "https://maiat-protocol.vercel.app").replace(/\/$/, "");
         this.apiKey = config.apiKey;
+        this.clientId = config.clientId;
         this.timeout = config.timeout ?? 15_000;
     }
     async request(path, options) {
         const headers = {
             "Content-Type": "application/json",
             ...(this.apiKey ? { "X-Maiat-Key": this.apiKey } : {}),
+            ...(this.clientId ? { "X-Maiat-Client": this.clientId } : {}),
         };
         const res = await fetch(`${this.baseUrl}${path}`, {
             ...options,
@@ -53,6 +57,22 @@ export class Maiat {
     /** List indexed agents with trust scores */
     async listAgents(limit = 50) {
         return this.request(`/api/v1/agents?limit=${limit}`);
+    }
+    // ─── Outcome Reporting (Training Data) ────────────────────────────────────
+    /**
+     * Report the outcome of an action taken after a Maiat trust check.
+     * This is the most valuable data for training the oracle.
+     *
+     * Example flow:
+     *   1. maiat.isTrusted("0x...") → true
+     *   2. You swap with that agent
+     *   3. maiat.reportOutcome({ target: "0x...", action: "swap", result: "success" })
+     */
+    async reportOutcome(report) {
+        return this.request("/api/v1/outcome", {
+            method: "POST",
+            body: JSON.stringify(report),
+        });
     }
     // ─── Convenience ──────────────────────────────────────────────────────────
     /** Quick check: is this agent trustworthy? Returns true if score >= threshold */
