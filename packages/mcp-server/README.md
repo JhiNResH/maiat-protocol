@@ -1,14 +1,14 @@
 # @maiat/mcp-server
 
-> Trust scoring for AI agents via Model Context Protocol
+> The trust layer for AI agents — as an MCP server.
 
-Maiat MCP Server gives any MCP-compatible AI agent (Claude, GPT, etc.) the ability to check trust scores for on-chain addresses before interacting with them.
+Query Maiat trust scores from Claude, GPT, or any MCP-compatible AI assistant. One tool call = one trust check.
 
 ## Quick Start
 
 ### Claude Desktop
 
-Add to your `claude_desktop_config.json`:
+Add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -17,53 +17,73 @@ Add to your `claude_desktop_config.json`:
       "command": "npx",
       "args": ["@maiat/mcp-server"],
       "env": {
-        "MAIAT_API_URL": "https://maiat-protocol.vercel.app"
+        "ALCHEMY_API_KEY": "your-alchemy-key",
+        "MAIAT_API_KEY": "optional-for-higher-rate-limits"
       }
     }
   }
 }
 ```
 
-Then ask Claude: *"Check if 0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24 is trustworthy"*
-
-### OpenClaw / Other MCP Hosts
+### From source
 
 ```bash
-npx @maiat/mcp-server
+cd packages/mcp-server
+npm install
+npm run build
+npm start
 ```
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
-| `maiat_check_trust` | Trust score for any address (0-10 scale) |
-| `maiat_check_token` | Token safety check (honeypot, rug pull, liquidity) |
-| `maiat_batch_check` | Check up to 10 addresses at once |
+| `trust_score` | Get trust score (0-1000) for any address |
+| `token_safety` | Token-specific safety check (honeypot, rug, liquidity) |
+| `protocol_rating` | Protocol safety rating by name |
+| `batch_score` | Score up to 10 addresses at once |
+| `explain_score` | Human-readable score explanation |
+
+## Example Usage (in Claude)
+
+> "Check if 0x1234...abcd is safe to interact with"
+
+The AI will call `trust_score` and return something like:
+
+```json
+{
+  "address": "0x1234...abcd",
+  "score": 720,
+  "risk": "low",
+  "source": "live_onchain",
+  "breakdown": {
+    "base": 100,
+    "txHistory": 200,
+    "balanceSignal": 100,
+    "contractBonus": 50
+  }
+}
+```
+
+## Resources
+
+| Resource | URI | Description |
+|----------|-----|-------------|
+| Scoring Methodology | `maiat://methodology` | How scores are calculated |
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MAIAT_API_URL` | `https://maiat-protocol.vercel.app` | Maiat API base URL |
-| `MAIAT_API_KEY` | (none) | API key for higher rate limits |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ALCHEMY_API_KEY` | Recommended | Enables live on-chain scoring |
+| `MAIAT_API_KEY` | Optional | Higher rate limits on Maiat API |
+| `MAIAT_API_URL` | Optional | Custom API endpoint (default: https://maiat.xyz/api/v1) |
 
-## Example Output
+## How It Works
 
-```
-## 🟢 Trust Score: 8.5/10 — LOW Risk
-
-**Address:** `0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24`
-**Type:** PROTOCOL (Uniswap V3 Router)
-
-### Score Breakdown
-- On-chain History: 3.4/4.0
-- Contract Analysis: 2.6/3.0
-- Blacklist Check: 1.7/2.0
-- Activity Pattern: 0.9/1.0
-
-### Flags: KNOWN_PROTOCOL, AUDITED, VERIFIED
-### Audited By: Trail of Bits, ABDK
-```
+1. **Maiat DB first** — checks indexed scores from Maiat's database
+2. **Live fallback** — if no DB record, queries on-chain data via Alchemy
+3. **Scoring algorithm** — transaction count, balance, contract status → 0-1000 score
 
 ## License
 
