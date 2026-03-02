@@ -61,3 +61,54 @@ export async function checkRateLimit(
     reset: new Date(result.reset), // Convert Unix timestamp (ms) to Date
   }
 }
+
+/**
+ * Generic IP-based rate limiter factory
+ * Creates an Upstash-backed limiter or null (graceful degradation when Redis is not configured)
+ *
+ * @param prefix  - Redis key prefix, e.g. "api:score"
+ * @param requests - Max requests per window
+ * @param windowSeconds - Window size in seconds
+ */
+export function createRateLimiter(
+  prefix: string,
+  requests: number,
+  windowSeconds: number
+): Ratelimit | null {
+  if (!redis) return null
+  return new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(requests, `${windowSeconds} s`),
+    prefix: `rl:${prefix}`,
+    analytics: true,
+  })
+}
+
+/**
+ * Check IP-based rate limit for a Next.js request
+ * Uses x-forwarded-for → x-real-ip → "unknown" as identifier
+ *
+ * Returns { success, remaining, reset (ms), limit }
+ * When Redis is not configured, always returns success=true (degraded mode)
+ */
+export async function checkIpRateLimit(
+  req: { headers: { get: (name: string) => string | null } },
+  limiter: Ratelimit | null
+): Promise<{ success: boolean; remaining: number; reset: number; limit: number }> {
+  if (!limiter) {
+    return { success: true, remaining: 999, reset: 0, limit: 0 }
+  }
+  const ip = (
+    req.headers.get('x-forwarded-for')?.split(',')[0] ??
+    req.headers.get('x-real-ip') ??
+    'unknown'
+  ).trim()
+
+  const result = await limiter.limit(ip)
+  return {
+    success: result.success,
+    remaining: result.remaining,
+    reset: result.reset,
+    limit: result.limit,
+  }
+}
