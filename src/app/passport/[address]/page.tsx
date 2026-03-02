@@ -16,6 +16,14 @@ interface ReviewableProject {
   hasReviewed: boolean
 }
 
+interface ReviewableAgent {
+  address: string
+  name: string
+  score: number | null
+  lastInteraction: string
+  reviewed: boolean
+}
+
 interface PassportData {
   address: string
   passport: {
@@ -94,6 +102,8 @@ export default function PassportPage() {
   const [copied, setCopied] = useState(false)
   const [reviewable, setReviewable] = useState<ReviewableProject[]>([])
   const [reviewableLoading, setReviewableLoading] = useState(false)
+  const [reviewableAgents, setReviewableAgents] = useState<ReviewableAgent[]>([])
+  const [agentsLoading, setAgentsLoading] = useState(false)
 
   const isOwn = user?.wallet?.address?.toLowerCase() === address
 
@@ -119,6 +129,17 @@ export default function PassportPage() {
       })
       .catch(console.error)
       .finally(() => setReviewableLoading(false))
+  }, [address])
+
+  // Fetch agents this wallet queried via ACP but hasn't reviewed
+  useEffect(() => {
+    if (!address || !/^0x[a-f0-9]{40}$/.test(address)) return
+    setAgentsLoading(true)
+    fetch(`/api/v1/passport/${address}/reviewable`)
+      .then(r => r.json())
+      .then(d => setReviewableAgents(d.agents ?? []))
+      .catch(console.error)
+      .finally(() => setAgentsLoading(false))
   }, [address])
 
   const handleCopy = () => {
@@ -294,6 +315,61 @@ export default function PassportPage() {
                           Review →
                         </Link>
                       )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ── Review Agents (ACP interactions) ────────────────────────── */}
+          <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-gray-500 font-mono text-xs">// REVIEW AGENTS</p>
+              {reviewableAgents.length > 0 && (
+                <span className="text-xs font-mono text-gray-600">
+                  {reviewableAgents.filter(a => !a.reviewed).length} pending
+                </span>
+              )}
+            </div>
+
+            {agentsLoading ? (
+              <p className="text-gray-600 font-mono text-xs animate-pulse py-2">// scanning ACP query history…</p>
+            ) : reviewableAgents.filter(a => !a.reviewed).length === 0 ? (
+              <div className="text-center py-4 space-y-2">
+                <p className="text-gray-600 font-mono text-xs">No unreviewed agents from ACP interactions.</p>
+                <Link href="/explore" className="inline-block text-xs font-mono text-[#0052FF] hover:underline">
+                  Explore agents →
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {reviewableAgents.filter(a => !a.reviewed).map(agent => {
+                  const score = agent.score != null ? (agent.score / 10).toFixed(1) : '—'
+                  const scoreColor = agent.score == null ? 'text-gray-500' :
+                    agent.score >= 70 ? 'text-[#22C55E]' :
+                    agent.score >= 40 ? 'text-[#F59E0B]' : 'text-[#EF4444]'
+
+                  return (
+                    <div key={agent.address} className="flex items-center justify-between border border-[#1e1e1e] rounded-lg px-3 py-2.5 hover:border-[#333] transition-colors">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
+                          style={{ background: '#0052FF22', color: '#0052FF', border: '1px solid #0052FF44' }}>
+                          {agent.name.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-white font-mono text-xs font-semibold truncate">{agent.name}</p>
+                          <p className="text-gray-600 font-mono text-[10px]">
+                            score <span className={scoreColor}>{score}</span> · {new Date(agent.lastInteraction).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <Link
+                        href={`/review/${agent.address}`}
+                        className="text-[10px] font-mono font-bold text-white bg-[#0052FF] hover:bg-[#0040CC] px-3 py-1.5 rounded transition-colors shrink-0"
+                      >
+                        Write Review →
+                      </Link>
                     </div>
                   )
                 })}
