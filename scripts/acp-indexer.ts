@@ -11,7 +11,7 @@
  */
 
 import "dotenv/config";
-import { runAcpIndexer, computeTrustScore, fetchAgents, AgentScore } from "../src/lib/acp-indexer";
+import { runAcpIndexer, computeTrustScore, fetchAllAgents, AgentScore } from "../src/lib/acp-indexer";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -25,20 +25,16 @@ async function main() {
   // Print top 5 agents if verbose stats are desired
   if (DRY_RUN) {
     // For dry run, fetch and compute locally to show top 5
-    const queries = ["ai", "trust", "defi", "agent", "data", "trade", "content", "code"];
     const seen = new Map<string, AgentScore>();
-
-    for (const query of queries) {
-      try {
-        const agents = await fetchAgents(query);
-        for (const a of agents) {
-          if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
-            seen.set(a.walletAddress.toLowerCase(), computeTrustScore(a));
-          }
+    try {
+      const agents = await fetchAllAgents(true);
+      for (const a of agents) {
+        if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
+          seen.set(a.walletAddress.toLowerCase(), computeTrustScore(a));
         }
-      } catch {
-        // Ignore errors for top 5 display
       }
+    } catch {
+      // Ignore errors for top 5 display
     }
 
     const scores = [...seen.values()];
