@@ -13,15 +13,20 @@ import {
   Flame,
   Shield,
   BarChart2,
+  Bot,
 } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 
+// Phase 1: AI agent trust focus
 const navItems = [
-  { href: "/explore", label: "Explore", icon: Compass, exact: true },
-  { href: "/explore?tab=leaderboard", label: "Leaderboard", icon: Trophy, tabMatch: "leaderboard" },
-  { href: "/markets", label: "Markets 🪲", icon: BarChart2, exact: false },
-  { href: "/review", label: "Write Review", icon: Shield, exact: false },
+  { href: "/explore", label: "Agents", icon: Bot, exact: true },
 ];
+
+// Phase 2 (hidden — DeFi review):
+// { href: "/explore", label: "Explore", icon: Compass, exact: true },
+// { href: "/explore?tab=leaderboard", label: "Leaderboard", icon: Trophy, tabMatch: "leaderboard" },
+// { href: "/markets", label: "Markets 🪲", icon: BarChart2, exact: false },
+// { href: "/review", label: "Write Review", icon: Shield, exact: false },
 
 const accountItems = [
   { href: "/passport", label: "Trust Passport", icon: LayoutDashboard },
