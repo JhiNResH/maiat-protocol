@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 export interface QueryLogInput {
-  type: "agent_trust" | "token_check" | "trust_swap";
+  type: "agent_trust" | "agent_deep_check" | "token_check" | "trust_swap";
   target: string;
   buyer?: string;
   jobId?: string;
