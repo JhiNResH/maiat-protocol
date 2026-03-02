@@ -18,24 +18,20 @@ import { PrismaClient } from "@prisma/client";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const SEARCH_URL = "http://acpx.virtuals.io/api/agents/v5/search";
-const PAGE_SIZE = 100;  // agents per page
-const MAX_PAGES = 20;   // safety cap — covers 2,000 agents
+const LIST_URL = "https://acpx.virtuals.io/api/agents";
+const PAGE_SIZE = 25;   // API max per page
+const MAX_PAGES = 100;  // safety cap — covers 2,500 agents
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface AgentMetrics {
-  successfulJobCount: number | null;
-  successRate: number | null;
-  uniqueBuyerCount: number | null;
-  isOnline: boolean;
-}
 
 export interface AcpAgent {
   id: number;
   name: string;
   walletAddress: string;
-  metrics: AgentMetrics | null;
+  category?: string | null;
+  successfulJobCount?: number | null;
+  successRate?: number | null;
+  uniqueBuyerCount?: number | null;
   createdAt?: string | null;
 }
 
@@ -73,12 +69,10 @@ export interface IndexerOptions {
 // ─── Trust Score Formula ──────────────────────────────────────────────────────
 
 export function computeTrustScore(agent: AcpAgent): AgentScore {
-  const m = agent.metrics;
-
-  // Raw signals (0-1 scale)
-  const totalJobs = m?.successfulJobCount ?? 0;
-  const successRate = m?.successRate != null ? m.successRate / 100 : 0; // API gives 0-100
-  const buyerCount = m?.uniqueBuyerCount ?? 0;
+  // Raw signals (0-1 scale) — fields are flat on agent object (new API format)
+  const totalJobs = agent.successfulJobCount ?? 0;
+  const successRate = agent.successRate != null ? agent.successRate / 100 : 0; // API gives 0-100
+  const buyerCount = agent.uniqueBuyerCount ?? 0;
 
   // Derived metrics
   const completionRate = successRate; // successRate ≈ completion rate
@@ -108,10 +102,10 @@ export function computeTrustScore(agent: AcpAgent): AgentScore {
     expireRate: Math.round(expireRate * 10000) / 10000,
     totalJobs,
     rawMetrics: {
-      successfulJobCount: m?.successfulJobCount,
-      successRate: m?.successRate,
-      uniqueBuyerCount: m?.uniqueBuyerCount,
-      isOnline: m?.isOnline,
+      successfulJobCount: agent.successfulJobCount,
+      successRate: agent.successRate,
+      uniqueBuyerCount: agent.uniqueBuyerCount,
+      category: agent.category,
       agentId: agent.id,
       name: agent.name,
       indexedAt: new Date().toISOString(),
@@ -122,10 +116,15 @@ export function computeTrustScore(agent: AcpAgent): AgentScore {
 // ─── Fetch All Agents via Pagination ─────────────────────────────────────────
 
 export async function fetchAgentsPage(page: number): Promise<AcpAgent[]> {
-  const url = `${SEARCH_URL}?page=${page}&limit=${PAGE_SIZE}`;
+  // page is 1-indexed for this API
+  const params = new URLSearchParams({
+    "pagination[page]": String(page + 1),
+    "pagination[pageSize]": String(PAGE_SIZE),
+  });
+  const url = `${LIST_URL}?${params.toString()}`;
   const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
   if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
-  const json = (await res.json()) as { data: AcpAgent[] };
+  const json = (await res.json()) as { data: AcpAgent[]; meta?: { pagination?: { pageCount?: number } } };
   return json.data ?? [];
 }
 
@@ -167,7 +166,7 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
   const log = verbose ? console.log.bind(console) : () => {};
 
   log("🔍 Maiat ACP Indexer — Virtuals REST API");
-  log(`   Source: ${SEARCH_URL}`);
+  log(`   Source: ${LIST_URL}`);
   if (dryRun) log("   ⚠️  DRY RUN — no DB writes\n");
 
   // 1. Collect ALL agents via full pagination (no keyword filtering)
