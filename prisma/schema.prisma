@@ -207,14 +207,15 @@ model Market {
 }
 
 model MarketPosition {
-  id        String   @id @default(cuid())
-  marketId  String
-  projectId String
-  voterId   String
-  amount    Int
-  payout    Int?
-  createdAt DateTime @default(now())
-  market    Market   @relation(fields: [marketId], references: [id])
+  id           String   @id @default(cuid())
+  marketId     String
+  projectId    String
+  voterId      String
+  amount       Int
+  payout       Int?
+  agentAddress String?  @map("agent_address")  // For agent opinion markets (Phase 2)
+  createdAt    DateTime @default(now())
+  market       Market   @relation(fields: [marketId], references: [id])
 
   @@index([marketId])
   @@index([projectId])
@@ -247,4 +248,46 @@ model OutcomeReport {
   @@index([sellerAddress])
   @@index([buyerAddress])
   @@index([result])
+}
+
+/// ACP Behavioral Trust Scores — indexed from Virtuals ACP on-chain job history
+model AgentScore {
+  id             String   @id @default(cuid())
+  walletAddress  String   @unique @map("wallet_address")
+  trustScore     Int      @map("trust_score")      // 0–100
+  completionRate Float    @map("completion_rate")  // 0.0–1.0
+  paymentRate    Float    @map("payment_rate")     // 0.0–1.0
+  expireRate     Float    @map("expire_rate")      // 0.0–1.0 (ghosting)
+  totalJobs      Int      @map("total_jobs")
+  dataSource     String   @default("ACP_BEHAVIORAL") @map("data_source")
+  lastUpdated    DateTime @updatedAt @map("last_updated")
+  rawMetrics     Json     @map("raw_metrics")
+  tokenAddress   String?  @map("token_address")    // Agent's token contract on Base (if any)
+  tokenSymbol    String?  @map("token_symbol")
+
+  @@map("agent_scores")
+  @@index([walletAddress])
+  @@index([trustScore])
+  @@index([tokenAddress])
+}
+
+/// Query log for all ACP offering calls — training data for Maiat's trust model
+model QueryLog {
+  id          String   @id @default(cuid())
+  type        String   // "agent_trust" | "token_check" | "trust_swap"
+  target      String   // checked address (agent wallet or token address)
+  buyer       String?  // buyer wallet (who called the offering)
+  jobId       String?  // ACP job ID
+  trustScore  Int?     // 0-100
+  verdict     String?  // proceed | caution | avoid
+  amountIn    String?  // for trust_swap: input amount
+  amountOut   String?  // for trust_swap: quoted output
+  metadata    Json?    // full response snapshot for ML training
+  createdAt   DateTime @default(now())
+
+  @@map("query_logs")
+  @@index([type])
+  @@index([target])
+  @@index([createdAt])
+  @@index([verdict])
 }

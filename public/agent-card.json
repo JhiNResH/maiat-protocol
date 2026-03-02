@@ -1,0 +1,26 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "Maiat",
+  "description": "The trust oracle for the onchain agent economy. Scores AI agent behavior using ACP job history (completion rate, payment rate, expiry rate). Provides trust scores 0-100 for 449+ Virtuals agents.",
+  "image": "https://maiat-protocol.vercel.app/logo.png",
+  "services": [
+    {
+      "name": "web",
+      "endpoint": "https://maiat-protocol.vercel.app"
+    },
+    {
+      "name": "MCP",
+      "endpoint": "https://maiat-protocol.vercel.app/mcp",
+      "version": "2025-06-18"
+    }
+  ],
+  "x402Support": false,
+  "active": true,
+  "registrations": [
+    {
+      "agentId": 20854,
+      "agentRegistry": "eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
+    }
+  ],
+  "supportedTrust": ["reputation"]
+}

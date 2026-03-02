@@ -13,15 +13,16 @@ import {
   Flame,
   Shield,
   BarChart2,
+  Bot,
 } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 
 const navItems = [
-  { href: "/explore", label: "Explore", icon: Compass, exact: true },
+  { href: "/explore", label: "Agents", icon: Bot, exact: true },
   { href: "/explore?tab=leaderboard", label: "Leaderboard", icon: Trophy, tabMatch: "leaderboard" },
-  { href: "/markets", label: "Markets 🪲", icon: BarChart2, exact: false },
-  { href: "/review", label: "Write Review", icon: Shield, exact: false },
+  { href: "/markets", label: "Opinion Market", icon: BarChart2, exact: false },
 ];
+// Phase 2: { href: "/review", label: "Write Review", icon: Shield, exact: false },
 
 const accountItems = [
   { href: "/passport", label: "Trust Passport", icon: LayoutDashboard },

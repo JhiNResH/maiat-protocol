@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
 import { computeTrustScore } from "@/lib/scoring";
+import { computeRealtimeTrust } from "@/lib/realtime-trust";
 
 export const dynamic = "force-dynamic";
 
@@ -19,24 +20,79 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = rawSlug.toLowerCase(); // normalize: "VIRTUAL" → "virtual"
 
   try {
-    // 1. Try DB lookup by slug or address
+    // 1. Try DB lookup by slug, address, or symbol (case-insensitive)
     const existing = await prisma.project.findFirst({
-      where: { OR: [{ slug }, { address: slug }] },
+      where: {
+        OR: [
+          { slug },
+          { address: { equals: rawSlug, mode: 'insensitive' } },
+          { symbol: { equals: rawSlug, mode: 'insensitive' } },
+          { name: { equals: rawSlug, mode: 'insensitive' } },
+        ],
+      },
     });
 
     if (existing) {
+      const realtime = req.nextUrl.searchParams.get("realtime") === "1";
+
+      // ?realtime=1 → compute live score from DeFiLlama + DEXScreener + Basescan
+      if (realtime && existing.address) {
+        try {
+          const chain = (existing.chain?.toLowerCase().includes("eth") ? "eth" : "base") as "base" | "eth";
+
+          // Fetch verified review count + opinion market stake in parallel (non-fatal)
+          const [verifiedCount, marketAgg] = await Promise.allSettled([
+            prisma.review.count({ where: { projectId: existing.id, txHash: { not: null } } }),
+            prisma.marketPosition.aggregate({
+              where: { projectId: existing.id },
+              _sum: { amount: true },
+              _count: { id: true },
+            }),
+          ]);
+
+          const verifiedReviews = verifiedCount.status === "fulfilled" ? verifiedCount.value : 0;
+          const marketStake = marketAgg.status === "fulfilled"
+            ? { totalStaked: marketAgg.value._sum.amount ?? 0, stakeCount: marketAgg.value._count.id ?? 0 }
+            : { totalStaked: 0, stakeCount: 0 };
+
+          const rt = await computeRealtimeTrust({
+            name: existing.name,
+            address: existing.address,
+            chain,
+            reviewCount:     existing.reviewCount ?? 0,
+            avgRating:       existing.avgRating ?? null,
+            verifiedReviews,
+            marketStake,
+          });
+
+          // Write-back to DB so next call is fast (persist both score + grade)
+          await prisma.project.update({
+            where: { id: existing.id },
+            data: { trustScore: rt.score, trustGrade: rt.grade },
+          }).catch(() => {/* non-fatal */});
+
+          return NextResponse.json({
+            project: { ...existing, trustScore: rt.score, trustGrade: rt.grade },
+            realtime: rt,
+          }, { headers: CORS_HEADERS });
+        } catch {
+          // Fall through to DB result if real-time fails
+        }
+      }
+
       return NextResponse.json({ project: existing }, { headers: CORS_HEADERS });
     }
 
     // 2. Auto-create if it's a valid EVM address not in DB
-    if (!isAddress(slug)) {
+    if (!isAddress(rawSlug)) {
       return NextResponse.json({ error: "Not found" }, { status: 404, headers: CORS_HEADERS });
     }
 
-    const checksummed = getAddress(slug);
+    const checksummed = getAddress(rawSlug);
     const chainParam = req.nextUrl.searchParams.get("chain") ?? "base";
 
     // Score it on-chain

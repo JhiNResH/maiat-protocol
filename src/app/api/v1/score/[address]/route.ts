@@ -1,17 +1,21 @@
+/**
+ * DEPRECATED: /api/v1/score/[address]
+ *
+ * This endpoint is deprecated. Use GET /api/v1/agent/{address} instead.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-import { computeTrustScore, type SupportedChain } from "@/lib/scoring";
-import { generateSummary } from "@/lib/ai-summary";
-import { apiLog } from "@/lib/logger";
-import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
 
-const SUPPORTED_CHAINS: SupportedChain[] = ["base", "eth", "bnb"];
-const rateLimiter = createRateLimiter("score", 30, 60);
-
-// --- CORS helpers ---
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
+};
+
+const DEPRECATION_RESPONSE = {
+  deprecated: true,
+  message: "This endpoint is deprecated. Use GET /api/v1/agent/{address}",
+  canonical: "/api/v1/agent/{address}",
 };
 
 export async function OPTIONS() {
@@ -24,70 +28,14 @@ export async function GET(
 ) {
   const { address } = await params;
 
-  // Rate limit
-  const { success: rateLimitOk } = await checkIpRateLimit(request, rateLimiter);
-  if (!rateLimitOk) {
-    return NextResponse.json(
-      { error: "Too many requests. Retry after 1 minute." },
-      { status: 429, headers: CORS_HEADERS }
+  // If valid address provided, redirect to canonical endpoint
+  if (address && /^0x[a-fA-F0-9]{40}$/i.test(address)) {
+    return NextResponse.redirect(
+      new URL(`/api/v1/agent/${address}`, request.url),
+      301
     );
   }
 
-  try {
-    // Parse ?chain= (default: base)
-    const chainParam = request.nextUrl.searchParams.get("chain")?.toLowerCase() as SupportedChain | null;
-    const chain: SupportedChain = chainParam && SUPPORTED_CHAINS.includes(chainParam) ? chainParam : "base";
-
-    const result = await computeTrustScore(address, chain);
-
-    // Optional AI summary
-    const wantSummary = request.nextUrl.searchParams.get("summary") === "true";
-    let summary: string | null = null;
-    if (wantSummary) {
-      summary = await generateSummary({
-        address,
-        score: result.score,
-        risk: result.risk,
-        type: result.type,
-        flags: result.flags,
-        protocolName: result.protocol?.name,
-        txCount: result.details.txCount,
-        balanceETH: result.details.balanceETH,
-        walletAge: result.details.walletAge,
-      });
-    }
-
-    return NextResponse.json(
-      {
-        address,
-        chain: result.chain,
-        score: result.score,
-        risk: result.risk,
-        type: result.type,
-        flags: result.flags,
-        breakdown: result.breakdown,
-        ...(result.protocol && { protocol: result.protocol }),
-        details: result.details,
-        ...(summary && { summary }),
-        timestamp: new Date().toISOString(),
-        oracle: "maiat-trust-v1",
-      },
-      { status: 200, headers: CORS_HEADERS }
-    );
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Scoring failed";
-
-    if (message.includes("Invalid Ethereum address")) {
-      return NextResponse.json(
-        { error: message },
-        { status: 400, headers: CORS_HEADERS }
-      );
-    }
-
-    apiLog.error('score', err, { address });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500, headers: CORS_HEADERS }
-    );
-  }
+  // Otherwise return 410 Gone
+  return NextResponse.json(DEPRECATION_RESPONSE, { status: 410, headers: CORS_HEADERS });
 }

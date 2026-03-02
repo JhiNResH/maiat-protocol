@@ -123,6 +123,8 @@ export async function getQuote(
     tokenOut,
     amount,
     chainId,
+    tokenInChainId: chainId,
+    tokenOutChainId: chainId,
   };
 
   if (slippage !== undefined) {
@@ -138,10 +140,17 @@ export async function getQuote(
 }
 
 export async function getSwap(
-  quote: QuoteResponse
+  rawQuoteResponse: unknown
 ): Promise<SwapResponse> {
-  const { permitData, ...rest } = quote;
-  const body: Record<string, unknown> = { ...rest };
+  const outer = rawQuoteResponse as Record<string, unknown>;
+  // Uniswap /quote returns { requestId, routing, permitData, quote: { ... } }
+  // /swap expects the inner quote fields spread at root, not nested
+  const innerQuote = (outer.quote ?? outer) as Record<string, unknown>;
+  const permitData = outer.permitData;
+
+  const body: Record<string, unknown> = { ...innerQuote };
+  // Strip null/undefined fields that Uniswap rejects
+  delete body.permitTransaction;
 
   if (permitData !== null && permitData !== undefined) {
     body.permitData = permitData;
