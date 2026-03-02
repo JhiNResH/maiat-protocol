@@ -3,10 +3,11 @@
  *
  * Usage:
  *   import { Maiat } from "maiat-sdk";
- *   const maiat = new Maiat();
+ *   const maiat = new Maiat({ clientId: "my-agent" });
  *   const score = await maiat.agentTrust("0x...");
  *   const token = await maiat.tokenCheck("0x...");
  *   const swap  = await maiat.trustSwap({ ... });
+ *   await maiat.reportOutcome({ agent: "0x...", action: "swap", result: "success" });
  */
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -16,6 +17,8 @@ export interface MaiatConfig {
   baseUrl?: string;
   /** Optional API key for higher rate limits */
   apiKey?: string;
+  /** Client identifier — tracks which agent/app is making requests (training data) */
+  clientId?: string;
   /** Request timeout in ms. Default: 15000 */
   timeout?: number;
 }
@@ -66,16 +69,40 @@ export interface TrustSwapResult {
   timestamp: string;
 }
 
+export interface OutcomeReport {
+  /** The agent or token address that was checked */
+  target: string;
+  /** What action was taken after checking trust */
+  action: "swap" | "delegate" | "hire" | "skip" | "block" | "other";
+  /** The outcome of that action */
+  result: "success" | "failure" | "scam" | "partial" | "pending";
+  /** On-chain tx hash as proof (optional) */
+  txHash?: string;
+  /** What Maiat verdict was at the time */
+  maiatVerdict?: "proceed" | "caution" | "avoid";
+  /** Trust score at the time of check */
+  maiatScore?: number;
+  /** Free-form context */
+  notes?: string;
+}
+
+export interface OutcomeResponse {
+  logged: boolean;
+  id?: string;
+}
+
 // ─── Client ───────────────────────────────────────────────────────────────────
 
 export class Maiat {
   private baseUrl: string;
   private apiKey?: string;
+  private clientId?: string;
   private timeout: number;
 
   constructor(config: MaiatConfig = {}) {
     this.baseUrl = (config.baseUrl ?? "https://maiat-protocol.vercel.app").replace(/\/$/, "");
     this.apiKey = config.apiKey;
+    this.clientId = config.clientId;
     this.timeout = config.timeout ?? 15_000;
   }
 
@@ -83,6 +110,7 @@ export class Maiat {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...(this.apiKey ? { "X-Maiat-Key": this.apiKey } : {}),
+      ...(this.clientId ? { "X-Maiat-Client": this.clientId } : {}),
     };
 
     const res = await fetch(`${this.baseUrl}${path}`, {
@@ -122,6 +150,24 @@ export class Maiat {
   /** List indexed agents with trust scores */
   async listAgents(limit = 50): Promise<{ agents: AgentTrustResult[]; total: number }> {
     return this.request(`/api/v1/agents?limit=${limit}`);
+  }
+
+  // ─── Outcome Reporting (Training Data) ────────────────────────────────────
+
+  /**
+   * Report the outcome of an action taken after a Maiat trust check.
+   * This is the most valuable data for training the oracle.
+   *
+   * Example flow:
+   *   1. maiat.isTrusted("0x...") → true
+   *   2. You swap with that agent
+   *   3. maiat.reportOutcome({ target: "0x...", action: "swap", result: "success" })
+   */
+  async reportOutcome(report: OutcomeReport): Promise<OutcomeResponse> {
+    return this.request<OutcomeResponse>("/api/v1/outcome", {
+      method: "POST",
+      body: JSON.stringify(report),
+    });
   }
 
   // ─── Convenience ──────────────────────────────────────────────────────────

@@ -282,6 +282,7 @@ model QueryLog {
   verdict     String?  // proceed | caution | avoid
   amountIn    String?  // for trust_swap: input amount
   amountOut   String?  // for trust_swap: quoted output
+  clientId    String?  // SDK client identifier (X-Maiat-Client header)
   metadata    Json?    // full response snapshot for ML training
   createdAt   DateTime @default(now())
 
@@ -290,4 +291,23 @@ model QueryLog {
   @@index([target])
   @@index([createdAt])
   @@index([verdict])
+}
+
+model Outcome {
+  id            String   @id @default(cuid())
+  target        String   // agent/token address that was checked
+  action        String   // swap | delegate | hire | skip | block | other
+  result        String   // success | failure | scam | partial | pending
+  txHash        String?  // on-chain proof
+  maiatVerdict  String?  // what Maiat said at check time
+  maiatScore    Int?     // trust score at check time
+  clientId      String?  // which SDK client reported this
+  notes         String?  // free-form context
+  createdAt     DateTime @default(now())
+
+  @@map("outcomes")
+  @@index([target])
+  @@index([result])
+  @@index([clientId])
+  @@index([createdAt])
 }
