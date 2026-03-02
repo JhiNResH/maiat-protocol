@@ -1,0 +1,29 @@
+{
+  "name": "maiat-sdk",
+  "version": "0.1.0",
+  "description": "Maiat Protocol SDK — trust scores, token safety, and swap verification for AI agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["maiat", "trust", "agent", "acp", "virtuals", "uniswap", "safety"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JhiNResH/maiat-protocol",
+    "directory": "packages/sdk"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
