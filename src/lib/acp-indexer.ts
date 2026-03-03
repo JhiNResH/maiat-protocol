@@ -20,7 +20,7 @@ import { PrismaClient } from "@prisma/client";
 
 const LIST_URL = "https://acpx.virtuals.io/api/agents";
 const PAGE_SIZE = 25;   // API max per page
-const MAX_PAGES = 100;  // safety cap — covers 2,500 agents
+const MAX_PAGES = 800;  // safety cap — covers ~20,000 agents
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,11 +29,15 @@ export interface AcpAgent {
   name: string;
   walletAddress: string;
   category?: string | null;
+  description?: string | null;
   successfulJobCount?: number | null;
   successRate?: number | null;
   uniqueBuyerCount?: number | null;
   createdAt?: string | null;
   profilePic?: string | null;
+  twitterHandle?: string | null;
+  cluster?: string | null;
+  offerings?: Array<{ name: string; price: number }> | null;
 }
 
 export interface AgentScore {
@@ -107,9 +111,13 @@ export function computeTrustScore(agent: AcpAgent): AgentScore {
       successRate: agent.successRate,
       uniqueBuyerCount: agent.uniqueBuyerCount,
       category: agent.category,
+      description: agent.description,
       agentId: agent.id,
       name: agent.name,
       profilePic: agent.profilePic,
+      twitterHandle: agent.twitterHandle,
+      cluster: agent.cluster,
+      offerings: agent.offerings,
       indexedAt: new Date().toISOString(),
     },
   };
