@@ -132,7 +132,7 @@ export default function MarketsPage() {
 
           {/* Category Filter */}
           <div className="flex gap-1.5">
-            {["all", "ai-agents", "defi", "mixed"].map((cat) => (
+            {["all", "ai-agents"].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}

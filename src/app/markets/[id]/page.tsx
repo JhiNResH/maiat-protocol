@@ -99,7 +99,7 @@ export default function MarketDetailPage({
 
   // Betting form state
   const [selectedProject, setSelectedProject] = useState<string>("");
-  const [stakeAmount, setStakeAmount] = useState<string>("50");
+  const [stakeAmount, setStakeAmount] = useState<string>("10");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -131,21 +131,22 @@ export default function MarketDetailPage({
 
   async function fetchProjects() {
     try {
-      const res = await fetch("/api/v1/explore");
+      // Use agentScore table (ACP agents) instead of old project table
+      const res = await fetch("/api/v1/agents?sort=jobs&limit=200");
       const data = await res.json();
-      if (data.projects) {
+      if (data.agents) {
         setEligibleProjects(
-          data.projects.map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            slug: p.slug,
-            trustScore: p.trustScore,
-            category: p.category,
+          data.agents.map((a: any) => ({
+            id: a.id,
+            name: a.name || a.id.slice(0, 10),
+            slug: a.id,
+            trustScore: a.trust?.score ?? 0,
+            category: a.category || "Agent",
           }))
         );
       }
     } catch (err) {
-      console.error("Failed to fetch projects:", err);
+      console.error("Failed to fetch agents:", err);
     }
   }
 
@@ -161,8 +162,8 @@ export default function MarketDetailPage({
     }
 
     const amount = parseInt(stakeAmount);
-    if (isNaN(amount) || amount < 50) {
-      setError("Minimum stake is 50 Scarab");
+    if (isNaN(amount) || amount < 1) {
+      setError("Stake must be at least 1 Scarab");
       return;
     }
 
@@ -190,7 +191,7 @@ export default function MarketDetailPage({
 
       setSuccess(`Successfully staked ${amount} Scarab on ${data.position.projectName}!`);
       setSelectedProject("");
-      setStakeAmount("50");
+      setStakeAmount("10");
       fetchMarket(); // Refresh market data
     } catch (err) {
       setError("Failed to submit stake. Please try again.");
