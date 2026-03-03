@@ -36,7 +36,7 @@ interface PassportData {
   }
   scarab: { balance: number }
   reviews: {
-    recent: Array<{ id: string; rating: number; comment: string; address: string; createdAt: string }>
+    recent: Array<{ id: string; rating: number; comment: string; address: string; name?: string | null; createdAt: string }>
     count: number
     averageRating: number
   }
@@ -451,7 +451,7 @@ export default function PassportPage() {
                         href={`/review/${r.address}`}
                         className="text-xs font-mono text-gray-400 hover:text-white transition-colors"
                       >
-                        {fmt(r.address)}
+                        {r.name || fmt(r.address)}
                       </Link>
                       <div className="flex items-center gap-2">
                         <StarRating rating={r.rating} />
