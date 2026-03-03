@@ -119,7 +119,7 @@ function ExplorePage() {
 
   const [agents, setAgents]   = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch]   = useState("");
+  const [search, setSearch]   = useState(searchParams.get("q") || "");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortBy, setSortBy]   = useState<"trust" | "jobs">("jobs");
   const [totalAgents, setTotalAgents] = useState(0);
@@ -457,11 +457,17 @@ function LeaderboardView({
                     </div>
                   </div>
 
-                  {/* Jobs */}
+                  {/* Jobs + AGDP */}
                   <div className="text-right hidden sm:block">
                     <div className="text-[10px] font-mono text-[#444444]">JOBS</div>
                     <div className="text-xs font-mono text-[#888888]">
                       {agent.breakdown?.totalJobs?.toLocaleString() ?? "—"}
+                    </div>
+                  </div>
+                  <div className="text-right hidden md:block">
+                    <div className="text-[10px] font-mono text-[#444444]">AGDP</div>
+                    <div className="text-xs font-mono text-[#888888]">
+                      ${agent.breakdown?.agdp?.toFixed(2) ?? "—"}
                     </div>
                   </div>
 
