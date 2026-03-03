@@ -60,6 +60,7 @@ export async function GET(
       rating: number;
       comment: string;
       address: string;
+      name: string | null;
       createdAt: string;
     }> = [];
     let reviewCount = 0;
@@ -73,11 +74,25 @@ export async function GET(
         take: 5,
       });
 
+      // Enrich reviews with agent names from agentScore table
+      const reviewAddresses = reviews.map(r => r.project.address).filter(Boolean);
+      const agents = reviewAddresses.length > 0 ? await prisma.agentScore.findMany({
+        where: { walletAddress: { in: reviewAddresses, mode: 'insensitive' } },
+        select: { walletAddress: true, rawMetrics: true },
+      }) : [];
+      const nameMap = new Map<string, string>();
+      for (const a of agents) {
+        const raw = a.rawMetrics as Record<string, unknown> | null;
+        const name = (raw?.name as string) || null;
+        if (name) nameMap.set(a.walletAddress.toLowerCase(), name);
+      }
+
       recentReviews = reviews.map((r) => ({
         id: r.id,
         rating: r.rating,
         comment: r.content,
         address: r.project.address,
+        name: nameMap.get(r.project.address.toLowerCase()) || r.project.name || null,
         createdAt: r.createdAt.toISOString(),
       }));
 
