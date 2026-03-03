@@ -1,21 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { usePrivy } from '@privy-io/react-auth'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-interface ReviewableProject {
-  name: string | null
-  address: string
-  category: string | null
-  txCount: number
-  trustScore: number | null
-  hasReviewed: boolean
-}
 
 interface ReviewableAgent {
   address: string
@@ -94,7 +85,6 @@ function RepBar({ score }: { score: number }) {
 
 export default function PassportPage() {
   const params = useParams()
-  const router = useRouter()
   const address = (params?.address as string)?.toLowerCase()
   const { user } = usePrivy()
 
@@ -104,6 +94,7 @@ export default function PassportPage() {
   // reviewable projects removed — only agents matter now
   const [reviewableAgents, setReviewableAgents] = useState<ReviewableAgent[]>([])
   const [agentsLoading, setAgentsLoading] = useState(false)
+  const [showAllAgents, setShowAllAgents] = useState(false)
 
   const isOwn = user?.wallet?.address?.toLowerCase() === address
 
@@ -154,8 +145,6 @@ export default function PassportPage() {
       </div>
     )
   }
-
-  const [showAllAgents, setShowAllAgents] = useState(false)
 
   const trust = TRUST_CONFIG[data.passport.trustLevel] ?? TRUST_CONFIG.new
   const perks = TRUST_PERKS[data.passport.trustLevel] ?? TRUST_PERKS.new
