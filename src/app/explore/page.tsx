@@ -163,7 +163,7 @@ function ExplorePage() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   if (isLeaderboard) {
-    return <LeaderboardView agents={agents} loading={loading} router={router} />;
+    return <LeaderboardView agents={agents} loading={loading} router={router} sortBy={sortBy} />;
   }
 
   return (
@@ -377,10 +377,12 @@ function LeaderboardView({
   agents,
   loading,
   router,
+  sortBy = "jobs",
 }: {
   agents: Agent[];
   loading: boolean;
   router: ReturnType<typeof useRouter>;
+  sortBy?: "trust" | "jobs";
 }) {
   const top = [...agents]
     .sort((a, b) => sortBy === "jobs"
