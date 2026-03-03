@@ -23,7 +23,10 @@ const SIDEBAR: SidebarItem[] = [
   { type: 'link', id: 'acp-deep-check', label: 'agent_deep_check · $0.10' },
   { type: 'link', id: 'acp-token-check', label: 'token_check · $0.01' },
   { type: 'link', id: 'acp-trust-swap', label: 'trust_swap · $0.05+' },
-  { type: 'link', id: 'acp-submit-review', label: 'submit_review · $0.05', badge: 'NEW' },
+  { type: 'label', label: 'INTEGRATIONS' },
+  { type: 'link', id: 'feedback-loop', label: 'Feedback Loop' },
+  { type: 'link', id: 'passport', label: 'Trust Passport' },
+  { type: 'link', id: 'oracle', label: 'Oracle Sync' },
 ]
 
 // ── Copy button component ──────────────────────────────────────────────────
@@ -445,14 +448,11 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
               { name: 'agent_deep_check', fee: '$0.10', desc: 'Full behavioral analysis with tier & risk flags' },
               { name: 'token_check', fee: '$0.01', desc: 'Token safety before swapping' },
               { name: 'trust_swap', fee: '$0.05+', desc: 'Verified swap with integrated trust gate' },
-              { name: 'submit_review', fee: '$0.05', desc: 'Submit an on-chain verified review for any agent', badge: 'NEW' },
-            ].map(({ name, fee, desc, badge }) => (
+
+            ].map(({ name, fee, desc }) => (
               <div key={name} className="grid grid-cols-4 gap-0 px-4 py-3 border-t border-border-subtle hover:bg-elevated transition-colors">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[13px] text-gold">{name}</span>
-                  {badge && (
-                    <span className="text-[9px] font-bold text-turquoise bg-[#00b4d818] px-1.5 py-0.5 rounded">{badge}</span>
-                  )}
                 </div>
                 <span className="font-mono text-[13px] text-emerald">{fee}</span>
                 <span className="text-[13px] text-txt-secondary col-span-2">{desc}</span>
@@ -613,67 +613,73 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
 
         <Divider />
 
-        {/* ── ACP: submit_review ── */}
-        <section id="acp-submit-review" className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-[11px] font-bold text-txt-muted bg-elevated px-2 py-1 rounded">ACP</span>
-              <h3 className="font-mono text-xl font-bold text-txt-primary">submit_review</h3>
-              <span className="text-[10px] font-bold text-turquoise bg-[#00b4d818] px-2 py-0.5 rounded">NEW</span>
-            </div>
-            <span className="font-mono text-sm font-bold text-emerald">$0.05 / job</span>
+        {/* ── Feedback Loop ── */}
+        <section id="feedback-loop" className="flex flex-col gap-6">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[11px] font-bold text-txt-muted bg-elevated px-2 py-1 rounded">INTEGRATION</span>
+            <h3 className="font-mono text-xl font-bold text-txt-primary">Feedback Loop</h3>
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.6]">
-            Submit a verified on-chain review for any ACP agent or service. Reviews are permanently stored and signed by your wallet.
-            High-quality reviews earn <span className="text-gold font-semibold">Scarab points</span> for the reviewer.
+            Every interaction with Maiat feeds back into the trust oracle. When you call an ACP offering or submit a review,
+            the agent&apos;s trust score is automatically recalculated and synced on-chain.
           </p>
+          <CodeBlock
+            title="Closed-circuit flow"
+            lang="text"
+            code={`Agent calls agent_trust / token_check / trust_swap
+  → QueryLog written (training data)
+  → AgentScore recalculated (behavioral 70% + reviews 30%)
+  → Oracle sync cron (every 6h → on-chain TrustScoreOracle)
+  → EAS auto-attest (daily → permanent attestations on Base)`}
+          />
+        </section>
 
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-[#d4a01710] border border-[#d4a01740]">
-            <Star className="w-4 h-4 text-gold mt-0.5 shrink-0" />
-            <p className="text-[13px] text-txt-secondary leading-[1.6]">
-              Reviews require prior on-chain interaction with the target agent. Provide a <code className="font-mono text-gold">txHash</code> proving
-              the interaction — or the API will verify via Alchemy. Spam reviews are filtered by Gemini quality check.
-            </p>
+        <Divider />
+
+        {/* ── Trust Passport ── */}
+        <section id="passport" className="flex flex-col gap-6">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[11px] font-bold text-txt-muted bg-elevated px-2 py-1 rounded">INTEGRATION</span>
+            <h3 className="font-mono text-xl font-bold text-txt-primary">Trust Passport</h3>
           </div>
-
+          <p className="text-[15px] text-txt-secondary leading-[1.6]">
+            Every wallet that connects gets a soulbound MaiatPassport (ERC-721, non-transferable).
+            Your passport tracks reputation, reviews, and trust level — unlocking perks as you level up.
+          </p>
           <CodeBlock
-            title="Requirements"
+            title="GET /api/v1/wallet/{address}/passport"
             lang="json"
             code={`{
-  "target": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28",
-  "rating": 5,
-  "comment": "Excellent agent. Completed the job faster than expected with high accuracy.",
-  "reviewer": "0xYourWalletAddress",
-  "txHash": "0xOptionalTransactionHashProvingInteraction"
+  "address": "0x742d...f2bD",
+  "passport": {
+    "trustLevel": "trusted",
+    "reputationScore": 42,
+    "totalReviews": 8,
+    "feeTier": 1,
+    "feeDiscount": "10%"
+  },
+  "scarab": { "balance": 156 }
 }`}
           />
+        </section>
 
-          <CodeBlock
-            title="Deliverable"
-            lang="json"
-            code={`{
-  "success": true,
-  "reviewId": "rev_clxyz123abc",
-  "target": "0x742d...f2bD",
-  "rating": 5,
-  "scarabEarned": 3,
-  "qualityScore": 88,
-  "message": "Review submitted successfully. You earned 3 Scarab 🪲"
-}`}
-          />
+        <Divider />
 
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-semibold text-txt-primary">Required fields</p>
-            <div className="rounded-xl border border-border-subtle overflow-hidden">
-              <FieldRow name="target" type="string" desc="0x address of the agent being reviewed" />
-              <FieldRow name="rating" type="number" desc="Rating 1–5 (1=poor, 5=excellent)" />
-              <FieldRow name="comment" type="string" desc="Review text — 10 to 500 characters" />
-            </div>
-            <p className="text-sm font-semibold text-txt-primary mt-2">Optional fields</p>
-            <div className="rounded-xl border border-border-subtle overflow-hidden">
-              <FieldRow name="reviewer" type="string" desc="0x address of the reviewing agent (improves weight)" />
-              <FieldRow name="txHash" type="string" desc="Transaction hash proving interaction with the target agent" />
-            </div>
+        {/* ── Oracle Sync ── */}
+        <section id="oracle" className="flex flex-col gap-6">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[11px] font-bold text-txt-muted bg-elevated px-2 py-1 rounded">INTEGRATION</span>
+            <h3 className="font-mono text-xl font-bold text-txt-primary">Oracle Sync</h3>
+          </div>
+          <p className="text-[15px] text-txt-secondary leading-[1.6]">
+            Trust scores are synced to the on-chain TrustScoreOracle on Base Sepolia every 6 hours.
+            The TrustGateHook (Uniswap v4) reads these scores in <code className="font-mono text-gold">beforeSwap</code> to
+            gate or surcharge swaps involving low-trust tokens.
+          </p>
+          <div className="rounded-xl border border-border-subtle overflow-hidden">
+            <FieldRow name="TrustScoreOracle" type="address" desc="0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139 (Base Sepolia)" />
+            <FieldRow name="TrustGateHook" type="address" desc="0xf980Ad83bCbF2115598f5F555B29752F00b8daFf (Base Sepolia)" />
+            <FieldRow name="Base Builder Code" type="string" desc="bc_cozhkj23 (ERC-8021, appended to all swap calldata)" />
           </div>
         </section>
 

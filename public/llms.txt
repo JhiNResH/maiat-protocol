@@ -1,0 +1,20 @@
+# Maiat Protocol
+
+> Trust oracle for agentic commerce
+
+## Docs
+
+- [API Documentation](https://maiat-protocol.vercel.app/docs)
+- [Skill File](https://maiat-protocol.vercel.app/skill.md)
+- [GitHub](https://github.com/JhiNResH/maiat-protocol)
+
+## API
+
+Base URL: https://maiat-protocol.vercel.app
+
+- GET /api/v1/agent/{address} - Agent trust score
+- GET /api/v1/agent/{address}/deep - Deep agent analysis
+- GET /api/v1/token/{address} - Token safety check
+- GET /api/v1/agents - Browse all agents
+- POST /api/v1/swap/quote - Trust-gated swap quote
+- GET /api/v1/wallet/{address}/passport - Trust passport
