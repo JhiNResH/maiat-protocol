@@ -100,8 +100,7 @@ export default function PassportPage() {
   const [data, setData] = useState<PassportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
-  const [reviewable, setReviewable] = useState<ReviewableProject[]>([])
-  const [reviewableLoading, setReviewableLoading] = useState(false)
+  // reviewable projects removed — only agents matter now
   const [reviewableAgents, setReviewableAgents] = useState<ReviewableAgent[]>([])
   const [agentsLoading, setAgentsLoading] = useState(false)
 
@@ -117,33 +116,7 @@ export default function PassportPage() {
       .finally(() => setLoading(false))
   }, [address])
 
-  // Fetch projects this wallet can review (on-chain interaction verified)
-  useEffect(() => {
-    if (!address || !/^0x[a-f0-9]{40}$/.test(address)) return
-    setReviewableLoading(true)
-    fetch(`/api/v1/wallet/${address}/interactions`)
-      .then(r => r.json())
-      .then(async (d) => {
-        const interacted = d.interacted ?? []
-        if (interacted.length > 0) {
-          setReviewable(interacted)
-        } else {
-          // Fallback: show top agents so new users can review
-          const res = await fetch('/api/v1/agents?sort=jobs&limit=10')
-          const data = await res.json()
-          setReviewable((data.agents ?? []).map((a: any) => ({
-            name: a.name || null,
-            address: a.id,
-            category: a.category || null,
-            txCount: 0,
-            trustScore: a.trust?.score ?? null,
-            hasReviewed: false,
-          })))
-        }
-      })
-      .catch(console.error)
-      .finally(() => setReviewableLoading(false))
-  }, [address])
+    // Projects section removed — only ACP agents are reviewable now
 
   // Fetch reviewable agents: first try ACP interactions, fallback to top agents
   useEffect(() => {
@@ -285,73 +258,10 @@ export default function PassportPage() {
             {/* Fee tier — hidden until TrustGateHook is live on mainnet */}
           </div>
 
-          {/* ── Projects to Review ────────────────────────────────────────── */}
+          {/* ── Review Agents ─────────────────────────────────────────── */}
           <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-gray-500 font-mono text-xs">// PROJECTS YOU CAN REVIEW</p>
-              {reviewable.length > 0 && (
-                <span className="text-xs font-mono text-gray-600">
-                  {reviewable.filter(p => !p.hasReviewed).length} pending · {reviewable.filter(p => p.hasReviewed).length} done
-                </span>
-              )}
-            </div>
-
-            {reviewableLoading ? (
-              <p className="text-gray-600 font-mono text-xs animate-pulse py-2">// scanning on-chain interactions…</p>
-            ) : reviewable.length === 0 ? (
-              <div className="text-center py-4 space-y-2">
-                <p className="text-gray-600 font-mono text-xs">No known protocols detected in wallet history.</p>
-                <Link href="/explore" className="inline-block text-xs font-mono text-[#0052FF] hover:underline">
-                  Browse projects to interact with →
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {reviewable.map(p => {
-                  const score = p.trustScore != null ? (p.trustScore / 10).toFixed(1) : '—'
-                  const scoreColor = p.trustScore == null ? 'text-gray-500' :
-                    p.trustScore >= 70 ? 'text-[#22C55E]' :
-                    p.trustScore >= 40 ? 'text-[#F59E0B]' : 'text-[#EF4444]'
-                  const catColor = p.category === 'm/ai-agents' ? '#0052FF' :
-                    p.category === 'm/memecoin' ? '#F59E0B' : '#7C3AED'
-
-                  return (
-                    <div key={p.address} className="flex items-center justify-between border border-[#1e1e1e] rounded-lg px-3 py-2.5 hover:border-[#333] transition-colors">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-                          style={{ background: catColor + '22', color: catColor, border: `1px solid ${catColor}44` }}>
-                          {(p.name ?? p.address).charAt(0)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-white font-mono text-xs font-semibold truncate">
-                            {p.name ?? `${p.address.slice(0,6)}…${p.address.slice(-4)}`}
-                          </p>
-                          <p className="text-gray-600 font-mono text-[10px]">{p.txCount} tx · score <span className={scoreColor}>{score}</span></p>
-                        </div>
-                      </div>
-                      {p.hasReviewed ? (
-                        <span className="text-[10px] font-mono text-[#22C55E] border border-[#22C55E]/30 px-2 py-1 rounded shrink-0">
-                          ✓ Reviewed
-                        </span>
-                      ) : (
-                        <Link
-                          href={`/review/${p.address}`}
-                          className="text-[10px] font-mono font-bold text-white bg-[#0052FF] hover:bg-[#0040CC] px-3 py-1.5 rounded transition-colors shrink-0"
-                        >
-                          Review →
-                        </Link>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* ── Review Agents (ACP interactions) ────────────────────────── */}
-          <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-gray-500 font-mono text-xs">// REVIEW AGENTS</p>
+              <p className="text-gray-500 font-mono text-xs">// AGENTS YOU CAN REVIEW</p>
               {reviewableAgents.length > 0 && (
                 <span className="text-xs font-mono text-gray-600">
                   {reviewableAgents.filter(a => !a.reviewed).length} pending
