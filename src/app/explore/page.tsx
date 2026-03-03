@@ -24,6 +24,7 @@ interface Agent {
     completionRate?: number | null;
     paymentRate?: number | null;
     totalJobs?: number | null;
+    agdp?: number | null;
   };
 }
 
