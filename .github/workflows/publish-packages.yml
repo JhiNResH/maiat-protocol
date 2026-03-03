@@ -102,13 +102,17 @@ jobs:
           npm install --ignore-scripts
           npm run build 2>/dev/null || true
 
-      - name: Check if version already published on GPR
+      - name: Check scope and version for GPR
         id: check_gpr
         working-directory: packages/${{ matrix.package }}
         run: |
           PKG=$(node -p "require('./package.json').name")
           VER=$(node -p "require('./package.json').version")
-          if npm view "${PKG}@${VER}" version --registry https://npm.pkg.github.com 2>/dev/null | grep -q "${VER}"; then
+          # GPR requires scope to match GitHub owner — skip @maiat/* packages
+          if [[ "$PKG" != @jhinresh/* ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⏭️ ${PKG} — not @jhinresh scope, skipping GPR"
+          elif npm view "${PKG}@${VER}" version --registry https://npm.pkg.github.com 2>/dev/null | grep -q "${VER}"; then
             echo "skip=true" >> $GITHUB_OUTPUT
             echo "⏭️ ${PKG}@${VER} already published on GPR — skipping"
           else
