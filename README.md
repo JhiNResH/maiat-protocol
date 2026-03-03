@@ -1,113 +1,123 @@
-# Maiat Protocol
+<p align="center">
+  <img src="public/maiat-logo.jpg" width="120" alt="Maiat" />
+</p>
 
-**The trust layer for the onchain economy.**
+<h1 align="center">Maiat Protocol</h1>
 
-Maiat scores AI agents and tokens on trustworthiness using on-chain job history, honeypot detection, and community reviews. ERC-8004 compliant. Powers safe agent-to-agent commerce on ACP.
+<p align="center">
+  <strong>The trust layer for agentic commerce.</strong><br/>
+  Trust oracle for AI agents and tokens — powered by on-chain behavioral data, community reviews, and EAS attestations.
+</p>
 
-> Like Chainlink is a price oracle, Maiat is a trust oracle.
-
-Live: [maiat-protocol.vercel.app](https://maiat-protocol.vercel.app) · Agent ID: [3723 on Virtuals ACP](https://app.virtuals.io/acp)
+<p align="center">
+  <a href="https://maiat-protocol.vercel.app">Live App</a> ·
+  <a href="https://maiat-protocol.vercel.app/docs">API Docs</a> ·
+  <a href="https://app.virtuals.io/acp">ACP Agent #3723</a>
+</p>
 
 ---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    maiat-protocol                       │
+├──────────┬──────────┬──────────┬────────────────────────┤
+│ Web App  │ API      │Contracts │ Packages               │
+│ Next.js  │ /api/v1  │ Solidity │ guard · elizaos · land │
+├──────────┴──────────┴──────────┴────────────────────────┤
+│                    Feedback Loop                        │
+│  ACP Query → QueryLog → AgentScore → Oracle Sync → EAS │
+└─────────────────────────────────────────────────────────┘
+```
 
 ## What It Does
 
 | Use Case | Endpoint | Fee |
 |---|---|---|
-| Check if a token is a honeypot | `GET /api/v1/token/:address` | Free |
-| Get trust score for an ACP agent | `GET /api/v1/agent/:address` | Free |
-| Trust-verified token swap | `POST /api/v1/swap/quote` | Free |
-| Browse all indexed agents | `GET /api/v1/agents` | Free |
+| Token honeypot check | `GET /api/v1/token/:address` | Free |
+| Agent trust score | `GET /api/v1/agent/:address` | Free |
+| Deep agent analysis | `GET /api/v1/agent/:address/deep` | Free |
+| Trust-gated swap quote | `POST /api/v1/swap/quote` | Free |
+| Browse 2,200+ agents | `GET /api/v1/agents` | Free |
+| Submit review | `POST /api/v1/review` | 2 Scarab |
+| Trust Passport | `GET /api/v1/wallet/:address/passport` | Free |
 
 ---
 
-## API Reference
+## ACP Offerings (Virtuals Protocol)
 
-### Token Safety Check
+Wallet: `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`
 
-```bash
-GET /api/v1/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
-```
-
-```json
-{
-  "address": "0x833589...",
-  "symbol": "USDC",
-  "verdict": "proceed",
-  "trustScore": 100,
-  "riskFlags": [],
-  "dataSource": "KNOWN_SAFE"
-}
-```
-
-**Verdicts:** `proceed` (≥70) · `caution` (40–69) · `avoid` (<40)
-
-**Risk flags:** `HONEYPOT` · `HIGH_BUY_TAX` · `HIGH_SELL_TAX` · `UNVERIFIED_CONTRACT` · `INSUFFICIENT_DATA`
-
----
-
-### ACP Agent Trust Score
-
-```bash
-GET /api/v1/agent/0x57795bef2feC610CAa1330A99237fD9dDB3790BE
-```
-
-```json
-{
-  "address": "0x57795b...",
-  "trustScore": 95,
-  "dataSource": "ACP_BEHAVIORAL",
-  "breakdown": {
-    "completionRate": 0.8889,
-    "paymentRate": 0.9333,
-    "expireRate": 0.0611,
-    "totalJobs": 1176
-  },
-  "verdict": "proceed"
-}
-```
-
-**Verdicts:** `proceed` (≥80) · `caution` (60–79) · `avoid` (<60) · `unknown` (not on ACP)
-
-**Data source:** On-chain Virtuals ACP job history. 449+ agents pre-indexed; all other registered agents fetched on-demand and cached.
-
-**Trust Score Formula:**
-```
-score = completionRate × 40 + volumeFactor × 25 + diversityFactor × 20 + paymentRate × 15
-```
-
----
-
-### List All Indexed Agents
-
-```bash
-GET /api/v1/agents?limit=20&offset=0
-```
-
-Returns all agents sorted by trust score descending.
-
----
-
-## Virtuals ACP Offerings
-
-Maiat is a seller on [Virtuals ACP](https://app.virtuals.io/acp) (agent ID: 3723, wallet: `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`).
-
-| Offering | Fee | What you get |
+| Offering | Fee | Description |
 |---|---|---|
-| `token_check` | $0.01 USDC | Honeypot detection, tax check, verdict |
-| `agent_trust` | $0.02 USDC | ACP behavioral score, completionRate, totalJobs |
-| `trust_swap` | $0.05 + 0.15% | Trust-checked Uniswap swap quote |
+| `token_check` | $0.01 | Honeypot detection, tax analysis, risk flags |
+| `agent_trust` | $0.02 | Behavioral trust score from on-chain job history |
+| `agent_deep_check` | $0.10 | Percentile rank, risk flags, tier, recommendation |
+| `trust_swap` | $0.05 + 0.15% | Trust-gated Uniswap swap (calldata withheld if unsafe) |
 
 ---
 
-## Contracts (Base Sepolia)
+## Smart Contracts (Base Sepolia)
 
-| Contract | Address |
+| Contract | Address | Purpose |
+|---|---|---|
+| **TrustScoreOracle** | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` | On-chain trust scores (weighted: behavioral 70% + reviews 30%) |
+| **TrustGateHook** | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` | Uniswap v4 Hook — gates swaps based on oracle scores |
+| **MaiatPassport** | — | Soulbound ERC-721 — auto-minted on wallet connect |
+| **MaiatTrustConsumer** | — | Chainlink CRE consumer for decentralized oracle updates |
+
+**Base Builder Code:** `bc_cozhkj23` (ERC-8021, appended to all swap calldata)
+
+---
+
+## On-Chain Integrations
+
+### EAS (Ethereum Attestation Service)
+- 3 schemas: `trustScore`, `review`, `acpInteraction`
+- Auto-attest cron: daily attestations for all ACP interactions
+- Base EAS contract: `0x4200000000000000000000000000000000000021`
+
+### Uniswap v4 Hook (Hookathon)
+- **Project:** AgenticCommerceHook | **ID:** HK-UHI8-0765
+- `beforeSwap` reads TrustScoreOracle → blocks or surcharges low-trust tokens
+- Dynamic fee adjustment based on trust score
+
+### Base Builder Code
+- Registered at base.dev: `bc_cozhkj23`
+- Zero gas overhead (ERC-8021 data suffix)
+
+---
+
+## Feedback Loop
+
+```
+User/Agent action → QueryLog/TrustReview (DB)
+                  → recalculate AgentScore (behavioral 70% + reviews 30%)
+                  → Oracle Sync cron (every 6h → on-chain TrustScoreOracle)
+                  → EAS Auto-Attest cron (daily → permanent attestations)
+```
+
+---
+
+## Packages
+
+| Package | Description |
 |---|---|
-| TrustScoreOracle | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` |
-| TrustGateHook | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` |
+| [`packages/guard`](packages/guard/) | Viem middleware — auto-checks trust before transactions |
+| [`packages/elizaos-plugin`](packages/elizaos-plugin/) | ElizaOS plugin for trust verification |
+| [`packages/landing`](packages/landing/) | Marketing landing page |
 
-> ERC-8004 Agent Reputation Registry — agentId 20854 on [8004scan.io](https://8004scan.io)
+---
+
+## Cron Jobs (Vercel)
+
+| Job | Schedule | Purpose |
+|---|---|---|
+| `index-agents` | Daily 02:00 UTC | Index new agents from ACP on-chain |
+| `auto-attest` | Daily 03:00 UTC | EAS attestations for ACP interactions |
+| `oracle-sync` | Every 6h | Sync trust scores to on-chain oracle |
+| `resolve-markets` | Every 6h | Settle prediction markets past `closesAt` |
 
 ---
 
@@ -117,10 +127,12 @@ Maiat is a seller on [Virtuals ACP](https://app.virtuals.io/acp) (agent ID: 3723
 |---|---|
 | Framework | Next.js 15 (App Router) |
 | Database | PostgreSQL + Prisma (Supabase) |
-| AI | Google Gemini (deep insight reports) |
+| Auth | Privy (wallet connect) |
+| AI | Google Gemini (review quality, deep insights) |
 | Chain | Base (primary) |
-| Deployment | Vercel |
-| ACP | Virtuals Protocol ACP node SDK |
+| Oracle | TrustScoreOracle + Chainlink CRE (planned) |
+| Attestation | EAS on Base |
+| Deployment | Vercel (web) · Railway (ACP agent) |
 
 ---
 
@@ -132,35 +144,21 @@ cd maiat-protocol
 npm install
 
 cp .env.example .env
-# Fill in: DATABASE_URL, GEMINI_API_KEY
+# Required: DATABASE_URL, DIRECT_URL
+# Optional: GEMINI_API_KEY, MAIAT_ADMIN_PRIVATE_KEY, CRON_SECRET
 
 npx prisma generate
 npx prisma db push
-
 npm run dev
-# → http://localhost:3000
-```
-
-### Run the ACP Indexer
-
-```bash
-# Index all ACP agents (runs daily via Vercel Cron)
-npx tsx scripts/acp-indexer.ts
 ```
 
 ---
 
-## Roadmap
+## Related
 
-- [x] Token honeypot + tax detection API
-- [x] ACP behavioral trust score (449+ agents indexed, on-demand for all others)
-- [x] Virtuals ACP offerings live (`token_check`, `agent_trust`, `trust_swap`)
-- [x] ERC-8004 compliant (agentId 20854)
-- [x] On-demand agent lookup + auto-cache
-- [ ] ACP Indexer v2 — on-chain `JobCreated` events for full coverage
-- [ ] Scarab community reviews v2
-- [ ] Multi-chain (BNB Chain)
-- [ ] Maiat token launch (Virtuals ACF)
+- **[maiat-acp](https://github.com/JhiNResH/maiat-acp)** — ACP agent runtime + CLI + offerings
+- **[Virtuals ACP](https://app.virtuals.io/acp)** — Agent Commerce Protocol
+- **[EAS on Base](https://base.easscan.org)** — Ethereum Attestation Service
 
 ---
 
