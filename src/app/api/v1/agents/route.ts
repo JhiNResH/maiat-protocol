@@ -17,39 +17,70 @@ export async function GET(request: NextRequest) {
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'))
     const search = searchParams.get('search') || ''
 
-    const where = search
-      ? {
-          OR: [
-            { walletAddress: { contains: search, mode: 'insensitive' as const } },
-            { rawMetrics: { path: ['name'], string_contains: search } },
-          ],
-        }
-      : {}
-
     const orderBy =
       sort === 'jobs'
         ? { totalJobs: 'desc' as const }
         : { trustScore: 'desc' as const }
 
-    const [agents, total] = await Promise.all([
-      prisma.agentScore.findMany({
-        where,
-        orderBy,
-        take: limit,
-        skip: offset,
-        select: {
-          walletAddress: true,
-          trustScore: true,
-          completionRate: true,
-          paymentRate: true,
-          totalJobs: true,
-          dataSource: true,
-          lastUpdated: true,
-          rawMetrics: true,
-        },
-      }),
-      prisma.agentScore.count({ where }),
-    ])
+    type AgentRow = {
+      walletAddress: string; trustScore: number; completionRate: number;
+      paymentRate: number; totalJobs: number; dataSource: string;
+      lastUpdated: Date; rawMetrics: unknown;
+    }
+    let agents: AgentRow[]
+    let total: number
+
+    if (search) {
+      // Use raw SQL for ILIKE on JSON field + wallet address
+      const searchPattern = `%${search}%`
+      const orderCol = sort === 'jobs' ? 'total_jobs' : 'trust_score'
+
+      const countResult = await prisma.$queryRawUnsafe<{ count: bigint }[]>(
+        `SELECT COUNT(*)::bigint as count FROM agent_scores
+         WHERE wallet_address ILIKE $1
+            OR raw_metrics->>'name' ILIKE $1
+            OR raw_metrics->>'category' ILIKE $1`,
+        searchPattern
+      )
+      total = Number(countResult[0]?.count ?? 0)
+
+      agents = await prisma.$queryRawUnsafe(
+        `SELECT id, wallet_address as "walletAddress", trust_score as "trustScore",
+                completion_rate as "completionRate", payment_rate as "paymentRate",
+                total_jobs as "totalJobs", data_source as "dataSource",
+                last_updated as "lastUpdated", raw_metrics as "rawMetrics"
+         FROM agent_scores
+         WHERE wallet_address ILIKE $1
+            OR raw_metrics->>'name' ILIKE $1
+            OR raw_metrics->>'category' ILIKE $1
+         ORDER BY ${orderCol} DESC
+         LIMIT $2 OFFSET $3`,
+        searchPattern,
+        limit,
+        offset
+      )
+    } else {
+      const where = {}
+      ;[agents, total] = await Promise.all([
+        prisma.agentScore.findMany({
+          where,
+          orderBy,
+          take: limit,
+          skip: offset,
+          select: {
+            walletAddress: true,
+            trustScore: true,
+            completionRate: true,
+            paymentRate: true,
+            totalJobs: true,
+            dataSource: true,
+            lastUpdated: true,
+            rawMetrics: true,
+          },
+        }),
+        prisma.agentScore.count({ where }),
+      ])
+    }
 
     return NextResponse.json(
       {
