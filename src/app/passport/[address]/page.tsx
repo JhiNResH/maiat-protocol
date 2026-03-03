@@ -124,8 +124,8 @@ export default function PassportPage() {
     fetch(`/api/v1/wallet/${address}/interactions`)
       .then(r => r.json())
       .then(d => {
-        const known = (d.interacted ?? []).filter((p: ReviewableProject & { isKnown: boolean }) => p.isKnown)
-        setReviewable(known)
+        // Show all interacted addresses (known agents get review button)
+        setReviewable(d.interacted ?? [])
       })
       .catch(console.error)
       .finally(() => setReviewableLoading(false))
