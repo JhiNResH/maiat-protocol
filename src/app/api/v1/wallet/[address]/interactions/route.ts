@@ -147,12 +147,21 @@ export async function GET(
       where: { address: normalizedAddress },
     });
 
-    // Look up each address in our DB
+    // Look up each address in our DB (check both agentScore and legacy project tables)
     const interacted = await Promise.all(
       sortedInteractions.map(async (interaction) => {
-        const project = await prisma.project.findFirst({
-          where: { address: interaction.address },
+        // Check agentScore table first (16K+ ACP agents)
+        const agent = await prisma.agentScore.findFirst({
+          where: { walletAddress: { equals: interaction.address, mode: 'insensitive' } },
         });
+
+        // Fallback to legacy project table
+        const project = !agent ? await prisma.project.findFirst({
+          where: { address: interaction.address },
+        }) : null;
+
+        const isKnown = !!(agent || project);
+        const raw = agent?.rawMetrics as Record<string, unknown> | null;
 
         let hasReviewed = false;
         if (user && project) {
@@ -163,6 +172,18 @@ export async function GET(
             },
           });
           hasReviewed = !!review;
+        }
+
+        if (agent) {
+          return {
+            name: (raw?.name as string) || agent.walletAddress,
+            address: interaction.address,
+            category: (raw?.category as string) || null,
+            txCount: interaction.txCount,
+            isKnown: true,
+            hasReviewed: false, // TODO: check TrustReview table
+            trustScore: agent.trustScore,
+          };
         }
 
         if (project) {
