@@ -239,6 +239,22 @@ export async function POST(request: NextRequest) {
     const checksumAddress = getAddress(address);
     const checksumReviewer = getAddress(reviewer);
 
+    // --- Step 0.5: Verify target is a known agent (not random EOA) ---
+    if (db) {
+      const knownAgent = await db.agentScore.findFirst({
+        where: { walletAddress: { equals: checksumAddress, mode: 'insensitive' } },
+      });
+      const knownProject = !knownAgent ? await db.project.findFirst({
+        where: { address: checksumAddress },
+      }) : null;
+      if (!knownAgent && !knownProject) {
+        return NextResponse.json(
+          { error: "Target address is not a known agent or project" },
+          { status: 400, headers: CORS_HEADERS }
+        );
+      }
+    }
+
     // --- Step 1: Verify wallet ownership (signature OR txHash) ---
     // txHash path: agent-friendly, no personal_sign needed.
     //   verifyTxHash confirms tx.from === reviewer (proves wallet ownership)
