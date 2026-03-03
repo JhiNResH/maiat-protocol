@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Search, Shield, Bot, ArrowUpDown, TrendingUp, Zap, Trophy } from "lucide-react";
-import { isAddress } from "viem";
+// viem isAddress removed — search is now server-side
 
 // ============================================================================
 // TYPES
@@ -120,17 +120,33 @@ function ExplorePage() {
   const [agents, setAgents]   = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortBy, setSortBy]   = useState<"trust" | "jobs">("trust");
+  const [totalAgents, setTotalAgents] = useState(0);
 
-  // ── Fetch agents ────────────────────────────────────────────────────────────
+  // ── Debounce search ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // ── Fetch agents (server-side search) ───────────────────────────────────────
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
-        const res = await fetch("/api/v1/agents?sort=trust&limit=100");
+        const params = new URLSearchParams({
+          sort: sortBy,
+          limit: "200",
+        });
+        if (debouncedSearch) {
+          params.set("search", debouncedSearch);
+        }
+        const res = await fetch(`/api/v1/agents?${params}`);
         const data = await res.json();
         if (Array.isArray(data.agents)) {
           setAgents(data.agents);
+          setTotalAgents(data.pagination?.total ?? data.agents.length);
         }
       } catch (err) {
         console.error("[Explore] Failed to fetch agents:", err);
@@ -139,29 +155,7 @@ function ExplorePage() {
       }
     }
     load();
-  }, []);
-
-  // ── Filter + Sort ───────────────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    let result = [...agents];
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (a) =>
-          a.name.toLowerCase().includes(q) ||
-          a.id.toLowerCase().includes(q)
-      );
-    }
-
-    result.sort((a, b) => {
-      const sa = a.trust.score ?? -1;
-      const sb = b.trust.score ?? -1;
-      return sb - sa; // always secondary sort by score
-    });
-
-    return result;
-  }, [agents, search, sortBy]);
+  }, [debouncedSearch, sortBy]);
 
   const toggleSort = () => {
     setSortBy((prev) => (prev === "trust" ? "jobs" : "trust"));
@@ -219,7 +213,7 @@ function ExplorePage() {
           {/* Agent Count */}
           {!loading && (
             <span className="text-[10px] font-mono text-[#555555] ml-auto">
-              {filtered.length} agents
+              {agents.length}{totalAgents > agents.length ? ` / ${totalAgents}` : ""} agents
             </span>
           )}
         </div>
@@ -245,7 +239,7 @@ function ExplorePage() {
         )}
 
         {/* Empty State */}
-        {!loading && filtered.length === 0 && (
+        {!loading && agents.length === 0 && (
           <div className="flex flex-col items-center gap-5 py-20 text-center">
             <div className="w-16 h-16 rounded-xl bg-[#111111] border border-[#1F1F1F] flex items-center justify-center">
               <Bot className="w-7 h-7 text-[#333333]" />
@@ -258,7 +252,7 @@ function ExplorePage() {
               </p>
               <p className="text-xs font-mono text-[#555555] max-w-sm leading-relaxed">
                 {search
-                  ? isAddress(search)
+                  ? search.startsWith("0x")
                     ? "// this address has no ACP history yet"
                     : "// try a different name or paste a wallet address"
                   : "// Maiat indexes AI agents from the Virtuals ACP ecosystem and computes behavioral trust scores from on-chain job history. Check back soon."}
@@ -276,9 +270,9 @@ function ExplorePage() {
         )}
 
         {/* Agent List */}
-        {!loading && filtered.length > 0 && (
+        {!loading && agents.length > 0 && (
           <div className="flex flex-col gap-1">
-            {filtered.map((agent, idx) => {
+            {agents.map((agent, idx) => {
               const verdict = scoreToVerdict(agent.trust.score);
               return (
                 <button
@@ -361,7 +355,7 @@ function ExplorePage() {
         )}
 
         {/* Footer note */}
-        {!loading && filtered.length > 0 && (
+        {!loading && agents.length > 0 && (
           <div className="mt-6 flex items-center gap-2 text-[10px] font-mono text-[#444444]">
             <TrendingUp className="w-3 h-3" />
             <span>
