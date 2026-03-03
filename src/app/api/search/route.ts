@@ -23,7 +23,37 @@ export async function GET(request: NextRequest) {
   console.log(`[Maiat Search] Query: "${query}"`)
 
   try {
-    // Search local DB
+    // Search agentScore table (primary source — 2000+ agents)
+    const searchPattern = `%${query}%`
+    const agentResults = await prisma.$queryRawUnsafe<Array<{
+      walletAddress: string; trustScore: number; totalJobs: number; rawMetrics: Record<string, unknown>
+    }>>(
+      `SELECT wallet_address as "walletAddress", trust_score as "trustScore",
+              total_jobs as "totalJobs", raw_metrics as "rawMetrics"
+       FROM agent_scores
+       WHERE wallet_address ILIKE $1
+          OR raw_metrics->>'name' ILIKE $1
+          OR raw_metrics->>'category' ILIKE $1
+       ORDER BY trust_score DESC
+       LIMIT $2`,
+      searchPattern,
+      limit
+    )
+
+    const agents = agentResults.map(a => {
+      const raw = (a.rawMetrics ?? {}) as Record<string, unknown>
+      return {
+        id: a.walletAddress,
+        address: a.walletAddress,
+        name: typeof raw.name === 'string' ? raw.name : a.walletAddress.slice(0, 10) + '...',
+        category: typeof raw.category === 'string' ? raw.category : null,
+        image: typeof raw.profilePic === 'string' ? raw.profilePic : null,
+        trustScore: a.trustScore,
+        totalJobs: a.totalJobs,
+      }
+    })
+
+    // Search legacy local DB
     const [projects, reviews, users] = await Promise.all([
       prisma.project.findMany({
         where: {
@@ -145,7 +175,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       query,
-      totalResults: projects.length + formattedReviews.length + users.length,
+      totalResults: agents.length + projects.length + formattedReviews.length + users.length,
+      agents,
       projects,
       reviews: formattedReviews,
       users,
