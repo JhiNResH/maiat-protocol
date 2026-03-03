@@ -41,6 +41,7 @@
     "chainlink-cre",
     "src/archive",
     "cre-project",
-    "cre"
+    "cre",
+    "scripts"
   ]
 }

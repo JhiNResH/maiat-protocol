@@ -209,6 +209,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: CORS_HEADERS });
   }
 
+  const db = await getDb();
+
   try {
     const body = await request.json() as {
       address?: string;
@@ -336,7 +338,6 @@ export async function POST(request: NextRequest) {
     // EAS receipt still gets 5×.
 
     // --- Step 3: Deduct Scarab (if DB available) ---
-    const db = await getDb();
     let scarabDeducted = false;
 
     if (db) {

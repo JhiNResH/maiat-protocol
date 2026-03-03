@@ -41,11 +41,12 @@ function scoreToVerdict(score: number | null): "proceed" | "caution" | "avoid" |
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tokenAddress: string } }
+  { params }: { params: Promise<{ tokenAddress: string }> }
 ) {
   try {
     // ── Validate address ─────────────────────────────────────────────────────
-    const rawAddress = params.tokenAddress;
+    const { tokenAddress } = await params;
+    const rawAddress = tokenAddress;
 
     if (!rawAddress || !isAddress(rawAddress)) {
       return NextResponse.json(
