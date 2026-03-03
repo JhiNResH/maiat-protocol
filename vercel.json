@@ -9,6 +9,10 @@
     {
       "path": "/api/v1/cron/index-agents",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/v1/cron/auto-attest",
+      "schedule": "0 3 * * *"
     }
   ]
 }
