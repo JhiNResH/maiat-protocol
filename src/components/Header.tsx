@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Search, Shield } from 'lucide-react'
+import Image from 'next/image'
+import { Search } from 'lucide-react'
 import { ConnectButton } from './ConnectButton'
 
 export function Header() {
@@ -22,9 +23,7 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 h-[64px] flex items-center justify-between px-6 border-b border-[#1e2035] z-50 bg-[#050508]/95 backdrop-blur-sm">
       {/* Logo */}
       <Link href="/explore" className="flex items-center gap-2.5 shrink-0 group">
-        <div className="w-8 h-8 bg-[#0052FF] rounded-lg flex items-center justify-center shadow-lg shadow-[#0052FF]/20 group-hover:shadow-[#0052FF]/40 transition-shadow">
-          <Shield className="w-4.5 h-4.5 text-white" strokeWidth={2.5} />
-        </div>
+        <Image src="/maiat-logo.jpg" alt="Maiat" width={32} height={32} className="w-8 h-8 rounded-lg shadow-lg shadow-[#0052FF]/20 group-hover:shadow-[#0052FF]/40 transition-shadow" />
         <span className="font-mono text-sm font-bold tracking-[4px] text-white hidden sm:block">MAIAT</span>
       </Link>
 
