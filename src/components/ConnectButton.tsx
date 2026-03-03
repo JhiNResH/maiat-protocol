@@ -43,6 +43,23 @@ export function ConnectButton() {
         const rawAddress = user.wallet.address
         const checksumAddress = getAddress(rawAddress)
 
+        // Check server first — skip signature if already claimed today
+        try {
+          const statusRes = await fetch(
+            `/api/v1/scarab/status?address=${encodeURIComponent(checksumAddress)}`
+          )
+          if (statusRes.ok) {
+            const { claimedToday } = await statusRes.json()
+            if (claimedToday) {
+              setClaimed(true)
+              if (claimKey) localStorage.setItem(claimKey, new Date().toISOString().slice(0, 10))
+              return
+            }
+          }
+        } catch {
+          // Status check failed — fall through to claim flow
+        }
+
         if (!connectedWallet) return // wallet not ready yet — effect will re-run
 
         // Fetch a fresh single-use nonce from the server
