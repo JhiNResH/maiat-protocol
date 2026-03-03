@@ -105,6 +105,8 @@ export async function GET(request: NextRequest) {
               completionRate: a.completionRate,
               paymentRate: a.paymentRate,
               totalJobs: a.totalJobs,
+              agdp: (raw as Record<string, unknown>)?.grossAgenticAmount ?? null,
+              revenue: (raw as Record<string, unknown>)?.revenue ?? null,
             },
             dataSource: a.dataSource,
             lastUpdated: a.lastUpdated.toISOString(),
