@@ -1,7 +1,7 @@
 {
   "name": "@jhinresh/elizaos-plugin",
-  "version": "0.2.0",
-  "description": "Maiat Trust Score plugin for ElizaOS — trust-gated agent interactions",
+  "version": "0.1.2",
+  "description": "Maiat Trust Score plugin for ElizaOS — verify trust before your agent swaps or transacts",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -10,14 +10,23 @@
     "build": "tsc",
     "dev": "tsc --watch"
   },
-  "devDependencies": {
-    "typescript": "^5.5.0"
-  },
   "keywords": [
     "maiat",
     "elizaos",
+    "eliza",
     "ai16z",
     "trust-score",
-    "ai-agent"
-  ]
+    "ai-agent",
+    "web3",
+    "defi",
+    "base"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JhiNResH/elizaos-plugin-maiat.git"
+  },
+  "homepage": "https://maiat-protocol.vercel.app",
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
 }
