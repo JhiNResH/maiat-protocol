@@ -457,11 +457,17 @@ function LeaderboardView({
                     </div>
                   </div>
 
-                  {/* Jobs */}
+                  {/* Jobs + AGDP */}
                   <div className="text-right hidden sm:block">
                     <div className="text-[10px] font-mono text-[#444444]">JOBS</div>
                     <div className="text-xs font-mono text-[#888888]">
                       {agent.breakdown?.totalJobs?.toLocaleString() ?? "—"}
+                    </div>
+                  </div>
+                  <div className="text-right hidden md:block">
+                    <div className="text-[10px] font-mono text-[#444444]">AGDP</div>
+                    <div className="text-xs font-mono text-[#888888]">
+                      ${agent.breakdown?.agdp?.toFixed(2) ?? "—"}
                     </div>
                   </div>
 

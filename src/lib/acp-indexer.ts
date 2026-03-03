@@ -38,6 +38,10 @@ export interface AcpAgent {
   twitterHandle?: string | null;
   cluster?: string | null;
   offerings?: Array<{ name: string; price: number }> | null;
+  grossAgenticAmount?: number | null;
+  revenue?: number | null;
+  transactionCount?: number | null;
+  rating?: number | null;
 }
 
 export interface AgentScore {
@@ -118,6 +122,10 @@ export function computeTrustScore(agent: AcpAgent): AgentScore {
       twitterHandle: agent.twitterHandle,
       cluster: agent.cluster,
       offerings: agent.offerings,
+      grossAgenticAmount: agent.grossAgenticAmount,
+      revenue: agent.revenue,
+      transactionCount: agent.transactionCount,
+      rating: agent.rating,
       indexedAt: new Date().toISOString(),
     },
   };
