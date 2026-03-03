@@ -7,54 +7,74 @@ import { ReviewForm } from '@/components/ReviewForm'
 import { Header } from '@/components/Header'
 import Link from 'next/link'
 
-interface ProjectInfo {
-  name: string
-  symbol?: string
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface AgentBreakdown {
+  completionRate: number
+  paymentRate: number
+  expireRate: number
+  totalJobs: number
+  ageWeeks: number
+  name?: string
+}
+
+interface AgentData {
   address: string
-  chain: string
-  trustScore: number | null
-  category: string
-  description?: string
-  reviewCount?: number
+  name?: string | null
+  profilePic?: string | null
+  category?: string | null
+  description?: string | null
+  trustScore: number
+  verdict: 'proceed' | 'caution' | 'avoid' | 'unknown'
+  breakdown: AgentBreakdown
+  dataSource: string
 }
 
-function ScoreBadge({ score }: { score: number | null }) {
-  if (score == null) return (
-    <span className="text-2xl font-bold font-mono text-gray-400">—</span>
-  )
-  const color = score >= 7 ? '#22C55E' : score >= 4 ? '#F59E0B' : '#EF4444'
-  const label = score >= 7 ? 'LOW RISK' : score >= 4 ? 'MEDIUM RISK' : 'HIGH RISK'
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-4xl font-bold font-mono" style={{ color }}>{score.toFixed(1)}</span>
-      <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color, border: `1px solid ${color}` }}>
-        {label}
-      </span>
-    </div>
-  )
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function trunc(addr: string) {
+  if (!addr || addr.length < 12) return addr
+  return addr.slice(0, 6) + '...' + addr.slice(-4)
 }
 
-function ChainBadge({ chain }: { chain: string }) {
-  const c = chain?.toLowerCase()
-  const [color, label] =
-    c === 'base'                         ? ['#0052FF', 'Base'] :
-    c === 'ethereum' || c === 'eth'      ? ['#8B5CF6', 'Ethereum'] :
-    c === 'bnb' || c === 'bsc'           ? ['#F3BA2F', 'BNB'] :
-    c === 'solana' || c === 'sol'        ? ['#9945FF', 'Solana'] :
-                                           ['#6B7280', chain || 'Unknown']
-  return (
-    <span className="text-xs font-mono px-2 py-0.5 rounded border" style={{ color, borderColor: color }}>
-      {label}
-    </span>
-  )
+function verdictStyle(verdict: string) {
+  switch (verdict) {
+    case 'proceed': return 'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30'
+    case 'caution': return 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30'
+    case 'avoid':   return 'bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30'
+    default:        return 'bg-[#666]/10 text-[#666] border-[#666]/30'
+  }
 }
+
+function verdictLabel(verdict: string) {
+  switch (verdict) {
+    case 'proceed': return 'PROCEED'
+    case 'caution': return 'CAUTION'
+    case 'avoid':   return 'AVOID'
+    default:        return 'UNKNOWN'
+  }
+}
+
+function scoreColor(score: number | null) {
+  if (score === null) return 'text-[#666]'
+  if (score >= 80) return 'text-[#22C55E]'
+  if (score >= 60) return 'text-[#F59E0B]'
+  return 'text-[#EF4444]'
+}
+
+function pct(rate: number | undefined): string {
+  if (rate === undefined || rate === null) return '—'
+  return `${(rate * 100).toFixed(0)}%`
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ReviewPage() {
   const params = useParams()
-  const address = params?.address as string
+  const address = (params?.address as string)?.toLowerCase()
   const { authenticated, login } = usePrivy()
 
-  const [project, setProject] = useState<ProjectInfo | null>(null)
+  const [agent, setAgent] = useState<AgentData | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [reviewed, setReviewed] = useState(false)
@@ -63,141 +83,169 @@ export default function ReviewPage() {
     if (!address) return
     setLoading(true)
 
-    // Try by address → API returns project or 404
-    fetch(`/api/v1/project/${encodeURIComponent(address)}`)
+    fetch(`/api/v1/agent/${address}`)
       .then(r => {
         if (r.status === 404) { setNotFound(true); setLoading(false); return null }
         return r.json()
       })
       .then(data => {
         if (!data) return
-        const p = data.project || data
-        setProject({
-          name: p.name || 'Unknown Project',
-          symbol: p.symbol,
-          address: p.address || address,
-          chain: p.chain || 'Base',
-          trustScore: p.trustScore != null ? p.trustScore / 10 : null,
-          category: p.category || 'DeFi',
-          description: p.description,
-          reviewCount: p.reviewCount || 0,
-        })
+        setAgent(data)
         setLoading(false)
       })
       .catch(() => {
-        // Fallback: show the form anyway with just the address
-        setProject({
-          name: address.slice(0, 6) + '…' + address.slice(-4),
-          address,
-          chain: 'Base',
-          trustScore: null,
-          category: 'Unknown',
-        })
+        setNotFound(true)
         setLoading(false)
       })
   }, [address])
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <p className="font-mono text-gray-400 animate-pulse text-sm">// LOADING PROJECT…</p>
+      <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-[#0052FF] border-t-transparent rounded-full animate-spin" />
+            <p className="font-mono text-gray-500 text-xs">Loading agent...</p>
+          </div>
+        </div>
       </div>
     )
   }
 
-  if (notFound) {
+  if (notFound || !agent) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4 px-4">
-        <p className="font-mono text-red-400 text-sm">// PROJECT NOT FOUND</p>
-        <p className="font-mono text-gray-500 text-xs text-center">
-          {address} is not in Maiat&apos;s registry yet.
-        </p>
-        <Link href="/explore" className="text-xs font-mono text-[#0052FF] hover:underline">
-          ← Browse all projects
-        </Link>
+      <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
+        <Header />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4">
+          <div className="w-16 h-16 rounded-xl bg-[#111] border border-[#222] flex items-center justify-center">
+            <span className="text-2xl text-gray-600">?</span>
+          </div>
+          <p className="font-mono text-gray-400 text-sm">Agent not found</p>
+          <p className="font-mono text-gray-600 text-xs text-center">
+            {address} is not in the ACP ecosystem yet.
+          </p>
+          <Link href="/explore" className="text-xs font-mono text-[#0052FF] hover:underline">
+            ← Browse all agents
+          </Link>
+        </div>
       </div>
     )
   }
 
-  if (!project) return null
+  const name = agent.name || agent.breakdown?.name || trunc(agent.address)
+  const bd = agent.breakdown
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
       <Header />
 
-      <main className="flex-1 flex flex-col items-center justify-start pt-8 px-4 pb-16">
-        <div className="w-full max-w-lg">
+      <main className="flex-1 flex flex-col items-center pt-6 px-4 pb-16">
+        <div className="w-full max-w-lg space-y-4">
 
-          {/* Project card */}
-          <div className="bg-[#111111] border border-[#222222] rounded-lg p-6 mb-6">
-            <div className="flex items-start justify-between gap-4">
-              {/* Icon + name */}
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-xl font-bold text-gray-400">
-                  {project.name.charAt(0)}
+          {/* Agent Card */}
+          <div className="bg-[#111] border border-[#222] rounded-xl p-5">
+            <div className="flex items-start gap-4">
+              {/* Avatar */}
+              {agent.profilePic ? (
+                <img
+                  src={agent.profilePic}
+                  alt={name}
+                  className="w-14 h-14 rounded-xl object-cover shrink-0 border border-[#333]"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-xl bg-[#0052FF]/10 border border-[#0052FF]/30 flex items-center justify-center text-xl font-bold text-[#0052FF] shrink-0">
+                  {name.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <h1 className="text-white font-mono font-bold text-lg leading-tight">
-                    {project.name}
-                    {project.symbol && (
-                      <span className="text-gray-500 font-normal text-sm ml-2">${project.symbol}</span>
-                    )}
-                  </h1>
-                  <div className="flex items-center gap-2 mt-1">
-                    <ChainBadge chain={project.chain} />
-                    <span className="text-xs font-mono text-gray-600">
-                      {project.reviewCount ?? 0} reviews
-                    </span>
-                  </div>
+              )}
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h1 className="text-white font-mono font-bold text-lg truncate">{name}</h1>
+                  <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded border ${verdictStyle(agent.verdict)}`}>
+                    {verdictLabel(agent.verdict)}
+                  </span>
+                </div>
+
+                {agent.category && (
+                  <span className="text-[10px] font-mono text-gray-500 bg-[#1a1a1a] border border-[#222] px-2 py-0.5 rounded inline-block mb-2">
+                    {agent.category}
+                  </span>
+                )}
+
+                {agent.description && (
+                  <p className="text-gray-500 font-mono text-xs leading-relaxed line-clamp-2 mb-2">
+                    {agent.description}
+                  </p>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-gray-600">{trunc(agent.address)}</span>
+                  <span className="text-gray-700">·</span>
+                  <span className="text-[10px] font-mono text-gray-600">Base</span>
                 </div>
               </div>
 
-              {/* Score */}
-              <ScoreBadge score={project.trustScore} />
+              {/* Trust Score */}
+              <div className="shrink-0 text-center">
+                <div className={`text-3xl font-black font-mono ${scoreColor(agent.trustScore)}`}>
+                  {agent.trustScore}
+                </div>
+                <div className="text-[9px] font-mono text-gray-600 uppercase">Trust</div>
+              </div>
             </div>
 
-            {project.description && (
-              <p className="text-gray-500 font-mono text-xs mt-4 leading-relaxed border-t border-[#222] pt-3">
-                {project.description.slice(0, 180)}{project.description.length > 180 ? '…' : ''}
-              </p>
-            )}
-
-            <div className="mt-3 pt-3 border-t border-[#222] flex items-center gap-1">
-              <span className="text-gray-600 font-mono text-xs">contract:</span>
-              <span className="text-gray-400 font-mono text-xs">{project.address.slice(0, 10)}…{project.address.slice(-6)}</span>
+            {/* Stats Row */}
+            <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-[#1a1a1a]">
+              <div className="text-center">
+                <div className="text-xs font-mono font-bold text-white">{bd?.totalJobs ?? '—'}</div>
+                <div className="text-[9px] font-mono text-gray-600">Jobs</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-mono font-bold text-white">{bd?.ageWeeks ?? '—'}w</div>
+                <div className="text-[9px] font-mono text-gray-600">Age</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-mono font-bold text-[#22C55E]">{pct(bd?.completionRate)}</div>
+                <div className="text-[9px] font-mono text-gray-600">Complete</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-mono font-bold text-[#22C55E]">{pct(bd?.paymentRate)}</div>
+                <div className="text-[9px] font-mono text-gray-600">Paid</div>
+              </div>
             </div>
           </div>
 
-          {/* Review section */}
+          {/* Review Section */}
           {reviewed ? (
-            <div className="bg-[#0a1a0a] border border-[#22C55E]/30 rounded-lg p-6 text-center">
-              <p className="text-[#22C55E] font-mono font-bold mb-1">✅ Review submitted</p>
+            <div className="bg-[#0a1a0a] border border-[#22C55E]/30 rounded-xl p-6 text-center">
+              <p className="text-[#22C55E] font-mono font-bold mb-1">Review submitted</p>
               <p className="text-gray-500 font-mono text-xs mb-4">Thank you for contributing to the trust network.</p>
               <div className="flex gap-3 justify-center">
                 <Link
                   href="/explore"
-                  className="text-xs font-mono text-[#0052FF] border border-[#0052FF]/30 hover:bg-[#0052FF]/10 px-4 py-2 rounded transition-colors"
+                  className="text-xs font-mono text-[#0052FF] border border-[#0052FF]/30 hover:bg-[#0052FF]/10 px-4 py-2 rounded-lg transition-colors"
                 >
-                  Browse more projects
+                  Browse agents
                 </Link>
-                <button
-                  onClick={() => setReviewed(false)}
-                  className="text-xs font-mono text-gray-400 border border-[#333] hover:border-gray-500 px-4 py-2 rounded transition-colors"
+                <Link
+                  href={`/agent/${agent.address}`}
+                  className="text-xs font-mono text-gray-400 border border-[#333] hover:border-gray-500 px-4 py-2 rounded-lg transition-colors"
                 >
-                  Review again
-                </button>
+                  View agent
+                </Link>
               </div>
             </div>
           ) : !authenticated ? (
-            /* Cold-start: not connected */
-            <div className="bg-[#111111] border border-[#222222] rounded-lg p-8 text-center">
-              <div className="mb-6">
+            <div className="bg-[#111] border border-[#222] rounded-xl p-6 text-center">
+              <div className="mb-5">
                 <p className="text-white font-mono font-bold text-sm mb-2">
-                  Connect your wallet to review
+                  Connect wallet to review
                 </p>
                 <p className="text-gray-500 font-mono text-xs leading-relaxed">
                   Only wallets with on-chain interaction history<br />
-                  with this project can submit reviews.
+                  with this agent can submit reviews.
                 </p>
               </div>
               <button
@@ -206,22 +254,18 @@ export default function ReviewPage() {
               >
                 Connect Wallet
               </button>
-              <p className="text-gray-600 font-mono text-xs mt-3">
-                Powered by Privy · Maiat Protocol
-              </p>
             </div>
           ) : (
-            /* Connected: show review form */
             <ReviewForm
-              projectId={project.address}
-              projectName={project.name}
+              projectId={agent.address}
+              projectName={name}
               onSuccess={() => setReviewed(true)}
             />
           )}
 
-          {/* Footer note */}
-          <p className="text-center text-gray-700 font-mono text-xs mt-6">
-            Reviews are weighted by on-chain interaction depth · -2🪲 Scarab per review
+          {/* Footer */}
+          <p className="text-center text-gray-700 font-mono text-[10px]">
+            Reviews weighted by on-chain depth · -2 Scarab per review
           </p>
         </div>
       </main>
