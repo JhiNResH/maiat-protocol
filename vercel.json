@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/cron/resolve-markets",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/v1/cron/index-agents",
@@ -16,7 +16,7 @@
     },
     {
       "path": "/api/v1/cron/oracle-sync",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 4 * * *"
     }
   ]
 }
