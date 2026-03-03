@@ -528,7 +528,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Step 7.5: EAS Attestation (fire-and-forget) ---
+    // --- Step 7.5: Feedback loop — recalculate agent trust score ---
+    try {
+      const { recalculateAgentScore } = await import("@/lib/feedback-loop");
+      recalculateAgentScore(checksumAddress).catch((err) => {
+        console.warn("[review] feedback-loop failed (non-blocking):", err.message);
+      });
+    } catch { /* best effort */ }
+
+    // --- Step 7.6: EAS Attestation (fire-and-forget) ---
     if (EAS_REVIEW_SCHEMA_UID) {
       attestReview(
         checksumAddress,

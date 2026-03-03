@@ -36,9 +36,19 @@ export async function GET(request: NextRequest) {
   }
 
   if (!EAS_TRUST_SCORE_SCHEMA_UID) {
+    // Gracefully skip — schema not registered yet
+    console.log("[auto-attest] Skipping: EAS_TRUST_SCORE_SCHEMA_UID not configured");
     return NextResponse.json(
-      { error: "EAS_TRUST_SCORE_SCHEMA_UID not configured" },
-      { status: 500, headers: CORS_HEADERS }
+      { skipped: true, reason: "EAS_TRUST_SCORE_SCHEMA_UID not configured" },
+      { status: 200, headers: CORS_HEADERS }
+    );
+  }
+
+  if (!process.env.MAIAT_ADMIN_PRIVATE_KEY) {
+    console.log("[auto-attest] Skipping: MAIAT_ADMIN_PRIVATE_KEY not configured");
+    return NextResponse.json(
+      { skipped: true, reason: "MAIAT_ADMIN_PRIVATE_KEY not configured" },
+      { status: 200, headers: CORS_HEADERS }
     );
   }
 
