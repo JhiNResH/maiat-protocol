@@ -89,6 +89,18 @@ export async function GET(
         const name = (raw?.name as string) || a.tokenSymbol || "";
         return [a.walletAddress.toLowerCase(), name];
       }));
+      // Build logo map from rawMetrics.profilePic
+      var agentLogos = new Map<string, string>(
+        agents
+          .filter((a) => {
+            const raw = a.rawMetrics as Record<string, unknown> | null;
+            return typeof raw?.profilePic === "string";
+          })
+          .map((a) => {
+            const raw = a.rawMetrics as Record<string, unknown>;
+            return [a.walletAddress.toLowerCase(), raw.profilePic as string];
+          })
+      );
     } catch {
       // AgentScore table may not exist — that's fine
     }
@@ -100,6 +112,7 @@ export async function GET(
       return {
         address: target,
         name: agentNames.get(target.toLowerCase()) || `${target.slice(0, 6)}…${target.slice(-4)}`,
+        logo: agentLogos?.get(target.toLowerCase()) || null,
         score: info.trustScore,
         lastInteraction: info.lastInteraction.toISOString(),
         reviewed,
