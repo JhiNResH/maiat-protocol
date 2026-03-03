@@ -1,6 +1,6 @@
 {
-  "name": "@maiat/mcp-server",
-  "version": "0.1.0",
+  "name": "@jhinresh/mcp-server",
+  "version": "0.2.1",
   "description": "Maiat Trust Score MCP Server — query trust scores for any on-chain address from Claude, GPT, or any MCP-compatible AI",
   "type": "module",
   "main": "dist/index.js",

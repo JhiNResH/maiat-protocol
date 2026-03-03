@@ -1,5 +1,5 @@
 /**
- * @maiat/viem-guard integration test
+ * @jhinresh/viem-guard integration test
  *
  * Demonstrates the guard blocking/allowing transactions based on Maiat trust scores.
  * Uses a mock wallet client (no real tx sent).
@@ -10,7 +10,7 @@
 import { createWalletClient, http } from 'viem'
 import { base } from 'viem/chains'
 import { privateKeyToAccount } from 'viem/accounts'
-import { withMaiatTrust, MaiatTrustError } from '@maiat/viem-guard'
+import { withMaiatTrust, MaiatTrustError } from '@jhinresh/viem-guard'
 
 // Dummy key — no real tx sent in this test
 const account = privateKeyToAccount(
@@ -45,7 +45,7 @@ const TEST_CASES = [
 ]
 
 async function run() {
-  console.log('\n🛡️  @maiat/viem-guard integration test\n')
+  console.log('\n🛡️  @jhinresh/viem-guard integration test\n')
   console.log('  API: https://maiat-protocol.vercel.app/api/v1/trust-check')
   console.log('  Tier: free (10 req/min)\n')
   console.log('─'.repeat(60))

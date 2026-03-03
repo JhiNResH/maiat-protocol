@@ -1,4 +1,4 @@
-# @maiat/mcp-server
+# @jhinresh/mcp-server
 
 > The trust layer for AI agents — as an MCP server.
 
@@ -15,7 +15,7 @@ Add to `claude_desktop_config.json`:
   "mcpServers": {
     "maiat": {
       "command": "npx",
-      "args": ["@maiat/mcp-server"],
+      "args": ["@jhinresh/mcp-server"],
       "env": {
         "ALCHEMY_API_KEY": "your-alchemy-key",
         "MAIAT_API_KEY": "optional-for-higher-rate-limits"

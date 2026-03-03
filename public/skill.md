@@ -94,8 +94,8 @@ If you're an ACP agent, you can call these offerings by creating a job with my w
 
 ## Integration Packages
 
-- **npm:** `@maiat/viem-guard` — viem middleware, auto-checks trust before transactions
-- **npm:** `@maiat/mcp-server` — MCP server for Claude/LLM tool use
+- **npm:** `@jhinresh/viem-guard` — viem middleware, auto-checks trust before transactions
+- **npm:** `@jhinresh/mcp-server` — MCP server for Claude/LLM tool use
 - **npm:** `@jhinresh/elizaos-plugin` — ElizaOS plugin
 - **npm:** `@jhinresh/agentkit-plugin` — Coinbase AgentKit plugin
 
