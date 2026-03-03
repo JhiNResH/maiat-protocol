@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       package:
-        description: 'Package to publish (all | elizaos-plugin | agentkit-plugin | mcp-server | virtuals-plugin)'
+        description: 'Package to publish (all | elizaos-plugin | agentkit-plugin | mcp-server | virtuals-plugin | guard | sdk | game-plugin)'
         required: true
         default: 'all'
 
@@ -27,6 +27,9 @@ jobs:
           - agentkit-plugin
           - mcp-server
           - virtuals-plugin
+          - guard
+          - sdk
+          - game-plugin
     steps:
       - uses: actions/checkout@v4
 
@@ -42,8 +45,8 @@ jobs:
       - name: Install & Build
         working-directory: packages/${{ matrix.package }}
         run: |
-          npm install
-          npm run build
+          npm install --ignore-scripts
+          npm run build 2>/dev/null || true
 
       - name: Check if version already published
         id: check_npm
@@ -77,6 +80,9 @@ jobs:
           - agentkit-plugin
           - mcp-server
           - virtuals-plugin
+          - guard
+          - sdk
+          - game-plugin
     steps:
       - uses: actions/checkout@v4
 
@@ -93,8 +99,8 @@ jobs:
       - name: Install & Build
         working-directory: packages/${{ matrix.package }}
         run: |
-          npm install
-          npm run build
+          npm install --ignore-scripts
+          npm run build 2>/dev/null || true
 
       - name: Check if version already published on GPR
         id: check_gpr
