@@ -20,28 +20,29 @@
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    maiat-protocol                       │
-├──────────┬──────────┬──────────┬────────────────────────┤
-│ Web App  │ API      │Contracts │ Packages               │
-│ Next.js  │ /api/v1  │ Solidity │ guard · elizaos · land │
-├──────────┴──────────┴──────────┴────────────────────────┤
-│                    Feedback Loop                        │
-│  ACP Query → QueryLog → AgentScore → Oracle Sync → EAS │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                          maiat-protocol                             │
+├──────────┬──────────┬──────────┬─────────────────────────────────────┤
+│ Web App  │ API      │Contracts │ Packages                            │
+│ Next.js  │ /api/v1  │ Solidity │ sdk · guard · mcp · elizaos ·       │
+│          │          │          │ agentkit · game · virtuals           │
+├──────────┴──────────┴──────────┴─────────────────────────────────────┤
+│                          Feedback Loop                               │
+│    ACP Query → QueryLog → AgentScore → Oracle Sync → EAS             │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ## What It Does
 
-| Use Case | Endpoint | Fee |
-|---|---|---|
-| Token honeypot check | `GET /api/v1/token/:address` | Free |
-| Agent trust score | `GET /api/v1/agent/:address` | Free |
-| Deep agent analysis | `GET /api/v1/agent/:address/deep` | Free |
-| Trust-gated swap quote | `POST /api/v1/swap/quote` | Free |
-| Browse 2,200+ agents | `GET /api/v1/agents` | Free |
-| Submit review | `POST /api/v1/review` | 2 Scarab |
-| Trust Passport | `GET /api/v1/wallet/:address/passport` | Free |
+| Use Case               | Endpoint                               | Fee      |
+| ---------------------- | -------------------------------------- | -------- |
+| Token honeypot check   | `GET /api/v1/token/:address`           | Free     |
+| Agent trust score      | `GET /api/v1/agent/:address`           | Free     |
+| Deep agent analysis    | `GET /api/v1/agent/:address/deep`      | Free     |
+| Trust-gated swap quote | `POST /api/v1/swap/quote`              | Free     |
+| Browse 2,200+ agents   | `GET /api/v1/agents`                   | Free     |
+| Submit review          | `POST /api/v1/review`                  | 2 Scarab |
+| Trust Passport         | `GET /api/v1/wallet/:address/passport` | Free     |
 
 ---
 
@@ -49,23 +50,23 @@
 
 Wallet: `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`
 
-| Offering | Fee | Description |
-|---|---|---|
-| `token_check` | $0.01 | Honeypot detection, tax analysis, risk flags |
-| `agent_trust` | $0.02 | Behavioral trust score from on-chain job history |
-| `agent_deep_check` | $0.10 | Percentile rank, risk flags, tier, recommendation |
-| `trust_swap` | $0.05 + 0.15% | Trust-gated Uniswap swap (calldata withheld if unsafe) |
+| Offering           | Fee           | Description                                            |
+| ------------------ | ------------- | ------------------------------------------------------ |
+| `token_check`      | $0.01         | Honeypot detection, tax analysis, risk flags           |
+| `agent_trust`      | $0.02         | Behavioral trust score from on-chain job history       |
+| `agent_deep_check` | $0.10         | Percentile rank, risk flags, tier, recommendation      |
+| `trust_swap`       | $0.05 + 0.15% | Trust-gated Uniswap swap (calldata withheld if unsafe) |
 
 ---
 
 ## Smart Contracts (Base Sepolia)
 
-| Contract | Address | Purpose |
-|---|---|---|
-| **TrustScoreOracle** | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` | On-chain trust scores (weighted: behavioral 70% + reviews 30%) |
-| **TrustGateHook** | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` | Uniswap v4 Hook — gates swaps based on oracle scores |
-| **MaiatPassport** | — | Soulbound ERC-721 — auto-minted on wallet connect |
-| **MaiatTrustConsumer** | — | Chainlink CRE consumer for decentralized oracle updates |
+| Contract               | Address                                      | Purpose                                                        |
+| ---------------------- | -------------------------------------------- | -------------------------------------------------------------- |
+| **TrustScoreOracle**   | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` | On-chain trust scores (weighted: behavioral 70% + reviews 30%) |
+| **TrustGateHook**      | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` | Uniswap v4 Hook — gates swaps based on oracle scores           |
+| **MaiatPassport**      | —                                            | Soulbound ERC-721 — auto-minted on wallet connect              |
+| **MaiatTrustConsumer** | —                                            | Chainlink CRE consumer for decentralized oracle updates        |
 
 **Base Builder Code:** `bc_cozhkj23` (ERC-8021, appended to all swap calldata)
 
@@ -74,16 +75,19 @@ Wallet: `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`
 ## On-Chain Integrations
 
 ### EAS (Ethereum Attestation Service)
+
 - 3 schemas: `trustScore`, `review`, `acpInteraction`
 - Auto-attest cron: daily attestations for all ACP interactions
 - Base EAS contract: `0x4200000000000000000000000000000000000021`
 
 ### Uniswap v4 Hook (Hookathon)
+
 - **Project:** AgenticCommerceHook | **ID:** HK-UHI8-0765
 - `beforeSwap` reads TrustScoreOracle → blocks or surcharges low-trust tokens
 - Dynamic fee adjustment based on trust score
 
 ### Base Builder Code
+
 - Registered at base.dev: `bc_cozhkj23`
 - Zero gas overhead (ERC-8021 data suffix)
 
@@ -102,37 +106,41 @@ User/Agent action → QueryLog/TrustReview (DB)
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| [`packages/guard`](packages/guard/) | Viem middleware — auto-checks trust before transactions |
-| [`packages/elizaos-plugin`](packages/elizaos-plugin/) | ElizaOS plugin for trust verification |
-| [`packages/landing`](packages/landing/) | Marketing landing page |
+| Package                                                  | npm                                                                                                                           | Description                                                            |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [`maiat-sdk`](packages/sdk/)                             | [![npm](https://img.shields.io/npm/v/maiat-sdk)](https://www.npmjs.com/package/maiat-sdk)                                     | Core SDK — trust scores, token safety, swap verification for AI agents |
+| [`@maiat/viem-guard`](packages/guard/)                   | [![npm](https://img.shields.io/npm/v/@maiat/viem-guard)](https://www.npmjs.com/package/@maiat/viem-guard)                     | Viem middleware — auto-checks trust before every transaction           |
+| [`@maiat/mcp-server`](packages/mcp-server/)              | [![npm](https://img.shields.io/npm/v/@maiat/mcp-server)](https://www.npmjs.com/package/@maiat/mcp-server)                     | MCP Server — query trust from Claude, GPT, or any MCP-compatible AI    |
+| [`@jhinresh/elizaos-plugin`](packages/elizaos-plugin/)   | [![npm](https://img.shields.io/npm/v/@jhinresh/elizaos-plugin)](https://www.npmjs.com/package/@jhinresh/elizaos-plugin)       | ElizaOS plugin — trust-gate actions, evaluators, providers             |
+| [`@jhinresh/agentkit-plugin`](packages/agentkit-plugin/) | [![npm](https://img.shields.io/npm/v/@jhinresh/agentkit-plugin)](https://www.npmjs.com/package/@jhinresh/agentkit-plugin)     | Coinbase AgentKit plugin — auto-check trust before transactions        |
+| [`@jhinresh/game-maiat-plugin`](packages/game-plugin/)   | [![npm](https://img.shields.io/npm/v/@jhinresh/game-maiat-plugin)](https://www.npmjs.com/package/@jhinresh/game-maiat-plugin) | GAME SDK plugin — check_trust_score, gate_swap, batch_check            |
+| [`@jhinresh/virtuals-plugin`](packages/virtuals-plugin/) | [![npm](https://img.shields.io/npm/v/@jhinresh/virtuals-plugin)](https://www.npmjs.com/package/@jhinresh/virtuals-plugin)     | Virtuals GAME SDK plugin — trust-gate agent transactions               |
 
 ---
 
 ## Cron Jobs (Vercel)
 
-| Job | Schedule | Purpose |
-|---|---|---|
-| `index-agents` | Daily 02:00 UTC | Index new agents from ACP on-chain |
-| `auto-attest` | Daily 03:00 UTC | EAS attestations for ACP interactions |
-| `oracle-sync` | Every 6h | Sync trust scores to on-chain oracle |
-| `resolve-markets` | Every 6h | Settle prediction markets past `closesAt` |
+| Job               | Schedule        | Purpose                                   |
+| ----------------- | --------------- | ----------------------------------------- |
+| `index-agents`    | Daily 02:00 UTC | Index new agents from ACP on-chain        |
+| `auto-attest`     | Daily 03:00 UTC | EAS attestations for ACP interactions     |
+| `oracle-sync`     | Every 6h        | Sync trust scores to on-chain oracle      |
+| `resolve-markets` | Every 6h        | Settle prediction markets past `closesAt` |
 
 ---
 
 ## Tech Stack
 
-| Layer | Tech |
-|---|---|
-| Framework | Next.js 15 (App Router) |
-| Database | PostgreSQL + Prisma (Supabase) |
-| Auth | Privy (wallet connect) |
-| AI | Google Gemini (review quality, deep insights) |
-| Chain | Base (primary) |
-| Oracle | TrustScoreOracle + Chainlink CRE (planned) |
-| Attestation | EAS on Base |
-| Deployment | Vercel (web) · Railway (ACP agent) |
+| Layer       | Tech                                          |
+| ----------- | --------------------------------------------- |
+| Framework   | Next.js 15 (App Router)                       |
+| Database    | PostgreSQL + Prisma (Supabase)                |
+| Auth        | Privy (wallet connect)                        |
+| AI          | Google Gemini (review quality, deep insights) |
+| Chain       | Base (primary)                                |
+| Oracle      | TrustScoreOracle + Chainlink CRE (planned)    |
+| Attestation | EAS on Base                                   |
+| Deployment  | Vercel (web) · Railway (ACP agent)            |
 
 ---
 
