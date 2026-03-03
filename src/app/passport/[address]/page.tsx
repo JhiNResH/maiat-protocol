@@ -54,10 +54,10 @@ const TRUST_CONFIG: Record<string, { label: string; color: string; bg: string; b
 
 const TRUST_PERKS: Record<string, string[]> = {
   new:      ['Read-only access', 'No review privileges'],
-  basic:    ['1x review weight', 'Standard 0.5% fee'],
-  trusted:  ['2x review weight', '0.3% fee (-40%)', 'Claim Scarab daily'],
-  verified: ['3x review weight', '0.1% fee (-80%)', 'Early access features'],
-  guardian: ['5x review weight', '0% fee', 'Governance voting', 'Guardian badge'],
+  basic:    ['1x review weight'],
+  trusted:  ['2x review weight', 'Claim Scarab daily'],
+  verified: ['3x review weight', 'Early access features'],
+  guardian: ['5x review weight', 'Governance voting', 'Guardian badge'],
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -282,11 +282,7 @@ export default function PassportPage() {
               <RepBar score={data.passport.reputationScore} />
             </div>
 
-            {/* Fee tier */}
-            <div className="mt-4 pt-4 border-t flex items-center justify-between" style={{ borderColor: trust.border }}>
-              <span className="text-xs font-mono text-gray-500">Review fee tier</span>
-              <span className="text-xs font-mono" style={{ color: trust.color }}>{data.passport.feeDiscount}</span>
-            </div>
+            {/* Fee tier — hidden until TrustGateHook is live on mainnet */}
           </div>
 
           {/* ── Projects to Review ────────────────────────────────────────── */}
