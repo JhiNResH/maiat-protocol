@@ -1,11 +1,11 @@
-# @maiat/viem-guard
+# @jhinresh/viem-guard
 
 > Universal trust middleware for viem — automatically checks Maiat trust score before every transaction.
 
 ## Install
 
 ```bash
-npm install @maiat/viem-guard viem
+npm install @jhinresh/viem-guard viem
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ npm install @maiat/viem-guard viem
 ```ts
 import { createWalletClient, http, parseEther } from 'viem'
 import { base } from 'viem/chains'
-import { withMaiatTrust } from '@maiat/viem-guard'
+import { withMaiatTrust } from '@jhinresh/viem-guard'
 
 const walletClient = createWalletClient({
   account,
@@ -64,7 +64,7 @@ const client = withMaiatTrust(walletClient, { mode: 'silent' })
 ## Error handling
 
 ```ts
-import { withMaiatTrust, MaiatTrustError } from '@maiat/viem-guard'
+import { withMaiatTrust, MaiatTrustError } from '@jhinresh/viem-guard'
 
 try {
   await client.sendTransaction({ to: '0x...', value: parseEther('1') })
