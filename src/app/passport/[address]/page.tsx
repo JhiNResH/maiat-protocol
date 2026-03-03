@@ -124,22 +124,8 @@ export default function PassportPage() {
     setAgentsLoading(true)
     fetch(`/api/v1/passport/${address}/reviewable`)
       .then(r => r.json())
-      .then(async (d) => {
-        const agents = d.agents ?? []
-        if (agents.length > 0) {
-          setReviewableAgents(agents)
-        } else {
-          // Fallback: show top agents by jobs so new users have something to review
-          const res = await fetch('/api/v1/agents?sort=jobs&limit=20')
-          const data = await res.json()
-          setReviewableAgents((data.agents ?? []).map((a: any) => ({
-            address: a.id,
-            name: a.name || a.id.slice(0, 10),
-            score: a.trust?.score ?? null,
-            lastInteraction: '',
-            reviewed: false,
-          })))
-        }
+      .then((d) => {
+        setReviewableAgents(d.agents ?? [])
       })
       .catch(console.error)
       .finally(() => setAgentsLoading(false))
