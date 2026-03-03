@@ -129,11 +129,23 @@ async function resolveMarket(market: MarketWithPositions) {
     return { winners: [], payouts: 0, burned: 0 };
   }
 
-  // 2. Fetch current trust scores for all staked projects
-  const projects = await prisma.project.findMany({
-    where: { id: { in: projectIds } },
-    select: { id: true, name: true, trustScore: true },
+  // 2. Fetch current trust scores from agentScore table (ACP agents)
+  const agents = await prisma.agentScore.findMany({
+    where: { walletAddress: { in: projectIds } },
+    select: { walletAddress: true, trustScore: true },
   });
+
+  // Fallback: also check old project table for legacy entries
+  const legacyProjects = await prisma.project.findMany({
+    where: { id: { in: projectIds.filter(id => !agents.find(a => a.walletAddress === id)) } },
+    select: { id: true, trustScore: true },
+  });
+
+  // Merge into unified ranked list
+  const projects = [
+    ...agents.map(a => ({ id: a.walletAddress, name: a.walletAddress, trustScore: a.trustScore })),
+    ...legacyProjects.map(p => ({ id: p.id, name: p.id, trustScore: p.trustScore })),
+  ];
 
   // 3. Rank by trustScore DESC → top 3 are winners
   const ranked = [...projects].sort((a, b) => (b.trustScore ?? 0) - (a.trustScore ?? 0));
@@ -236,15 +248,11 @@ async function seedNextMarket(category: string) {
   const closesAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days
 
   const titles: Record<string, string> = {
-    "ai-agents": "Top AI Agent This Fortnight",
-    defi: "Most Trusted DeFi Protocol",
-    mixed: "Rising Star",
+    "ai-agents": "Top ACP Agent This Fortnight",
   };
 
   const descriptions: Record<string, string> = {
-    "ai-agents": "Stake Scarab on which AI agent will have the highest trust score in 2 weeks",
-    defi: "Stake Scarab on which DeFi protocol will be most trusted in 2 weeks",
-    mixed: "Stake Scarab on which rising star (trust score < 70) will climb highest",
+    "ai-agents": "Stake Scarab on which ACP agent will have the highest trust score + job completion in 2 weeks",
   };
 
   const newMarket = await prisma.market.create({
