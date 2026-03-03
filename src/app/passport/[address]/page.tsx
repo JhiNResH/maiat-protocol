@@ -123,21 +123,51 @@ export default function PassportPage() {
     setReviewableLoading(true)
     fetch(`/api/v1/wallet/${address}/interactions`)
       .then(r => r.json())
-      .then(d => {
-        // Show all interacted addresses (known agents get review button)
-        setReviewable(d.interacted ?? [])
+      .then(async (d) => {
+        const interacted = d.interacted ?? []
+        if (interacted.length > 0) {
+          setReviewable(interacted)
+        } else {
+          // Fallback: show top agents so new users can review
+          const res = await fetch('/api/v1/agents?sort=jobs&limit=10')
+          const data = await res.json()
+          setReviewable((data.agents ?? []).map((a: any) => ({
+            name: a.name || null,
+            address: a.id,
+            category: a.category || null,
+            txCount: 0,
+            trustScore: a.trust?.score ?? null,
+            hasReviewed: false,
+          })))
+        }
       })
       .catch(console.error)
       .finally(() => setReviewableLoading(false))
   }, [address])
 
-  // Fetch agents this wallet queried via ACP but hasn't reviewed
+  // Fetch reviewable agents: first try ACP interactions, fallback to top agents
   useEffect(() => {
     if (!address || !/^0x[a-f0-9]{40}$/.test(address)) return
     setAgentsLoading(true)
     fetch(`/api/v1/passport/${address}/reviewable`)
       .then(r => r.json())
-      .then(d => setReviewableAgents(d.agents ?? []))
+      .then(async (d) => {
+        const agents = d.agents ?? []
+        if (agents.length > 0) {
+          setReviewableAgents(agents)
+        } else {
+          // Fallback: show top agents by jobs so new users have something to review
+          const res = await fetch('/api/v1/agents?sort=jobs&limit=20')
+          const data = await res.json()
+          setReviewableAgents((data.agents ?? []).map((a: any) => ({
+            address: a.id,
+            name: a.name || a.id.slice(0, 10),
+            score: a.trust?.score ?? null,
+            lastInteraction: '',
+            reviewed: false,
+          })))
+        }
+      })
       .catch(console.error)
       .finally(() => setAgentsLoading(false))
   }, [address])
