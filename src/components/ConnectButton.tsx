@@ -155,6 +155,28 @@ export function ConnectButton() {
     claimDailyScarab()
   }, [authenticated, user?.wallet?.address, claimed, connectedWallet])
 
+  // Auto-mint MaiatPassport SBT on first connect
+  useEffect(() => {
+    async function mintPassport() {
+      if (!authenticated || !user?.wallet?.address) return
+      const mintKey = `passport-minted:${user.wallet.address.toLowerCase()}`
+      if (typeof window !== 'undefined' && localStorage.getItem(mintKey)) return
+      try {
+        const res = await fetch('/api/v1/passport/mint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: user.wallet.address }),
+        })
+        if (res.ok) {
+          localStorage.setItem(mintKey, 'true')
+        }
+      } catch {
+        // Silent fail — will retry next connect
+      }
+    }
+    mintPassport()
+  }, [authenticated, user?.wallet?.address])
+
   if (!ready) return null
 
   if (authenticated && user?.wallet?.address) {

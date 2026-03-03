@@ -36,6 +36,16 @@ export function logQuery(input: QueryLogInput): void {
         metadata: (input.metadata ?? null) as any,
       },
     })
+    .then(() => {
+      // Feedback loop: recalculate agent score after ACP query
+      if (input.type === "agent_trust" || input.type === "agent_deep_check") {
+        import("@/lib/feedback-loop")
+          .then(({ recalculateAgentScore }) =>
+            recalculateAgentScore(input.target)
+          )
+          .catch(() => {});
+      }
+    })
     .catch((err) => {
       // Silent — logging should never break the main flow
       console.error("[query-logger] failed to write log:", err);
