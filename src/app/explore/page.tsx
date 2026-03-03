@@ -121,7 +121,7 @@ function ExplorePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [sortBy, setSortBy]   = useState<"trust" | "jobs">("trust");
+  const [sortBy, setSortBy]   = useState<"trust" | "jobs">("jobs");
   const [totalAgents, setTotalAgents] = useState(0);
 
   // ── Debounce search ─────────────────────────────────────────────────────────
@@ -383,7 +383,9 @@ function LeaderboardView({
   router: ReturnType<typeof useRouter>;
 }) {
   const top = [...agents]
-    .sort((a, b) => (b.trust.score ?? -1) - (a.trust.score ?? -1))
+    .sort((a, b) => sortBy === "jobs"
+      ? (b.breakdown?.totalJobs ?? 0) - (a.breakdown?.totalJobs ?? 0)
+      : (b.trust.score ?? -1) - (a.trust.score ?? -1))
     .slice(0, 50);
 
   const rankStyle = (i: number) => {
