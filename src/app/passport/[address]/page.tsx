@@ -11,6 +11,7 @@ import { Header } from '@/components/Header'
 interface ReviewableAgent {
   address: string
   name: string
+  logo: string | null
   score: number | null
   lastInteraction: string
   reviewed: boolean
@@ -259,10 +260,14 @@ export default function PassportPage() {
                         href={`/review/${agent.address}`}
                         className="flex items-center gap-2 border border-[#1e1e1e] rounded-lg px-2 py-1.5 hover:border-[#333] transition-colors"
                       >
-                        <div className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0"
-                          style={{ background: '#0052FF22', color: '#0052FF', border: '1px solid #0052FF44' }}>
-                          {agent.name.charAt(0)}
-                        </div>
+                        {agent.logo ? (
+                          <img src={agent.logo} alt={agent.name} className="w-6 h-6 rounded object-cover shrink-0" />
+                        ) : (
+                          <div className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0"
+                            style={{ background: '#0052FF22', color: '#0052FF', border: '1px solid #0052FF44' }}>
+                            {agent.name.charAt(0)}
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <p className="text-white font-mono text-[10px] font-semibold truncate">{agent.name}</p>
                           <p className="text-gray-600 font-mono text-[9px]"><span className={scoreColor}>{score}</span></p>
