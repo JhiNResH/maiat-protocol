@@ -47,9 +47,10 @@ export async function GET(request: NextRequest) {
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+    // Attest ALL ACP interactions — every query becomes a Maiat Receipt
     const logs = await prisma.queryLog.findMany({
       where: {
-        type: "trust_swap",
+        type: { in: ["trust_swap", "token_check", "agent_trust", "agent_deep_check"] },
         createdAt: { gte: since },
         buyer: { not: null },
       },
