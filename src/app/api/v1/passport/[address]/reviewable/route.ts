@@ -43,6 +43,28 @@ export async function GET(
       }
     }
 
+    // Also check on-chain interactions via Alchemy and cross-reference with known agents
+    try {
+      const interactionsRes = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'https://maiat-protocol.vercel.app'}/api/v1/wallet/${wallet}/interactions`
+      );
+      if (interactionsRes.ok) {
+        const interactionsData = await interactionsRes.json();
+        const interacted = interactionsData.interacted ?? [];
+        // Only add addresses that are known agents (isKnown = true from agentScore)
+        for (const item of interacted) {
+          if (item.isKnown && !targetMap.has(item.address.toLowerCase())) {
+            targetMap.set(item.address.toLowerCase(), {
+              lastInteraction: new Date(),
+              trustScore: item.trustScore,
+            });
+          }
+        }
+      }
+    } catch {
+      // On-chain lookup failed — continue with ACP data only
+    }
+
     if (targetMap.size === 0) {
       return NextResponse.json({ agents: [] });
     }
@@ -59,10 +81,14 @@ export async function GET(
     let agentNames: Map<string, string> = new Map();
     try {
       const agents = await prisma.agentScore.findMany({
-        where: { walletAddress: { in: targets } },
-        select: { walletAddress: true, tokenSymbol: true },
+        where: { walletAddress: { in: targets, mode: 'insensitive' } },
+        select: { walletAddress: true, tokenSymbol: true, rawMetrics: true },
       });
-      agentNames = new Map(agents.map((a) => [a.walletAddress, a.tokenSymbol ?? ""]));
+      agentNames = new Map(agents.map((a) => {
+        const raw = a.rawMetrics as Record<string, unknown> | null;
+        const name = (raw?.name as string) || a.tokenSymbol || "";
+        return [a.walletAddress.toLowerCase(), name];
+      }));
     } catch {
       // AgentScore table may not exist — that's fine
     }
@@ -73,7 +99,7 @@ export async function GET(
       const reviewed = reviewedSet.has(target);
       return {
         address: target,
-        name: agentNames.get(target) || `${target.slice(0, 6)}…${target.slice(-4)}`,
+        name: agentNames.get(target.toLowerCase()) || `${target.slice(0, 6)}…${target.slice(-4)}`,
         score: info.trustScore,
         lastInteraction: info.lastInteraction.toISOString(),
         reviewed,
