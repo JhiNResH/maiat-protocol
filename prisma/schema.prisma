@@ -166,6 +166,7 @@ model TrustReview {
   createdAt    DateTime @default(now())
   easReceiptId String?
   weight       Int      @default(1)
+  source       String?  @default("human")
 
   @@index([address])
   @@index([reviewer])

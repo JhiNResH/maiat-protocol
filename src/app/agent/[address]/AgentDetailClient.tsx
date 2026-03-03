@@ -3,7 +3,6 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import { usePrivy } from '@privy-io/react-auth'
-import { useInteractionCheck } from '@/hooks/useInteractionCheck'
 import { Header } from '@/components/Header'
 import {
   Copy, ExternalLink, Shield, Activity,
@@ -155,13 +154,9 @@ function ReviewFormInline({
   const walletAddress = user?.wallet?.address
   const canAfford = scarabBalance === null || scarabBalance >= 2
 
-  const { status: interactionStatus, proof: interactionProof, check: checkInteraction } =
-    useInteractionCheck(walletAddress, agentAddress)
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!walletAddress || !canAfford) return
-    if (interactionStatus === 'blocked') return
     setSubmitting(true); setResult(null)
     try {
       const res = await fetch('/api/v1/review', {
@@ -173,6 +168,7 @@ function ReviewFormInline({
           rating,
           comment: comment.trim() || undefined,
           easReceiptId: easReceiptId.trim() || undefined,
+          source: 'human',
         }),
       })
       const data = await res.json()
@@ -199,60 +195,12 @@ function ReviewFormInline({
     </div>
   )
 
-  if (interactionStatus === 'idle') return (
-    <div className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6">
-      <p className="text-[#94a3b8] text-sm mb-1 font-semibold">Verify On-Chain Interaction</p>
-      <p className="text-[#475569] text-xs mb-4 font-mono">Only wallets that have interacted with this agent can leave a review.</p>
-      <button
-        onClick={checkInteraction}
-        className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl transition-colors"
-      >
-        🔍 Verify Interaction
-      </button>
-    </div>
-  )
-
-  if (interactionStatus === 'loading') return (
-    <div className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6 text-center">
-      <p className="text-[#94a3b8] text-sm font-mono animate-pulse">⏳ Checking on-chain history…</p>
-    </div>
-  )
-
-  if (interactionStatus === 'blocked') return (
-    <div className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6">
-      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-3">
-        <p className="text-red-400 text-sm font-semibold mb-1">❌ No Interaction Found</p>
-        <p className="text-red-400/70 text-xs font-mono">
-          Wallet {walletAddress?.slice(0, 6)}…{walletAddress?.slice(-4)} has no recorded txs with {agentName}.
-        </p>
-      </div>
-      <p className="text-[#475569] text-xs font-mono mb-3">Interact with this agent on-chain first, then re-check.</p>
-      <button
-        onClick={checkInteraction}
-        className="w-full py-2 border border-[#1e2035] hover:border-[#2a2d45] text-[#94a3b8] text-sm rounded-xl transition-colors"
-      >
-        🔄 Re-check
-      </button>
-    </div>
-  )
-
   return (
     <form onSubmit={handleSubmit} className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6 flex flex-col gap-4">
-      {interactionStatus === 'verified' && interactionProof && (
-        <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 text-xs text-green-400 font-mono flex items-center gap-2">
-          <span>✅</span>
-          <span>
-            Interaction verified
-            {interactionProof.txCount > 0 && ` · ${interactionProof.txCount} tx${interactionProof.txCount > 1 ? 's' : ''}`}
-            {interactionProof.firstTxDate && ` · since ${new Date(interactionProof.firstTxDate).toLocaleDateString()}`}
-          </span>
-        </div>
-      )}
-      {interactionStatus === 'error' && (
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 text-xs text-yellow-400 font-mono">
-          ⚠️ Could not verify on-chain — backend will re-check on submit.
-        </div>
-      )}
+      {/* Weight info banner */}
+      <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-2 text-xs text-indigo-300 font-mono">
+        <span className="font-semibold">Review weight:</span> 1× base · <span className="text-green-400">3× with on-chain interaction proof</span> · <span className="text-yellow-300">5× with EAS receipt</span>
+      </div>
 
       <div className="flex items-center justify-between text-xs font-mono">
         <span className="text-[#475569]">

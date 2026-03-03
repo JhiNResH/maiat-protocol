@@ -219,9 +219,11 @@ export async function POST(request: NextRequest) {
       signature?: string;
       easReceiptId?: string;
       txHash?: string; // agent-friendly: on-chain proof (replaces signature)
+      source?: string; // "human" or "agent"
     };
 
     const { address, rating, comment, tags, reviewer, signature, easReceiptId, txHash } = body;
+    const source: string = body.source === 'agent' ? 'agent' : 'human';
 
     // --- Validation ---
     if (!address || !isAddress(address)) {
@@ -313,17 +315,9 @@ export async function POST(request: NextRequest) {
       hasInteraction = interaction.hasInteracted;
     }
 
-    if (!hasInteraction) {
-      return NextResponse.json(
-        {
-          error: "No interaction found",
-          detail: `Wallet ${checksumReviewer} has no on-chain interaction with ${checksumAddress}.`,
-          hint: "Options: (1) provide txHash of your interaction, (2) attach an EAS service receipt, (3) interact with the contract on-chain first.",
-          passportLevel,
-        },
-        { status: 403, headers: CORS_HEADERS }
-      );
-    }
+    // Interaction is now OPTIONAL — no 403 block.
+    // hasInteraction affects weight: with proof → 3×, without → 1× (default).
+    // EAS receipt still gets 5×.
 
     // --- Step 3: Deduct Scarab (if DB available) ---
     const db = await getDb();
@@ -401,16 +395,8 @@ export async function POST(request: NextRequest) {
     //     verified → ×2  (Base Verify identity proven)
     //     guardian → ×3  (community champion)
 
-    // Base weight from proof type
-    let weight = txHashInteracts ? 2 : 1;
-
-    // Passport boost (additive on top of proof weight, capped at 4 before EAS)
-    if (passportLevel === 'guardian') {
-      weight = Math.min(weight + 1, 4);   // txHash+guardian → 3, alchemy+guardian → 2 (but EAS still 5)
-    } else if (passportLevel === 'verified') {
-      weight = Math.max(weight, 2);        // At least 2x for Base-verified identity
-    }
-    // 'trusted' and 'new' don't change the proof-based weight
+    // Base weight: interaction proof → 3×, no proof → 1×
+    let weight = hasInteraction ? 3 : 1;
 
     let verifiedReceiptId: string | undefined = undefined;
 
@@ -443,7 +429,8 @@ export async function POST(request: NextRequest) {
           tags: tags ?? [],
           reviewer: checksumReviewer,
           easReceiptId: verifiedReceiptId,
-          weight
+          weight,
+          source,
         },
       });
       saved = {
