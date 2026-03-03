@@ -26,7 +26,7 @@ const navItems = [
 
 const accountItems = [
   { href: "/passport", label: "Trust Passport", icon: LayoutDashboard },
-  { href: "/swap", label: "Protected Swap", icon: Repeat },
+  // { href: "/swap", label: "Protected Swap", icon: Repeat }, // Hidden — demo only, TrustGateHook handles swap protection at contract level
 ];
 
 const resourceItems = [
