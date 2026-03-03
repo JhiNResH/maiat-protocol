@@ -10,8 +10,8 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jet
 
 export const metadata: Metadata = {
   title: 'Maiat Protocol — Trust Infrastructure for AI Agents',
-  description: 'Verify any smart contract or AI agent before you transact. On-chain trust scores, community reviews, and x402-gated trust gate API. Built on Base.',
-  keywords: ['smart contract trust score', 'AI agent verification', 'DeFi safety check', 'trust infrastructure', 'x402 payment', 'on-chain reputation'],
+  description: 'Trust oracle for AI agents and tokens — behavioral scoring, community reviews, EAS attestations, and Uniswap v4 trust-gated swaps. SDKs for ElizaOS, AgentKit, GAME, and MCP. Built on Base.',
+  keywords: ['trust oracle', 'AI agent verification', 'smart contract trust score', 'DeFi safety', 'trust infrastructure', 'EAS attestation', 'Uniswap v4 hook', 'on-chain reputation', 'agent commerce'],
   authors: [{ name: 'Maiat Protocol', url: 'https://maiat-protocol.vercel.app' }],
   icons: {
     icon: '/favicon.png',
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Maiat Protocol — Trust Infrastructure for AI Agents',
-    description: 'Verify any smart contract or AI agent before you transact. On-chain trust scores + community reviews.',
+    description: 'Trust oracle for AI agents and tokens — behavioral scoring, community reviews, EAS attestations, and Uniswap v4 trust-gated swaps. Built on Base.',
     url: 'https://maiat-protocol.vercel.app',
     siteName: 'Maiat Protocol',
     type: 'website',
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Maiat Protocol — Trust Infrastructure for AI Agents',
-    description: 'Verify any AI agent or smart contract before you transact. On-chain trust scores, TrustGateHook enforcement, and x402-gated API. The trust layer for the agent economy. Built on Base.',
+    description: 'Trust oracle for AI agents and tokens — behavioral scoring, community reviews, EAS attestations, and Uniswap v4 trust-gated swaps. SDKs for ElizaOS, AgentKit, GAME, and MCP. Built on Base.',
     images: ['https://maiat-protocol.vercel.app/maiat.jpg'],
     creator: '@0xmaiat',
   },
