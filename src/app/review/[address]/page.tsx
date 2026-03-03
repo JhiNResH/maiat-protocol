@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { usePrivy } from '@privy-io/react-auth'
 import { ReviewForm } from '@/components/ReviewForm'
+import { Header } from '@/components/Header'
 import Link from 'next/link'
 
 interface ProjectInfo {
@@ -122,17 +123,9 @@ export default function ReviewPage() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
-      {/* Top bar */}
-      <header className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between">
-        <Link href="/explore" className="flex items-center gap-2 group">
-          <span className="text-[#0052FF] font-mono font-bold text-sm tracking-wider">MAIAT</span>
-          <span className="text-gray-600 font-mono text-xs group-hover:text-gray-400 transition-colors">← back</span>
-        </Link>
-        <span className="font-mono text-xs text-gray-600">// TRUST REVIEW</span>
-      </header>
+      <Header />
 
-      {/* Main */}
-      <main className="flex-1 flex flex-col items-center justify-start pt-12 px-4 pb-16">
+      <main className="flex-1 flex flex-col items-center justify-start pt-8 px-4 pb-16">
         <div className="w-full max-w-lg">
 
           {/* Project card */}

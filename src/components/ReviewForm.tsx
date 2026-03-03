@@ -59,8 +59,9 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
       setEasReceiptId('')
       if (onSuccess) onSuccess()
       alert('✅ Review submitted! (-2 Scarab spent)')
-    } catch (e: any) {
-      setSubmitError(e.message)
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+      setSubmitError(errorMessage)
     } finally {
       setSubmitting(false)
     }
@@ -69,13 +70,13 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
   // ── Not signed in ─────────────────────────────────────────────────────────
   if (!authenticated) {
     return (
-      <div className="bg-white border border-gray-200 rounded-md p-5 text-center">
-        <p className="text-gray-500 font-mono text-sm mb-3">Sign in to review this project</p>
+      <div className="bg-[#111] border border-[#222] rounded-xl p-6 text-center">
+        <p className="text-gray-400 font-mono text-sm mb-3">Sign in to review this project</p>
         <button
           onClick={login}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold font-mono text-sm py-2 px-6 rounded-md transition-colors"
+          className="bg-[#0052FF] hover:bg-[#0040CC] text-white font-bold font-mono text-sm py-2.5 px-6 rounded-lg transition-colors"
         >
-          Sign In
+          Connect Wallet
         </button>
       </div>
     )
@@ -84,17 +85,22 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
   // ── STEP 1: Interaction gate (idle / loading / blocked) ───────────────────
   if (interactionStatus === 'idle') {
     return (
-      <div className="bg-white border border-gray-200 rounded-md p-5">
-        <h3 className="text-sm font-bold font-mono text-gray-900 mb-2">Review {projectName}</h3>
-        <p className="text-xs font-mono text-gray-500 mb-4">
-          Only wallets that have interacted with this project can leave a review.
-          Click below to verify your on-chain history.
-        </p>
+      <div className="bg-[#111] border border-[#222] rounded-xl p-6">
+        <div className="text-center mb-5">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#0052FF]/10 border border-[#0052FF]/30 flex items-center justify-center">
+            <span className="text-xl">🔍</span>
+          </div>
+          <h3 className="text-white font-mono font-bold text-sm mb-2">Verify Interaction</h3>
+          <p className="text-gray-500 font-mono text-xs leading-relaxed">
+            Only wallets with on-chain history<br />
+            with this agent can submit reviews.
+          </p>
+        </div>
         <button
           onClick={handleVerifyInteraction}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold font-mono text-sm py-2.5 rounded-md transition-colors"
+          className="w-full bg-[#0052FF] hover:bg-[#0040CC] text-white font-bold font-mono text-sm py-3 rounded-lg transition-colors"
         >
-          🔍 Verify On-Chain Interaction
+          Verify On-Chain Interaction
         </button>
       </div>
     )
@@ -102,9 +108,10 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
 
   if (interactionStatus === 'loading') {
     return (
-      <div className="bg-white border border-gray-200 rounded-md p-5 text-center">
-        <p className="text-sm font-mono text-gray-500 animate-pulse">
-          ⏳ Checking your on-chain interactions…
+      <div className="bg-[#111] border border-[#222] rounded-xl p-8 text-center">
+        <div className="w-10 h-10 mx-auto mb-3 rounded-full border-2 border-[#0052FF] border-t-transparent animate-spin" />
+        <p className="text-gray-400 font-mono text-sm">
+          Checking on-chain interactions…
         </p>
       </div>
     )
@@ -112,25 +119,29 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
 
   if (interactionStatus === 'blocked') {
     return (
-      <div className="bg-white border border-gray-200 rounded-md p-5">
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
-          <p className="text-sm font-bold font-mono text-red-700 mb-1">
-            ❌ No On-Chain Interaction Found
-          </p>
-          <p className="text-xs font-mono text-red-600">
-            Your wallet <span className="font-bold">{address?.slice(0, 6)}…{address?.slice(-4)}</span>{' '}
-            has no recorded transactions with <span className="font-bold">{projectName}</span> on Base.
-          </p>
+      <div className="bg-[#111] border border-[#222] rounded-xl p-6">
+        <div className="bg-[#1a0a0a] border border-[#EF4444]/30 rounded-lg p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <span className="text-lg">⛔</span>
+            <div>
+              <p className="text-[#EF4444] font-mono font-bold text-sm mb-1">
+                No Interaction Found
+              </p>
+              <p className="text-gray-500 font-mono text-xs leading-relaxed">
+                <span className="text-gray-400">{address?.slice(0, 6)}…{address?.slice(-4)}</span> has no
+                recorded transactions with this agent on Base.
+              </p>
+            </div>
+          </div>
         </div>
-        <p className="text-xs font-mono text-gray-500 mb-4">
-          To leave a review, interact with the project first (swap, deposit, call a function, etc.)
-          then come back to verify again.
+        <p className="text-gray-600 font-mono text-xs mb-4 text-center">
+          Interact with the agent first, then verify again.
         </p>
         <button
           onClick={handleVerifyInteraction}
-          className="w-full border border-gray-300 hover:border-gray-400 text-gray-700 font-bold font-mono text-sm py-2.5 rounded-md transition-colors"
+          className="w-full border border-[#333] hover:border-[#555] text-gray-300 font-mono text-sm py-2.5 rounded-lg transition-colors"
         >
-          🔄 Re-check Interaction
+          Re-check Interaction
         </button>
       </div>
     )
@@ -138,43 +149,41 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
 
   // ── STEP 2: Interaction verified (or error = fail-open) — show form ────────
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-md p-5">
-      <h3 className="text-sm font-bold font-mono text-gray-900 mb-4">Review {projectName}</h3>
-
+    <form onSubmit={handleSubmit} className="bg-[#111] border border-[#222] rounded-xl p-6">
       {/* Interaction badge */}
       {interactionStatus === 'verified' && proof && (
-        <div className="bg-green-50 border border-green-200 rounded-md px-3 py-2 mb-4 text-xs font-mono text-green-700 flex items-center gap-2">
-          <span>✅</span>
+        <div className="bg-[#0a1a0a] border border-[#22C55E]/30 rounded-lg px-3 py-2 mb-4 text-xs font-mono text-[#22C55E] flex items-center gap-2">
+          <span>✓</span>
           <span>
-            On-chain interaction verified
+            Verified
             {proof.txCount > 0 && ` · ${proof.txCount} tx${proof.txCount > 1 ? 's' : ''}`}
             {proof.firstTxDate && ` · since ${new Date(proof.firstTxDate).toLocaleDateString()}`}
           </span>
         </div>
       )}
       {interactionStatus === 'error' && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md px-3 py-2 mb-4 text-xs font-mono text-yellow-700">
-          ⚠️ Could not verify interaction on-chain — proceeding with caution. Backend will re-check.
+        <div className="bg-[#1a1a0a] border border-[#F59E0B]/30 rounded-lg px-3 py-2 mb-4 text-xs font-mono text-[#F59E0B]">
+          ⚠ Could not verify — backend will re-check.
         </div>
       )}
 
       {/* Rating */}
-      <div className="mb-4">
-        <label className="block text-xs font-mono text-gray-400 mb-2">Rating</label>
-        <div className="flex gap-2">
+      <div className="mb-5">
+        <label className="block text-xs font-mono text-gray-500 mb-2">Rating</label>
+        <div className="flex items-center gap-1">
           {[1, 2, 3, 4, 5].map((star) => (
             <button
               key={star}
               type="button"
               onClick={() => setRating(star)}
-              className={`text-2xl transition-all ${
-                star <= rating ? 'text-yellow-500' : 'text-gray-300'
-              } hover:scale-110`}
+              className={`text-2xl transition-all hover:scale-110 ${
+                star <= rating ? 'text-yellow-400' : 'text-gray-700'
+              }`}
             >
               ★
             </button>
           ))}
-          <span className="ml-2 text-xs font-mono text-gray-400 self-center">
+          <span className="ml-3 text-xs font-mono text-gray-500">
             {rating === 1 && 'Unsafe'}
             {rating === 2 && 'Poor'}
             {rating === 3 && 'Average'}
@@ -185,42 +194,42 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
       </div>
 
       {/* Content */}
-      <div className="mb-4">
-        <label className="block text-xs font-mono text-gray-400 mb-2">Review (optional)</label>
+      <div className="mb-5">
+        <label className="block text-xs font-mono text-gray-500 mb-2">Review (optional)</label>
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Share your experience with this project..."
-          rows={4}
+          placeholder="Share your experience…"
+          rows={3}
           maxLength={500}
-          className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm font-mono text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-400"
+          className="w-full bg-[#0a0a0a] border border-[#333] focus:border-[#0052FF] rounded-lg px-3 py-2.5 text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none transition-colors resize-none"
         />
-        <div className="text-xs font-mono text-gray-400 mt-1">{content.length}/500 characters</div>
+        <div className="text-[10px] font-mono text-gray-600 mt-1">{content.length}/500</div>
       </div>
 
       {/* EAS Receipt ID */}
-      <div className="mb-4">
-        <label className="block text-xs font-mono text-gray-400 mb-2">
-          EAS Receipt ID 🧾 <span className="text-green-600">(Boost Rep ×5)</span>
+      <div className="mb-5">
+        <label className="block text-xs font-mono text-gray-500 mb-2">
+          EAS Receipt ID <span className="text-[#22C55E]">(×5 Rep boost)</span>
         </label>
         <input
           type="text"
           value={easReceiptId}
           onChange={(e) => setEasReceiptId(e.target.value)}
-          placeholder="Paste your Verified Receipt ID..."
-          className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm font-mono text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-400"
+          placeholder="Paste receipt ID…"
+          className="w-full bg-[#0a0a0a] border border-[#333] focus:border-[#0052FF] rounded-lg px-3 py-2.5 text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none transition-colors"
         />
       </div>
 
-      {/* Cost warning */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-md px-3 py-2 mb-4 text-xs font-mono text-yellow-700">
-        ⚠️ Submitting costs <strong>2 Scarab 🪲</strong>
+      {/* Cost notice */}
+      <div className="bg-[#1a1a0a] border border-[#F59E0B]/20 rounded-lg px-3 py-2 mb-4 text-xs font-mono text-[#F59E0B]/80">
+        Submitting costs <strong>2 🪲 Scarab</strong>
       </div>
 
       {/* Submit error */}
       {submitError && (
-        <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2 mb-4 text-xs font-mono text-red-600">
-          ❌ {submitError}
+        <div className="bg-[#1a0a0a] border border-[#EF4444]/30 rounded-lg px-3 py-2 mb-4 text-xs font-mono text-[#EF4444]">
+          {submitError}
         </div>
       )}
 
@@ -228,9 +237,9 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold font-mono text-sm py-2.5 rounded-md transition-colors"
+        className="w-full bg-[#0052FF] hover:bg-[#0040CC] disabled:bg-[#333] disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold font-mono text-sm py-3 rounded-lg transition-colors"
       >
-        {submitting ? '⏳ Submitting...' : '🚀 Submit Review (-2 🪲)'}
+        {submitting ? 'Submitting…' : 'Submit Review'}
       </button>
     </form>
   )
