@@ -628,9 +628,9 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
             lang="text"
             code={`Agent calls agent_trust / token_check / trust_swap
   → QueryLog written (training data)
-  → AgentScore recalculated (behavioral 70% + reviews 30%)
-  → Oracle sync cron (every 6h → on-chain TrustScoreOracle)
-  → EAS auto-attest (daily → permanent attestations on Base)`}
+  → AgentScore recalculated
+  → MaiatOracle synced on-chain (Base Mainnet)
+  → EAS Maiat Receipt attested (Base Mainnet)`}
           />
         </section>
 
@@ -672,12 +672,13 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
             <h3 className="font-mono text-xl font-bold text-txt-primary">Oracle Sync</h3>
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.6]">
-            Trust scores are synced to the on-chain TrustScoreOracle on Base Sepolia every 6 hours.
+            Trust scores are dynamically updated to the on-chain MaiatOracle on Base Mainnet.
             The TrustGateHook (Uniswap v4) reads these scores in <code className="font-mono text-gold">beforeSwap</code> to
             gate or surcharge swaps involving low-trust tokens.
           </p>
           <div className="rounded-xl border border-border-subtle overflow-hidden">
-            <FieldRow name="TrustScoreOracle" type="address" desc="0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139 (Base Sepolia)" />
+            <FieldRow name="MaiatOracle" type="address" desc="0xdd046b037084e0aa23cfd2182318db28ca4b83a0 (Base Mainnet)" />
+            <FieldRow name="MaiatReceiptResolver" type="address" desc="0x601063661174bc7cfab4b2622ccc3ed41db0dd09 (Base Mainnet)" />
             <FieldRow name="TrustGateHook" type="address" desc="0xf980Ad83bCbF2115598f5F555B29752F00b8daFf (Base Sepolia)" />
             <FieldRow name="Base Builder Code" type="string" desc="bc_cozhkj23 (ERC-8021, appended to all swap calldata)" />
           </div>
