@@ -132,8 +132,9 @@ export default function PassportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <p className="font-mono text-gray-500 text-xs animate-pulse">// LOADING PASSPORT…</p>
+      <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center">
+        <Header />
+        <p className="font-mono text-gray-500 text-xs animate-pulse m-auto">// LOADING PASSPORT…</p>
       </div>
     )
   }
@@ -141,8 +142,11 @@ export default function PassportPage() {
   if (!data) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-3">
-        <p className="font-mono text-red-400 text-sm">// INVALID ADDRESS</p>
-        <Link href="/explore" className="font-mono text-[#EF4444] text-xs hover:underline">← back to explore</Link>
+        <Header />
+        <div className="m-auto flex flex-col items-center gap-3">
+          <p className="font-mono text-red-400 text-sm">// INVALID ADDRESS</p>
+          <Link href="/explore" className="font-mono text-[#EF4444] text-xs hover:underline">← back to explore</Link>
+        </div>
       </div>
     )
   }
