@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Feather, Copy, CheckCheck, ChevronRight, Zap, Shield, Bot, Database, Star } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -108,7 +109,7 @@ export default function DocsPage() {
       {/* ── Sidebar ── */}
       <aside className="w-[264px] bg-surface border-r border-border-subtle pt-6 flex flex-col h-screen sticky top-0 overflow-y-auto shrink-0">
         <Link href="/" className="flex items-center gap-2.5 px-6 pb-5 border-b border-border-subtle hover:opacity-80 transition-opacity">
-          <Shield className="w-5 h-5 text-gold" />
+          <Image src="/maiat-logo.jpg" alt="Maiat" width={20} height={20} className="w-5 h-5 rounded shadow-lg shadow-[#EF4444]/20" />
           <span className="font-mono text-sm font-bold tracking-[3px] text-txt-primary">MAIAT</span>
           <span className="text-xs text-txt-muted">API Docs</span>
         </Link>
@@ -152,10 +153,10 @@ export default function DocsPage() {
         {/* ── Overview ── */}
         <section id="overview" className="flex flex-col gap-6">
           <div className="flex items-center gap-3">
-            <Shield className="w-8 h-8 text-gold" />
+            <Image src="/maiat-logo.jpg" alt="Maiat" width={32} height={32} className="w-8 h-8 rounded-lg shadow-lg shadow-[#EF4444]/20" />
             <div>
               <h1 className="text-[32px] font-bold text-txt-primary leading-tight">API Reference</h1>
-              <p className="text-sm text-txt-muted font-mono">Maiat Protocol · v1</p>
+              <p className="text-sm text-txt-muted font-mono">Maiat Protocol · v1.2</p>
             </div>
           </div>
 
@@ -687,7 +688,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-8 border-t border-border-subtle">
-          <p className="text-xs text-txt-muted">Maiat Protocol · API v1 · Built on Virtuals ACP</p>
+          <p className="text-xs text-txt-muted">Maiat Protocol · API v1.2 · Built on Virtuals ACP</p>
           <a
             href="https://github.com/maiat-protocol"
             className="text-xs text-txt-muted hover:text-gold transition-colors font-mono"
