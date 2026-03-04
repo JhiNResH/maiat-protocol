@@ -112,39 +112,45 @@ export default function MarketsPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-6">
           {/* Status Filter */}
-          <div className="flex gap-1.5">
-            {(["all", "open", "resolved"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1 text-[10px] font-mono uppercase tracking-wide rounded border transition-all ${
-                  filter === f
-                    ? "bg-[#3b82f6]/10 border-[#3b82f6]/40 text-[#3b82f6]"
-                    : "border-[#1F1F1F] text-[#666666] hover:border-[#333] hover:text-[#999]"
-                }`}
-              >
-                [{f.toUpperCase()}]
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono text-[#666666] uppercase tracking-widest">Status:</span>
+            <div className="flex gap-1.5">
+              {(["all", "open", "resolved"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1 text-[10px] font-mono uppercase tracking-wide rounded border transition-all ${
+                    filter === f
+                      ? "bg-[#3b82f6]/10 border-[#3b82f6]/40 text-[#3b82f6]"
+                      : "border-[#1F1F1F] text-[#666666] hover:border-[#333] hover:text-[#999]"
+                  }`}
+                >
+                  [{f.toUpperCase()}]
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Category Filter */}
-          <div className="flex gap-1.5">
-            {["all", "ai-agents"].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategoryFilter(cat)}
-                className={`px-3 py-1 text-[10px] font-mono uppercase tracking-wide rounded border transition-all ${
-                  categoryFilter === cat
-                    ? "bg-[#6366f1]/10 border-[#6366f1]/40 text-[#6366f1]"
-                    : "border-[#1F1F1F] text-[#666666] hover:border-[#333] hover:text-[#999]"
-                }`}
-              >
-                {cat === "all" ? "ALL CATS" : cat.replace("-", " ").toUpperCase()}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono text-[#666666] uppercase tracking-widest">Category:</span>
+            <div className="flex gap-1.5">
+              {["all", "ai-agents"].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategoryFilter(cat)}
+                  className={`px-3 py-1 text-[10px] font-mono uppercase tracking-wide rounded border transition-all ${
+                    categoryFilter === cat
+                      ? "bg-[#6366f1]/10 border-[#6366f1]/40 text-[#6366f1]"
+                      : "border-[#1F1F1F] text-[#666666] hover:border-[#333] hover:text-[#999]"
+                  }`}
+                >
+                  [{cat === "all" ? "ALL" : cat.replace("-", " ").toUpperCase()}]
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
