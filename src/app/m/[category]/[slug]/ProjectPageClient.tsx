@@ -87,23 +87,23 @@ function chainColor(chain: string) {
 }
 
 function riskColor(risk: string) {
-  if (risk === 'LOW') return 'text-emerald-400'
-  if (risk === 'MEDIUM') return 'text-yellow-400'
-  if (risk === 'HIGH') return 'text-orange-400'
-  return 'text-red-500'
+  if (risk === 'LOW') return 'text-blue-400'
+  if (risk === 'MEDIUM') return 'text-cyan-400'
+  if (risk === 'HIGH') return 'text-indigo-400'
+  return 'text-slate-500'
 }
 
 function riskBg(risk: string) {
-  if (risk === 'LOW') return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-  if (risk === 'MEDIUM') return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-  if (risk === 'HIGH') return 'bg-orange-500/10 border-orange-500/30 text-orange-400'
-  return 'bg-red-500/10 border-red-500/30 text-red-400'
+  if (risk === 'LOW') return 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+  if (risk === 'MEDIUM') return 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
+  if (risk === 'HIGH') return 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
+  return 'bg-slate-500/10 border-slate-500/30 text-slate-400'
 }
 
 function scoreColor(s: number) {
-  if (s >= 7) return '#10b981'
-  if (s >= 4) return '#f59e0b'
-  return '#ef4444'
+  if (s >= 7) return '#3b82f6'
+  if (s >= 4) return '#06b6d4'
+  return '#64748b'
 }
 
 function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg' }) {
@@ -121,7 +121,7 @@ function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg
 
 function ScoreBar({ label, value, max, icon }: { label: string; value: number; max: number; icon: React.ReactNode }) {
   const pct = Math.min(100, (value / max) * 100)
-  const color = pct >= 66 ? '#10b981' : pct >= 33 ? '#f59e0b' : '#ef4444'
+  const color = pct >= 66 ? '#3b82f6' : pct >= 33 ? '#06b6d4' : '#64748b'
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-xs">
@@ -234,9 +234,9 @@ function ReviewFormInline({
 
   if (interactionStatus === 'blocked') return (
     <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6">
-      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-3">
-        <p className="text-red-400 text-sm font-semibold mb-1">❌ No Interaction Found</p>
-        <p className="text-red-400/70 text-xs font-mono">
+      <div className="bg-slate-500/10 border border-slate-500/20 rounded-lg p-3 mb-3">
+        <p className="text-slate-400 text-sm font-semibold mb-1">❌ No Interaction Found</p>
+        <p className="text-slate-400/70 text-xs font-mono">
           Wallet {walletAddress?.slice(0,6)}…{walletAddress?.slice(-4)} has no recorded txs with {projectName}.
         </p>
       </div>
@@ -251,7 +251,7 @@ function ReviewFormInline({
     <form onSubmit={handleSubmit} className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6 flex flex-col gap-4">
       {/* Interaction badge */}
       {interactionStatus === 'verified' && interactionProof && (
-        <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 text-xs text-green-400 font-mono flex items-center gap-2">
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2 text-xs text-blue-400 font-mono flex items-center gap-2">
           <span>✅</span>
           <span>
             Interaction verified
@@ -261,7 +261,7 @@ function ReviewFormInline({
         </div>
       )}
       {interactionStatus === 'error' && (
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 text-xs text-yellow-400 font-mono">
+        <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-3 py-2 text-xs text-cyan-400 font-mono">
           ⚠️ Could not verify on-chain — backend will re-check on submit.
         </div>
       )}
@@ -284,7 +284,7 @@ function ReviewFormInline({
       </div>
 
       {!canAfford && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-xs text-red-400 font-mono">
+        <div className="bg-slate-500/10 border border-slate-500/20 rounded-lg px-3 py-2 text-xs text-slate-400 font-mono">
           Insufficient Scarab balance. Claim daily 🪲 to continue.
         </div>
       )}
@@ -328,10 +328,10 @@ function ReviewFormInline({
       </div>
 
       {result?.error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-xs text-red-400 font-mono">{result.error}</div>
+        <div className="bg-slate-500/10 border border-slate-500/20 rounded-lg px-3 py-2 text-xs text-slate-400 font-mono">{result.error}</div>
       )}
       {result?.msg && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2 text-xs text-emerald-400 font-mono">
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2 text-xs text-blue-400 font-mono">
           ✅ {result.msg} {result.earned ? `+${result.earned} 🪲 earned!` : ''}
         </div>
       )}
@@ -512,7 +512,7 @@ function ProjectDetailPage() {
                   <button onClick={copy} className="text-[#818384] hover:text-[#d4a017] transition-colors">
                     <Copy className="w-3.5 h-3.5" />
                   </button>
-                  {copied && <span className="text-xs text-emerald-400 font-mono">Copied!</span>}
+                  {copied && <span className="text-xs text-blue-400 font-mono">Copied!</span>}
                   <a href={`https://basescan.org/address/${project.address}`} target="_blank" rel="noopener noreferrer"
                     className="text-[#818384] hover:text-[#d4a017] transition-colors">
                     <ExternalLink className="w-3.5 h-3.5" />

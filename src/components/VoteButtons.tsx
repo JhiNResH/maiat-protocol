@@ -55,7 +55,7 @@ export function VoteButtons({
         onClick={() => handleVote('upvote')}
         disabled={voting || hasVoted}
         className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-mono text-xs transition-all ${
-          hasVoted ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
+          hasVoted ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
         }`}
       >
         👍 <span>{upvotes}</span>
@@ -65,7 +65,7 @@ export function VoteButtons({
         onClick={() => handleVote('downvote')}
         disabled={voting || hasVoted}
         className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-mono text-xs transition-all ${
-          hasVoted ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-red-50 text-red-500 hover:bg-red-100 border border-red-200'
+          hasVoted ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200'
         }`}
       >
         👎 <span>{downvotes}</span>

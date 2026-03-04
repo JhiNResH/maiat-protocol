@@ -63,7 +63,7 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <span className="text-xs font-mono">
       {[1,2,3,4,5].map(i => (
-        <span key={i} className={i <= rating ? 'text-yellow-400' : 'text-gray-700'}>★</span>
+        <span key={i} className={i <= rating ? 'text-cyan-400' : 'text-gray-700'}>★</span>
       ))}
     </span>
   )
@@ -144,7 +144,7 @@ export default function PassportPage() {
       <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-3">
         <Header />
         <div className="m-auto flex flex-col items-center gap-3">
-          <p className="font-mono text-red-400 text-sm">// INVALID ADDRESS</p>
+          <p className="font-mono text-slate-400 text-sm">// INVALID ADDRESS</p>
           <Link href="/explore" className="font-mono text-[#EF4444] text-xs hover:underline">← back to explore</Link>
         </div>
       </div>

@@ -80,7 +80,7 @@ export function ScarabPurchasePanel({ onClose, onSuccess }: ScarabPurchasePanelP
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl max-w-2xl w-full">
         {/* Header */}
-        <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-b border-zinc-800 p-6 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border-b border-zinc-800 p-6 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Purchase Scarab 🪲</h2>
             <p className="text-sm text-zinc-400 mt-1">
@@ -105,7 +105,7 @@ export function ScarabPurchasePanel({ onClose, onSuccess }: ScarabPurchasePanelP
                 w-full text-left p-4 rounded-xl border-2 transition-all
                 ${
                   selectedTier === tier.id
-                    ? 'border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/20'
+                    ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
                     : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
                 }
               `}
@@ -117,11 +117,11 @@ export function ScarabPurchasePanel({ onClose, onSuccess }: ScarabPurchasePanelP
                     <span className="font-bold text-lg">{tier.label}</span>
                   </div>
                   <div className="text-sm text-zinc-400">
-                    ${tier.usdc} USDC → <span className="text-amber-400 font-semibold">{tier.scarab} Scarab</span>
+                    ${tier.usdc} USDC → <span className="text-cyan-400 font-semibold">{tier.scarab} Scarab</span>
                   </div>
                 </div>
                 {selectedTier === tier.id && (
-                  <Zap className="w-6 h-6 text-amber-400" />
+                  <Zap className="w-6 h-6 text-cyan-400" />
                 )}
               </div>
             </button>
@@ -130,12 +130,12 @@ export function ScarabPurchasePanel({ onClose, onSuccess }: ScarabPurchasePanelP
 
         {/* Info */}
         <div className="px-6 pb-6">
-          <div className="bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-300 mb-4">
+          <div className="bg-slate-900/20 border border-slate-500/30 rounded-lg px-4 py-3 text-sm text-slate-300 mb-4">
             ℹ️ Purchases are processed via USDC on Base. Scarab is added instantly to your balance.
           </div>
 
           {error && (
-            <div className="bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400 mb-4">
+            <div className="bg-slate-900/20 border border-slate-500/30 rounded-lg px-4 py-3 text-sm text-slate-400 mb-4">
               ❌ {error}
             </div>
           )}
@@ -147,7 +147,7 @@ export function ScarabPurchasePanel({ onClose, onSuccess }: ScarabPurchasePanelP
               <div className="flex items-center justify-between text-lg">
                 <span className="text-white font-semibold">${selected.usdc} USDC</span>
                 <span className="text-zinc-500">→</span>
-                <span className="text-amber-400 font-bold">{selected.scarab} 🪲</span>
+                <span className="text-cyan-400 font-bold">{selected.scarab} 🪲</span>
               </div>
             </div>
           )}
@@ -163,7 +163,7 @@ export function ScarabPurchasePanel({ onClose, onSuccess }: ScarabPurchasePanelP
             <button
               onClick={handlePurchase}
               disabled={!selectedTier || purchasing}
-              className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition-all shadow-lg"
+              className="flex-1 bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-600 hover:to-indigo-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition-all shadow-lg"
             >
               {purchasing ? '⏳ Processing...' : selected ? `Purchase ${selected.scarab} 🪲` : 'Select a tier'}
             </button>

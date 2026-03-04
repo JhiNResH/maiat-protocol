@@ -34,7 +34,7 @@ export function OnChainBadge({ reviewId, txHash, showVerifyButton = false }: OnC
         href={`https://testnet.bscscan.com/tx/${localTxHash}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 bg-green-50 text-green-600 rounded border border-green-200 hover:bg-green-100 transition-colors"
+        className="inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100 transition-colors"
       >
         ⛓️ On-chain ↗
       </a>
@@ -47,11 +47,11 @@ export function OnChainBadge({ reviewId, txHash, showVerifyButton = false }: OnC
         <button
           onClick={handleVerify}
           disabled={verifying}
-          className="inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 bg-gray-50 text-gray-500 rounded border border-gray-200 hover:border-red-300 hover:text-red-600 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 bg-gray-50 text-gray-500 rounded border border-gray-200 hover:border-slate-300 hover:text-slate-600 transition-colors disabled:opacity-50"
         >
           {verifying ? '⏳ Verifying...' : '🔗 Verify On-Chain'}
         </button>
-        {error && <span className="text-xs font-mono text-red-500">❌ {error}</span>}
+        {error && <span className="text-xs font-mono text-slate-500">❌ {error}</span>}
       </div>
     )
   }

@@ -202,12 +202,12 @@ export default function SwapPage() {
           {/* Trust Badges */}
           <div className="flex gap-2.5">
             <div className="flex-1 flex items-center gap-2 bg-[#00c9a710] border border-[#00c9a730] rounded-[10px] px-3.5 py-2.5">
-              <CircleCheck className="w-3.5 h-3.5 text-emerald" />
-              <span className="text-xs font-semibold text-emerald">{tokenIn.symbol}  &check;  8.5/10</span>
+              <CircleCheck className="w-3.5 h-3.5 text-blue" />
+              <span className="text-xs font-semibold text-blue">{tokenIn.symbol}  &check;  8.5/10</span>
             </div>
             <div className="flex-1 flex items-center gap-2 bg-[#00c9a710] border border-[#00c9a730] rounded-[10px] px-3.5 py-2.5">
-              <CircleCheck className="w-3.5 h-3.5 text-emerald" />
-              <span className="text-xs font-semibold text-emerald">{tokenOut.symbol}  &check;  9.2/10</span>
+              <CircleCheck className="w-3.5 h-3.5 text-blue" />
+              <span className="text-xs font-semibold text-blue">{tokenOut.symbol}  &check;  9.2/10</span>
             </div>
           </div>
 
@@ -219,13 +219,13 @@ export default function SwapPage() {
 
           {/* Trust warning */}
           {trustWarning?.verdict === 'avoid' && (
-            <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2.5">
+            <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-500/10 border border-slate-500/30 rounded-lg px-3 py-2.5">
               <span className="text-base">🚫</span>
               <span><strong>{trustWarning.tokenSymbol}</strong> flagged as high risk (score {trustWarning.score}/100). Swap disabled for your protection.</span>
             </div>
           )}
           {trustWarning?.verdict === 'caution' && (
-            <div className="flex items-center gap-2 text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2.5">
+            <div className="flex items-center gap-2 text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 rounded-lg px-3 py-2.5">
               <span className="text-base">⚠️</span>
               <span><strong>{trustWarning.tokenSymbol}</strong> has a low trust score ({trustWarning.score}/100). Proceed with caution.</span>
             </div>
@@ -238,7 +238,7 @@ export default function SwapPage() {
             <div className="flex flex-col gap-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-txt-muted">Output:</span>
-                <span className="font-mono text-emerald">{quote.quote.amountOut}</span>
+                <span className="font-mono text-blue">{quote.quote.amountOut}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-txt-muted">Gas:</span>

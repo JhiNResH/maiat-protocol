@@ -107,7 +107,7 @@ export function AddProjectForm({ category, onClose, onSuccess }: AddProjectFormP
           {/* Project Address */}
           <div>
             <label className="block text-sm text-zinc-400 mb-2">
-              Project Address/ID <span className="text-red-400">*</span>
+              Project Address/ID <span className="text-slate-400">*</span>
             </label>
             <input
               type="text"
@@ -125,7 +125,7 @@ export function AddProjectForm({ category, onClose, onSuccess }: AddProjectFormP
           {/* Project Name */}
           <div>
             <label className="block text-sm text-zinc-400 mb-2">
-              Project Name <span className="text-red-400">*</span>
+              Project Name <span className="text-slate-400">*</span>
             </label>
             <input
               type="text"
@@ -140,7 +140,7 @@ export function AddProjectForm({ category, onClose, onSuccess }: AddProjectFormP
           {/* Description */}
           <div>
             <label className="block text-sm text-zinc-400 mb-2">
-              Description <span className="text-red-400">*</span>
+              Description <span className="text-slate-400">*</span>
             </label>
             <textarea
               required
@@ -155,7 +155,7 @@ export function AddProjectForm({ category, onClose, onSuccess }: AddProjectFormP
           {/* Category */}
           <div>
             <label className="block text-sm text-zinc-400 mb-2">
-              Category <span className="text-red-400">*</span>
+              Category <span className="text-slate-400">*</span>
             </label>
             <select
               required
@@ -202,7 +202,7 @@ export function AddProjectForm({ category, onClose, onSuccess }: AddProjectFormP
 
           {/* Error */}
           {error && (
-            <div className="bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400">
+            <div className="bg-slate-900/20 border border-slate-500/30 rounded-lg px-4 py-3 text-sm text-slate-400">
               ❌ {error}
             </div>
           )}

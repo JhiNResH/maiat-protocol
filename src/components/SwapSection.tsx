@@ -31,9 +31,9 @@ interface QuoteResult {
 }
 
 function trustColor(risk: string): string {
-  if (risk === "LOW") return "text-green-400";
-  if (risk === "MEDIUM") return "text-yellow-400";
-  return "text-red-400";
+  if (risk === "LOW") return "text-blue-400";
+  if (risk === "MEDIUM") return "text-cyan-400";
+  return "text-slate-400";
 }
 
 export default function SwapSection({ address }: { address: string }) {
@@ -102,7 +102,7 @@ export default function SwapSection({ address }: { address: string }) {
       </div>
 
       {error && (
-        <div className="mt-3 bg-red-900/30 border border-red-700 text-red-300 rounded-lg px-3 py-2 text-xs">
+        <div className="mt-3 bg-slate-900/30 border border-slate-700 text-slate-300 rounded-lg px-3 py-2 text-xs">
           {error}
         </div>
       )}

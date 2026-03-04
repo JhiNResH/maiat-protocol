@@ -54,16 +54,16 @@ function trunc(addr: string) {
 }
 
 function verdictColor(verdict: string): string {
-  if (verdict === 'proceed') return '#10b981'
-  if (verdict === 'caution') return '#f59e0b'
-  if (verdict === 'avoid')   return '#ef4444'
+  if (verdict === 'proceed') return '#3b82f6'
+  if (verdict === 'caution') return '#06b6d4'
+  if (verdict === 'avoid')   return '#64748b'
   return '#475569'
 }
 
 function verdictBg(verdict: string): string {
-  if (verdict === 'proceed') return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-  if (verdict === 'caution') return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-  if (verdict === 'avoid')   return 'bg-red-500/10 border-red-500/30 text-red-400'
+  if (verdict === 'proceed') return 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+  if (verdict === 'caution') return 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
+  if (verdict === 'avoid')   return 'bg-slate-500/10 border-slate-500/30 text-slate-400'
   return 'bg-slate-500/10 border-slate-500/30 text-slate-400'
 }
 
@@ -75,9 +75,9 @@ function verdictLabel(verdict: string): string {
 }
 
 function scoreColor(s: number): string {
-  if (s >= 80) return '#10b981'
-  if (s >= 60) return '#f59e0b'
-  return '#ef4444'
+  if (s >= 80) return '#3b82f6'
+  if (s >= 60) return '#06b6d4'
+  return '#64748b'
 }
 
 function pct(rate: number | undefined): string {
@@ -113,8 +113,8 @@ function RateBar({ label, value, good = true }: { label: string; value: number |
   const v = value ?? 0
   const pctNum = Math.min(100, v * 100)
   const color = good
-    ? pctNum >= 80 ? '#10b981' : pctNum >= 50 ? '#f59e0b' : '#ef4444'
-    : pctNum <= 5  ? '#10b981' : pctNum <= 20 ? '#f59e0b' : '#ef4444'
+    ? pctNum >= 80 ? '#3b82f6' : pctNum >= 50 ? '#06b6d4' : '#64748b'
+    : pctNum <= 5  ? '#3b82f6' : pctNum <= 20 ? '#06b6d4' : '#64748b'
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-xs">
@@ -199,7 +199,7 @@ function ReviewFormInline({
     <form onSubmit={handleSubmit} className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6 flex flex-col gap-4">
       {/* Weight info banner */}
       <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-2 text-xs text-indigo-300 font-mono">
-        <span className="font-semibold">Review weight:</span> 1× base · <span className="text-green-400">3× with on-chain interaction proof</span> · <span className="text-yellow-300">5× with EAS receipt</span>
+        <span className="font-semibold">Review weight:</span> 1× base · <span className="text-blue-400">3× with on-chain interaction proof</span> · <span className="text-cyan-300">5× with EAS receipt</span>
       </div>
 
       <div className="flex items-center justify-between text-xs font-mono">
@@ -208,13 +208,13 @@ function ReviewFormInline({
         </span>
         {scarabBalance !== null && (
           <span className="text-[#475569]">
-            Balance: <span className={canAfford ? 'text-[#d4a017]' : 'text-red-400'}>🪲 {scarabBalance}</span>
+            Balance: <span className={canAfford ? 'text-[#d4a017]' : 'text-slate-400'}>🪲 {scarabBalance}</span>
           </span>
         )}
       </div>
 
       {!canAfford && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-xs text-red-400 font-mono">
+        <div className="bg-slate-500/10 border border-slate-500/20 rounded-lg px-3 py-2 text-xs text-slate-400 font-mono">
           Insufficient Scarab. Claim daily 🪲 from sidebar.
         </div>
       )}
@@ -264,9 +264,9 @@ function ReviewFormInline({
         />
       </div>
 
-      {result?.error && <p className="text-xs text-red-400 font-mono">{result.error}</p>}
+      {result?.error && <p className="text-xs text-slate-400 font-mono">{result.error}</p>}
       {result?.msg && (
-        <p className="text-xs text-emerald-400 font-mono">✓ {result.msg} {result.earned ? `+${result.earned} 🪲` : ''}</p>
+        <p className="text-xs text-blue-400 font-mono">✓ {result.msg} {result.earned ? `+${result.earned} 🪲` : ''}</p>
       )}
 
       <button
@@ -459,7 +459,7 @@ function AgentDetail() {
                 >
                   <Copy className="w-3 h-3" />
                 </button>
-                {copied && <span className="text-[10px] text-emerald-400 font-mono">Copied!</span>}
+                {copied && <span className="text-[10px] text-blue-400 font-mono">Copied!</span>}
                 <a
                   href={`https://basescan.org/address/${agent.address}`}
                   target="_blank"

@@ -204,9 +204,9 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               {/* Auto-created indicator + AI Analysis */}
               {results?.autoCreated && results.projects.length > 0 && (
                 <>
-                  <div className="flex items-center gap-2 px-4 py-2 border-b border-[#1f1f23] bg-green-500/5">
-                    <Sparkles className="w-4 h-4 text-green-400" />
-                    <span className="text-xs text-green-400">Auto-discovered from CoinGecko/DeFiLlama</span>
+                  <div className="flex items-center gap-2 px-4 py-2 border-b border-[#1f1f23] bg-blue-500/5">
+                    <Sparkles className="w-4 h-4 text-blue-400" />
+                    <span className="text-xs text-blue-400">Auto-discovered from CoinGecko/DeFiLlama</span>
                   </div>
                   
                   {/* AI Analysis Panel */}
@@ -216,9 +216,9 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                         <Sparkles className="w-4 h-4 text-purple-400" />
                         <span className="text-sm font-medium text-purple-300">🤖 AI Analysis Complete</span>
                         <span className={`text-xs px-2 py-0.5 rounded ${
-                          results.aiAnalysis.status === 'VERIFIED' ? 'bg-green-500/20 text-green-400' :
-                          results.aiAnalysis.status === 'RISKY' ? 'bg-red-500/20 text-red-400' :
-                          'bg-yellow-500/20 text-yellow-400'
+                          results.aiAnalysis.status === 'VERIFIED' ? 'bg-blue-500/20 text-blue-400' :
+                          results.aiAnalysis.status === 'RISKY' ? 'bg-slate-500/20 text-slate-400' :
+                          'bg-cyan-500/20 text-cyan-400'
                         }`}>
                           {results.aiAnalysis.status}
                         </span>
@@ -230,7 +230,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                           <p className="text-xs text-[#6b6b70] mb-1">Features:</p>
                           <div className="flex flex-wrap gap-1">
                             {results.aiAnalysis.features.slice(0, 3).map((f, i) => (
-                              <span key={i} className="text-xs px-2 py-0.5 bg-red-500/10 text-red-400 rounded">
+                              <span key={i} className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-400 rounded">
                                 {f}
                               </span>
                             ))}
@@ -239,7 +239,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                       )}
                       {results.aiAnalysis.warnings.length > 0 && (
                         <div className="mt-2">
-                          <p className="text-xs text-red-400">⚠️ {results.aiAnalysis.warnings[0]}</p>
+                          <p className="text-xs text-slate-400">⚠️ {results.aiAnalysis.warnings[0]}</p>
                         </div>
                       )}
                     </div>
@@ -283,7 +283,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                           className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[#1f1f23] transition-colors"
                         >
                           <div className={`w-10 h-10 rounded-lg ${
-                            meta.color === 'purple' ? 'bg-purple-500/10' : 'bg-red-500/10'
+                            meta.color === 'purple' ? 'bg-purple-500/10' : 'bg-slate-500/10'
                           } flex items-center justify-center`}>
                             <span className="text-xl">{meta.icon}</span>
                           </div>
@@ -291,7 +291,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                             <div className="flex items-center gap-2">
                               <p className="text-white font-medium">{project.name}</p>
                               <span className={`px-2 py-0.5 text-xs rounded ${
-                                meta.color === 'purple' ? 'bg-purple-500/20 text-purple-400' : 'bg-red-500/20 text-red-400'
+                                meta.color === 'purple' ? 'bg-purple-500/20 text-purple-400' : 'bg-slate-500/20 text-slate-400'
                               }`}>
                                 {meta.label}
                               </span>
@@ -316,7 +316,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                   className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[#1f1f23] transition-colors"
                 >
                   <div className="w-10 h-10 rounded-lg bg-[#1a1a1d] flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-red-400" />
+                    <FileText className="w-5 h-5 text-slate-400" />
                   </div>
                   <div className="flex-1">
                     <p className="text-white text-sm">{review.contentPreview}</p>
@@ -338,7 +338,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                   className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[#1f1f23] transition-colors"
                 >
                   <div className="w-10 h-10 rounded-lg bg-[#1a1a1d] flex items-center justify-center">
-                    <User className="w-5 h-5 text-orange-400" />
+                    <User className="w-5 h-5 text-indigo-400" />
                   </div>
                   <div className="flex-1">
                     <p className="text-white font-medium">{user.displayName || user.address.slice(0, 10)}</p>

@@ -63,8 +63,8 @@ export function LeaderboardPreview() {
                 </div>
                 <div className="text-xs text-[#6b6b70]">{item.reviewCount} reviews</div>
               </div>
-              <div className="flex items-center gap-1 text-amber-400 text-xs">
-                <Star className="w-3 h-3 fill-amber-400" />
+              <div className="flex items-center gap-1 text-cyan-400 text-xs">
+                <Star className="w-3 h-3 fill-cyan-400" />
                 {item.avgRating.toFixed(1)}
               </div>
             </Link>
