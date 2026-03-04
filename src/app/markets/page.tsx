@@ -65,14 +65,14 @@ export default function MarketsPage() {
           <h1 className="text-sm font-mono text-[#666666] uppercase tracking-widest mb-1">
             // OPINION MARKETS — STAKE SCARAB ON AGENT RANKINGS
           </h1>
-          <div className="h-px bg-gradient-to-r from-[#0052FF]/50 via-[#1F1F1F] to-transparent" />
+          <div className="h-px bg-gradient-to-r from-[#EF4444]/50 via-[#1F1F1F] to-transparent" />
         </div>
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-[#0052FF]" />
+              <TrendingUp className="w-4 h-4 text-[#EF4444]" />
               <span className="text-[10px] font-mono text-[#666666] uppercase">Total Pool</span>
             </div>
             <span className="text-xl font-bold font-mono text-[#E5E5E5]">
@@ -121,7 +121,7 @@ export default function MarketsPage() {
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1 text-[10px] font-mono uppercase tracking-wide rounded border transition-all ${
                   filter === f
-                    ? "bg-[#0052FF]/10 border-[#0052FF]/40 text-[#0052FF]"
+                    ? "bg-[#EF4444]/10 border-[#EF4444]/40 text-[#EF4444]"
                     : "border-[#1F1F1F] text-[#666666] hover:border-[#333] hover:text-[#999]"
                 }`}
               >
@@ -151,7 +151,7 @@ export default function MarketsPage() {
         {/* Loading State */}
         {loading && (
           <div className="flex flex-col items-center gap-3 py-16">
-            <Shield className="w-8 h-8 text-[#0052FF] animate-pulse" />
+            <Shield className="w-8 h-8 text-[#EF4444] animate-pulse" />
             <span className="text-xs font-mono text-[#666666] uppercase tracking-widest">
               LOADING MARKETS...
             </span>

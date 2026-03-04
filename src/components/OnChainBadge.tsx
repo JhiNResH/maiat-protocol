@@ -47,7 +47,7 @@ export function OnChainBadge({ reviewId, txHash, showVerifyButton = false }: OnC
         <button
           onClick={handleVerify}
           disabled={verifying}
-          className="inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 bg-gray-50 text-gray-500 rounded border border-gray-200 hover:border-blue-300 hover:text-blue-600 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 bg-gray-50 text-gray-500 rounded border border-gray-200 hover:border-red-300 hover:text-red-600 transition-colors disabled:opacity-50"
         >
           {verifying ? '⏳ Verifying...' : '🔗 Verify On-Chain'}
         </button>

@@ -46,7 +46,7 @@ function formatScarab(amount: number) {
 function getCategoryColor(category: string) {
   switch (category) {
     case 'ai-agents':
-      return { bg: 'bg-[#0052FF]/10', text: 'text-[#0052FF]', border: 'border-[#0052FF]/30' }
+      return { bg: 'bg-[#EF4444]/10', text: 'text-[#EF4444]', border: 'border-[#EF4444]/30' }
     case 'defi':
       return { bg: 'bg-[#7C3AED]/10', text: 'text-[#7C3AED]', border: 'border-[#7C3AED]/30' }
     case 'mixed':
@@ -88,12 +88,12 @@ export function MarketCard({
   return (
     <Link
       href={`/markets/${id}`}
-      className="group block bg-[#111111] border border-[#1F1F1F] rounded-lg p-4 transition-all duration-200 hover:border-[#0052FF]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.1)]"
+      className="group block bg-[#111111] border border-[#1F1F1F] rounded-lg p-4 transition-all duration-200 hover:border-[#EF4444]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.1)]"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#0052FF] transition-colors">
+          <h3 className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#EF4444] transition-colors">
             {title}
           </h3>
           <p className="text-[10px] font-mono text-[#666666] mt-0.5 line-clamp-2">
@@ -154,7 +154,7 @@ export function MarketCard({
           <div className="flex flex-col gap-1.5">
             {topProjects.slice(0, 3).map((project, idx) => (
               <div key={project.projectId} className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full bg-[#0052FF]/10 flex items-center justify-center text-[9px] font-bold font-mono text-[#0052FF]">
+                <span className="w-4 h-4 rounded-full bg-[#EF4444]/10 flex items-center justify-center text-[9px] font-bold font-mono text-[#EF4444]">
                   {idx + 1}
                 </span>
                 <span className="text-xs font-mono text-[#E5E5E5] truncate flex-1">

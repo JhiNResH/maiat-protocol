@@ -205,7 +205,7 @@ export default function MarketDetailPage({
       <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
         <Header />
         <div className="flex flex-col items-center justify-center py-32">
-          <Shield className="w-8 h-8 text-[#0052FF] animate-pulse" />
+          <Shield className="w-8 h-8 text-[#EF4444] animate-pulse" />
           <span className="text-xs font-mono text-[#666666] uppercase tracking-widest mt-3">
             LOADING MARKET...
           </span>
@@ -223,7 +223,7 @@ export default function MarketDetailPage({
           <span className="text-sm font-mono text-[#666666] mt-3">Market not found</span>
           <Link
             href="/markets"
-            className="mt-4 text-xs font-mono text-[#0052FF] hover:underline"
+            className="mt-4 text-xs font-mono text-[#EF4444] hover:underline"
           >
             ← Back to Markets
           </Link>
@@ -243,7 +243,7 @@ export default function MarketDetailPage({
         {/* Back Link */}
         <Link
           href="/markets"
-          className="inline-flex items-center gap-2 text-xs font-mono text-[#666666] hover:text-[#0052FF] transition-colors mb-6"
+          className="inline-flex items-center gap-2 text-xs font-mono text-[#666666] hover:text-[#EF4444] transition-colors mb-6"
         >
           <ArrowLeft className="w-3 h-3" />
           BACK TO MARKETS
@@ -258,7 +258,7 @@ export default function MarketDetailPage({
                 market.status === "open"
                   ? "bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30"
                   : market.status === "resolved"
-                  ? "bg-[#0052FF]/10 text-[#0052FF] border-[#0052FF]/30"
+                  ? "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30"
                   : "bg-[#666666]/10 text-[#666666] border-[#666666]/30"
               }`}
             >
@@ -272,7 +272,7 @@ export default function MarketDetailPage({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-[#0052FF]" />
+              <TrendingUp className="w-4 h-4 text-[#EF4444]" />
               <span className="text-[10px] font-mono text-[#666666] uppercase">Total Pool</span>
             </div>
             <span className="text-xl font-bold font-mono text-[#E5E5E5]">
@@ -355,7 +355,7 @@ export default function MarketDetailPage({
                         <div className="flex-1 min-w-0">
                           <Link
                             href={`/agent/${project.projectSlug}`}
-                            className="text-sm font-semibold text-[#E5E5E5] hover:text-[#0052FF] transition-colors truncate block"
+                            className="text-sm font-semibold text-[#E5E5E5] hover:text-[#EF4444] transition-colors truncate block"
                           >
                             {project.projectName}
                             {isWinner && (
@@ -416,7 +416,7 @@ export default function MarketDetailPage({
                     <select
                       value={selectedProject}
                       onChange={(e) => setSelectedProject(e.target.value)}
-                      className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg px-3 py-2 text-sm font-mono text-[#E5E5E5] outline-none focus:border-[#0052FF]/40"
+                      className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg px-3 py-2 text-sm font-mono text-[#E5E5E5] outline-none focus:border-[#EF4444]/40"
                     >
                       <option value="">Choose a project...</option>
                       {eligibleProjects.map((p) => (
@@ -438,7 +438,7 @@ export default function MarketDetailPage({
                         min="50"
                         value={stakeAmount}
                         onChange={(e) => setStakeAmount(e.target.value)}
-                        className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg px-3 py-2 pr-12 text-sm font-mono text-[#E5E5E5] outline-none focus:border-[#0052FF]/40"
+                        className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg px-3 py-2 pr-12 text-sm font-mono text-[#E5E5E5] outline-none focus:border-[#EF4444]/40"
                         placeholder="50"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">🪲</span>
@@ -448,7 +448,7 @@ export default function MarketDetailPage({
                         <button
                           key={amt}
                           onClick={() => setStakeAmount(amt.toString())}
-                          className="px-2 py-1 text-[10px] font-mono text-[#666666] border border-[#1F1F1F] rounded hover:border-[#0052FF]/40 hover:text-[#0052FF] transition-colors"
+                          className="px-2 py-1 text-[10px] font-mono text-[#666666] border border-[#1F1F1F] rounded hover:border-[#EF4444]/40 hover:text-[#EF4444] transition-colors"
                         >
                           {amt}
                         </button>
@@ -460,7 +460,7 @@ export default function MarketDetailPage({
                   <button
                     onClick={handleStake}
                     disabled={submitting}
-                    className="w-full py-3 bg-[#0052FF] hover:bg-[#0052FF]/80 disabled:bg-[#333] disabled:cursor-not-allowed rounded-lg text-sm font-mono font-bold text-white transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-[#EF4444] hover:bg-[#EF4444]/80 disabled:bg-[#333] disabled:cursor-not-allowed rounded-lg text-sm font-mono font-bold text-white transition-colors flex items-center justify-center gap-2"
                   >
                     {submitting ? (
                       <>
