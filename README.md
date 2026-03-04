@@ -59,14 +59,16 @@ Wallet: `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`
 
 ---
 
-## Smart Contracts (Base Sepolia)
+## Smart Contracts (Base Mainnet)
 
-| Contract               | Address                                      | Purpose                                                        |
-| ---------------------- | -------------------------------------------- | -------------------------------------------------------------- |
-| **TrustScoreOracle**   | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` | On-chain trust scores (weighted: behavioral 70% + reviews 30%) |
-| **TrustGateHook**      | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` | Uniswap v4 Hook — gates swaps based on oracle scores           |
-| **MaiatPassport**      | —                                            | Soulbound ERC-721 — auto-minted on wallet connect              |
-| **MaiatTrustConsumer** | —                                            | Chainlink CRE consumer for decentralized oracle updates        |
+| Contract                 | Address                                      | Purpose                                                     |
+| ------------------------ | -------------------------------------------- | ----------------------------------------------------------- |
+| **MaiatOracle**          | `0xdd046b037084e0aa23cfd2182318db28ca4b83a0` | On-chain trust scores for AI agents (updated dynamically)   |
+| **MaiatReceiptResolver** | `0x601063661174bc7cfab4b2622ccc3ed41db0dd09` | EAS Resolver gating attestations only to the Maiat Attester |
+| **TrustScoreOracle**     | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` | (Legacy/Sepolia) behavioral + reviews                       |
+| **TrustGateHook**        | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` | Uniswap v4 Hook — gates swaps based on oracle scores        |
+| **MaiatPassport**        | —                                            | Soulbound ERC-721 — auto-minted on wallet connect           |
+| **MaiatTrustConsumer**   | —                                            | Chainlink CRE consumer for decentralized oracle updates     |
 
 **Base Builder Code:** `bc_cozhkj23` (ERC-8021, appended to all swap calldata)
 
@@ -76,9 +78,9 @@ Wallet: `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`
 
 ### EAS (Ethereum Attestation Service)
 
-- 3 schemas: `trustScore`, `review`, `acpInteraction`
-- Auto-attest cron: daily attestations for all ACP interactions
-- Base EAS contract: `0x4200000000000000000000000000000000000021`
+- **Schema UID**: `0xff334be59dc68d965e7e3f9944caf49af9523c3125d1499b72a19dac198358d2`
+- Gated by `MaiatReceiptResolver`. Attestations made via this schema are verified "Maiat Receipts".
+- Base Mainnet EAS contract: `0x4200000000000000000000000000000000000021`
 
 ### Uniswap v4 Hook (Hookathon)
 
@@ -109,8 +111,8 @@ User/Agent action → QueryLog/TrustReview (DB)
 | Package                                                  | npm                                                                                                                           | Description                                                            |
 | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | [`maiat-sdk`](packages/sdk/)                             | [![npm](https://img.shields.io/npm/v/maiat-sdk)](https://www.npmjs.com/package/maiat-sdk)                                     | Core SDK — trust scores, token safety, swap verification for AI agents |
-| [`@jhinresh/viem-guard`](packages/guard/)                   | [![npm](https://img.shields.io/npm/v/@jhinresh/viem-guard)](https://www.npmjs.com/package/@jhinresh/viem-guard)                     | Viem middleware — auto-checks trust before every transaction           |
-| [`@jhinresh/mcp-server`](packages/mcp-server/)              | [![npm](https://img.shields.io/npm/v/@jhinresh/mcp-server)](https://www.npmjs.com/package/@jhinresh/mcp-server)                     | MCP Server — query trust from Claude, GPT, or any MCP-compatible AI    |
+| [`@jhinresh/viem-guard`](packages/guard/)                | [![npm](https://img.shields.io/npm/v/@jhinresh/viem-guard)](https://www.npmjs.com/package/@jhinresh/viem-guard)               | Viem middleware — auto-checks trust before every transaction           |
+| [`@jhinresh/mcp-server`](packages/mcp-server/)           | [![npm](https://img.shields.io/npm/v/@jhinresh/mcp-server)](https://www.npmjs.com/package/@jhinresh/mcp-server)               | MCP Server — query trust from Claude, GPT, or any MCP-compatible AI    |
 | [`@jhinresh/elizaos-plugin`](packages/elizaos-plugin/)   | [![npm](https://img.shields.io/npm/v/@jhinresh/elizaos-plugin)](https://www.npmjs.com/package/@jhinresh/elizaos-plugin)       | ElizaOS plugin — trust-gate actions, evaluators, providers             |
 | [`@jhinresh/agentkit-plugin`](packages/agentkit-plugin/) | [![npm](https://img.shields.io/npm/v/@jhinresh/agentkit-plugin)](https://www.npmjs.com/package/@jhinresh/agentkit-plugin)     | Coinbase AgentKit plugin — auto-check trust before transactions        |
 | [`@jhinresh/game-maiat-plugin`](packages/game-plugin/)   | [![npm](https://img.shields.io/npm/v/@jhinresh/game-maiat-plugin)](https://www.npmjs.com/package/@jhinresh/game-maiat-plugin) | GAME SDK plugin — check_trust_score, gate_swap, batch_check            |
