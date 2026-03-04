@@ -213,14 +213,14 @@ export default function DocsPage() {
 
           <CodeBlock
             title="Try it — cURL"
-            code={`curl https://maiat-protocol.vercel.app/api/v1/agent/0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`}
+            code={`curl https://maiat-protocol.vercel.app/api/v1/agent/0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D`}
           />
 
           <CodeBlock
             title="Example response — 200 OK"
             lang="json"
             code={`{
-  "address": "0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9",
+  "address": "0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D",
   "trustScore": 84,
   "verdict": "proceed",
   "breakdown": {
@@ -259,14 +259,14 @@ export default function DocsPage() {
 
           <CodeBlock
             title="Try it — cURL"
-            code={`curl https://maiat-protocol.vercel.app/api/v1/agent/0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9/deep`}
+            code={`curl https://maiat-protocol.vercel.app/api/v1/agent/0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D/deep`}
           />
 
           <CodeBlock
             title="Example response — 200 OK"
             lang="json"
             code={`{
-  "address": "0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9",
+  "address": "0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D",
   "trustScore": 84,
   "verdict": "proceed",
   "breakdown": {
@@ -482,7 +482,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
             title="Requirements (send in ACP job)"
             lang="json"
             code={`{
-  "agent": "0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9",
+  "agent": "0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D",
   "threshold": 60
 }`}
           />
@@ -523,7 +523,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
             title="Requirements"
             lang="json"
             code={`{
-  "agent": "0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9"
+  "agent": "0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D"
 }`}
           />
 
@@ -679,8 +679,8 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
             gate or surcharge swaps involving low-trust tokens.
           </p>
           <div className="rounded-xl border border-border-subtle overflow-hidden">
-            <FieldRow name="MaiatOracle" type="address" desc="0xdd046b037084e0aa23cfd2182318db28ca4b83a0 (Base Mainnet)" />
-            <FieldRow name="MaiatReceiptResolver" type="address" desc="0x601063661174bc7cfab4b2622ccc3ed41db0dd09 (Base Mainnet)" />
+            <FieldRow name="MaiatOracle" type="address" desc="0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da (Base Mainnet)" />
+            <FieldRow name="MaiatReceiptResolver" type="address" desc="0xda696009655825124bcbfdd5755c0657d6d841c0 (Base Mainnet)" />
             <FieldRow name="TrustGateHook" type="address" desc="0xf980Ad83bCbF2115598f5F555B29752F00b8daFf (Base Sepolia)" />
             <FieldRow name="Base Builder Code" type="string" desc="bc_cozhkj23 (ERC-8021, appended to all swap calldata)" />
           </div>
