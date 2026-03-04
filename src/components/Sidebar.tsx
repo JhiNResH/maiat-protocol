@@ -86,13 +86,13 @@ export function Sidebar() {
               href={item.href}
               className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                 active
-                  ? "bg-[#0052FF]/10 text-[#0052FF] border border-[#0052FF]/20"
+                  ? "bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20"
                   : "text-[#94a3b8] hover:bg-[#0d0e17] hover:text-[#f1f5f9]"
               }`}
             >
               <item.icon className="w-4 h-4 shrink-0" />
               <span>{item.label}</span>
-              {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#0052FF]" />}
+              {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#EF4444]" />}
             </Link>
           );
         })}
@@ -115,7 +115,7 @@ export function Sidebar() {
                 href={href}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   active
-                    ? "bg-[#0052FF]/10 text-[#0052FF] border border-[#0052FF]/20"
+                    ? "bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20"
                     : "text-[#94a3b8] hover:bg-[#0d0e17] hover:text-[#f1f5f9]"
                 }`}
               >
