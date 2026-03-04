@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Header } from '@/components/Header'
 import { Feather, Copy, CheckCheck, ChevronRight, Zap, Shield, Bot, Database, Star } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -69,10 +70,10 @@ function CodeBlock({ title, code, lang = 'bash' }: { title?: string; code: strin
 // ── Method badge ───────────────────────────────────────────────────────────
 function Method({ m }: { m: 'GET' | 'POST' | 'PUT' | 'DELETE' }) {
   const colors: Record<string, string> = {
-    GET: 'text-blue bg-[#00c9a718]',
-    POST: 'text-gold bg-[#d4a01718]',
-    PUT: 'text-turquoise bg-[#00b4d818]',
-    DELETE: 'text-crimson bg-[#e5383818]',
+    GET: 'text-blue bg-[#3b82f618]',
+    POST: 'text-cyan bg-[#06b6d418]',
+    PUT: 'text-indigo bg-[#6366f118]',
+    DELETE: 'text-slate bg-[#64748b18]',
   }
   return (
     <span className={`font-mono text-xs font-bold px-2.5 py-1 rounded ${colors[m]}`}>{m}</span>
@@ -83,7 +84,7 @@ function Method({ m }: { m: 'GET' | 'POST' | 'PUT' | 'DELETE' }) {
 function FieldRow({ name, type, desc }: { name: string; type: string; desc: string }) {
   return (
     <div className="flex items-start gap-4 px-3 py-2.5 rounded-md hover:bg-elevated transition-colors">
-      <span className="font-mono text-[13px] font-semibold text-gold w-40 shrink-0">{name}</span>
+      <span className="font-mono text-[13px] font-semibold text-cyan w-40 shrink-0">{name}</span>
       <span className="font-mono text-xs text-txt-muted w-20 shrink-0 mt-0.5">{type}</span>
       <span className="text-[13px] text-txt-secondary leading-[1.5]">{desc}</span>
     </div>
@@ -105,9 +106,11 @@ export default function DocsPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-page">
+    <div className="min-h-screen bg-page">
+      <Header />
+      <div className="flex bg-page">
       {/* ── Sidebar ── */}
-      <aside className="w-[264px] bg-surface border-r border-border-subtle pt-6 flex flex-col h-screen sticky top-0 overflow-y-auto shrink-0">
+      <aside className="w-[264px] bg-surface border-r border-border-subtle pt-6 flex flex-col h-screen sticky top-0 overflow-y-auto shrink-0 mt-[64px]">
         <Link href="/" className="flex items-center gap-2.5 px-6 pb-5 border-b border-border-subtle hover:opacity-80 transition-opacity">
           <Image src="/maiat-logo.jpg" alt="Maiat" width={20} height={20} className="w-5 h-5 rounded shadow-lg shadow-[#3b82f6]/20" />
           <span className="font-mono text-sm font-bold tracking-[3px] text-txt-primary">MAIAT</span>
@@ -129,15 +132,15 @@ export default function DocsPage() {
                 key={i}
                 onClick={() => scrollTo(item.id)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left w-full transition-colors group ${
-                  isActive ? 'bg-[#d4a01718] text-gold' : 'text-txt-secondary hover:bg-elevated hover:text-txt-primary'
+                  isActive ? 'bg-[#3b82f618] text-blue' : 'text-txt-secondary hover:bg-elevated hover:text-txt-primary'
                 }`}
               >
-                {isActive && <ChevronRight className="w-3 h-3 text-gold shrink-0" />}
-                <span className={`text-[12px] font-mono flex-1 ${isActive ? 'text-gold font-semibold' : ''}`}>
+                {isActive && <ChevronRight className="w-3 h-3 text-blue shrink-0" />}
+                <span className={`text-[12px] font-mono flex-1 ${isActive ? 'text-blue font-semibold' : ''}`}>
                   {item.label}
                 </span>
                 {item.badge && (
-                  <span className="text-[9px] font-bold text-turquoise bg-[#00b4d818] px-1.5 py-0.5 rounded">
+                  <span className="text-[9px] font-bold text-indigo bg-[#6366f118] px-1.5 py-0.5 rounded">
                     {item.badge}
                   </span>
                 )}
@@ -162,8 +165,8 @@ export default function DocsPage() {
 
           <p className="text-base text-txt-secondary leading-[1.7]">
             Maiat Protocol provides behavioral trust scoring for ACP (Agent Commerce Protocol) agents on Virtuals Protocol.
-            All endpoints are <span className="text-gold font-semibold">free and require no authentication</span>.
-            For advanced use cases, purchase ACP offerings directly from our seller agent using <span className="text-gold font-semibold">USDC</span>.
+            All endpoints are <span className="text-cyan font-semibold">free and require no authentication</span>.
+            For advanced use cases, purchase ACP offerings directly from our seller agent using <span className="text-cyan font-semibold">USDC</span>.
           </p>
 
           <div className="grid grid-cols-3 gap-4">
@@ -173,7 +176,7 @@ export default function DocsPage() {
               { icon: Database, label: 'On-chain Data', desc: 'Sourced from ACP job history' },
             ].map(({ icon: Icon, label, desc }) => (
               <div key={label} className="flex flex-col gap-2 p-4 rounded-xl border border-border-subtle bg-surface">
-                <Icon className="w-5 h-5 text-gold" />
+                <Icon className="w-5 h-5 text-cyan" />
                 <span className="text-sm font-semibold text-txt-primary">{label}</span>
                 <span className="text-xs text-txt-muted">{desc}</span>
               </div>
@@ -182,7 +185,7 @@ export default function DocsPage() {
 
           <div className="p-4 rounded-xl border border-border-subtle bg-surface">
             <p className="text-xs font-mono text-txt-muted mb-1">Base URL</p>
-            <p className="font-mono text-sm text-gold">https://maiat-protocol.vercel.app/api/v1</p>
+            <p className="font-mono text-sm text-cyan">https://maiat-protocol.vercel.app/api/v1</p>
           </div>
         </section>
 
@@ -192,7 +195,7 @@ export default function DocsPage() {
         <section id="agent-score" className="flex flex-col gap-6">
           <div className="flex items-center gap-3">
             <Method m="GET" />
-            <span className="font-mono text-lg font-semibold text-txt-primary">/agent/<span className="text-gold">{'{address}'}</span></span>
+            <span className="font-mono text-lg font-semibold text-txt-primary">/agent/<span className="text-cyan">{'{address}'}</span></span>
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.6]">
             Returns the ACP behavioral trust score for any wallet address. Score is computed from on-chain Virtuals ACP job history —
@@ -240,10 +243,10 @@ export default function DocsPage() {
         <section id="agent-deep" className="flex flex-col gap-6">
           <div className="flex items-center gap-3">
             <Method m="GET" />
-            <span className="font-mono text-lg font-semibold text-txt-primary">/agent/<span className="text-gold">{'{address}'}</span>/deep</span>
+            <span className="font-mono text-lg font-semibold text-txt-primary">/agent/<span className="text-cyan">{'{address}'}</span>/deep</span>
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.6]">
-            Full behavioral analysis report. Includes everything from <code className="font-mono text-gold text-sm">/agent/{'{address}'}</code> plus
+            Full behavioral analysis report. Includes everything from <code className="font-mono text-cyan text-sm">/agent/{'{address}'}</code> plus
             percentile ranking, risk flags, tier classification, and a human-readable recommendation.
           </p>
 
@@ -292,7 +295,7 @@ export default function DocsPage() {
         <section id="token-check" className="flex flex-col gap-6">
           <div className="flex items-center gap-3">
             <Method m="GET" />
-            <span className="font-mono text-lg font-semibold text-txt-primary">/token/<span className="text-gold">{'{address}'}</span></span>
+            <span className="font-mono text-lg font-semibold text-txt-primary">/token/<span className="text-cyan">{'{address}'}</span></span>
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.6]">
             Token safety check for any ERC-20 address. Detects honeypots, checks buy/sell tax, and returns a composite trust score.
@@ -412,12 +415,12 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
         {/* ── ACP Overview ── */}
         <section id="acp-overview" className="flex flex-col gap-6">
           <div className="flex items-center gap-3">
-            <Bot className="w-6 h-6 text-gold" />
+            <Bot className="w-6 h-6 text-cyan" />
             <h2 className="text-[26px] font-bold text-txt-primary">ACP Offerings</h2>
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.7]">
             ACP (Agent Commerce Protocol) offerings are purchased directly from the <span className="font-semibold text-txt-primary">Maiat seller agent</span> on
-            Virtuals Protocol. Payment is in <span className="text-gold font-semibold">USDC</span>. No API keys, no accounts — pure agent-to-agent commerce.
+            Virtuals Protocol. Payment is in <span className="text-cyan font-semibold">USDC</span>. No API keys, no accounts — pure agent-to-agent commerce.
           </p>
 
           <div className="flex flex-col gap-2">
@@ -454,7 +457,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
             ].map(({ name, fee, desc }) => (
               <div key={name} className="grid grid-cols-4 gap-0 px-4 py-3 border-t border-border-subtle hover:bg-elevated transition-colors">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[13px] text-gold">{name}</span>
+                  <span className="font-mono text-[13px] text-cyan">{name}</span>
                 </div>
                 <span className="font-mono text-[13px] text-blue">{fee}</span>
                 <span className="text-[13px] text-txt-secondary col-span-2">{desc}</span>
@@ -675,7 +678,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.6]">
             Trust scores are dynamically updated to the on-chain MaiatOracle on Base Mainnet.
-            The TrustGateHook (Uniswap v4) reads these scores in <code className="font-mono text-gold">beforeSwap</code> to
+            The TrustGateHook (Uniswap v4) reads these scores in <code className="font-mono text-cyan">beforeSwap</code> to
             gate or surcharge swaps involving low-trust tokens.
           </p>
           <div className="rounded-xl border border-border-subtle overflow-hidden">
@@ -691,7 +694,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
           <p className="text-xs text-txt-muted">Maiat Protocol · API v1.2 · Built on Virtuals ACP</p>
           <a
             href="https://github.com/maiat-protocol"
-            className="text-xs text-txt-muted hover:text-gold transition-colors font-mono"
+            className="text-xs text-txt-muted hover:text-cyan transition-colors font-mono"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -699,6 +702,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
           </a>
         </div>
       </main>
+    </div>
     </div>
   )
 }
