@@ -44,8 +44,8 @@ _(API Endpoints 以及其他列表已在原架構中建立完備)_
 
 ## 🤖 ACP Agent（Railway: maiat-agent）
 
-**Wallet:** `0x8108789f493db3c0c67983a22d17967eedcf3e8d4be40d1b09fdd1909ed6b4b2` (Maiat Official Signer)<br>
-**ACP Virtuals Vault:** `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`
+**Wallet:** `0xB1e504aE1ce359B4C2a6DC5d63aE6199a415f312` (Maiat Official Signer)<br>
+**ACP Virtuals Vault:** `0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D`
 
 這也是我們主要營利的引擎，所有 Agent 的查詢都需要支付 USDC。
 

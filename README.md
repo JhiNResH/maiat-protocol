@@ -63,8 +63,8 @@ Wallet: `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`
 
 | Contract                 | Address                                      | Purpose                                                     |
 | ------------------------ | -------------------------------------------- | ----------------------------------------------------------- |
-| **MaiatOracle**          | `0xdd046b037084e0aa23cfd2182318db28ca4b83a0` | On-chain trust scores for AI agents (updated dynamically)   |
-| **MaiatReceiptResolver** | `0x601063661174bc7cfab4b2622ccc3ed41db0dd09` | EAS Resolver gating attestations only to the Maiat Attester |
+| **MaiatOracle**          | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` | On-chain trust scores for AI agents (updated dynamically)   |
+| **MaiatReceiptResolver** | `0xda696009655825124bcbfdd5755c0657d6d841c0` | EAS Resolver gating attestations only to the Maiat Attester |
 | **TrustScoreOracle**     | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` | (Legacy/Sepolia) behavioral + reviews                       |
 | **TrustGateHook**        | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` | Uniswap v4 Hook — gates swaps based on oracle scores        |
 | **MaiatPassport**        | —                                            | Soulbound ERC-721 — auto-minted on wallet connect           |
@@ -78,7 +78,7 @@ Wallet: `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`
 
 ### EAS (Ethereum Attestation Service)
 
-- **Schema UID**: `0xff334be59dc68d965e7e3f9944caf49af9523c3125d1499b72a19dac198358d2`
+- **Schema UID**: `0x24b0db687434f15057bef6011b95f1324f2c38af06d0e636aea1c58bf346d802`
 - Gated by `MaiatReceiptResolver`. Attestations made via this schema are verified "Maiat Receipts".
 - Base Mainnet EAS contract: `0x4200000000000000000000000000000000000021`
 
