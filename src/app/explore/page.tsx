@@ -77,7 +77,7 @@ function trustScoreColor(score: number | null) {
 function chainDot(chain: string) {
   switch (chain?.toLowerCase()) {
     case "base":
-      return "bg-[#0052FF]";
+      return "bg-[#EF4444]";
     case "ethereum":
     case "eth":
       return "bg-purple-500";
@@ -96,7 +96,7 @@ export default function ExplorePageWrapper() {
       fallback={
         <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-            <Shield className="w-8 h-8 text-[#0052FF] animate-pulse" />
+            <Shield className="w-8 h-8 text-[#EF4444] animate-pulse" />
             <span className="text-xs font-mono text-[#666666] uppercase tracking-widest">
               LOADING...
             </span>
@@ -175,12 +175,12 @@ function ExplorePage() {
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
-            <Bot className="w-4 h-4 text-[#0052FF]" />
+            <Bot className="w-4 h-4 text-[#EF4444]" />
             <h1 className="text-xs font-mono text-[#666666] uppercase tracking-widest">
               // AI AGENT BROWSER — VIRTUALS ACP ECOSYSTEM
             </h1>
           </div>
-          <div className="h-px bg-gradient-to-r from-[#0052FF]/50 via-[#1F1F1F] to-transparent" />
+          <div className="h-px bg-gradient-to-r from-[#EF4444]/50 via-[#1F1F1F] to-transparent" />
           <p className="mt-3 text-sm text-[#555555] font-mono max-w-2xl">
             Browse verified AI agents from the Virtuals ACP network. Trust scores
             reflect on-chain behavioral history — completion rate, payment reliability,
@@ -198,7 +198,7 @@ function ExplorePage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="search by name or address..."
-              className="w-full bg-[#111111] border border-[#1F1F1F] rounded px-3 py-2 pl-9 text-xs font-mono text-[#E5E5E5] placeholder-[#444] outline-none focus:border-[#0052FF]/40 transition-colors"
+              className="w-full bg-[#111111] border border-[#1F1F1F] rounded px-3 py-2 pl-9 text-xs font-mono text-[#E5E5E5] placeholder-[#444] outline-none focus:border-[#EF4444]/40 transition-colors"
             />
           </div>
 
@@ -260,9 +260,9 @@ function ExplorePage() {
               </p>
             </div>
             {!search && (
-              <div className="flex items-center gap-2 mt-2 px-4 py-2 bg-[#0052FF]/5 border border-[#0052FF]/20 rounded-lg">
-                <Zap className="w-3.5 h-3.5 text-[#0052FF]" />
-                <span className="text-xs font-mono text-[#0052FF]">
+              <div className="flex items-center gap-2 mt-2 px-4 py-2 bg-[#EF4444]/5 border border-[#EF4444]/20 rounded-lg">
+                <Zap className="w-3.5 h-3.5 text-[#EF4444]" />
+                <span className="text-xs font-mono text-[#EF4444]">
                   Agents are indexed automatically from Virtuals ACP on-chain activity
                 </span>
               </div>
@@ -279,7 +279,7 @@ function ExplorePage() {
                 <button
                   key={agent.id}
                   onClick={() => router.push(`/agent/${agent.id}`)}
-                  className="group grid grid-cols-[1fr_160px_120px_100px] gap-4 items-center px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg text-left transition-all duration-150 hover:border-[#0052FF]/50 hover:shadow-[0_0_16px_rgba(0,82,255,0.08)] cursor-pointer w-full"
+                  className="group grid grid-cols-[1fr_160px_120px_100px] gap-4 items-center px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg text-left transition-all duration-150 hover:border-[#EF4444]/50 hover:shadow-[0_0_16px_rgba(0,82,255,0.08)] cursor-pointer w-full"
                   style={{ minHeight: "68px" }}
                 >
                   {/* Agent Info */}
@@ -292,13 +292,13 @@ function ExplorePage() {
                     {agent.logo ? (
                       <img src={agent.logo} alt={agent.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
                     ) : (
-                      <div className="w-8 h-8 rounded-lg bg-[#0052FF]/10 border border-[#0052FF]/20 flex items-center justify-center text-xs font-bold text-[#0052FF] flex-shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 flex items-center justify-center text-xs font-bold text-[#EF4444] flex-shrink-0">
                         {agent.name.charAt(0).toUpperCase()}
                       </div>
                     )}
                     {/* Name + chain */}
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#0052FF] transition-colors">
+                      <p className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#EF4444] transition-colors">
                         {agent.name}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5">
@@ -434,7 +434,7 @@ function LeaderboardView({
                 <div
                   key={agent.id}
                   onClick={() => router.push(`/agent/${agent.id}`)}
-                  className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#1a1a1a] bg-[#0D0D0D] hover:border-[#0052FF]/30 hover:bg-[#111111] cursor-pointer transition-all group"
+                  className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#1a1a1a] bg-[#0D0D0D] hover:border-[#EF4444]/30 hover:bg-[#111111] cursor-pointer transition-all group"
                 >
                   {/* Rank */}
                   <div className={`w-10 text-center font-mono font-bold ${rankStyle(i)}`}>
@@ -445,7 +445,7 @@ function LeaderboardView({
                   {agent.logo ? (
                     <img src={agent.logo} alt={agent.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
                   ) : (
-                    <div className="w-8 h-8 rounded-lg bg-[#0052FF]/10 border border-[#0052FF]/20 flex items-center justify-center text-xs font-bold text-[#0052FF] flex-shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 flex items-center justify-center text-xs font-bold text-[#EF4444] flex-shrink-0">
                       {agent.name.charAt(0).toUpperCase()}
                     </div>
                   )}

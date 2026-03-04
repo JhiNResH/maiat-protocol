@@ -34,7 +34,7 @@ const STEPS: Step[] = [
     subtitle: 'Any AI agent via HTTP',
     description: 'An autonomous agent (e.g., a DeFi router) needs to verify whether a counterparty is trustworthy before executing a transaction.',
     icon: Cpu,
-    color: '#0052FF',
+    color: '#EF4444',
     details: [
       'Agent calls POST /api/v1/trust-score',
       'Passes target project name or address',
@@ -264,7 +264,7 @@ function DetailPanel({ step }: { step: Step }) {
 
 function FlowDiagram({ activeStep }: { activeStep: number }) {
   const nodes = [
-    { label: 'Agent', color: '#0052FF' },
+    { label: 'Agent', color: '#EF4444' },
     { label: 'Maiat API', color: '#7C3AED' },
     { label: 'CRE', color: '#375BD2' },
     { label: 'On-Chain', color: '#10B981' },
@@ -347,7 +347,7 @@ export default function DemoPage() {
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/explore" className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors">
-              <Shield className="w-5 h-5 text-[#0052FF]" />
+              <Shield className="w-5 h-5 text-[#EF4444]" />
               <span className="font-semibold text-sm">Maiat Protocol</span>
             </Link>
             <span className="text-zinc-700">/</span>
@@ -482,7 +482,7 @@ export default function DemoPage() {
           <div className="flex items-center justify-center gap-3">
             <Link
               href="/explore"
-              className="px-5 py-2.5 rounded-lg bg-[#0052FF] text-white text-sm font-medium hover:bg-[#0052FF]/90 transition-colors"
+              className="px-5 py-2.5 rounded-lg bg-[#EF4444] text-white text-sm font-medium hover:bg-[#EF4444]/90 transition-colors"
             >
               Explore Projects →
             </Link>

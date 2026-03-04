@@ -93,9 +93,9 @@ export function BaseVerifyButton({ onVerified }: BaseVerifyButtonProps) {
 
   if (verified) {
     return (
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-        <ShieldCheck className="w-5 h-5 text-blue-400" />
-        <span className="text-blue-400 text-sm font-medium">Verified Human</span>
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500/30 rounded-xl">
+        <ShieldCheck className="w-5 h-5 text-red-400" />
+        <span className="text-red-400 text-sm font-medium">Verified Human</span>
       </div>
     )
   }
@@ -105,7 +105,7 @@ export function BaseVerifyButton({ onVerified }: BaseVerifyButtonProps) {
       <button
         onClick={handleVerify}
         disabled={loading}
-        className="flex items-center gap-2 px-4 py-2.5 bg-[#0052FF]/10 border border-[#0052FF]/30 rounded-xl text-[#0052FF] hover:bg-[#0052FF]/20 hover:border-[#0052FF]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 px-4 py-2.5 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl text-[#EF4444] hover:bg-[#EF4444]/20 hover:border-[#EF4444]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin" />

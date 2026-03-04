@@ -101,7 +101,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
                 <>
                   {badges.baseVerified && (
                     <span 
-                      className="px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                      className="px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-400 border border-red-500/30"
                       title="Verified Human (Base Verify)"
                     >
                       ✓ Human
@@ -164,7 +164,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
             </span>
             <span>▼</span>
           </div>
-          <button className="flex items-center gap-1 text-[#6b6b70] hover:text-blue-400 transition text-sm">
+          <button className="flex items-center gap-1 text-[#6b6b70] hover:text-red-400 transition text-sm">
             <span>💬</span>
             <span>0</span>
           </button>

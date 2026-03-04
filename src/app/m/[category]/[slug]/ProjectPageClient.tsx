@@ -80,7 +80,7 @@ function truncate(addr: string) {
 
 function chainColor(chain: string) {
   const c = chain?.toLowerCase()
-  if (c === 'base') return '#0052FF'
+  if (c === 'base') return '#EF4444'
   if (c === 'ethereum' || c === 'eth') return '#627EEA'
   if (c === 'bnb') return '#F3BA2F'
   return '#818384'
