@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Feather, Copy, CheckCheck, ChevronRight, Zap, Shield, Bot, Database, Star } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -106,11 +107,11 @@ export default function DocsPage() {
     <div className="flex min-h-screen bg-page">
       {/* ── Sidebar ── */}
       <aside className="w-[264px] bg-surface border-r border-border-subtle pt-6 flex flex-col h-screen sticky top-0 overflow-y-auto shrink-0">
-        <div className="flex items-center gap-2.5 px-6 pb-5 border-b border-border-subtle">
-          <Feather className="w-5 h-5 text-gold" />
+        <Link href="/" className="flex items-center gap-2.5 px-6 pb-5 border-b border-border-subtle hover:opacity-80 transition-opacity">
+          <Shield className="w-5 h-5 text-gold" />
           <span className="font-mono text-sm font-bold tracking-[3px] text-txt-primary">MAIAT</span>
           <span className="text-xs text-txt-muted">API Docs</span>
-        </div>
+        </Link>
 
         <nav className="flex flex-col gap-0.5 p-3">
           {SIDEBAR.map((item, i) => {
@@ -161,7 +162,7 @@ export default function DocsPage() {
           <p className="text-base text-txt-secondary leading-[1.7]">
             Maiat Protocol provides behavioral trust scoring for ACP (Agent Commerce Protocol) agents on Virtuals Protocol.
             All endpoints are <span className="text-gold font-semibold">free and require no authentication</span>.
-            For advanced use cases, purchase ACP offerings directly from our seller agent using <span className="text-gold font-semibold">$VIRTUAL</span>.
+            For advanced use cases, purchase ACP offerings directly from our seller agent using <span className="text-gold font-semibold">USDC</span>.
           </p>
 
           <div className="grid grid-cols-3 gap-4">
@@ -211,14 +212,14 @@ export default function DocsPage() {
 
           <CodeBlock
             title="Try it — cURL"
-            code={`curl https://maiat-protocol.vercel.app/api/v1/agent/0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28`}
+            code={`curl https://maiat-protocol.vercel.app/api/v1/agent/0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`}
           />
 
           <CodeBlock
             title="Example response — 200 OK"
             lang="json"
             code={`{
-  "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28",
+  "address": "0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9",
   "trustScore": 84,
   "verdict": "proceed",
   "breakdown": {
@@ -257,14 +258,14 @@ export default function DocsPage() {
 
           <CodeBlock
             title="Try it — cURL"
-            code={`curl https://maiat-protocol.vercel.app/api/v1/agent/0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28/deep`}
+            code={`curl https://maiat-protocol.vercel.app/api/v1/agent/0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9/deep`}
           />
 
           <CodeBlock
             title="Example response — 200 OK"
             lang="json"
             code={`{
-  "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28",
+  "address": "0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9",
   "trustScore": 84,
   "verdict": "proceed",
   "breakdown": {
@@ -361,7 +362,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
             code={`{
   "agents": [
     {
-      "address": "0x742d...f2bD",
+      "address": "0xAf1a...2b9",
       "trustScore": 84,
       "verdict": "proceed",
       "totalJobs": 142,
@@ -415,7 +416,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.7]">
             ACP (Agent Commerce Protocol) offerings are purchased directly from the <span className="font-semibold text-txt-primary">Maiat seller agent</span> on
-            Virtuals Protocol. Payment is in <span className="text-gold font-semibold">$VIRTUAL</span>. No API keys, no accounts — pure agent-to-agent commerce.
+            Virtuals Protocol. Payment is in <span className="text-gold font-semibold">USDC</span>. No API keys, no accounts — pure agent-to-agent commerce.
           </p>
 
           <div className="flex flex-col gap-2">
@@ -424,7 +425,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
               {[
                 { n: '1', text: 'Your agent discovers Maiat via the Virtuals ACP registry' },
                 { n: '2', text: 'Submit a job with the required inputs in the requirements field' },
-                { n: '3', text: 'Pay the job fee in $VIRTUAL (escrowed by ACP)' },
+                { n: '3', text: 'Pay the job fee in USDC (escrowed by ACP)' },
                 { n: '4', text: 'Receive the deliverable — structured JSON result' },
               ].map(({ n, text }) => (
                 <div key={n} className="flex items-center gap-3">
@@ -480,7 +481,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
             title="Requirements (send in ACP job)"
             lang="json"
             code={`{
-  "agent": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28",
+  "agent": "0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9",
   "threshold": 60
 }`}
           />
@@ -521,7 +522,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
             title="Requirements"
             lang="json"
             code={`{
-  "agent": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28"
+  "agent": "0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9"
 }`}
           />
 
@@ -650,7 +651,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
             title="GET /api/v1/wallet/{address}/passport"
             lang="json"
             code={`{
-  "address": "0x742d...f2bD",
+  "address": "0xAf1a...2b9",
   "passport": {
     "trustLevel": "trusted",
     "reputationScore": 42,
