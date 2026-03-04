@@ -50,11 +50,11 @@ export default function ReviewIndexPage() {
               onChange={e => { setInput(e.target.value); setError('') }}
               onKeyDown={e => e.key === 'Enter' && handleGo()}
               placeholder="0x contract address…"
-              className="flex-1 bg-[#111] border border-[#333] focus:border-[#EF4444] text-white font-mono text-sm px-4 py-3 rounded-lg outline-none transition-colors placeholder:text-gray-600"
+              className="flex-1 bg-[#111] border border-[#333] focus:border-[#3b82f6] text-white font-mono text-sm px-4 py-3 rounded-lg outline-none transition-colors placeholder:text-gray-600"
             />
             <button
               onClick={handleGo}
-              className="bg-[#EF4444] hover:bg-[#DC2626] text-white font-mono font-bold text-sm px-5 py-3 rounded-lg transition-colors"
+              className="bg-[#3b82f6] hover:bg-[#DC2626] text-white font-mono font-bold text-sm px-5 py-3 rounded-lg transition-colors"
             >
               GO →
             </button>
@@ -76,7 +76,7 @@ export default function ReviewIndexPage() {
                       {p.name.charAt(0)}
                     </div>
                     <span className="text-white font-mono text-sm">{p.name}</span>
-                    <span className="text-xs font-mono text-[#EF4444] border border-[#EF4444]/30 px-1.5 py-0.5 rounded">
+                    <span className="text-xs font-mono text-[#3b82f6] border border-[#3b82f6]/30 px-1.5 py-0.5 rounded">
                       {p.chain}
                     </span>
                   </div>

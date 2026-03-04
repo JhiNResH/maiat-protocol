@@ -18,27 +18,27 @@ interface ProjectCardProps {
 function getRiskBadgeStyle(level: string) {
   switch (level) {
     case 'LOW':
-      return 'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30'
+      return 'bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/30'
     case 'MEDIUM':
-      return 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30'
+      return 'bg-[#06b6d4]/10 text-[#06b6d4] border-[#06b6d4]/30'
     case 'HIGH':
     case 'CRITICAL':
-      return 'bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30'
+      return 'bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/30'
     default:
       return 'bg-[#666666]/10 text-[#666666] border-[#666666]/30'
   }
 }
 
 function getScoreColor(score: number) {
-  if (score >= 7.0) return 'text-[#22C55E]'
-  if (score >= 4.0) return 'text-[#F59E0B]'
-  return 'text-[#EF4444]'
+  if (score >= 7.0) return 'text-[#3b82f6]'
+  if (score >= 4.0) return 'text-[#06b6d4]'
+  return 'text-[#3b82f6]'
 }
 
 function getChainDot(chain?: string) {
   switch (chain?.toLowerCase()) {
     case 'base':
-      return 'bg-[#EF4444]'
+      return 'bg-[#3b82f6]'
     case 'ethereum':
     case 'eth':
       return 'bg-purple-500'
@@ -55,8 +55,8 @@ function getChainDot(chain?: string) {
 }
 
 function getCategoryColor(cat?: string) {
-  if (cat === 'Agent') return '#EF4444'
-  if (cat === 'DeFi' || cat === 'DEX') return '#7C3AED'
+  if (cat === 'Agent') return '#3b82f6'
+  if (cat === 'DeFi' || cat === 'DEX') return '#6366f1'
   if (cat === 'Lending') return '#0EA5E9'
   return '#666666'
 }
@@ -91,7 +91,7 @@ export function ProjectCard({
   return (
     <Link
       href={href}
-      className="group flex items-center gap-4 px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg transition-all duration-200 hover:border-[#EF4444]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.15)]"
+      className="group flex items-center gap-4 px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg transition-all duration-200 hover:border-[#3b82f6]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.15)]"
       style={{ minHeight: '72px' }}
     >
       {/* LEFT: Avatar + Name + Chain */}
@@ -110,7 +110,7 @@ export function ProjectCard({
 
         {/* Name + Chain badge */}
         <div className="min-w-0 flex flex-col gap-0.5">
-          <span className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#EF4444] transition-colors">
+          <span className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#3b82f6] transition-colors">
             {name}
           </span>
           <div className="flex items-center gap-1.5">

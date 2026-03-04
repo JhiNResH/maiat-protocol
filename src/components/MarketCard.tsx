@@ -46,11 +46,11 @@ function formatScarab(amount: number) {
 function getCategoryColor(category: string) {
   switch (category) {
     case 'ai-agents':
-      return { bg: 'bg-[#EF4444]/10', text: 'text-[#EF4444]', border: 'border-[#EF4444]/30' }
+      return { bg: 'bg-[#3b82f6]/10', text: 'text-[#3b82f6]', border: 'border-[#3b82f6]/30' }
     case 'defi':
-      return { bg: 'bg-[#7C3AED]/10', text: 'text-[#7C3AED]', border: 'border-[#7C3AED]/30' }
+      return { bg: 'bg-[#6366f1]/10', text: 'text-[#6366f1]', border: 'border-[#6366f1]/30' }
     case 'mixed':
-      return { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', border: 'border-[#F59E0B]/30' }
+      return { bg: 'bg-[#06b6d4]/10', text: 'text-[#06b6d4]', border: 'border-[#06b6d4]/30' }
     default:
       return { bg: 'bg-[#666666]/10', text: 'text-[#666666]', border: 'border-[#666666]/30' }
   }
@@ -59,9 +59,9 @@ function getCategoryColor(category: string) {
 function getStatusStyle(status: string) {
   switch (status) {
     case 'open':
-      return 'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30'
+      return 'bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/30'
     case 'closed':
-      return 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30'
+      return 'bg-[#06b6d4]/10 text-[#06b6d4] border-[#06b6d4]/30'
     case 'resolved':
       return 'bg-[#666666]/10 text-[#666666] border-[#666666]/30'
     default:
@@ -88,12 +88,12 @@ export function MarketCard({
   return (
     <Link
       href={`/markets/${id}`}
-      className="group block bg-[#111111] border border-[#1F1F1F] rounded-lg p-4 transition-all duration-200 hover:border-[#EF4444]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.1)]"
+      className="group block bg-[#111111] border border-[#1F1F1F] rounded-lg p-4 transition-all duration-200 hover:border-[#3b82f6]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.1)]"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#EF4444] transition-colors">
+          <h3 className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#3b82f6] transition-colors">
             {title}
           </h3>
           <p className="text-[10px] font-mono text-[#666666] mt-0.5 line-clamp-2">
@@ -129,8 +129,8 @@ export function MarketCard({
 
         {/* Time Remaining */}
         <div className="flex items-center gap-1.5 ml-auto">
-          <Clock className={`w-3 h-3 ${isActive ? 'text-[#22C55E]' : 'text-[#666666]'}`} />
-          <span className={`text-xs font-mono ${isActive ? 'text-[#22C55E]' : 'text-[#666666]'}`}>
+          <Clock className={`w-3 h-3 ${isActive ? 'text-[#3b82f6]' : 'text-[#666666]'}`} />
+          <span className={`text-xs font-mono ${isActive ? 'text-[#3b82f6]' : 'text-[#666666]'}`}>
             {timeRemaining}
           </span>
         </div>
@@ -154,7 +154,7 @@ export function MarketCard({
           <div className="flex flex-col gap-1.5">
             {topProjects.slice(0, 3).map((project, idx) => (
               <div key={project.projectId} className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full bg-[#EF4444]/10 flex items-center justify-center text-[9px] font-bold font-mono text-[#EF4444]">
+                <span className="w-4 h-4 rounded-full bg-[#3b82f6]/10 flex items-center justify-center text-[9px] font-bold font-mono text-[#3b82f6]">
                   {idx + 1}
                 </span>
                 <span className="text-xs font-mono text-[#E5E5E5] truncate flex-1">

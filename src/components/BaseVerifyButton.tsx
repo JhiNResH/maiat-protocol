@@ -105,7 +105,7 @@ export function BaseVerifyButton({ onVerified }: BaseVerifyButtonProps) {
       <button
         onClick={handleVerify}
         disabled={loading}
-        className="flex items-center gap-2 px-4 py-2.5 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl text-[#EF4444] hover:bg-[#EF4444]/20 hover:border-[#EF4444]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 px-4 py-2.5 bg-[#3b82f6]/10 border border-[#3b82f6]/30 rounded-xl text-[#3b82f6] hover:bg-[#3b82f6]/20 hover:border-[#3b82f6]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin" />

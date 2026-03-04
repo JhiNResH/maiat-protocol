@@ -205,7 +205,7 @@ export default function MarketDetailPage({
       <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
         <Header />
         <div className="flex flex-col items-center justify-center py-32">
-          <Shield className="w-8 h-8 text-[#EF4444] animate-pulse" />
+          <Shield className="w-8 h-8 text-[#3b82f6] animate-pulse" />
           <span className="text-xs font-mono text-[#666666] uppercase tracking-widest mt-3">
             LOADING MARKET...
           </span>
@@ -219,11 +219,11 @@ export default function MarketDetailPage({
       <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
         <Header />
         <div className="flex flex-col items-center justify-center py-32">
-          <XCircle className="w-8 h-8 text-[#EF4444]" />
+          <XCircle className="w-8 h-8 text-[#3b82f6]" />
           <span className="text-sm font-mono text-[#666666] mt-3">Market not found</span>
           <Link
             href="/markets"
-            className="mt-4 text-xs font-mono text-[#EF4444] hover:underline"
+            className="mt-4 text-xs font-mono text-[#3b82f6] hover:underline"
           >
             ← Back to Markets
           </Link>
@@ -243,7 +243,7 @@ export default function MarketDetailPage({
         {/* Back Link */}
         <Link
           href="/markets"
-          className="inline-flex items-center gap-2 text-xs font-mono text-[#666666] hover:text-[#EF4444] transition-colors mb-6"
+          className="inline-flex items-center gap-2 text-xs font-mono text-[#666666] hover:text-[#3b82f6] transition-colors mb-6"
         >
           <ArrowLeft className="w-3 h-3" />
           BACK TO MARKETS
@@ -256,9 +256,9 @@ export default function MarketDetailPage({
             <span
               className={`px-2 py-0.5 text-[9px] font-bold font-mono uppercase tracking-wide rounded border ${
                 market.status === "open"
-                  ? "bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30"
+                  ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/30"
                   : market.status === "resolved"
-                  ? "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30"
+                  ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/30"
                   : "bg-[#666666]/10 text-[#666666] border-[#666666]/30"
               }`}
             >
@@ -272,7 +272,7 @@ export default function MarketDetailPage({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-[#EF4444]" />
+              <TrendingUp className="w-4 h-4 text-[#3b82f6]" />
               <span className="text-[10px] font-mono text-[#666666] uppercase">Total Pool</span>
             </div>
             <span className="text-xl font-bold font-mono text-[#E5E5E5]">
@@ -282,7 +282,7 @@ export default function MarketDetailPage({
 
           <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Users className="w-4 h-4 text-[#7C3AED]" />
+              <Users className="w-4 h-4 text-[#6366f1]" />
               <span className="text-[10px] font-mono text-[#666666] uppercase">Positions</span>
             </div>
             <span className="text-xl font-bold font-mono text-[#E5E5E5]">
@@ -292,17 +292,17 @@ export default function MarketDetailPage({
 
           <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Clock className={`w-4 h-4 ${isOpen ? "text-[#22C55E]" : "text-[#666666]"}`} />
+              <Clock className={`w-4 h-4 ${isOpen ? "text-[#3b82f6]" : "text-[#666666]"}`} />
               <span className="text-[10px] font-mono text-[#666666] uppercase">Time Left</span>
             </div>
-            <span className={`text-xl font-bold font-mono ${isOpen ? "text-[#22C55E]" : "text-[#666666]"}`}>
+            <span className={`text-xl font-bold font-mono ${isOpen ? "text-[#3b82f6]" : "text-[#666666]"}`}>
               {formatTimeRemaining(market.closesAt)}
             </span>
           </div>
 
           <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Trophy className="w-4 h-4 text-[#F59E0B]" />
+              <Trophy className="w-4 h-4 text-[#06b6d4]" />
               <span className="text-[10px] font-mono text-[#666666] uppercase">Category</span>
             </div>
             <span className="text-lg font-bold font-mono text-[#E5E5E5] uppercase">
@@ -334,14 +334,14 @@ export default function MarketDetailPage({
                         key={project.projectId}
                         className={`flex items-center gap-3 p-3 rounded-lg border ${
                           isWinner
-                            ? "bg-[#22C55E]/5 border-[#22C55E]/30"
+                            ? "bg-[#3b82f6]/5 border-[#3b82f6]/30"
                             : "bg-[#0A0A0A] border-[#1F1F1F]"
                         }`}
                       >
                         <span
                           className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
                             idx === 0
-                              ? "bg-[#F59E0B]/20 text-[#F59E0B]"
+                              ? "bg-[#06b6d4]/20 text-[#06b6d4]"
                               : idx === 1
                               ? "bg-[#94A3B8]/20 text-[#94A3B8]"
                               : idx === 2
@@ -355,11 +355,11 @@ export default function MarketDetailPage({
                         <div className="flex-1 min-w-0">
                           <Link
                             href={`/agent/${project.projectSlug}`}
-                            className="text-sm font-semibold text-[#E5E5E5] hover:text-[#EF4444] transition-colors truncate block"
+                            className="text-sm font-semibold text-[#E5E5E5] hover:text-[#3b82f6] transition-colors truncate block"
                           >
                             {project.projectName}
                             {isWinner && (
-                              <Trophy className="w-3 h-3 text-[#22C55E] inline ml-1.5" />
+                              <Trophy className="w-3 h-3 text-[#3b82f6] inline ml-1.5" />
                             )}
                           </Link>
                           <div className="flex items-center gap-2 text-[10px] font-mono text-[#666666]">
@@ -394,16 +394,16 @@ export default function MarketDetailPage({
                 </h2>
 
                 {error && (
-                  <div className="mb-4 p-3 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg flex items-center gap-2">
-                    <XCircle className="w-4 h-4 text-[#EF4444]" />
-                    <span className="text-xs font-mono text-[#EF4444]">{error}</span>
+                  <div className="mb-4 p-3 bg-[#3b82f6]/10 border border-[#3b82f6]/30 rounded-lg flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-[#3b82f6]" />
+                    <span className="text-xs font-mono text-[#3b82f6]">{error}</span>
                   </div>
                 )}
 
                 {success && (
-                  <div className="mb-4 p-3 bg-[#22C55E]/10 border border-[#22C55E]/30 rounded-lg flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-[#22C55E]" />
-                    <span className="text-xs font-mono text-[#22C55E]">{success}</span>
+                  <div className="mb-4 p-3 bg-[#3b82f6]/10 border border-[#3b82f6]/30 rounded-lg flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-[#3b82f6]" />
+                    <span className="text-xs font-mono text-[#3b82f6]">{success}</span>
                   </div>
                 )}
 
@@ -416,7 +416,7 @@ export default function MarketDetailPage({
                     <select
                       value={selectedProject}
                       onChange={(e) => setSelectedProject(e.target.value)}
-                      className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg px-3 py-2 text-sm font-mono text-[#E5E5E5] outline-none focus:border-[#EF4444]/40"
+                      className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg px-3 py-2 text-sm font-mono text-[#E5E5E5] outline-none focus:border-[#3b82f6]/40"
                     >
                       <option value="">Choose a project...</option>
                       {eligibleProjects.map((p) => (
@@ -438,7 +438,7 @@ export default function MarketDetailPage({
                         min="50"
                         value={stakeAmount}
                         onChange={(e) => setStakeAmount(e.target.value)}
-                        className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg px-3 py-2 pr-12 text-sm font-mono text-[#E5E5E5] outline-none focus:border-[#EF4444]/40"
+                        className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg px-3 py-2 pr-12 text-sm font-mono text-[#E5E5E5] outline-none focus:border-[#3b82f6]/40"
                         placeholder="50"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">🪲</span>
@@ -448,7 +448,7 @@ export default function MarketDetailPage({
                         <button
                           key={amt}
                           onClick={() => setStakeAmount(amt.toString())}
-                          className="px-2 py-1 text-[10px] font-mono text-[#666666] border border-[#1F1F1F] rounded hover:border-[#EF4444]/40 hover:text-[#EF4444] transition-colors"
+                          className="px-2 py-1 text-[10px] font-mono text-[#666666] border border-[#1F1F1F] rounded hover:border-[#3b82f6]/40 hover:text-[#3b82f6] transition-colors"
                         >
                           {amt}
                         </button>
@@ -460,7 +460,7 @@ export default function MarketDetailPage({
                   <button
                     onClick={handleStake}
                     disabled={submitting}
-                    className="w-full py-3 bg-[#EF4444] hover:bg-[#EF4444]/80 disabled:bg-[#333] disabled:cursor-not-allowed rounded-lg text-sm font-mono font-bold text-white transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-[#3b82f6] hover:bg-[#3b82f6]/80 disabled:bg-[#333] disabled:cursor-not-allowed rounded-lg text-sm font-mono font-bold text-white transition-colors flex items-center justify-center gap-2"
                   >
                     {submitting ? (
                       <>
@@ -512,7 +512,7 @@ export default function MarketDetailPage({
                         {pos.payout !== null && (
                           <span
                             className={`block text-[9px] font-mono ${
-                              pos.payout > 0 ? "text-[#22C55E]" : "text-[#EF4444]"
+                              pos.payout > 0 ? "text-[#3b82f6]" : "text-[#3b82f6]"
                             }`}
                           >
                             {pos.payout > 0 ? `+${pos.payout}` : "0"} payout
