@@ -38,7 +38,7 @@ function getScoreColor(score: number) {
 function getChainDot(chain?: string) {
   switch (chain?.toLowerCase()) {
     case 'base':
-      return 'bg-[#0052FF]'
+      return 'bg-[#EF4444]'
     case 'ethereum':
     case 'eth':
       return 'bg-purple-500'
@@ -55,7 +55,7 @@ function getChainDot(chain?: string) {
 }
 
 function getCategoryColor(cat?: string) {
-  if (cat === 'Agent') return '#0052FF'
+  if (cat === 'Agent') return '#EF4444'
   if (cat === 'DeFi' || cat === 'DEX') return '#7C3AED'
   if (cat === 'Lending') return '#0EA5E9'
   return '#666666'
@@ -91,7 +91,7 @@ export function ProjectCard({
   return (
     <Link
       href={href}
-      className="group flex items-center gap-4 px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg transition-all duration-200 hover:border-[#0052FF]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.15)]"
+      className="group flex items-center gap-4 px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg transition-all duration-200 hover:border-[#EF4444]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.15)]"
       style={{ minHeight: '72px' }}
     >
       {/* LEFT: Avatar + Name + Chain */}
@@ -110,7 +110,7 @@ export function ProjectCard({
 
         {/* Name + Chain badge */}
         <div className="min-w-0 flex flex-col gap-0.5">
-          <span className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#0052FF] transition-colors">
+          <span className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#EF4444] transition-colors">
             {name}
           </span>
           <div className="flex items-center gap-1.5">

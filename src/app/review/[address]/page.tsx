@@ -105,7 +105,7 @@ export default function ReviewPage() {
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-[#0052FF] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-[#EF4444] border-t-transparent rounded-full animate-spin" />
             <p className="font-mono text-gray-500 text-xs">Loading agent...</p>
           </div>
         </div>
@@ -125,7 +125,7 @@ export default function ReviewPage() {
           <p className="font-mono text-gray-600 text-xs text-center">
             {address} is not in the ACP ecosystem yet.
           </p>
-          <Link href="/explore" className="text-xs font-mono text-[#0052FF] hover:underline">
+          <Link href="/explore" className="text-xs font-mono text-[#EF4444] hover:underline">
             ← Browse all agents
           </Link>
         </div>
@@ -154,7 +154,7 @@ export default function ReviewPage() {
                   className="w-14 h-14 rounded-xl object-cover shrink-0 border border-[#333]"
                 />
               ) : (
-                <div className="w-14 h-14 rounded-xl bg-[#0052FF]/10 border border-[#0052FF]/30 flex items-center justify-center text-xl font-bold text-[#0052FF] shrink-0">
+                <div className="w-14 h-14 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/30 flex items-center justify-center text-xl font-bold text-[#EF4444] shrink-0">
                   {name.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -225,7 +225,7 @@ export default function ReviewPage() {
               <div className="flex gap-3 justify-center">
                 <Link
                   href="/explore"
-                  className="text-xs font-mono text-[#0052FF] border border-[#0052FF]/30 hover:bg-[#0052FF]/10 px-4 py-2 rounded-lg transition-colors"
+                  className="text-xs font-mono text-[#EF4444] border border-[#EF4444]/30 hover:bg-[#EF4444]/10 px-4 py-2 rounded-lg transition-colors"
                 >
                   Browse agents
                 </Link>
@@ -250,7 +250,7 @@ export default function ReviewPage() {
               </div>
               <button
                 onClick={login}
-                className="w-full bg-[#0052FF] hover:bg-[#0040CC] text-white font-mono font-bold text-sm py-3 rounded-lg transition-colors"
+                className="w-full bg-[#EF4444] hover:bg-[#DC2626] text-white font-mono font-bold text-sm py-3 rounded-lg transition-colors"
               >
                 Connect Wallet
               </button>

@@ -130,7 +130,7 @@ export function ScarabPurchasePanel({ onClose, onSuccess }: ScarabPurchasePanelP
 
         {/* Info */}
         <div className="px-6 pb-6">
-          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg px-4 py-3 text-sm text-blue-300 mb-4">
+          <div className="bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-300 mb-4">
             ℹ️ Purchases are processed via USDC on Base. Scarab is added instantly to your balance.
           </div>
 

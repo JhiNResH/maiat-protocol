@@ -230,7 +230,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                           <p className="text-xs text-[#6b6b70] mb-1">Features:</p>
                           <div className="flex flex-wrap gap-1">
                             {results.aiAnalysis.features.slice(0, 3).map((f, i) => (
-                              <span key={i} className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded">
+                              <span key={i} className="text-xs px-2 py-0.5 bg-red-500/10 text-red-400 rounded">
                                 {f}
                               </span>
                             ))}
@@ -283,7 +283,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                           className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[#1f1f23] transition-colors"
                         >
                           <div className={`w-10 h-10 rounded-lg ${
-                            meta.color === 'purple' ? 'bg-purple-500/10' : 'bg-blue-500/10'
+                            meta.color === 'purple' ? 'bg-purple-500/10' : 'bg-red-500/10'
                           } flex items-center justify-center`}>
                             <span className="text-xl">{meta.icon}</span>
                           </div>
@@ -291,7 +291,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                             <div className="flex items-center gap-2">
                               <p className="text-white font-medium">{project.name}</p>
                               <span className={`px-2 py-0.5 text-xs rounded ${
-                                meta.color === 'purple' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'
+                                meta.color === 'purple' ? 'bg-purple-500/20 text-purple-400' : 'bg-red-500/20 text-red-400'
                               }`}>
                                 {meta.label}
                               </span>
@@ -316,7 +316,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                   className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[#1f1f23] transition-colors"
                 >
                   <div className="w-10 h-10 rounded-lg bg-[#1a1a1d] flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-blue-400" />
+                    <FileText className="w-5 h-5 text-red-400" />
                   </div>
                   <div className="flex-1">
                     <p className="text-white text-sm">{review.contentPreview}</p>

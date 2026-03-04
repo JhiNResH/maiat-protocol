@@ -31,7 +31,7 @@ export function CategoryTabs({ categories, activeKey }: CategoryTabsProps) {
           onClick={() => handleClick(cat.key)}
           className={`px-3 py-1.5 text-xs font-mono font-medium rounded-md transition-colors whitespace-nowrap ${
             activeKey === cat.key
-              ? 'bg-blue-600 text-white'
+              ? 'bg-[#EF4444] text-white'
               : 'bg-white dark:bg-[#1a1b23] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
           }`}
         >
