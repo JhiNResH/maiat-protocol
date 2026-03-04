@@ -74,7 +74,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
         <p className="text-gray-400 font-mono text-sm mb-3">Sign in to review this project</p>
         <button
           onClick={login}
-          className="bg-[#0052FF] hover:bg-[#0040CC] text-white font-bold font-mono text-sm py-2.5 px-6 rounded-lg transition-colors"
+          className="bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold font-mono text-sm py-2.5 px-6 rounded-lg transition-colors"
         >
           Connect Wallet
         </button>
@@ -87,7 +87,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
     return (
       <div className="bg-[#111] border border-[#222] rounded-xl p-6">
         <div className="text-center mb-5">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#0052FF]/10 border border-[#0052FF]/30 flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#EF4444]/10 border border-[#EF4444]/30 flex items-center justify-center">
             <span className="text-xl">🔍</span>
           </div>
           <h3 className="text-white font-mono font-bold text-sm mb-2">Verify Interaction</h3>
@@ -98,7 +98,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
         </div>
         <button
           onClick={handleVerifyInteraction}
-          className="w-full bg-[#0052FF] hover:bg-[#0040CC] text-white font-bold font-mono text-sm py-3 rounded-lg transition-colors"
+          className="w-full bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold font-mono text-sm py-3 rounded-lg transition-colors"
         >
           Verify On-Chain Interaction
         </button>
@@ -109,7 +109,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
   if (interactionStatus === 'loading') {
     return (
       <div className="bg-[#111] border border-[#222] rounded-xl p-8 text-center">
-        <div className="w-10 h-10 mx-auto mb-3 rounded-full border-2 border-[#0052FF] border-t-transparent animate-spin" />
+        <div className="w-10 h-10 mx-auto mb-3 rounded-full border-2 border-[#EF4444] border-t-transparent animate-spin" />
         <p className="text-gray-400 font-mono text-sm">
           Checking on-chain interactions…
         </p>
@@ -202,7 +202,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
           placeholder="Share your experience…"
           rows={3}
           maxLength={500}
-          className="w-full bg-[#0a0a0a] border border-[#333] focus:border-[#0052FF] rounded-lg px-3 py-2.5 text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none transition-colors resize-none"
+          className="w-full bg-[#0a0a0a] border border-[#333] focus:border-[#EF4444] rounded-lg px-3 py-2.5 text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none transition-colors resize-none"
         />
         <div className="text-[10px] font-mono text-gray-600 mt-1">{content.length}/500</div>
       </div>
@@ -217,7 +217,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
           value={easReceiptId}
           onChange={(e) => setEasReceiptId(e.target.value)}
           placeholder="Paste receipt ID…"
-          className="w-full bg-[#0a0a0a] border border-[#333] focus:border-[#0052FF] rounded-lg px-3 py-2.5 text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none transition-colors"
+          className="w-full bg-[#0a0a0a] border border-[#333] focus:border-[#EF4444] rounded-lg px-3 py-2.5 text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none transition-colors"
         />
       </div>
 
@@ -237,7 +237,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-[#0052FF] hover:bg-[#0040CC] disabled:bg-[#333] disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold font-mono text-sm py-3 rounded-lg transition-colors"
+        className="w-full bg-[#EF4444] hover:bg-[#DC2626] disabled:bg-[#333] disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold font-mono text-sm py-3 rounded-lg transition-colors"
       >
         {submitting ? 'Submitting…' : 'Submit Review'}
       </button>
