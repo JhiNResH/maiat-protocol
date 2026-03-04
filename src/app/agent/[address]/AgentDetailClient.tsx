@@ -188,7 +188,7 @@ function ReviewFormInline({
       <p className="text-[#475569] text-xs mb-4 font-mono">Reviews cost 2 🪲 · Quality reviews earn up to +10 🪲</p>
       <button
         onClick={login}
-        className="px-6 py-2 bg-[#EF4444] hover:bg-[#DC2626] text-white font-semibold text-sm rounded-xl transition-colors"
+        className="px-6 py-2 bg-[#3b82f6] hover:bg-[#DC2626] text-white font-semibold text-sm rounded-xl transition-colors"
       >
         Connect Wallet
       </button>
@@ -248,7 +248,7 @@ function ReviewFormInline({
           onChange={e => setComment(e.target.value)}
           placeholder={`Share your experience with ${agentName}...`}
           rows={3}
-          className="w-full bg-[#13141f] border border-[#1e2035] focus:border-[#EF4444]/40 rounded-xl px-4 py-3 text-sm text-[#f1f5f9] placeholder-[#2a2d45] focus:outline-none resize-none transition-all"
+          className="w-full bg-[#13141f] border border-[#1e2035] focus:border-[#3b82f6]/40 rounded-xl px-4 py-3 text-sm text-[#f1f5f9] placeholder-[#2a2d45] focus:outline-none resize-none transition-all"
         />
       </div>
 
@@ -260,7 +260,7 @@ function ReviewFormInline({
           value={easReceiptId}
           onChange={e => setEasId(e.target.value)}
           placeholder="0x attestation hash..."
-          className="w-full bg-[#13141f] border border-[#1e2035] focus:border-[#EF4444]/40 rounded-xl px-4 py-2 text-sm text-[#f1f5f9] placeholder-[#2a2d45] focus:outline-none transition-all font-mono"
+          className="w-full bg-[#13141f] border border-[#1e2035] focus:border-[#3b82f6]/40 rounded-xl px-4 py-2 text-sm text-[#f1f5f9] placeholder-[#2a2d45] focus:outline-none transition-all font-mono"
         />
       </div>
 
@@ -272,7 +272,7 @@ function ReviewFormInline({
       <button
         type="submit"
         disabled={submitting || !canAfford}
-        className="w-full py-2.5 bg-[#EF4444] hover:bg-[#DC2626] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl transition-colors"
+        className="w-full py-2.5 bg-[#3b82f6] hover:bg-[#DC2626] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl transition-colors"
       >
         {submitting ? 'Submitting...' : 'Submit Review (−2 🪲)'}
       </button>
@@ -289,7 +289,7 @@ export default function AgentDetailClient() {
       <Suspense
         fallback={
           <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center pt-16">
-            <div className="w-7 h-7 border-2 border-[#EF4444] border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
           </div>
         }
       >
@@ -366,7 +366,7 @@ function AgentDetail() {
   if (loading) return (
     <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center pt-16">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-8 h-8 border-2 border-[#EF4444] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
         <span className="text-[#475569] font-mono text-xs uppercase tracking-widest">Loading agent data…</span>
       </div>
     </div>
@@ -378,7 +378,7 @@ function AgentDetail() {
       <div className="text-center">
         <Shield className="w-12 h-12 text-[#1e2035] mx-auto mb-4" />
         <p className="text-[#f1f5f9] font-semibold mb-2">{error || 'Agent not found'}</p>
-        <Link href="/explore" className="text-[#EF4444] text-sm hover:underline">← Back to Explore</Link>
+        <Link href="/explore" className="text-[#3b82f6] text-sm hover:underline">← Back to Explore</Link>
       </div>
     </div>
   )
@@ -398,7 +398,7 @@ function AgentDetail() {
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-[#475569]">
-          <Link href="/explore" className="flex items-center gap-1 hover:text-[#EF4444] transition-colors">
+          <Link href="/explore" className="flex items-center gap-1 hover:text-[#3b82f6] transition-colors">
             <ArrowLeft className="w-3 h-3" /> Explore
           </Link>
           <span>/</span>
@@ -454,7 +454,7 @@ function AgentDetail() {
                     setCopied(true)
                     setTimeout(() => setCopied(false), 1500)
                   }}
-                  className="text-[#475569] hover:text-[#EF4444] transition-colors"
+                  className="text-[#475569] hover:text-[#3b82f6] transition-colors"
                   title="Copy address"
                 >
                   <Copy className="w-3 h-3" />
@@ -464,7 +464,7 @@ function AgentDetail() {
                   href={`https://basescan.org/address/${agent.address}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#475569] hover:text-[#EF4444] transition-colors"
+                  className="text-[#475569] hover:text-[#3b82f6] transition-colors"
                 >
                   <ExternalLink className="w-3 h-3" />
                 </a>
@@ -526,7 +526,7 @@ function AgentDetail() {
         {/* ── Rate Bars ── */}
         <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-5 flex flex-col gap-4">
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-3.5 h-3.5 text-[#EF4444]" />
+            <TrendingUp className="w-3.5 h-3.5 text-[#3b82f6]" />
             <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">Behavioral Breakdown</span>
           </div>
           <RateBar label="Completion Rate" value={bd?.completionRate} good={true} />
@@ -560,7 +560,7 @@ function AgentDetail() {
         {agent.analysis && (
           <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-3">
-              <CheckCircle className="w-3.5 h-3.5 text-[#EF4444]" />
+              <CheckCircle className="w-3.5 h-3.5 text-[#3b82f6]" />
               <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">Trust Analysis</span>
             </div>
             <p className="text-sm text-[#94a3b8] leading-relaxed">{agent.analysis}</p>
@@ -592,7 +592,7 @@ function AgentDetail() {
         <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-3.5 h-3.5 text-[#EF4444]" />
+              <MessageSquare className="w-3.5 h-3.5 text-[#3b82f6]" />
               <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">Reviews</span>
               {reviews.length > 0 && (
                 <span className="text-[10px] bg-[#13141f] border border-[#1e2035] text-[#475569] px-2 py-0.5 rounded-full font-mono">
@@ -657,7 +657,7 @@ function AgentDetail() {
         {/* ── ACP API Snippet ── */}
         <div className="bg-[#0d0e17] border border-[#1e2035] rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Activity className="w-3.5 h-3.5 text-[#EF4444]" />
+            <Activity className="w-3.5 h-3.5 text-[#3b82f6]" />
             <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">ACP Agent Query</span>
           </div>
           <pre className="text-xs font-mono text-[#64748b] leading-relaxed overflow-x-auto whitespace-pre-wrap break-all">

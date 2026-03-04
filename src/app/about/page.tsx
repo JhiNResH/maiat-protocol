@@ -16,8 +16,8 @@ export default function AboutPage() {
       <main className="max-w-3xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/30 flex items-center justify-center">
-            <Shield className="w-6 h-6 text-[#EF4444]" />
+          <div className="w-12 h-12 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/30 flex items-center justify-center">
+            <Shield className="w-6 h-6 text-[#3b82f6]" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">About Maiat Protocol</h1>
@@ -57,7 +57,7 @@ export default function AboutPage() {
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">Built On</h2>
             <p className="leading-relaxed">
-              Maiat Protocol is built on <span className="text-[#EF4444] font-medium">Base</span> and
+              Maiat Protocol is built on <span className="text-[#3b82f6] font-medium">Base</span> and
               integrates with the Coinbase x402 payment protocol for machine-to-machine payments.
               We're part of the Virtuals Protocol ACP ecosystem for agent-to-agent trust verification.
             </p>
@@ -120,7 +120,7 @@ export default function AboutPage() {
         <div className="mt-8">
           <Link
             href="/explore"
-            className="text-sm font-mono text-[#EF4444] hover:underline"
+            className="text-sm font-mono text-[#3b82f6] hover:underline"
           >
             ← Back to Explorer
           </Link>

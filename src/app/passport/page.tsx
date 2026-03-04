@@ -47,7 +47,7 @@ export default function PassportIndexPage() {
             <p className="text-gray-400 font-mono text-sm mb-4">View your passport</p>
             <button
               onClick={login}
-              className="w-full bg-[#EF4444] hover:bg-[#DC2626] text-white font-mono font-bold text-sm py-3 rounded-lg transition-colors"
+              className="w-full bg-[#3b82f6] hover:bg-[#DC2626] text-white font-mono font-bold text-sm py-3 rounded-lg transition-colors"
             >
               Connect Wallet
             </button>
@@ -68,7 +68,7 @@ export default function PassportIndexPage() {
                 onChange={e => { setManualAddr(e.target.value); setError('') }}
                 onKeyDown={e => e.key === 'Enter' && handleLookup()}
                 placeholder="0x wallet address…"
-                className="flex-1 bg-[#111] border border-[#333] focus:border-[#EF4444] text-white font-mono text-sm px-4 py-2.5 rounded-lg outline-none transition-colors placeholder:text-gray-600"
+                className="flex-1 bg-[#111] border border-[#333] focus:border-[#3b82f6] text-white font-mono text-sm px-4 py-2.5 rounded-lg outline-none transition-colors placeholder:text-gray-600"
               />
               <button
                 onClick={handleLookup}

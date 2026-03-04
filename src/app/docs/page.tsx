@@ -109,7 +109,7 @@ export default function DocsPage() {
       {/* ── Sidebar ── */}
       <aside className="w-[264px] bg-surface border-r border-border-subtle pt-6 flex flex-col h-screen sticky top-0 overflow-y-auto shrink-0">
         <Link href="/" className="flex items-center gap-2.5 px-6 pb-5 border-b border-border-subtle hover:opacity-80 transition-opacity">
-          <Image src="/maiat-logo.jpg" alt="Maiat" width={20} height={20} className="w-5 h-5 rounded shadow-lg shadow-[#EF4444]/20" />
+          <Image src="/maiat-logo.jpg" alt="Maiat" width={20} height={20} className="w-5 h-5 rounded shadow-lg shadow-[#3b82f6]/20" />
           <span className="font-mono text-sm font-bold tracking-[3px] text-txt-primary">MAIAT</span>
           <span className="text-xs text-txt-muted">API Docs</span>
         </Link>
@@ -153,7 +153,7 @@ export default function DocsPage() {
         {/* ── Overview ── */}
         <section id="overview" className="flex flex-col gap-6">
           <div className="flex items-center gap-3">
-            <Image src="/maiat-logo.jpg" alt="Maiat" width={32} height={32} className="w-8 h-8 rounded-lg shadow-lg shadow-[#EF4444]/20" />
+            <Image src="/maiat-logo.jpg" alt="Maiat" width={32} height={32} className="w-8 h-8 rounded-lg shadow-lg shadow-[#3b82f6]/20" />
             <div>
               <h1 className="text-[32px] font-bold text-txt-primary leading-tight">API Reference</h1>
               <p className="text-sm text-txt-muted font-mono">Maiat Protocol · v1.2</p>

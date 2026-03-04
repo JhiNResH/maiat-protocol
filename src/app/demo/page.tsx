@@ -34,7 +34,7 @@ const STEPS: Step[] = [
     subtitle: 'Any AI agent via HTTP',
     description: 'An autonomous agent (e.g., a DeFi router) needs to verify whether a counterparty is trustworthy before executing a transaction.',
     icon: Cpu,
-    color: '#EF4444',
+    color: '#3b82f6',
     details: [
       'Agent calls POST /api/v1/trust-score',
       'Passes target project name or address',
@@ -51,7 +51,7 @@ const STEPS: Step[] = [
     subtitle: 'Multi-source scoring engine',
     description: 'Maiat\'s scoring engine aggregates on-chain history, contract analysis, community reviews, and blacklist data into a single 0-10 trust score.',
     icon: Database,
-    color: '#7C3AED',
+    color: '#6366f1',
     details: [
       'On-Chain History (weight: 4.0) — tx count, age, volume',
       'Contract Analysis (weight: 3.0) — verified source, audit status',
@@ -127,7 +127,7 @@ function updateScore(
     subtitle: 'Uniswap v4 integration',
     description: 'The TrustGateHook reads on-chain trust scores and blocks swaps involving untrusted counterparties — protecting DeFi users automatically.',
     icon: Zap,
-    color: '#F59E0B',
+    color: '#06b6d4',
     details: [
       'Uniswap v4 hook checks score before swap',
       'Minimum threshold: 5.0 (configurable)',
@@ -264,11 +264,11 @@ function DetailPanel({ step }: { step: Step }) {
 
 function FlowDiagram({ activeStep }: { activeStep: number }) {
   const nodes = [
-    { label: 'Agent', color: '#EF4444' },
-    { label: 'Maiat API', color: '#7C3AED' },
+    { label: 'Agent', color: '#3b82f6' },
+    { label: 'Maiat API', color: '#6366f1' },
     { label: 'CRE', color: '#375BD2' },
     { label: 'On-Chain', color: '#10B981' },
-    { label: 'Hook', color: '#F59E0B' },
+    { label: 'Hook', color: '#06b6d4' },
   ]
   return (
     <div className="flex items-center justify-center gap-1 py-4 overflow-x-auto">
@@ -347,7 +347,7 @@ export default function DemoPage() {
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/explore" className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors">
-              <Shield className="w-5 h-5 text-[#EF4444]" />
+              <Shield className="w-5 h-5 text-[#3b82f6]" />
               <span className="font-semibold text-sm">Maiat Protocol</span>
             </Link>
             <span className="text-zinc-700">/</span>
@@ -482,7 +482,7 @@ export default function DemoPage() {
           <div className="flex items-center justify-center gap-3">
             <Link
               href="/explore"
-              className="px-5 py-2.5 rounded-lg bg-[#EF4444] text-white text-sm font-medium hover:bg-[#EF4444]/90 transition-colors"
+              className="px-5 py-2.5 rounded-lg bg-[#3b82f6] text-white text-sm font-medium hover:bg-[#3b82f6]/90 transition-colors"
             >
               Explore Projects →
             </Link>

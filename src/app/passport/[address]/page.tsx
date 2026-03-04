@@ -145,7 +145,7 @@ export default function PassportPage() {
         <Header />
         <div className="m-auto flex flex-col items-center gap-3">
           <p className="font-mono text-slate-400 text-sm">// INVALID ADDRESS</p>
-          <Link href="/explore" className="font-mono text-[#EF4444] text-xs hover:underline">← back to explore</Link>
+          <Link href="/explore" className="font-mono text-[#3b82f6] text-xs hover:underline">← back to explore</Link>
         </div>
       </div>
     )
@@ -164,7 +164,7 @@ export default function PassportPage() {
         {/* Share / own badge bar */}
         <div className="w-full max-w-md flex items-center justify-end gap-2 mb-3">
           {isOwn && (
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-[#EF4444]/40 text-[#EF4444]">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-[#3b82f6]/40 text-[#3b82f6]">
               YOUR PASSPORT
             </span>
           )}
@@ -247,7 +247,7 @@ export default function PassportPage() {
             ) : unreviewedAgents.length === 0 ? (
               <div className="text-center py-2">
                 <p className="text-gray-600 font-mono text-[10px]">No unreviewed agents.</p>
-                <Link href="/explore" className="text-[10px] font-mono text-[#EF4444] hover:underline">Explore agents →</Link>
+                <Link href="/explore" className="text-[10px] font-mono text-[#3b82f6] hover:underline">Explore agents →</Link>
               </div>
             ) : (
               <>
@@ -255,8 +255,8 @@ export default function PassportPage() {
                   {visibleAgents.map(agent => {
                     const score = agent.score != null ? (agent.score / 10).toFixed(1) : '—'
                     const scoreColor = agent.score == null ? 'text-gray-500' :
-                      agent.score >= 70 ? 'text-[#22C55E]' :
-                      agent.score >= 40 ? 'text-[#F59E0B]' : 'text-[#EF4444]'
+                      agent.score >= 70 ? 'text-[#3b82f6]' :
+                      agent.score >= 40 ? 'text-[#06b6d4]' : 'text-[#3b82f6]'
 
                     return (
                       <Link
@@ -268,7 +268,7 @@ export default function PassportPage() {
                           <img src={agent.logo} alt={agent.name} className="w-6 h-6 rounded object-cover shrink-0" />
                         ) : (
                           <div className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0"
-                            style={{ background: '#EF444422', color: '#EF4444', border: '1px solid #EF444444' }}>
+                            style={{ background: '#3b82f622', color: '#3b82f6', border: '1px solid #3b82f644' }}>
                             {agent.name.charAt(0)}
                           </div>
                         )}
@@ -283,7 +283,7 @@ export default function PassportPage() {
                 {unreviewedAgents.length > 10 && !showAllAgents && (
                   <button
                     onClick={() => setShowAllAgents(true)}
-                    className="mt-2 w-full text-[10px] font-mono text-[#EF4444] hover:underline"
+                    className="mt-2 w-full text-[10px] font-mono text-[#3b82f6] hover:underline"
                   >
                     Show {unreviewedAgents.length - 10} more →
                   </button>
@@ -308,7 +308,7 @@ export default function PassportPage() {
             </div>
             {data.passport.trustLevel !== 'guardian' && (
               <p className="mt-1.5 text-[10px] font-mono text-gray-600">
-                Review more to level up → <Link href="/explore" className="text-[#EF4444] hover:underline">browse</Link>
+                Review more to level up → <Link href="/explore" className="text-[#3b82f6] hover:underline">browse</Link>
               </p>
             )}
           </div>
@@ -326,7 +326,7 @@ export default function PassportPage() {
               <div className="text-center py-2">
                 <p className="text-gray-600 font-mono text-[10px]">No reviews yet.</p>
                 {isOwn && (
-                  <Link href="/review" className="text-[10px] font-mono text-[#EF4444] hover:underline">
+                  <Link href="/review" className="text-[10px] font-mono text-[#3b82f6] hover:underline">
                     Leave your first review →
                   </Link>
                 )}
@@ -366,7 +366,7 @@ export default function PassportPage() {
               <p className="text-gray-500 font-mono text-[10px] mb-2">View your own trust passport</p>
               <Link
                 href="/passport"
-                className="inline-block bg-[#EF4444] hover:bg-[#DC2626] text-white font-mono font-bold text-xs px-5 py-2 rounded-lg transition-colors"
+                className="inline-block bg-[#3b82f6] hover:bg-[#DC2626] text-white font-mono font-bold text-xs px-5 py-2 rounded-lg transition-colors"
               >
                 Connect Wallet →
               </Link>
