@@ -31,9 +31,9 @@ interface QuoteResult {
 }
 
 function trustColor(risk: string): string {
-  if (risk === "LOW") return "text-blue-400";
-  if (risk === "MEDIUM") return "text-cyan-400";
-  return "text-slate-400";
+  if (risk === "LOW") return "text-emerald-400";
+  if (risk === "MEDIUM") return "text-amber-400";
+  return "text-red-400";
 }
 
 export default function SwapSection({ address }: { address: string }) {

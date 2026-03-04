@@ -87,23 +87,23 @@ function chainColor(chain: string) {
 }
 
 function riskColor(risk: string) {
-  if (risk === 'LOW') return 'text-blue-400'
-  if (risk === 'MEDIUM') return 'text-cyan-400'
-  if (risk === 'HIGH') return 'text-indigo-400'
+  if (risk === 'LOW') return 'text-emerald-400'
+  if (risk === 'MEDIUM') return 'text-amber-400'
+  if (risk === 'HIGH') return 'text-red-400'
   return 'text-slate-500'
 }
 
 function riskBg(risk: string) {
-  if (risk === 'LOW') return 'bg-blue-500/10 border-blue-500/30 text-blue-400'
-  if (risk === 'MEDIUM') return 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
-  if (risk === 'HIGH') return 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
+  if (risk === 'LOW') return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+  if (risk === 'MEDIUM') return 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+  if (risk === 'HIGH') return 'bg-red-500/10 border-red-500/30 text-red-400'
   return 'bg-slate-500/10 border-slate-500/30 text-slate-400'
 }
 
 function scoreColor(s: number) {
-  if (s >= 7) return '#3b82f6'
-  if (s >= 4) return '#06b6d4'
-  return '#64748b'
+  if (s >= 7) return '#10b981'
+  if (s >= 4) return '#f59e0b'
+  return '#ef4444'
 }
 
 function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg' }) {
@@ -121,7 +121,7 @@ function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg
 
 function ScoreBar({ label, value, max, icon }: { label: string; value: number; max: number; icon: React.ReactNode }) {
   const pct = Math.min(100, (value / max) * 100)
-  const color = pct >= 66 ? '#3b82f6' : pct >= 33 ? '#06b6d4' : '#64748b'
+  const color = pct >= 66 ? '#10b981' : pct >= 33 ? '#f59e0b' : '#ef4444'
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-xs">

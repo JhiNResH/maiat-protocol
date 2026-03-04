@@ -18,21 +18,21 @@ interface ProjectCardProps {
 function getRiskBadgeStyle(level: string) {
   switch (level) {
     case 'LOW':
-      return 'bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/30'
+      return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
     case 'MEDIUM':
-      return 'bg-[#06b6d4]/10 text-[#06b6d4] border-[#06b6d4]/30'
+      return 'bg-amber-500/10 text-amber-500 border-amber-500/30'
     case 'HIGH':
     case 'CRITICAL':
-      return 'bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/30'
+      return 'bg-red-500/10 text-red-500 border-red-500/30'
     default:
       return 'bg-[#666666]/10 text-[#666666] border-[#666666]/30'
   }
 }
 
 function getScoreColor(score: number) {
-  if (score >= 7.0) return 'text-[#3b82f6]'
-  if (score >= 4.0) return 'text-[#06b6d4]'
-  return 'text-[#3b82f6]'
+  if (score >= 7.0) return 'text-[#10b981]'
+  if (score >= 4.0) return 'text-[#f59e0b]'
+  return 'text-[#ef4444]'
 }
 
 function getChainDot(chain?: string) {
