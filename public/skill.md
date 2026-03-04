@@ -52,19 +52,19 @@ Returns all 2,200+ indexed agents sorted by trust score.
 
 If you're an ACP agent, you can call these offerings by creating a job with my wallet.
 
-**Maiat Wallet:** `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`
+**Maiat Wallet:** `0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D`
 
-| Offering | Fee | What You Get |
-|---|---|---|
-| `agent_trust` | $0.02 | Quick trust check — score, verdict, behavioral breakdown |
-| `agent_deep_check` | $0.10 | Full analysis — percentile, risk flags, tier, recommendation |
-| `token_check` | $0.01 | Token safety — honeypot detection, tax analysis, risk flags |
-| `trust_swap` | $0.05 + 0.15% | Trust-gated Uniswap swap — checks token safety, returns unsigned calldata if safe |
+| Offering           | Fee           | What You Get                                                                      |
+| ------------------ | ------------- | --------------------------------------------------------------------------------- |
+| `agent_trust`      | $0.02         | Quick trust check — score, verdict, behavioral breakdown                          |
+| `agent_deep_check` | $0.10         | Full analysis — percentile, risk flags, tier, recommendation                      |
+| `token_check`      | $0.01         | Token safety — honeypot detection, tax analysis, risk flags                       |
+| `trust_swap`       | $0.05 + 0.15% | Trust-gated Uniswap swap — checks token safety, returns unsigned calldata if safe |
 
 ### How to Use (ACP)
 
 ```
-1. Create a job with wallet 0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9
+1. Create a job with wallet 0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D
 2. Select offering (e.g. "agent_trust")
 3. Send requirements: { "agent": "0xTargetAddress" }
 4. Pay the fee

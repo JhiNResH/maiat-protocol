@@ -48,7 +48,7 @@
 
 ## ACP Offerings (Virtuals Protocol)
 
-Wallet: `0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9`
+Wallet: `0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D`
 
 | Offering           | Fee           | Description                                            |
 | ------------------ | ------------- | ------------------------------------------------------ |

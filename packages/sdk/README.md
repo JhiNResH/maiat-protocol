@@ -19,10 +19,14 @@ const maiat = new Maiat();
 const trusted = await maiat.isTrusted("0x...");
 
 // Token safety check
-const safe = await maiat.isTokenSafe("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913");
+const safe = await maiat.isTokenSafe(
+  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+);
 
 // Full trust score
-const score = await maiat.agentTrust("0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9");
+const score = await maiat.agentTrust(
+  "0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D",
+);
 console.log(score.trustScore, score.verdict); // 69, "caution"
 
 // Trust-verified swap quote
@@ -40,22 +44,22 @@ console.log(swap.calldata); // ready-to-sign tx calldata
 
 ### `new Maiat(config?)`
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `baseUrl` | `https://maiat-protocol.vercel.app` | API base URL |
-| `apiKey` | — | Optional API key for higher rate limits |
-| `timeout` | `15000` | Request timeout (ms) |
+| Option    | Default                             | Description                             |
+| --------- | ----------------------------------- | --------------------------------------- |
+| `baseUrl` | `https://maiat-protocol.vercel.app` | API base URL                            |
+| `apiKey`  | —                                   | Optional API key for higher rate limits |
+| `timeout` | `15000`                             | Request timeout (ms)                    |
 
 ### Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `agentTrust(address)` | `AgentTrustResult` | Full trust score + breakdown |
-| `tokenCheck(address)` | `TokenCheckResult` | Token safety analysis |
-| `trustSwap(params)` | `TrustSwapResult` | Swap quote with trust verification |
-| `listAgents(limit?)` | `{ agents, total }` | Browse indexed agents |
-| `isTrusted(address, threshold?)` | `boolean` | Quick trust check (default ≥60) |
-| `isTokenSafe(address)` | `boolean` | Quick token safety check |
+| Method                           | Returns             | Description                        |
+| -------------------------------- | ------------------- | ---------------------------------- |
+| `agentTrust(address)`            | `AgentTrustResult`  | Full trust score + breakdown       |
+| `tokenCheck(address)`            | `TokenCheckResult`  | Token safety analysis              |
+| `trustSwap(params)`              | `TrustSwapResult`   | Swap quote with trust verification |
+| `listAgents(limit?)`             | `{ agents, total }` | Browse indexed agents              |
+| `isTrusted(address, threshold?)` | `boolean`           | Quick trust check (default ≥60)    |
+| `isTokenSafe(address)`           | `boolean`           | Quick token safety check           |
 
 ## Outcome Reporting (Training Data)
 
@@ -76,8 +80,8 @@ if (score.trustScore >= 60) {
 await maiat.reportOutcome({
   target: "0xCounterparty",
   action: "swap",
-  result: "success",        // or "failure", "scam"
-  txHash: "0x...",           // on-chain proof
+  result: "success", // or "failure", "scam"
+  txHash: "0x...", // on-chain proof
   maiatVerdict: score.verdict,
   maiatScore: score.trustScore,
 });

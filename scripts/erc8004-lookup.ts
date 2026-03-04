@@ -11,7 +11,7 @@
  * so the scan completes in ~110 chunks instead of millions.
  *
  * Usage (standalone):
- *   npx tsx scripts/erc8004-lookup.ts 0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9
+ *   npx tsx scripts/erc8004-lookup.ts 0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D
  *
  * Import (from other scripts):
  *   import { lookupAgentId } from "./erc8004-lookup"
@@ -135,7 +135,7 @@ async function main() {
   if (!walletArg) {
     console.error("Usage: npx tsx scripts/erc8004-lookup.ts <walletAddress>");
     console.error(
-      "Example: npx tsx scripts/erc8004-lookup.ts 0xAf1aE6F344c60c7Fe56CB53d1809f2c0B997a2b9"
+      "Example: npx tsx scripts/erc8004-lookup.ts 0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D"
     );
     process.exit(1);
   }
