@@ -48,11 +48,11 @@ function scoreToVerdict(score: number | null): "proceed" | "caution" | "avoid" |
 function verdictStyle(verdict: string) {
   switch (verdict) {
     case "proceed":
-      return "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/30";
+      return "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/30";
     case "caution":
-      return "bg-[#06b6d4]/10 text-[#06b6d4] border-[#06b6d4]/30";
+      return "bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/30";
     case "avoid":
-      return "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/30";
+      return "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/30";
     default:
       return "bg-[#666666]/10 text-[#666666] border-[#666666]/30";
   }
@@ -69,9 +69,9 @@ function verdictLabel(verdict: string) {
 
 function trustScoreColor(score: number | null) {
   if (score === null) return "text-[#666666]";
-  if (score >= 80) return "text-[#3b82f6]";
-  if (score >= 60) return "text-[#06b6d4]";
-  return "text-[#3b82f6]";
+  if (score >= 80) return "text-[#10b981]";
+  if (score >= 60) return "text-[#f59e0b]";
+  return "text-[#ef4444]";
 }
 
 function chainDot(chain: string) {

@@ -54,16 +54,16 @@ function trunc(addr: string) {
 }
 
 function verdictColor(verdict: string): string {
-  if (verdict === 'proceed') return '#3b82f6'
-  if (verdict === 'caution') return '#06b6d4'
-  if (verdict === 'avoid')   return '#64748b'
+  if (verdict === 'proceed') return '#10b981'
+  if (verdict === 'caution') return '#f59e0b'
+  if (verdict === 'avoid')   return '#ef4444'
   return '#475569'
 }
 
 function verdictBg(verdict: string): string {
-  if (verdict === 'proceed') return 'bg-blue-500/10 border-blue-500/30 text-blue-400'
-  if (verdict === 'caution') return 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
-  if (verdict === 'avoid')   return 'bg-slate-500/10 border-slate-500/30 text-slate-400'
+  if (verdict === 'proceed') return 'bg-[#10b981]/10 border-[#10b981]/30 text-[#10b981]'
+  if (verdict === 'caution') return 'bg-[#f59e0b]/10 border-[#f59e0b]/30 text-[#f59e0b]'
+  if (verdict === 'avoid')   return 'bg-[#ef4444]/10 border-[#ef4444]/30 text-[#ef4444]'
   return 'bg-slate-500/10 border-slate-500/30 text-slate-400'
 }
 
@@ -75,9 +75,9 @@ function verdictLabel(verdict: string): string {
 }
 
 function scoreColor(s: number): string {
-  if (s >= 80) return '#3b82f6'
-  if (s >= 60) return '#06b6d4'
-  return '#64748b'
+  if (s >= 80) return '#10b981'
+  if (s >= 60) return '#f59e0b'
+  return '#ef4444'
 }
 
 function pct(rate: number | undefined): string {
