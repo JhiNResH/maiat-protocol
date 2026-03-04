@@ -177,7 +177,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
               type="button"
               onClick={() => setRating(star)}
               className={`text-2xl transition-all hover:scale-110 ${
-                star <= rating ? 'text-yellow-400' : 'text-gray-700'
+                star <= rating ? 'text-cyan-400' : 'text-gray-700'
               }`}
             >
               ★

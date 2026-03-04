@@ -447,7 +447,7 @@ export default function DemoPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800/50 bg-[#050508]">
               <div>
-                <p className="text-xs font-mono text-emerald-400">TrustScoreOracle</p>
+                <p className="text-xs font-mono text-blue-400">TrustScoreOracle</p>
                 <p className="text-[11px] font-mono text-zinc-600 mt-1">0xf662902ca227baba3a4d11a1bc58073e0b0d1139</p>
               </div>
               <a
@@ -460,7 +460,7 @@ export default function DemoPage() {
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800/50 bg-[#050508]">
               <div>
-                <p className="text-xs font-mono text-amber-400">TrustGateHook</p>
+                <p className="text-xs font-mono text-cyan-400">TrustGateHook</p>
                 <p className="text-[11px] font-mono text-zinc-600 mt-1">0xf6065fb076090af33ee0402f7e902b2583e7721e</p>
               </div>
               <a

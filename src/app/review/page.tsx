@@ -59,7 +59,7 @@ export default function ReviewIndexPage() {
               GO →
             </button>
           </div>
-          {error && <p className="text-red-400 font-mono text-xs mb-4">{error}</p>}
+          {error && <p className="text-slate-400 font-mono text-xs mb-4">{error}</p>}
 
           {/* Popular */}
           <div className="mt-8">

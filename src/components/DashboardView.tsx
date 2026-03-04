@@ -41,9 +41,9 @@ function chainColor(chain: string) {
 
 function scoreColor(s: number) {
   const n = s > 10 ? s / 10 : s
-  if (n >= 7) return '#10b981'
-  if (n >= 4) return '#f59e0b'
-  return '#ef4444'
+  if (n >= 7) return '#3b82f6'
+  if (n >= 4) return '#06b6d4'
+  return '#64748b'
 }
 
 function truncate(addr: string) {
@@ -180,7 +180,7 @@ export function DashboardView() {
               Claim <strong className="text-[#d7dadc]">+5 🪲</strong> every day · Streak bonus: up to <strong className="text-[#d7dadc]">+10 🪲</strong> extra · Reviews earn up to <strong className="text-[#d7dadc]">+10 🪲</strong>
             </div>
             {claimMsg && (
-              <div className={`mt-2 text-xs font-mono ${claimMsg.ok ? 'text-emerald-400' : 'text-[#818384]'}`}>
+              <div className={`mt-2 text-xs font-mono ${claimMsg.ok ? 'text-blue-400' : 'text-[#818384]'}`}>
                 {claimMsg.text}
               </div>
             )}
@@ -199,9 +199,9 @@ export function DashboardView() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: 'Initial Claim', val: '+20 🪲', note: 'One-time', color: 'text-emerald-400' },
-              { label: 'Daily Claim', val: '+5 🪲', note: 'Up to +10 streak', color: 'text-emerald-400' },
-              { label: 'Write Review', val: '−2 🪲', note: 'Spend to review', color: 'text-red-400' },
+              { label: 'Initial Claim', val: '+20 🪲', note: 'One-time', color: 'text-blue-400' },
+              { label: 'Daily Claim', val: '+5 🪲', note: 'Up to +10 streak', color: 'text-blue-400' },
+              { label: 'Write Review', val: '−2 🪲', note: 'Spend to review', color: 'text-slate-400' },
               { label: 'Quality Review', val: '+10 🪲', note: 'AI-scored reward', color: 'text-[#d4a017]' },
             ].map(({ label, val, note, color }) => (
               <div key={label} className="bg-[#111113] rounded-lg p-3 text-center">

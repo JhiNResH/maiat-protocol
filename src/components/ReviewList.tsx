@@ -98,7 +98,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
                     {review.reviewer.slice(0, 6)}...{review.reviewer.slice(-4)}
                   </span>
                   {review.weight > 1 && (
-                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald/10 text-emerald text-[10px] font-bold uppercase tracking-wider">
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue/10 text-blue text-[10px] font-bold uppercase tracking-wider">
                       <Trophy className="w-2.5 h-2.5" />
                       Verified Receipt x{review.weight}
                     </span>
@@ -118,7 +118,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
               </div>
 
               <div className={`px-2 py-1 rounded text-[11px] font-bold font-mono ${
-                review.rating >= 8 ? 'bg-emerald/10 text-emerald' : 
+                review.rating >= 8 ? 'bg-blue/10 text-blue' : 
                 review.rating >= 5 ? 'bg-gold/10 text-gold' : 
                 'bg-crimson/10 text-crimson'
               }`}>
@@ -143,7 +143,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
                 <Clock className="w-3 h-3" />
                 <span>Just recently</span>
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-emerald font-mono">
+              <div className="flex items-center gap-1.5 text-[11px] text-blue font-mono">
                 <Shield className="w-3 h-3" />
                 <span>On-chain Proof</span>
               </div>

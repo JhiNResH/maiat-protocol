@@ -26,30 +26,30 @@ export const TRUST_SCORE = {
 
   /** Tailwind text-color class */
   textColor(score: number): string {
-    if (score >= TRUST_SCORE.GOLD) return 'text-green-400';
-    if (score >= TRUST_SCORE.AMBER) return 'text-yellow-400';
-    return 'text-red-400';
+    if (score >= TRUST_SCORE.GOLD) return 'text-blue-400';
+    if (score >= TRUST_SCORE.AMBER) return 'text-cyan-400';
+    return 'text-slate-400';
   },
 
   /** Tailwind border-color class */
   borderColor(score: number): string {
-    if (score >= TRUST_SCORE.GOLD) return 'border-green-500';
-    if (score >= TRUST_SCORE.AMBER) return 'border-yellow-500';
-    return 'border-red-500';
+    if (score >= TRUST_SCORE.GOLD) return 'border-blue-500';
+    if (score >= TRUST_SCORE.AMBER) return 'border-cyan-500';
+    return 'border-slate-500';
   },
 
   /** Tailwind bg class */
   bgColor(score: number): string {
-    if (score >= TRUST_SCORE.GOLD) return 'bg-green-900/20';
-    if (score >= TRUST_SCORE.AMBER) return 'bg-yellow-900/20';
-    return 'bg-red-900/20';
+    if (score >= TRUST_SCORE.GOLD) return 'bg-blue-900/20';
+    if (score >= TRUST_SCORE.AMBER) return 'bg-cyan-900/20';
+    return 'bg-slate-900/20';
   },
 
   /** Hex color (for inline styles) */
   hexColor(score: number): string {
-    if (score >= TRUST_SCORE.GOLD) return '#4ade80';
-    if (score >= TRUST_SCORE.AMBER) return '#facc15';
-    return '#f87171';
+    if (score >= TRUST_SCORE.GOLD) return '#3b82f6';
+    if (score >= TRUST_SCORE.AMBER) return '#06b6d4';
+    return '#64748b';
   },
 
   /** Risk level string (matches API response) */

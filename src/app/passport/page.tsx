@@ -77,7 +77,7 @@ export default function PassportIndexPage() {
                 →
               </button>
             </div>
-            {error && <p className="text-red-400 font-mono text-xs">{error}</p>}
+            {error && <p className="text-slate-400 font-mono text-xs">{error}</p>}
           </div>
 
         </div>

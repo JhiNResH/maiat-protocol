@@ -43,7 +43,7 @@ function CopyButton({ text }: { text: string }) {
       }}
       className="flex items-center gap-1.5 px-2 py-1 rounded text-txt-muted hover:text-txt-primary transition-colors"
     >
-      {copied ? <CheckCheck className="w-3.5 h-3.5 text-emerald" /> : <Copy className="w-3.5 h-3.5" />}
+      {copied ? <CheckCheck className="w-3.5 h-3.5 text-blue" /> : <Copy className="w-3.5 h-3.5" />}
       <span className="text-xs">{copied ? 'Copied!' : 'Copy'}</span>
     </button>
   )
@@ -69,7 +69,7 @@ function CodeBlock({ title, code, lang = 'bash' }: { title?: string; code: strin
 // ── Method badge ───────────────────────────────────────────────────────────
 function Method({ m }: { m: 'GET' | 'POST' | 'PUT' | 'DELETE' }) {
   const colors: Record<string, string> = {
-    GET: 'text-emerald bg-[#00c9a718]',
+    GET: 'text-blue bg-[#00c9a718]',
     POST: 'text-gold bg-[#d4a01718]',
     PUT: 'text-turquoise bg-[#00b4d818]',
     DELETE: 'text-crimson bg-[#e5383818]',
@@ -456,7 +456,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[13px] text-gold">{name}</span>
                 </div>
-                <span className="font-mono text-[13px] text-emerald">{fee}</span>
+                <span className="font-mono text-[13px] text-blue">{fee}</span>
                 <span className="text-[13px] text-txt-secondary col-span-2">{desc}</span>
               </div>
             ))}
@@ -472,7 +472,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
               <span className="font-mono text-[11px] font-bold text-txt-muted bg-elevated px-2 py-1 rounded">ACP</span>
               <h3 className="font-mono text-xl font-bold text-txt-primary">agent_trust</h3>
             </div>
-            <span className="font-mono text-sm font-bold text-emerald">$0.02 / job</span>
+            <span className="font-mono text-sm font-bold text-blue">$0.02 / job</span>
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.6]">
             Quick trust check before hiring an agent. Returns trust score, verdict, and key metrics. Use this before any agent-to-agent payment.
@@ -512,7 +512,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
               <span className="font-mono text-[11px] font-bold text-txt-muted bg-elevated px-2 py-1 rounded">ACP</span>
               <h3 className="font-mono text-xl font-bold text-txt-primary">agent_deep_check</h3>
             </div>
-            <span className="font-mono text-sm font-bold text-emerald">$0.10 / job</span>
+            <span className="font-mono text-sm font-bold text-blue">$0.10 / job</span>
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.6]">
             Full behavioral analysis report. Includes percentile ranking, risk flag breakdown, tier classification, and a recommendation.
@@ -555,7 +555,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
               <span className="font-mono text-[11px] font-bold text-txt-muted bg-elevated px-2 py-1 rounded">ACP</span>
               <h3 className="font-mono text-xl font-bold text-txt-primary">token_check</h3>
             </div>
-            <span className="font-mono text-sm font-bold text-emerald">$0.01 / job</span>
+            <span className="font-mono text-sm font-bold text-blue">$0.01 / job</span>
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.6]">
             Token safety check before swapping. Detects honeypots, buy/sell tax, and returns a trust score. Pass the token contract address.
@@ -593,7 +593,7 @@ curl "https://maiat-protocol.vercel.app/api/v1/agents?sort=jobs&limit=20&offset=
               <span className="font-mono text-[11px] font-bold text-txt-muted bg-elevated px-2 py-1 rounded">ACP</span>
               <h3 className="font-mono text-xl font-bold text-txt-primary">trust_swap</h3>
             </div>
-            <span className="font-mono text-sm font-bold text-emerald">$0.05+ / job</span>
+            <span className="font-mono text-sm font-bold text-blue">$0.05+ / job</span>
           </div>
           <p className="text-[15px] text-txt-secondary leading-[1.6]">
             Verified token swap with an integrated trust gate. Maiat checks the token before executing the swap — if the token fails safety

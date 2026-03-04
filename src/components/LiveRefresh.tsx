@@ -18,11 +18,11 @@ export function LiveRefresh({ intervalMs = 5000 }: { intervalMs?: number }) {
       onClick={() => setIsLive(!isLive)}
       className={`flex items-center gap-1.5 text-xs font-mono px-2 py-1 rounded-full transition-colors ${
         isLive
-          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
           : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
       }`}
     >
-      <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+      <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-blue-500 animate-pulse' : 'bg-gray-400'}`} />
       {isLive ? 'LIVE' : 'PAUSED'}
     </button>
   )

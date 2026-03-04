@@ -85,23 +85,23 @@ export function VerificationButton({
     const verdictConfig = {
       authentic: {
         icon: ShieldCheck,
-        color: 'text-green-400',
-        bgColor: 'bg-green-500/20',
-        borderColor: 'border-green-500/30',
+        color: 'text-blue-400',
+        bgColor: 'bg-blue-500/20',
+        borderColor: 'border-blue-500/30',
         label: 'Authentic',
       },
       suspicious: {
         icon: AlertTriangle,
-        color: 'text-yellow-400',
-        bgColor: 'bg-yellow-500/20',
-        borderColor: 'border-yellow-500/30',
+        color: 'text-cyan-400',
+        bgColor: 'bg-cyan-500/20',
+        borderColor: 'border-cyan-500/30',
         label: 'Suspicious',
       },
       spam: {
         icon: XCircle,
-        color: 'text-red-400',
-        bgColor: 'bg-red-500/20',
-        borderColor: 'border-red-500/30',
+        color: 'text-slate-400',
+        bgColor: 'bg-slate-500/20',
+        borderColor: 'border-slate-500/30',
         label: 'Spam',
       },
     }
@@ -126,15 +126,15 @@ export function VerificationButton({
 
   if (error) {
     return (
-      <div className="p-3 rounded-lg border bg-red-500/10 border-red-500/30">
+      <div className="p-3 rounded-lg border bg-slate-500/10 border-slate-500/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <XCircle className="w-5 h-5 text-red-400" />
-            <span className="text-sm text-red-300">{error}</span>
+            <XCircle className="w-5 h-5 text-slate-400" />
+            <span className="text-sm text-slate-300">{error}</span>
           </div>
           <button
             onClick={handleVerify}
-            className="text-xs text-red-400 hover:text-red-300 underline"
+            className="text-xs text-slate-400 hover:text-slate-300 underline"
           >
             Retry
           </button>
