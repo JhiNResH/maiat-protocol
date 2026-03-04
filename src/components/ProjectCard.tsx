@@ -18,12 +18,12 @@ interface ProjectCardProps {
 function getRiskBadgeStyle(level: string) {
   switch (level) {
     case 'LOW':
-      return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+      return 'bg-[#10b981]/10 text-[#10b981] border-[#10b981]/30'
     case 'MEDIUM':
-      return 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+      return 'bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/30'
     case 'HIGH':
     case 'CRITICAL':
-      return 'bg-red-500/10 text-red-500 border-red-500/30'
+      return 'bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/30'
     default:
       return 'bg-[#666666]/10 text-[#666666] border-[#666666]/30'
   }

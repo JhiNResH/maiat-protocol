@@ -26,23 +26,23 @@ export const TRUST_SCORE = {
 
   /** Tailwind text-color class */
   textColor(score: number): string {
-    if (score >= TRUST_SCORE.GOLD) return 'text-emerald-400';
-    if (score >= TRUST_SCORE.AMBER) return 'text-amber-400';
-    return 'text-red-400';
+    if (score >= TRUST_SCORE.GOLD) return 'text-[#10b981]';
+    if (score >= TRUST_SCORE.AMBER) return 'text-[#f59e0b]';
+    return 'text-[#ef4444]';
   },
 
   /** Tailwind border-color class */
   borderColor(score: number): string {
-    if (score >= TRUST_SCORE.GOLD) return 'border-emerald-500';
-    if (score >= TRUST_SCORE.AMBER) return 'border-amber-500';
-    return 'border-red-500';
+    if (score >= TRUST_SCORE.GOLD) return 'border-[#10b981]';
+    if (score >= TRUST_SCORE.AMBER) return 'border-[#f59e0b]';
+    return 'border-[#ef4444]';
   },
 
   /** Tailwind bg class */
   bgColor(score: number): string {
-    if (score >= TRUST_SCORE.GOLD) return 'bg-emerald-900/20';
-    if (score >= TRUST_SCORE.AMBER) return 'bg-amber-900/20';
-    return 'bg-red-900/20';
+    if (score >= TRUST_SCORE.GOLD) return 'bg-[#10b981]/10';
+    if (score >= TRUST_SCORE.AMBER) return 'bg-[#f59e0b]/10';
+    return 'bg-[#ef4444]/10';
   },
 
   /** Hex color (for inline styles) */

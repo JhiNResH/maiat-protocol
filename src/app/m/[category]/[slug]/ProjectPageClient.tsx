@@ -87,16 +87,16 @@ function chainColor(chain: string) {
 }
 
 function riskColor(risk: string) {
-  if (risk === 'LOW') return 'text-emerald-400'
-  if (risk === 'MEDIUM') return 'text-amber-400'
-  if (risk === 'HIGH') return 'text-red-400'
+  if (risk === 'LOW') return 'text-[#10b981]'
+  if (risk === 'MEDIUM') return 'text-[#f59e0b]'
+  if (risk === 'HIGH') return 'text-[#ef4444]'
   return 'text-slate-500'
 }
 
 function riskBg(risk: string) {
-  if (risk === 'LOW') return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-  if (risk === 'MEDIUM') return 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-  if (risk === 'HIGH') return 'bg-red-500/10 border-red-500/30 text-red-400'
+  if (risk === 'LOW') return 'bg-[#10b981]/10 border-[#10b981]/30 text-[#10b981]'
+  if (risk === 'MEDIUM') return 'bg-[#f59e0b]/10 border-[#f59e0b]/30 text-[#f59e0b]'
+  if (risk === 'HIGH') return 'bg-[#ef4444]/10 border-[#ef4444]/30 text-[#ef4444]'
   return 'bg-slate-500/10 border-slate-500/30 text-slate-400'
 }
 
