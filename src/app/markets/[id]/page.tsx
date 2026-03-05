@@ -117,7 +117,9 @@ function MarketDetailContent() {
 
   if (loading) return (
     <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-      <p className="font-mono text-[#666666] text-xs animate-pulse tracking-[0.3em]// SYNCING MARKET DATA…</p>
+      <p className="font-mono text-[#666666] text-xs animate-pulse tracking-[0.3em]">
+        // SYNCING MARKET DATA…
+      </p>
     </div>
   );
 
