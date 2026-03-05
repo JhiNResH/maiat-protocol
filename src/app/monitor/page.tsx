@@ -798,14 +798,7 @@ export default function MonitorPage() {
                   )}
                 </div>
 
-                {/* Social Signals (Twitter / News) */}
-                <div className="mt-4 border-t pt-4" style={{borderColor:'rgba(255,255,255,0.05)'}}>
-                  <div className="text-[10px] font-bold text-slate-400 mb-3 flex items-center justify-between">
-                    <span className="flex items-center gap-2"><Globe className="w-3 h-3" /> SOCIAL SIGNALS</span>
-                    <TrendingUp className="w-3 h-3 text-slate-500" />
-                  </div>
-                  <AgentNews agentId={selected.id} agentLabel={selected.label} />
-                </div>
+                {/* Social Signals removed for Phase 2 */}
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-32 text-slate-600 text-xs font-mono text-center">
@@ -849,31 +842,6 @@ function AgentReviews({ agentId }: { agentId: string }) {
               SCORE: {r.rating}/10
             </span>
             {r.weight > 1 && <span className="text-blue-400 opacity-80 uppercase">· Verified Receipt x{r.weight}</span>}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function AgentNews({ agentId, agentLabel }: { agentId: string, agentLabel: string }) {
-  // Use a heuristic for news since we don't have a real per-agent news API yet
-  const news = useMemo(() => [
-    { id: 1, text: `${agentLabel} just crossed a major milestone on Base network! High autonomous execution efficiency detected.`, author: '@AlphaLeaks', views: `${(agentId.charCodeAt(2) % 50) + 10}K`, time: '2h ago' },
-    { id: 2, text: `Analyzing behavioral patterns for ${agentId.slice(0,8)}... Integrity check passed with 99.9% confidence.`, author: '@MaiatIndexer', views: `${(agentId.charCodeAt(3) % 30) + 5}K`, time: '5h ago' }
-  ], [agentId, agentLabel]);
-
-  return (
-    <div className="flex flex-col gap-2">
-      {news.map(signal => (
-        <div key={signal.id} className="p-2 rounded bg-black/40 border text-[10px] font-mono hover:border-slate-600 transition-colors" style={{borderColor:'rgba(255,255,255,0.05)'}}>
-          <div className="flex justify-between text-slate-500 mb-1">
-            <span className="text-[#00F0FF]">{signal.author}</span>
-            <span>{signal.time}</span>
-          </div>
-          <div className="text-slate-300 leading-relaxed mb-2">{signal.text}</div>
-          <div className="flex items-center gap-1 text-slate-500 text-[8px] uppercase">
-            <Eye className="w-2.5 h-2.5" /> {signal.views} Views
           </div>
         </div>
       ))}
