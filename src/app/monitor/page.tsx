@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Radar, AlertTriangle, Terminal, Shield, ShieldAlert, Zap, User, Target, Activity, MessageSquare, Globe, TrendingUp, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { ReviewForm } from '@/components/ReviewForm';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type AgentNode = {
@@ -37,10 +38,24 @@ const AgentBubbleMap = React.forwardRef<MapRef, { agents: AgentNode[], onSelect:
   const selectedIdRef = React.useRef(selectedId);
   React.useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
 
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const updateDimensions = () => {
+      setDimensions({ width: window.innerWidth, height: window.innerHeight });
+    };
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
   React.useEffect(() => {
+    if (dimensions.width === 0) return;
+    
     // Generate static positions based on clusters
-    const W = window.innerWidth;
-    const H = window.innerHeight;
+    const W = dimensions.width;
+    const H = dimensions.height;
     const cx = W/2, cy = H/2;
     
     const clusters = {
@@ -88,16 +103,19 @@ const AgentBubbleMap = React.forwardRef<MapRef, { agents: AgentNode[], onSelect:
     });
 
     staticNodes.current = newNodes;
-  }, [agents]);
+  }, [agents, dimensions]);
 
   React.useEffect(() => {
+    if (typeof window === 'undefined') return;
     let animId: number;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     
     const resize = () => {
+      if (!canvas) return;
       canvas.width = canvas.offsetWidth * window.devicePixelRatio;
       canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+      ctx.resetTransform();
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     };
     resize();
@@ -153,7 +171,7 @@ const AgentBubbleMap = React.forwardRef<MapRef, { agents: AgentNode[], onSelect:
         const alpha = s.a * 0.5 + Math.sin(tick * 5 + s.x) * 0.2;
         ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, alpha)})`;
         ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, MathPI2); ctx.fill();
-        s.y -= 0.05; if (s.y < 0) s.y = H; // extremely slow drift
+        s.y -= 0.05; if (s.y < 0) s.y = window.innerHeight; // extremely slow drift
       });
 
       // Constellation Hub Centers
@@ -261,8 +279,13 @@ const AgentBubbleMap = React.forwardRef<MapRef, { agents: AgentNode[], onSelect:
     };
     draw();
 
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
-  }, []);
+    return () => { 
+      if (typeof window !== 'undefined') {
+        cancelAnimationFrame(animId); 
+        window.removeEventListener('resize', resize); 
+      }
+    };
+  }, [dimensions]);
 
   React.useImperativeHandle(ref, () => ({
     panToNode: (id: string) => {
@@ -339,7 +362,7 @@ const AgentBubbleMap = React.forwardRef<MapRef, { agents: AgentNode[], onSelect:
     const dx = e.clientX - lastMouse.current.x;
     const dy = e.clientY - lastMouse.current.y;
     
-    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
       hasDragged.current = true;
     }
 
@@ -442,20 +465,11 @@ export default function MonitorPage() {
   const [intelFeed, setIntelFeed] = useState<typeof initialIntelFeed>(initialIntelFeed);
   const [isSweeping, setIsSweeping] = useState(false);
   const [isDeployingGuard, setIsDeployingGuard] = useState(false);
-  const [reviewText, setReviewText] = useState('');
-
-  const submitReview = () => {
-    if (!selected || !reviewText.trim()) return;
-    setIntelFeed(prev => [...prev, {
-      time: new Date().toLocaleTimeString('en-US', { hour12: false }),
-      msg: `COMMUNITY OPINION left on ${selected.id.slice(0,8)}...: "${reviewText.slice(0, 40)}"`,
-      type: 'info'
-    }]);
-    setReviewText('');
-  };
+  const [showReviewForm, setShowReviewForm] = useState(false);
 
   // SSE Connection for Intel Feed
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const sse = new EventSource('/api/v1/monitor/feed');
     
     sse.onmessage = (event) => {
@@ -761,25 +775,27 @@ export default function MonitorPage() {
                 <div className="mt-4 border-t pt-4" style={{borderColor:'rgba(255,255,255,0.05)'}}>
                   <div className="text-[10px] font-bold text-slate-400 mb-3 flex items-center justify-between">
                     <span className="flex items-center gap-2"><MessageSquare className="w-3 h-3" /> COMMUNITY INTEL</span>
-                    <span className="text-[#00F0FF] animate-pulse">Live</span>
-                  </div>
-                  
-                  {/* Reviews fetched from API */}
-                  <AgentReviews agentId={selected.id} />
-                  
-                  <div className="flex flex-col gap-2 mt-2">
-                    <input 
-                      type="text" 
-                      value={reviewText}
-                      onChange={(e) => setReviewText(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && submitReview()}
-                      placeholder="Add verified opinion (0.01 ETH)..." 
-                      className="w-full bg-black/40 border border-slate-700 text-slate-300 text-[10px] p-2 rounded focus:outline-none focus:border-[#00F0FF]" 
-                    />
-                    <button onClick={submitReview} className="w-full py-1.5 rounded text-[10px] font-bold tracking-wider hover:bg-[#00F0FF]/10 transition-colors" style={{color:'#00F0FF', border:'1px solid rgba(0,240,255,0.3)'}}>
-                      SUBMIT OPINION
+                    <button 
+                      onClick={() => setShowReviewForm(!showReviewForm)}
+                      className="text-[#00F0FF] text-[9px] font-bold hover:underline uppercase"
+                    >
+                      {showReviewForm ? 'Cancel' : 'Leave Review'}
                     </button>
                   </div>
+                  
+                  {showReviewForm ? (
+                    <div className="mb-4">
+                      <ReviewForm 
+                        projectId={selected.id} 
+                        projectName={selected.label} 
+                        onSuccess={() => {
+                          setShowReviewForm(false);
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <AgentReviews agentId={selected.id} />
+                  )}
                 </div>
 
                 {/* Social Signals (Twitter / News) */}
@@ -815,9 +831,9 @@ function AgentReviews({ agentId }: { agentId: string }) {
   const { data, error, isLoading } = useSWR(`/api/v1/review?address=${agentId}`, fetcher);
   const reviews = data?.reviews || [];
 
-  if (isLoading) return <div className="text-[9px] text-slate-500 animate-pulse font-mono">LOADING INTEL...</div>;
-  if (error) return <div className="text-[9px] text-red-500 font-mono">ERROR LOADING INTEL</div>;
-  if (reviews.length === 0) return <div className="text-[9px] text-slate-600 italic font-mono">No verified opinions yet for this agent.</div>;
+  if (isLoading) return <div className="text-[9px] text-slate-500 animate-pulse font-mono uppercase">Loading Intel...</div>;
+  if (error) return <div className="text-[9px] text-red-500 font-mono uppercase">Error Loading Intel</div>;
+  if (reviews.length === 0) return <div className="text-[9px] text-slate-600 italic font-mono uppercase">No verified opinions for this agent.</div>;
 
   return (
     <div className="space-y-2 mb-3">
@@ -832,7 +848,7 @@ function AgentReviews({ agentId }: { agentId: string }) {
             <span className={r.rating >= 8 ? 'text-emerald-500' : r.rating >= 5 ? 'text-amber-500' : 'text-red-500'}>
               SCORE: {r.rating}/10
             </span>
-            {r.weight > 1 && <span className="text-blue-400 opacity-80">· VERIFIED RECEIPT x{r.weight}</span>}
+            {r.weight > 1 && <span className="text-blue-400 opacity-80 uppercase">· Verified Receipt x{r.weight}</span>}
           </div>
         </div>
       ))}
@@ -842,7 +858,6 @@ function AgentReviews({ agentId }: { agentId: string }) {
 
 function AgentNews({ agentId, agentLabel }: { agentId: string, agentLabel: string }) {
   // Use a heuristic for news since we don't have a real per-agent news API yet
-  // We'll generate dynamic-looking news based on the agent's real ID and label
   const news = useMemo(() => [
     { id: 1, text: `${agentLabel} just crossed a major milestone on Base network! High autonomous execution efficiency detected.`, author: '@AlphaLeaks', views: `${(agentId.charCodeAt(2) % 50) + 10}K`, time: '2h ago' },
     { id: 2, text: `Analyzing behavioral patterns for ${agentId.slice(0,8)}... Integrity check passed with 99.9% confidence.`, author: '@MaiatIndexer', views: `${(agentId.charCodeAt(3) % 30) + 5}K`, time: '5h ago' }
@@ -857,8 +872,8 @@ function AgentNews({ agentId, agentLabel }: { agentId: string, agentLabel: strin
             <span>{signal.time}</span>
           </div>
           <div className="text-slate-300 leading-relaxed mb-2">{signal.text}</div>
-          <div className="flex items-center gap-1 text-slate-500 text-[8px]">
-            <Eye className="w-2.5 h-2.5" /> {signal.views} VIEWS
+          <div className="flex items-center gap-1 text-slate-500 text-[8px] uppercase">
+            <Eye className="w-2.5 h-2.5" /> {signal.views} Views
           </div>
         </div>
       ))}
