@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { RedirectToExplore } from '@/components/RedirectToExplore'
+import { RedirectToMonitor } from '@/components/RedirectToMonitor'
 
 export const metadata: Metadata = {
   title: 'Maiat Protocol — Trust Infrastructure for AI Agents',
@@ -113,7 +113,7 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <RedirectToExplore />
+      <RedirectToMonitor />
     </>
   )
 }
