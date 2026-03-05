@@ -16,7 +16,7 @@ import {
   Bot,
   Radar,
 } from "lucide-react";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 const navItems = [
   { href: "/explore", label: "Agents", icon: Bot, exact: true },
@@ -41,6 +41,7 @@ export function Sidebar() {
   const searchParams = useSearchParams();
   const isLeaderboard = searchParams.get('tab') === 'leaderboard';
   const { authenticated, ready, user } = usePrivy();
+  const { wallets } = useWallets();
   const walletAddress = user?.wallet?.address;
   const [scarabBalance, setScarabBalance] = useState<number | null>(null);
   const [claiming, setClaiming] = useState(false);
@@ -57,13 +58,42 @@ export function Sidebar() {
     if (!walletAddress || claiming) return;
     setClaiming(true);
     try {
+      // 1. Fetch Nonce
+      const nonceRes = await fetch(`/api/v1/scarab/nonce?address=${walletAddress}`);
+      if (!nonceRes.ok) throw new Error('Failed to get nonce');
+      const { nonce, expiresAt } = await nonceRes.json();
+
+      // 2. Sign Message
+      const activeWallet = wallets.find((w) => w.address.toLowerCase() === walletAddress.toLowerCase());
+      if (!activeWallet) throw new Error('Wallet not found');
+
+      const message = [
+        `Claim daily Scarab for ${activeWallet.address}`,
+        `Nonce: ${nonce}`,
+        `Expiration: ${expiresAt}`,
+      ].join('\n');
+
+      const signature = await activeWallet.sign(message);
+
+      // 3. Submit Claim
       const res = await fetch('/api/v1/scarab/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: walletAddress }),
+        body: JSON.stringify({ 
+          address: walletAddress,
+          signature,
+          nonce,
+          expiresAt
+        }),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Claim failed');
+
       setClaimResult(data.alreadyClaimed ? 'done' : `+${data.amount ?? 5}`);
+      setTimeout(() => setClaimResult(null), 3000);
+    } catch (err: any) {
+      console.error("[Claim] Error:", err.message);
+      setClaimResult('fail');
       setTimeout(() => setClaimResult(null), 3000);
     } finally { setClaiming(false); }
   }
