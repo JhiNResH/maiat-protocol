@@ -21,6 +21,15 @@
   --text-secondary: #94a3b8;
   --text-muted: #475569;
 
+  /* Monitor / Command-Center tactical colors */
+  --monitor-bg: #030303;
+  --monitor-primary: #00f0ff;
+  --monitor-danger: #ff0055;
+  --monitor-warning: #ffb800;
+  --monitor-success: #00ff9d;
+  --monitor-panel: rgba(0, 240, 255, 0.03);
+  --monitor-panel-border: rgba(0, 240, 255, 0.15);
+
   /* Terminal/Deckard-style colors */
   --terminal-bg: #0a0a0a;
   --terminal-surface: #111111;
@@ -74,3 +83,22 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ─── Monitor / Command-Center Utilities ─── */
+.monitor-glass {
+  background: var(--monitor-panel);
+  border: 1px solid var(--monitor-panel-border);
+  backdrop-filter: blur(12px);
+}
+
+.hex-clip {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.custom-scrollbar::-webkit-scrollbar { width: 3px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--monitor-panel-border);
+  border-radius: 2px;
+}
+
