@@ -519,7 +519,13 @@ function MonitorContent() {
   // Fetch real agents from the protocol API
   const { data } = useSWR('/api/v1/agents?limit=200', fetcher, { refreshInterval: 10000 });
 
-  // Map protocol agents and pre-calculate their bubble sizes
+  // Real-time sweeps from DB
+  const { data: sweepsData } = useSWR('/api/v1/monitor/sweeps', fetcher, { refreshInterval: 60000 });
+  const activeSweeps = sweepsData?.sweeps || [
+    { label: 'BASE MAINNET AGENTS', progress: 0, status: 'loading' },
+    { label: 'THREAT VECTOR ANALYSIS', progress: 0, status: 'loading' },
+    { label: 'ATTESTATION COVERAGE', progress: 0, status: 'loading' },
+  ];
   const radarAgents = useMemo<AgentNode[]>(() => {
     if (!data?.agents) return [];
     const seen = new Set();
@@ -674,14 +680,20 @@ function MonitorContent() {
               <Radar className="w-3 h-3" style={{color:'#00F0FF'}} />
               <span className="text-xs font-bold text-slate-200 tracking-wider">ACTIVE SWEEPS</span>
             </div>
-            {[{label:'SECTOR 7, MEME CLUSTER',pct:23,active:true},{label:'DEFI PROTOCOL GRID',pct:89,active:false}].map(s=>(
+            {activeSweeps.map((s: any) => (
               <div key={s.label} className="mb-3">
                 <div className="flex justify-between text-[10px] font-mono mb-1">
-                  <span style={{color:s.active?'#00F0FF':'#64748b'}}>{s.label}</span>
-                  <span style={{color:s.active?'#00F0FF':'#64748b'}}>{s.pct}%</span>
+                  <span style={{color:s.status !== 'loading' ?'#00F0FF':'#64748b'}}>{s.label}</span>
+                  <span style={{color:s.status !== 'loading' ?'#00F0FF':'#64748b'}}>{s.progress}%</span>
                 </div>
-                <div className="h-1 rounded-full" style={{background:'#1e293b'}}>
-                  <div className="h-full rounded-full" style={{width:`${s.pct}%`,background:s.active?'#00F0FF':'#475569'}} />
+                <div className="h-1 rounded-full overflow-hidden" style={{background:'#1e293b'}}>
+                  <motion.div 
+                    className="h-full rounded-full" 
+                    style={{background:s.status !== 'loading' ?'#00F0FF':'#475569'}}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${s.progress}%` }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                  />
                 </div>
               </div>
             ))}
