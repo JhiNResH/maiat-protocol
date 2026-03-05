@@ -1,14 +1,28 @@
 'use client'
 
-import { Sidebar } from './Sidebar'
+import { Suspense, ReactNode } from 'react'
+import dynamic from 'next/dynamic'
+import { PrivyProvider } from '@/components/PrivyProvider'
 
-export function ClientLayout({ children }: { children: React.ReactNode }) {
+// Dynamically import Sidebar and Header to avoid Privy hooks during SSR
+const Sidebar = dynamic(
+  () => import('@/components/Sidebar').then(mod => mod.Sidebar),
+  { ssr: false }
+)
+
+export function ClientLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-[calc(100vh-65px)]">
-      <Sidebar />
-      <main className="flex-1 min-w-0 lg:ml-[240px]">
-        {children}
-      </main>
-    </div>
+    <PrivyProvider>
+      <div className="flex flex-col min-h-screen">
+        <div className="flex flex-1 pt-[64px]">
+          <Suspense fallback={<div className="w-[220px] bg-[#050508] border-r border-[#1e2035]" />}>
+            <Sidebar />
+          </Suspense>
+          <main className="flex-1 lg:pl-[220px] w-full">
+            {children}
+          </main>
+        </div>
+      </div>
+    </PrivyProvider>
   )
 }

@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Search, Shield, Bot, ArrowUpDown, TrendingUp, Zap, Trophy } from "lucide-react";
-// viem isAddress removed — search is now server-side
 
 // ============================================================================
 // TYPES
@@ -35,6 +34,10 @@ interface Agent {
 function truncateAddress(addr: string) {
   if (!addr || addr.length < 10) return addr;
   return addr.slice(0, 6) + "..." + addr.slice(-4);
+}
+
+function cleanAgentName(name: string) {
+  return (name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
 }
 
 /** Derive verdict from trust score (0–100 scale). */
@@ -278,7 +281,7 @@ function ExplorePage() {
               return (
                 <button
                   key={agent.id}
-                  onClick={() => router.push(`/agent/${agent.id}`)}
+                  onClick={() => router.push(`/agent/${cleanAgentName(agent.name)}/${agent.id}`)}
                   className="group grid grid-cols-[1fr_160px_120px_100px] gap-4 items-center px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg text-left transition-all duration-150 hover:border-[#3b82f6]/50 hover:shadow-[0_0_16px_rgba(0,82,255,0.08)] cursor-pointer w-full"
                   style={{ minHeight: "68px" }}
                 >
@@ -433,7 +436,7 @@ function LeaderboardView({
               return (
                 <div
                   key={agent.id}
-                  onClick={() => router.push(`/agent/${agent.id}`)}
+                  onClick={() => router.push(`/agent/${cleanAgentName(agent.name)}/${agent.id}`)}
                   className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#1a1a1a] bg-[#0D0D0D] hover:border-[#3b82f6]/30 hover:bg-[#111111] cursor-pointer transition-all group"
                 >
                   {/* Rank */}

@@ -4,58 +4,66 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, Suspense } from 'react'
 import Image from 'next/image'
-import { Search, Radar, FileText, Trophy } from 'lucide-react'
-import { usePathname } from 'next/navigation'
-import { ConnectButton } from './ConnectButton'
+import { Search } from 'lucide-react'
+import dynamic from 'next/dynamic'
 
-function HeaderContent() {
+// Dynamically import HeaderContent to avoid calling Privy hooks during SSR
+const HeaderContent = dynamic(
+  () => import('./Header').then(mod => mod.HeaderContentInternal),
+  { ssr: false }
+)
+
+export function HeaderContentInternal() {
   const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
-  const [query, setQuery] = useState('')
+  const [searchValue, setSearchValue] = useState(searchParams.get('q') || '')
 
-  const isLeaderboard = searchParams.get('tab') === 'leaderboard'
-
-  function handleSearch(e: React.FormEvent) {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    const q = query.trim()
-    if (!q) return
-
-    if (pathname === '/monitor') {
-      // If we are already on monitor, just update the URL query so the map can react
-      router.push(`/monitor?q=${encodeURIComponent(q)}`)
-    } else {
-      router.push(`/explore?q=${encodeURIComponent(q)}`)
+    if (searchValue.trim()) {
+      router.replace(`/agent?q=${encodeURIComponent(searchValue.trim())}`, { scroll: false })
     }
-    setQuery('')
   }
 
+  // Lazy import ConnectButton to avoid any further Privy SSR issues
+  const ConnectButton = dynamic(
+    () => import('./ConnectButton').then(mod => mod.ConnectButton),
+    { ssr: false }
+  )
+
   return (
-    <header className="fixed top-0 left-0 right-0 h-[64px] flex items-center justify-between px-6 border-b border-[#1e2035] z-50 bg-[#050508]/95 backdrop-blur-sm">
-      {/* Logo */}
-      <Link href="/explore" className="flex items-center gap-2.5 shrink-0 group">
-        <Image src="/maiat-logo.jpg" alt="Maiat" width={32} height={32} className="w-8 h-8 rounded-lg shadow-lg shadow-[#3b82f6]/20 group-hover:shadow-[#3b82f6]/40 transition-shadow" />
-        <span className="font-mono text-sm font-bold tracking-[4px] text-white hidden sm:block">MAIAT</span>
-      </Link>
+    <header className="fixed top-0 left-0 right-0 h-[64px] border-b border-[#1e2035] z-50 bg-[#050508]/95 backdrop-blur-sm">
+      <div className="h-full px-4 lg:px-6 flex items-center justify-between gap-4 max-w-[2000px] mx-auto">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-3 group shrink-0">
+          <div className="relative w-8 h-8 overflow-hidden transition-colors">
+            <Image
+              src="/logo-dark.jpg"
+              alt="Maiat"
+              fill
+              className="object-cover"
+            />
+          </div>
+          <span className="text-lg font-bold tracking-tighter text-white hidden sm:inline-block">
+            MAIAT
+          </span>
+        </Link>
 
-      {/* Search Bar */}
-      <div className="flex-1 max-w-xl pr-8 mx-6">
-        <form onSubmit={handleSearch} className="relative group">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#475569] group-focus-within:text-[#3b82f6] transition-colors" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search agents, protocols, or 0x addresses..."
-            className="w-full bg-[#0d0e17] hover:bg-[#13141f] focus:bg-[#13141f] border border-[#1e2035] focus:border-[#3b82f6]/50 text-sm text-[#f1f5f9] placeholder-[#475569] rounded-lg py-2 pl-10 pr-4 outline-none transition-all"
-            spellCheck={false}
-          />
-        </form>
-      </div>
+        {/* Search & Actions */}
+        <div className="flex items-center gap-3 flex-1 justify-end max-w-xl">
+          <form onSubmit={handleSearch} className="relative w-full group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-txt-muted group-focus-within:text-gold transition-colors" />
+            <input
+              type="text"
+              placeholder="Search by name or 0x..."
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-gold/50 focus:bg-white/[0.05] transition-all shadow-inner"
+            />
+          </form>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3 shrink-0">
-        <ConnectButton />
+          <ConnectButton />
+        </div>
       </div>
     </header>
   )
