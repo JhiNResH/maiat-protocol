@@ -1,6 +1,6 @@
 'use client'
 
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
@@ -74,6 +74,7 @@ function StatCard({ label, value, sub, icon, gold }: {
 
 export function DashboardView() {
   const { ready, authenticated, user, login } = usePrivy()
+  const { wallets } = useWallets()
   const walletAddress = user?.wallet?.address
 
   const [scarab, setScarab] = useState<ScarabState | null>(null)
@@ -102,19 +103,45 @@ export function DashboardView() {
     setClaiming(true)
     setClaimMsg(null)
     try {
+      // 1. Get Nonce
+      const nonceRes = await fetch(`/api/v1/scarab/nonce?address=${walletAddress}`);
+      if (!nonceRes.ok) throw new Error('Failed to get nonce');
+      const { nonce, expiresAt } = await nonceRes.json();
+
+      // 2. Sign
+      const activeWallet = wallets.find((w) => w.address.toLowerCase() === walletAddress.toLowerCase());
+      if (!activeWallet) throw new Error('Wallet not ready');
+
+      const message = [
+        `Claim daily Scarab for ${activeWallet.address}`,
+        `Nonce: ${nonce}`,
+        `Expiration: ${expiresAt}`,
+      ].join('\n');
+
+      const signature = await activeWallet.sign(message);
+
+      // 3. Post
       const res = await fetch('/api/v1/scarab/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: walletAddress }),
+        body: JSON.stringify({ 
+          address: walletAddress,
+          signature,
+          nonce,
+          expiresAt
+        }),
       })
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Claim failed');
+
       if (data.alreadyClaimed) {
         setClaimMsg({ ok: false, text: 'Already claimed today. Come back tomorrow!' })
       } else {
         setClaimMsg({ ok: true, text: `+${data.amount ?? 5} 🪲 claimed! Streak: ${data.streak ?? 1} day${(data.streak ?? 1) > 1 ? 's' : ''}` })
       }
-    } catch {
-      setClaimMsg({ ok: false, text: 'Claim failed. Try again.' })
+    } catch (err: any) {
+      console.error("[Dashboard Claim] Error:", err.message);
+      setClaimMsg({ ok: false, text: err.message || 'Claim failed.' })
     } finally { setClaiming(false) }
   }
 
