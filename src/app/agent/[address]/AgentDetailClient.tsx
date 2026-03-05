@@ -9,6 +9,7 @@ import {
   CheckCircle, MessageSquare, Trophy, Flame, ArrowLeft, TrendingUp,
 } from 'lucide-react'
 import Link from 'next/link'
+import { ReviewForm } from '@/components/ReviewForm'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -128,155 +129,6 @@ function RateBar({ label, value, good = true }: { label: string; value: number |
         />
       </div>
     </div>
-  )
-}
-
-// ─── Review Form ──────────────────────────────────────────────────────────────
-
-function ReviewFormInline({
-  agentAddress,
-  agentName,
-  scarabBalance,
-  onSuccess,
-}: {
-  agentAddress: string
-  agentName: string
-  scarabBalance: number | null
-  onSuccess: () => void
-}) {
-  const { authenticated, user, login } = usePrivy()
-  const [rating, setRating]         = useState(5)
-  const [comment, setComment]       = useState('')
-  const [easReceiptId, setEasId]    = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [result, setResult]         = useState<{ earned?: number; msg?: string; error?: string } | null>(null)
-
-  const walletAddress = user?.wallet?.address
-  const canAfford = scarabBalance === null || scarabBalance >= 2
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!walletAddress || !canAfford) return
-    setSubmitting(true); setResult(null)
-    try {
-      const res = await fetch('/api/v1/review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address: agentAddress,
-          reviewer: walletAddress,
-          rating,
-          comment: comment.trim() || undefined,
-          easReceiptId: easReceiptId.trim() || undefined,
-          source: 'human',
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setResult({ error: data.error || 'Failed' }); return }
-      setResult({ earned: data.scarabEarned, msg: 'Review submitted!' })
-      setComment(''); setRating(5); setEasId('')
-      onSuccess()
-    } catch { setResult({ error: 'Network error' }) }
-    finally { setSubmitting(false) }
-  }
-
-  // ── Inline wallet gate (NOT full-page) ────────────────────────────────────
-  if (!authenticated) return (
-    <div className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6 text-center">
-      <div className="text-2xl mb-2">🪲</div>
-      <p className="text-[#94a3b8] text-sm mb-1">Connect wallet to review and earn Scarab</p>
-      <p className="text-[#475569] text-xs mb-4 font-mono">Reviews cost 2 🪲 · Quality reviews earn up to +10 🪲</p>
-      <button
-        onClick={login}
-        className="px-6 py-2 bg-[#3b82f6] hover:bg-[#DC2626] text-white font-semibold text-sm rounded-xl transition-colors"
-      >
-        Connect Wallet
-      </button>
-    </div>
-  )
-
-  return (
-    <form onSubmit={handleSubmit} className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6 flex flex-col gap-4">
-      {/* Weight info banner */}
-      <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-2 text-xs text-indigo-300 font-mono">
-        <span className="font-semibold">Review weight:</span> 1× base · <span className="text-blue-400">3× with on-chain interaction proof</span> · <span className="text-cyan-300">5× with EAS receipt</span>
-      </div>
-
-      <div className="flex items-center justify-between text-xs font-mono">
-        <span className="text-[#475569]">
-          Costs <span className="text-[#d4a017]">2 🪲</span> · Earn up to <span className="text-[#d4a017]">+10 🪲</span>
-        </span>
-        {scarabBalance !== null && (
-          <span className="text-[#475569]">
-            Balance: <span className={canAfford ? 'text-[#d4a017]' : 'text-slate-400'}>🪲 {scarabBalance}</span>
-          </span>
-        )}
-      </div>
-
-      {!canAfford && (
-        <div className="bg-slate-500/10 border border-slate-500/20 rounded-lg px-3 py-2 text-xs text-slate-400 font-mono">
-          Insufficient Scarab. Claim daily 🪲 from sidebar.
-        </div>
-      )}
-
-      <div>
-        <label className="text-xs text-[#475569] font-mono uppercase tracking-wider block mb-2">Rating</label>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map(s => (
-            <button
-              type="button"
-              key={s}
-              onClick={() => setRating(s)}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all border ${
-                s <= rating
-                  ? 'text-[#d4a017] bg-[#d4a017]/10 border-[#d4a017]/30'
-                  : 'text-[#1e2035] bg-[#13141f] border-[#1e2035] hover:border-[#2a2d45]'
-              }`}
-            >
-              ★
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs text-[#475569] font-mono uppercase tracking-wider block mb-2">
-          Analysis <span className="normal-case text-[#2a2d45]">(optional)</span>
-        </label>
-        <textarea
-          value={comment}
-          onChange={e => setComment(e.target.value)}
-          placeholder={`Share your experience with ${agentName}...`}
-          rows={3}
-          className="w-full bg-[#13141f] border border-[#1e2035] focus:border-[#3b82f6]/40 rounded-xl px-4 py-3 text-sm text-[#f1f5f9] placeholder-[#2a2d45] focus:outline-none resize-none transition-all"
-        />
-      </div>
-
-      <div>
-        <label className="text-xs text-[#475569] font-mono uppercase tracking-wider block mb-2">
-          EAS Receipt <span className="normal-case text-[#2a2d45]">(optional — 5× weight boost)</span>
-        </label>
-        <input
-          value={easReceiptId}
-          onChange={e => setEasId(e.target.value)}
-          placeholder="0x attestation hash..."
-          className="w-full bg-[#13141f] border border-[#1e2035] focus:border-[#3b82f6]/40 rounded-xl px-4 py-2 text-sm text-[#f1f5f9] placeholder-[#2a2d45] focus:outline-none transition-all font-mono"
-        />
-      </div>
-
-      {result?.error && <p className="text-xs text-slate-400 font-mono">{result.error}</p>}
-      {result?.msg && (
-        <p className="text-xs text-blue-400 font-mono">✓ {result.msg} {result.earned ? `+${result.earned} 🪲` : ''}</p>
-      )}
-
-      <button
-        type="submit"
-        disabled={submitting || !canAfford}
-        className="w-full py-2.5 bg-[#3b82f6] hover:bg-[#DC2626] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl transition-colors"
-      >
-        {submitting ? 'Submitting...' : 'Submit Review (−2 🪲)'}
-      </button>
-    </form>
   )
 }
 
@@ -646,10 +498,9 @@ function AgentDetail() {
             <Trophy className="w-3.5 h-3.5 text-[#d4a017]" />
             <span className="text-xs font-medium font-mono uppercase tracking-widest text-[#475569]">Write a Review</span>
           </div>
-          <ReviewFormInline
-            agentAddress={agent.address}
-            agentName={name}
-            scarabBalance={scarabBal}
+          <ReviewForm
+            projectId={agent.address}
+            projectName={name}
             onSuccess={() => setReviewKey(k => k + 1)}
           />
         </div>
