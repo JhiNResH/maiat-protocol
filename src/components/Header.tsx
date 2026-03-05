@@ -4,11 +4,13 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import Image from 'next/image'
-import { Search } from 'lucide-react'
+import { Search, Radar, FileText, Trophy } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import { ConnectButton } from './ConnectButton'
 
 export function Header() {
   const router = useRouter()
+  const pathname = usePathname()
   const [query, setQuery] = useState('')
 
   function handleSearch(e: React.FormEvent) {
@@ -27,8 +29,33 @@ export function Header() {
         <span className="font-mono text-sm font-bold tracking-[4px] text-white hidden sm:block">MAIAT</span>
       </Link>
 
+      {/* Main Nav */}
+      <nav className="hidden md:flex items-center gap-1 mx-6 bg-[#0d0e17] rounded-lg p-1 border border-[#1e2035]">
+        <Link 
+          href="/explore" 
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-widest transition-colors ${pathname === '/explore' && !window?.location.search.includes('tab=leaderboard') ? 'bg-[#3b82f6]/10 text-[#3b82f6]' : 'text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#13141f]'}`}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          EXPLORE
+        </Link>
+        <Link 
+          href="/explore?tab=leaderboard" 
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-widest transition-colors ${window?.location.search.includes('tab=leaderboard') ? 'bg-[#FFD700]/10 text-[#FFD700]' : 'text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#13141f]'}`}
+        >
+          <Trophy className="w-3.5 h-3.5" />
+          TOP
+        </Link>
+        <Link 
+          href="/monitor" 
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-widest transition-colors ${pathname === '/monitor' ? 'bg-[#00F0FF]/10 text-[#00F0FF]' : 'text-[#94a3b8] hover:text-[#00F0FF] hover:bg-[#00F0FF]/5'}`}
+        >
+          <Radar className="w-3.5 h-3.5" />
+          MONITOR
+        </Link>
+      </nav>
+
       {/* Search Bar */}
-      <div className="flex-1 max-w-xl px-8">
+      <div className="flex-1 max-w-xl pr-8">
         <form onSubmit={handleSearch} className="relative group">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#475569] group-focus-within:text-[#3b82f6] transition-colors" />
           <input
