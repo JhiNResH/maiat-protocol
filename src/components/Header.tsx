@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import Image from 'next/image'
 import { Search, Radar, FileText, Trophy } from 'lucide-react'
@@ -11,7 +11,10 @@ import { ConnectButton } from './ConnectButton'
 export function Header() {
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [query, setQuery] = useState('')
+
+  const isLeaderboard = searchParams.get('tab') === 'leaderboard'
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -33,14 +36,14 @@ export function Header() {
       <nav className="hidden md:flex items-center gap-1 mx-6 bg-[#0d0e17] rounded-lg p-1 border border-[#1e2035]">
         <Link 
           href="/explore" 
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-widest transition-colors ${pathname === '/explore' && !window?.location.search.includes('tab=leaderboard') ? 'bg-[#3b82f6]/10 text-[#3b82f6]' : 'text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#13141f]'}`}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-widest transition-colors ${pathname === '/explore' && !isLeaderboard ? 'bg-[#3b82f6]/10 text-[#3b82f6]' : 'text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#13141f]'}`}
         >
           <FileText className="w-3.5 h-3.5" />
           EXPLORE
         </Link>
         <Link 
           href="/explore?tab=leaderboard" 
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-widest transition-colors ${window?.location.search.includes('tab=leaderboard') ? 'bg-[#FFD700]/10 text-[#FFD700]' : 'text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#13141f]'}`}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-widest transition-colors ${isLeaderboard ? 'bg-[#FFD700]/10 text-[#FFD700]' : 'text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#13141f]'}`}
         >
           <Trophy className="w-3.5 h-3.5" />
           TOP
