@@ -7,7 +7,7 @@ export function RedirectToMonitor() {
   const router = useRouter()
 
   useEffect(() => {
-    router.replace('/agent')
+    router.replace('/monitor')
   }, [router])
 
   return null

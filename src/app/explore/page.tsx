@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Header } from "@/components/Header";
 import { Search, Shield, Bot, ArrowUpDown, TrendingUp, Zap, Trophy } from "lucide-react";
 
 // ============================================================================
@@ -172,8 +171,6 @@ function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
-      <Header />
-
       <main className="max-w-5xl mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">
@@ -410,7 +407,6 @@ function LeaderboardView({
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
-      <Header />
       <main className="max-w-3xl mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">

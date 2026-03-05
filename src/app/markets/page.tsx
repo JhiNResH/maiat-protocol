@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Header } from "@/components/Header";
 import { MarketCard } from "@/components/MarketCard";
 import { Shield, TrendingUp, Clock, Trophy } from "lucide-react";
 
@@ -56,9 +55,7 @@ export default function MarketsPage() {
   const totalPositions = markets.reduce((acc, m) => acc + m.positionCount, 0);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
-      <Header />
-
+    <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5] font-['JetBrains_Mono',monospace]">
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Terminal Header */}
         <div className="mb-6">

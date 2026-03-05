@@ -1,210 +1,208 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { 
   Compass,
   Trophy,
   LayoutDashboard, 
-  Repeat, 
-  FileText, 
-  Github,
-  Flame,
   Shield,
-  BarChart2,
-  Bot,
+  Zap,
+  Menu,
+  X,
   Radar,
+  Github,
+  FileText,
+  Flame,
+  TrendingUp,
+  Wallet,
+  LogOut,
+  User
 } from "lucide-react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { usePrivy } from "@privy-io/react-auth";
+import useSWR from "swr";
 
-const navItems = [
-  { href: "/explore", label: "Agents", icon: Bot, exact: true },
-  { href: "/explore?tab=leaderboard", label: "Leaderboard", icon: Trophy, tabMatch: "leaderboard" },
-  { href: "/agent", label: "Monitor", icon: Radar, exact: false },
-  { href: "/markets", label: "Opinion Market", icon: BarChart2, exact: false },
-];
-// Phase 2: { href: "/review", label: "Write Review", icon: Shield, exact: false },
+// ─── Constants ───────────────────────────────────────────────────────────────
 
-const accountItems = [
-  { href: "/passport", label: "Trust Passport", icon: LayoutDashboard },
-  // { href: "/swap", label: "Protected Swap", icon: Repeat }, // Hidden — demo only, TrustGateHook handles swap protection at contract level
+const NAV_ITEMS = [
+  { name: "Monitor", icon: Radar, path: "/monitor" },
+  { name: "Opinion Market", icon: TrendingUp, path: "/markets" },
+  { name: "Explore", icon: Compass, path: "/explore" },
+  { name: "Passport", icon: LayoutDashboard, path: "/dashboard" },
 ];
 
-const resourceItems = [
-  { href: "/docs", label: "API Docs", icon: FileText },
-  { href: "https://github.com/JhiNResH/maiat", label: "GitHub", icon: Github, external: true },
-];
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+// ─── Sidebar ─────────────────────────────────────────────────────────────────
 
 export function Sidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isLeaderboard = searchParams.get('tab') === 'leaderboard';
-  const { authenticated, ready, user } = usePrivy();
-  const { wallets } = useWallets();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  const { authenticated, user, login, logout } = usePrivy();
   const walletAddress = user?.wallet?.address;
-  const [scarabBalance, setScarabBalance] = useState<number | null>(null);
-  const [claiming, setClaiming] = useState(false);
-  const [claimResult, setClaimResult] = useState<string | null>(null);
+
+  // Fetch Scarab for Sidebar Widget
+  const { data: scarab } = useSWR(walletAddress ? `/api/v1/scarab?address=${walletAddress}` : null, fetcher);
 
   useEffect(() => {
-    if (!walletAddress) return;
-    fetch(`/api/v1/scarab?address=${walletAddress}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => d && setScarabBalance(d.balance));
-  }, [walletAddress, claimResult]);
+    setMounted(true);
+  }, []);
 
-  async function handleClaim() {
-    if (!walletAddress || claiming) return;
-    setClaiming(true);
-    try {
-      // 1. Fetch Nonce
-      const nonceRes = await fetch(`/api/v1/scarab/nonce?address=${walletAddress}`);
-      if (!nonceRes.ok) throw new Error('Failed to get nonce');
-      const { nonce, expiresAt } = await nonceRes.json();
+  const isActive = (path: string) => {
+    if (path.includes('?')) {
+      const [base, query] = path.split('?');
+      const [key, val] = query.split('=');
+      return pathname === base && searchParams.get(key) === val;
+    }
+    return pathname === path || pathname.startsWith(path + '/');
+  };
 
-      // 2. Sign Message
-      const activeWallet = wallets.find((w) => w.address.toLowerCase() === walletAddress.toLowerCase());
-      if (!activeWallet) throw new Error('Wallet not found');
+  const truncate = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
-      const message = [
-        `Claim daily Scarab for ${activeWallet.address}`,
-        `Nonce: ${nonce}`,
-        `Expiration: ${expiresAt}`,
-      ].join('\n');
-
-      const signature = await activeWallet.sign(message);
-
-      // 3. Submit Claim
-      const res = await fetch('/api/v1/scarab/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          address: walletAddress,
-          signature,
-          nonce,
-          expiresAt
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Claim failed');
-
-      setClaimResult(data.alreadyClaimed ? 'done' : `+${data.amount ?? 5}`);
-      setTimeout(() => setClaimResult(null), 3000);
-    } catch (err: any) {
-      console.error("[Claim] Error:", err.message);
-      setClaimResult('fail');
-      setTimeout(() => setClaimResult(null), 3000);
-    } finally { setClaiming(false); }
-  }
-
-  function isActive(item: { href: string; exact?: boolean; tabMatch?: string }) {
-    if (item.tabMatch) return isLeaderboard && item.tabMatch === 'leaderboard';
-    if (item.exact) return pathname === item.href && !isLeaderboard;
-    return pathname.startsWith(item.href);
-  }
+  if (!mounted) return null;
 
   return (
-    <aside className="fixed top-[64px] left-0 h-[calc(100vh-64px)] w-[220px] bg-[#050508] border-r border-[#1e2035] overflow-y-auto z-40 hidden lg:flex flex-col py-5 px-3 gap-1">
-      
-      {/* Nav */}
-      <div className="flex flex-col gap-0.5">
-        <p className="px-3 text-[9px] font-bold text-[#475569] uppercase tracking-widest mb-2 font-mono">Navigate</p>
-        {navItems.map((item) => {
-          const active = isActive(item);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                active
-                  ? "bg-[#3b82f6]/10 text-[#3b82f6] border border-[#3b82f6]/20"
-                  : "text-[#94a3b8] hover:bg-[#0d0e17] hover:text-[#f1f5f9]"
-              }`}
-            >
-              <item.icon className="w-4 h-4 shrink-0" />
-              <span>{item.label}</span>
-              {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />}
+    <>
+      {/* Mobile Toggle */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-[60] p-2 bg-[#050508] border border-[#1e2035] rounded-lg text-slate-400"
+      >
+        {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
+
+      {/* Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[50] lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Container */}
+      <aside className={`
+        fixed top-0 left-0 bottom-0 w-[220px] bg-[#050508] border-r border-[#1e2035] z-[55]
+        transition-transform duration-300 ease-in-out lg:translate-x-0
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="flex flex-col h-full">
+          {/* Logo Area */}
+          <div className="h-[64px] flex items-center px-6 border-b border-[#1e2035]">
+            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <Image 
+                src="/maiat-logo.jpg" 
+                alt="Maiat" 
+                width={20} 
+                height={20} 
+                className="w-5 h-5 rounded shadow-lg shadow-[#3b82f6]/20" 
+              />
+              <span className="font-mono text-sm font-bold tracking-[3px] text-white uppercase">
+                MAIAT
+              </span>
             </Link>
-          );
-        })}
-      </div>
-
-      <div className="h-px bg-[#1e2035] my-3 mx-2" />
-
-      {/* Account */}
-      <div className="flex flex-col gap-0.5">
-        <p className="px-3 text-[9px] font-bold text-[#475569] uppercase tracking-widest mb-2 font-mono">Account</p>
-        {ready && authenticated ? (
-          accountItems.map((item) => {
-            const href = item.href === '/passport' && walletAddress
-              ? `/passport/${walletAddress}`
-              : item.href;
-            const active = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={href}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  active
-                    ? "bg-[#3b82f6]/10 text-[#3b82f6] border border-[#3b82f6]/20"
-                    : "text-[#94a3b8] hover:bg-[#0d0e17] hover:text-[#f1f5f9]"
-                }`}
-              >
-                <item.icon className="w-4 h-4 shrink-0" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })
-        ) : (
-          <p className="px-3 py-2 text-xs text-[#475569] italic">Connect wallet to access</p>
-        )}
-      </div>
-
-      <div className="mt-auto flex flex-col gap-1">
-        <div className="h-px bg-[#1e2035] mb-3 mx-2" />
-
-        {/* Resources */}
-        <div className="flex flex-col gap-0.5 mb-3">
-          {resourceItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              target={item.external ? "_blank" : undefined}
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs text-[#475569] hover:text-[#94a3b8] transition-all"
-            >
-              <item.icon className="w-3.5 h-3.5 shrink-0" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </div>
-
-        {/* Scarab claim widget */}
-        {authenticated && (
-          <div className="mx-1 mb-3 bg-[#d4a017]/6 border border-[#d4a017]/15 rounded-xl p-3">
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="flex items-center gap-1.5">
-                <Flame className="w-3 h-3 text-[#d4a017]" />
-                <span className="text-[9px] font-bold font-mono uppercase tracking-widest text-[#d4a017]">Scarab</span>
-              </div>
-              {scarabBalance !== null && (
-                <span className="text-xs font-bold text-[#d4a017] font-mono">🪲 {scarabBalance}</span>
-              )}
-            </div>
-            <button
-              onClick={handleClaim}
-              disabled={claiming || claimResult === 'done'}
-              className="w-full py-1.5 rounded-lg text-[10px] font-bold font-mono uppercase tracking-wider transition-all bg-[#d4a017]/10 hover:bg-[#d4a017]/20 disabled:opacity-40 text-[#d4a017]"
-            >
-              {claiming ? '...' : claimResult && claimResult !== 'done' ? `${claimResult} 🪲` : claimResult === 'done' ? 'Claimed ✓' : 'Daily Claim'}
-            </button>
           </div>
-        )}
 
-        <p className="px-3 pb-2 text-[9px] text-[#2a2d45] font-mono uppercase tracking-tighter">
-          Maiat Protocol v1.2
-        </p>
-      </div>
-    </aside>
+          {/* Navigation */}
+          <nav className="flex-1 px-3 py-6 space-y-1">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.name}
+                href={item.path}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`
+                  flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all group
+                  ${isActive(item.path)
+                    ? 'bg-[#3b82f6]/10 text-[#3b82f6] border border-[#3b82f6]/20 shadow-[0_0_20px_rgba(59,130,246,0.05)]'
+                    : 'text-slate-500 hover:text-slate-200 hover:bg-white/[0.03] border border-transparent'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <item.icon size={16} className={isActive(item.path) ? 'text-[#3b82f6]' : 'text-slate-600 group-hover:text-slate-400'} />
+                  <span className="tracking-tight">{item.name}</span>
+                </div>
+                {isActive(item.path) && (
+                  <div className="w-1 h-1 rounded-full bg-[#3b82f6] animate-pulse" />
+                )}
+              </Link>
+            ))}
+          </nav>
+
+          {/* INTEGRATED IDENTITY & SCARAB WIDGET */}
+          <div className="px-3 pb-2 space-y-2">
+            {!authenticated ? (
+              <button 
+                onClick={login}
+                className="flex items-center justify-center gap-2.5 w-full py-3 bg-[#3b82f6] hover:bg-blue-600 text-white rounded-xl text-xs font-black uppercase transition-all shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+              >
+                <Wallet size={14} />
+                <span>Connect Wallet</span>
+              </button>
+            ) : (
+              <div className="bg-gradient-to-br from-[#3b82f6]/10 to-transparent rounded-2xl border border-[#3b82f6]/20 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="w-6 h-6 rounded-full bg-[#3b82f6]/20 flex items-center justify-center shrink-0">
+                      <User size={12} className="text-[#3b82f6]" />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-slate-300 truncate">{truncate(walletAddress || '')}</span>
+                  </div>
+                  <button onClick={logout} className="text-slate-600 hover:text-red-400 transition-colors">
+                    <LogOut size={12} />
+                  </button>
+                </div>
+                
+                <div className="h-px bg-[#3b82f6]/10 w-full" />
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">🪲</span>
+                    <span className="text-[10px] font-black text-[#3b82f6] uppercase tracking-tighter">Scarab Pool</span>
+                  </div>
+                  <span className="text-xs font-black text-white">{scarab?.balance ?? '0'}</span>
+                </div>
+                
+                <Link 
+                  href="/dashboard"
+                  className="flex items-center justify-center gap-1.5 w-full py-2 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 text-[#3b82f6] rounded-lg text-[9px] font-bold uppercase transition-all"
+                >
+                  <Flame size={10} />
+                  <span>Claim Rewards</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* BOTTOM LINKS */}
+          <div className="px-6 py-4 border-t border-[#1e2035]/50 flex flex-col gap-3">
+            <Link
+              href="/docs"
+              className="flex items-center gap-2.5 text-[11px] font-bold text-slate-500 hover:text-white transition-colors group"
+            >
+              <FileText size={14} className="text-slate-600 group-hover:text-[#3b82f6] transition-colors" />
+              <span className="uppercase tracking-widest font-mono">API Docs</span>
+            </Link>
+            <a
+              href="https://github.com/JhiNResH/maiat-protocol"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 text-[11px] font-bold text-slate-500 hover:text-white transition-colors group"
+            >
+              <Github size={14} className="text-slate-600 group-hover:text-white transition-colors" />
+              <span className="uppercase tracking-widest font-mono">GitHub</span>
+            </a>
+          </div>
+
+          <p className="px-6 pb-6 text-[9px] text-[#2a2d45] font-mono uppercase tracking-tighter">
+            Maiat Protocol v1.2
+          </p>
+        </div>
+      </aside>
+    </>
   );
 }
