@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Image from 'next/image'
 import { Search, Radar, FileText, Trophy } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { ConnectButton } from './ConnectButton'
 
-export function Header() {
+function HeaderContent() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -77,5 +77,13 @@ export function Header() {
         <ConnectButton />
       </div>
     </header>
+  )
+}
+
+export function Header() {
+  return (
+    <Suspense fallback={<header className="fixed top-0 left-0 right-0 h-[64px] border-b border-[#1e2035] z-50 bg-[#050508]/95 backdrop-blur-sm" />}>
+      <HeaderContent />
+    </Suspense>
   )
 }
