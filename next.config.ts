@@ -7,14 +7,9 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: '/monitor',
-        destination: '/agent',
-        permanent: true,
-      },
-      {
         source: '/defi/:name/:address',
         destination: '/agent/:name/:address',
-        permanent: true,
+        permanent: false,
       },
     ]
   },

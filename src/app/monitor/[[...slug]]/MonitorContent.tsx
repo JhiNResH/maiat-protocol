@@ -6,12 +6,11 @@ import {
   Radar, Terminal, Shield, Zap, 
   User, Target, MessageSquare, 
   ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
-  Plus, Minus, Maximize, PenTool, Search
+  Plus, Minus, Maximize, PenTool, Search, Activity, FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ReviewForm } from '@/components/ReviewForm';
 import useSWR from 'swr';
-import { Header } from '@/components/Header';
 import Link from 'next/link';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -344,43 +343,55 @@ export function MonitorContent() {
 
   const handleSelect = useCallback((id: string | null) => {
     if (!id) {
-      router.replace('/agent', { scroll: false });
+      router.replace('/monitor', { scroll: false });
       setShowReviewForm(false);
       return;
     }
     const node = radarAgents.find(a => a.id.toLowerCase() === id.toLowerCase());
     const cleanName = (node?.label || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-    router.replace(`/agent/${cleanName}/${id}`, { scroll: false });
+    router.replace(`/monitor/agent/${cleanName}/${id}`, { scroll: false });
   }, [router, radarAgents]);
 
+  const handleMonitorSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.replace(`/monitor?q=${encodeURIComponent(searchQuery.trim())}`, { scroll: false });
+      setSearchQuery('');
+    }
+  };
+
+  const openDeepReport = () => {
+    if (selectedNode) {
+      const cleanName = (selectedNode.label || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      router.push(`/agent/${cleanName}/${selectedNode.id}`);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] w-full overflow-hidden bg-[#010204]" style={{fontFamily:'JetBrains Mono,monospace'}}>
-      <Header />
+    <div className="flex flex-col h-screen w-full overflow-hidden bg-[#010204]" style={{fontFamily:'JetBrains Mono,monospace'}}>
       <div className="flex items-center gap-2 px-6 py-2 border-b border-white/5 bg-black/40 shrink-0">
         {['ALL','HIGH TRUST ✓','MINES ⚠','UN-AUDITED'].map(label => (
-          <button key={label} onClick={()=>setFilter(label)} className={`px-3 py-1 rounded-lg text-[9px] font-bold tracking-widest border transition-all ${filter===label?'border-cyan-500/50 text-cyan-400 bg-cyan-500/10':'border-transparent text-slate-500 hover:text-slate-300'}`}>{label}</button>
+          <button key={label} onClick={()=>setFilter(label)} className={`px-3 py-1 rounded-lg text-[9px] font-bold tracking-widest border transition-all ${filter===label?'border-[#3b82f6]/50 text-[#3b82f6] bg-[#3b82f6]/10':'border-transparent text-slate-500 hover:text-slate-300'}`}>{label}</button>
         ))}
-        <div className="ml-auto flex items-center gap-6 text-[9px] text-slate-500 uppercase tracking-tighter font-mono">
-          <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {(data?.pagination?.total ?? 0).toLocaleString()} NODES MAPPED</span>
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600 group-focus-within:text-cyan-500 transition-colors" />
-            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={async (e) => { if (e.key === 'Enter' && searchQuery.trim()) { router.replace(`/agent?q=${encodeURIComponent(searchQuery.trim())}`, { scroll: false }); setSearchQuery(''); } }} className="bg-white/[0.03] border border-white/10 text-slate-300 px-4 py-1.5 pl-8 rounded-xl w-72 focus:w-80 focus:bg-white/[0.07] focus:outline-none focus:border-cyan-500/50 transition-all shadow-inner placeholder:text-slate-700" placeholder="Search Name or Address..." />
+        
+        <div className="ml-auto flex items-center gap-6">
+          <form onSubmit={handleMonitorSearch} className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600 group-focus-within:text-[#3b82f6] transition-colors" />
+            <input 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+              className="bg-white/[0.03] border border-white/10 text-slate-300 px-4 py-1.5 pl-8 rounded-xl w-64 focus:w-80 focus:bg-white/[0.07] focus:outline-none focus:border-[#3b82f6]/50 transition-all shadow-inner placeholder:text-slate-700 text-xs font-mono" 
+              placeholder="Locate node by name/0x..." 
+            />
+          </form>
+          <div className="flex items-center gap-2 text-[9px] text-slate-500 uppercase tracking-tighter font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] animate-pulse" /> 
+            {(data?.pagination?.total ?? 0).toLocaleString()} NODES MAPPED
           </div>
         </div>
       </div>
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="w-64 shrink-0 border-r border-white/5 flex flex-col bg-black/60 backdrop-blur-xl">
-          <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between"><div className="flex items-center gap-2"><Terminal className="w-3 h-3 text-cyan-500" /> <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">Intel Feed</span></div><div className="text-[8px] text-emerald-500 font-bold animate-pulse">LIVE</div></div>
-          <div className="flex-1 p-3 overflow-y-auto custom-scrollbar flex flex-col-reverse gap-2 font-mono">
-            {[...intelFeed].reverse().map((item, i) => (
-              <div key={i} onClick={() => item.agentId && handleSelect(item.agentId)} className="group cursor-pointer bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-cyan-500/30 p-2.5 rounded-lg transition-all">
-                <div className="flex items-center justify-between mb-1"><span className="text-cyan-400 font-bold text-[9px] tracking-tight">[{item.time}]</span><span className={`text-[7px] font-black px-1 rounded ${item.type === 'warning' ? 'bg-amber-500/20 text-amber-500' : item.type === 'error' ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/20 text-blue-400'}`}>{item.type.toUpperCase()}</span></div>
-                <div className={`text-[11px] leading-relaxed font-medium ${item.type==='warning'?'text-amber-200':item.type==='error'?'text-red-200':'text-slate-200'}`}>{item.msg}</div>
-              </div>
-            ))}
-          </div>
-          <div className="p-4 border-t border-white/5 bg-black/20"><div className="text-[9px] font-bold text-slate-500 mb-3 tracking-widest uppercase">System Integrity</div>{(sweepsData?.sweeps || []).map((s:any) => (<div key={s.label} className="mb-3"><div className="flex justify-between text-[8px] mb-1 text-slate-400"><span>{s.label}</span><span>{s.progress}%</span></div><div className="h-0.5 rounded-full bg-white/5 overflow-hidden"><motion.div className="h-full bg-cyan-500/50" animate={{ width: `${s.progress}%` }} /></div></div>))}</div>
-        </aside>
+      
+      <div className="flex flex-1 overflow-hidden relative">
         <main className="flex-1 relative bg-[#010204] overflow-hidden">
           <AgentBubbleMap ref={mapRef} agents={filteredAgents} onSelect={handleSelect} onSetFilter={setFilter} selectedId={selectedId} />
           <TacticalLegend /><NavControls onMove={(dx, dy) => mapRef.current?.move(dx, dy)} onZoom={(f) => mapRef.current?.zoom(f)} onReset={() => mapRef.current?.resetView()} />
@@ -388,23 +399,32 @@ export function MonitorContent() {
             {selectedNode && (<motion.div initial={{opacity:0,scale:0.95,y:10}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95,y:10}} className="absolute top-6 left-1/2 -translate-x-1/2 px-6 py-2 rounded-2xl border border-white/10 bg-black/80 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-6 z-20"><div><div className="text-[8px] text-slate-500 uppercase font-bold tracking-tighter">Selected Node</div><div className="text-xs font-bold text-cyan-400">{selectedNode.label}</div></div><div className="w-px h-6 bg-white/10" /><div><div className="text-[8px] text-slate-500 uppercase font-bold tracking-tighter">Trust Score</div><div className={`text-xs font-bold ${selectedNode.type==='mine'?'text-red-500':'text-emerald-400'}`}>{selectedNode.trust}/100</div></div><button onClick={()=>handleSelect(null)} className="text-slate-500 hover:text-white transition-colors">✕</button></motion.div>)}
           </AnimatePresence>
         </main>
+
         <aside ref={profileSidebarRef} className="w-80 shrink-0 border-l border-white/5 bg-black/60 backdrop-blur-xl flex flex-col overflow-y-auto custom-scrollbar">
-          <div className="px-4 py-3 border-b border-white/5 bg-black/20 sticky top-0 z-10 flex items-center gap-2"><User className="w-3 h-3 text-cyan-500" /> <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">Agent Profile</span></div>
+          <div className="px-4 py-3 border-b border-white/5 bg-black/20 sticky top-0 z-10 flex items-center gap-2"><User className="w-3 h-3 text-[#3b82f6]" /> <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">Agent Profile</span></div>
           <div className="p-6 flex flex-col gap-6">
             {selectedNode ? (
               <>
                 <div className="flex gap-4 items-center"><div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 p-1 bg-white/5"><img src={selectedNode.raw?.logo || `https://api.dicebear.com/7.x/bottts/svg?seed=${selectedNode.id}&backgroundColor=transparent`} alt="A" className="w-full h-full object-cover rounded-xl" /></div><div className="min-w-0 flex-1"><div className="text-sm font-bold text-white truncate">{selectedNode.label}</div><div className="text-[9px] font-mono text-slate-500 truncate mt-1">{selectedNode.id}</div></div></div>
-                <p className="text-[10px] text-slate-400 leading-relaxed font-mono bg-white/5 p-3 rounded-xl border border-white/5">{selectedNode.raw?.description || "No behavioral narrative provided. Sector monitoring in progress."}</p>
+                <div className="relative">
+                  <div className="absolute -left-2 top-0 bottom-0 w-0.5 bg-[#3b82f6]/30 rounded-full" />
+                  <p className="text-[11px] text-slate-300 leading-relaxed font-mono pl-3 italic">
+                    {selectedNode.raw?.description || "No behavioral narrative provided. Sector monitoring in progress."}
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-3"><div className="bg-white/5 p-3 rounded-xl border border-white/5"><div className="text-[8px] text-slate-500 uppercase mb-1">Completion</div><div className="text-xs font-bold text-emerald-400">{Math.round((selectedNode.raw?.breakdown?.completionRate || 0)*100)}%</div></div><div className="bg-white/5 p-3 rounded-xl border border-white/5"><div className="text-[8px] text-slate-500 uppercase mb-1">Jobs Ran</div><div className="text-xs font-bold text-white">{selectedNode.raw?.breakdown?.totalJobs || '0'}</div></div></div>
+                
                 <div className="space-y-2">
-                  <button className="w-full py-2.5 rounded-xl text-[9px] font-bold tracking-widest border border-cyan-500/20 text-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 transition-all flex items-center justify-center gap-2"><Zap className="w-3 h-3" /> DEEP SECURITY SWEEP</button>
+                  <button onClick={openDeepReport} className="w-full py-2.5 rounded-xl text-[9px] font-bold tracking-widest border border-[#3b82f6]/30 text-white bg-[#3b82f6]/20 hover:bg-[#3b82f6]/40 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.2)]"><FileText className="w-3 h-3" /> DEEP BEHAVIORAL REPORT</button>
+                  <button className="w-full py-2.5 rounded-xl text-[9px] font-bold tracking-widest border border-white/10 text-slate-400 bg-white/5 hover:bg-white/10 transition-all flex items-center justify-center gap-2"><Zap className="w-3 h-3" /> DEEP SECURITY SWEEP</button>
                   <div className="flex gap-2">
                     <button className="flex-1 py-2 rounded-xl text-[9px] font-bold tracking-widest border border-red-500/20 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-all">DEPLOY GUARD</button>
                     <button onClick={() => { setShowReviewForm(!showReviewForm); if(!showReviewForm) setTimeout(()=>profileSidebarRef.current?.scrollTo({top:profileSidebarRef.current.scrollHeight,behavior:'smooth'}),100); }} className="flex-1 py-2 rounded-xl text-[9px] font-bold tracking-widest border border-amber-500/20 text-amber-400 bg-amber-500/5 hover:bg-amber-500/10 transition-all flex items-center justify-center gap-1.5"><PenTool className="w-3 h-3" /> {showReviewForm ? 'CANCEL' : 'REPORT INTEL'}</button>
                   </div>
                 </div>
+
                 <div className="pt-6 border-t border-white/5">
-                  <div className="text-[10px] font-bold text-slate-400 mb-4 flex items-center gap-2"><MessageSquare className="w-3 h-3 text-cyan-500" /> COMMUNITY INTEL REPORTS</div>
+                  <div className="text-[10px] font-bold text-slate-400 mb-4 flex items-center gap-2"><MessageSquare className="w-3 h-3 text-[#3b82f6]" /> COMMUNITY REVIEWS</div>
                   {showReviewForm ? (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}><ReviewForm projectId={selectedNode.id} projectName={selectedNode.label} onSuccess={() => setShowReviewForm(false)} /></motion.div>) : (<AgentReviews agentId={selectedNode.id} />)}
                 </div>
               </>
@@ -414,7 +434,43 @@ export function MonitorContent() {
           </div>
         </aside>
       </div>
+
+      {/* ── INTEL FEED MARQUEE ── */}
+      <div className="h-10 bg-black/80 border-t border-white/5 flex items-center overflow-hidden whitespace-nowrap relative z-40 group">
+        <div className="px-4 h-full bg-[#3b82f6]/10 border-r border-white/5 flex items-center gap-2 shrink-0 z-10 relative backdrop-blur-md">
+          <Activity className="w-3.5 h-3.5 text-[#3b82f6] animate-pulse" />
+          <span className="text-[10px] font-black text-[#3b82f6] uppercase tracking-widest">Live Intel</span>
+        </div>
+        <div className="flex animate-marquee group-hover:pause-marquee py-2">
+          {intelFeed.concat(intelFeed).map((item, i) => (
+            <div 
+              key={i} 
+              onClick={() => item.agentId && handleSelect(item.agentId)}
+              className="inline-flex items-center gap-3 px-6 cursor-pointer hover:text-slate-300 transition-colors border-r border-white/5"
+            >
+              <span className="text-[9px] font-black text-slate-700 font-mono">[{item.time}]</span>
+              <span className={`text-[10px] font-bold opacity-40 group-hover:opacity-100 transition-opacity ${item.type === 'error' ? 'text-red-500' : item.type === 'warning' ? 'text-amber-500' : 'text-slate-400'}`}>
+                {item.msg}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <footer className="border-t border-white/5 py-2 px-8 text-center text-[8px] text-slate-600 font-mono tracking-[0.3em] bg-black/80 uppercase">Maiat Protocol Monitor // Sector: Base Mainnet // Buffer: Clear</footer>
+
+      <style jsx global>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 120s linear infinite;
+        }
+        .pause-marquee:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
     </div>
   );
 }
@@ -429,7 +485,7 @@ function AgentReviews({ agentId }: { agentId: string }) {
         <div key={r.id} className="bg-white/5 border border-white/5 rounded-2xl p-4 text-[9px] text-slate-400 shadow-sm transition-all hover:bg-white/[0.07]">
           <div className="flex justify-between font-bold text-cyan-600/60 mb-2 border-b border-white/5 pb-2"><span className="flex items-center gap-1.5"><Shield className="w-3 h-3" /> @{r.reviewer.slice(0,6)}</span><span className="text-slate-600 font-mono opacity-50">{new Date(r.timestamp).toLocaleDateString()}</span></div>
           <p className="leading-relaxed text-slate-300 italic mb-2">"{r.comment || 'N/A'}"</p>
-          <div className="flex items-center justify-between"><span className={`font-bold ${r.rating >= 7 ? 'text-emerald-500' : 'text-amber-500'}`}>RATING: {r.rating}/10</span>{r.weight > 1 && <span className="text-[7px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20 font-black">VERIFIED {r.weight}X</span>}</div>
+          <div className="flex items-center justify-between"><span className={`font-bold ${r.rating >= 7 ? 'text-emerald-500' : 'text-amber-400'}`}>RATING: {r.rating}/10</span>{r.weight > 1 && <span className="text-[7px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20 font-black">VERIFIED {r.weight}X</span>}</div>
         </div>
       ))}
     </div>
