@@ -4,7 +4,15 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Next.js 15+ 穩定版不使用 experimental.turbopack.root
+  async redirects() {
+    return [
+      {
+        source: '/monitor',
+        destination: '/agent',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default nextConfig
