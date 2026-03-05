@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Radar, AlertTriangle, Terminal, Shield, ShieldAlert, Zap, User, Target, Activity, MessageSquare, Globe, TrendingUp, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ReviewForm } from '@/components/ReviewForm';
@@ -457,7 +458,8 @@ const AgentBubbleMap = React.forwardRef<MapRef, { agents: AgentNode[], onSelect:
 
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function MonitorPage() {
+function MonitorContent() {
+  const searchParamsUrl = useSearchParams();
   const [selected, setSelected] = useState<AgentNode | null>(null);
   const mapRef = React.useRef<MapRef>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -560,6 +562,33 @@ export default function MonitorPage() {
     if (filter === 'UN-AUDITED') return mapped.filter((a: AgentNode) => a.type === 'unaudited');
     return mapped;
   }, [data, filter]);
+
+  // Handle URL searches specifically from the top Header Searchbar
+  useEffect(() => {
+    const q = searchParamsUrl?.get('q');
+    if (q && radarAgents.length > 0) {
+      const target = radarAgents.find((a: AgentNode) => 
+        a.id.toLowerCase().includes(q.toLowerCase()) || 
+        (a.label && a.label.toLowerCase().includes(q.toLowerCase()))
+      );
+      if (target) {
+        setFilter('ALL');
+        setTimeout(() => {
+          setSelected(target);
+          let retries = 0;
+          const tryPan = () => {
+            if (mapRef.current) {
+              mapRef.current.panToNode(target.id);
+            } else if (retries < 10) {
+              retries++;
+              setTimeout(tryPan, 50);
+            }
+          };
+          tryPan();
+        }, 100);
+      }
+    }
+  }, [searchParamsUrl, radarAgents]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] w-full overflow-hidden" style={{background:'#030303',fontFamily:'JetBrains Mono,monospace'}}>
@@ -816,6 +845,23 @@ export default function MonitorPage() {
       </footer>
     </div>
   );
+}
+
+export default function MonitorPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col h-[calc(100vh-64px)] w-full overflow-hidden items-center justify-center bg-[#030303]">
+        <div className="flex flex-col items-center gap-3">
+          <Radar className="w-8 h-8 text-[#00F0FF] animate-pulse" />
+          <span className="text-xs font-mono text-[#00F0FF] uppercase tracking-widest">
+            INITIALIZING MONITOR...
+          </span>
+        </div>
+      </div>
+    }>
+      <MonitorContent />
+    </Suspense>
+  )
 }
 
 // ─── Sub-Components for Sidebar ──────────────────────────────────────────────

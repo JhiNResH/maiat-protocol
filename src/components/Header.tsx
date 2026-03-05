@@ -20,7 +20,13 @@ function HeaderContent() {
     e.preventDefault()
     const q = query.trim()
     if (!q) return
-    router.push(`/explore?q=${encodeURIComponent(q)}`)
+
+    if (pathname === '/monitor') {
+      // If we are already on monitor, just update the URL query so the map can react
+      router.push(`/monitor?q=${encodeURIComponent(q)}`)
+    } else {
+      router.push(`/explore?q=${encodeURIComponent(q)}`)
+    }
     setQuery('')
   }
 
