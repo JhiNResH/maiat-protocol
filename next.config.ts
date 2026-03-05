@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
         destination: '/agent',
         permanent: true,
       },
+      {
+        source: '/defi/:name/:address',
+        destination: '/agent/:name/:address',
+        permanent: true,
+      },
     ]
   },
 }
