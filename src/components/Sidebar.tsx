@@ -14,12 +14,14 @@ import {
   Shield,
   BarChart2,
   Bot,
+  Radar,
 } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 
 const navItems = [
   { href: "/explore", label: "Agents", icon: Bot, exact: true },
   { href: "/explore?tab=leaderboard", label: "Leaderboard", icon: Trophy, tabMatch: "leaderboard" },
+  { href: "/monitor", label: "Monitor", icon: Radar, exact: false },
   { href: "/markets", label: "Opinion Market", icon: BarChart2, exact: false },
 ];
 // Phase 2: { href: "/review", label: "Write Review", icon: Shield, exact: false },
