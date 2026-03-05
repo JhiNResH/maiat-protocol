@@ -1,38 +1,84 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
 import { useInteractionCheck } from '@/hooks/useInteractionCheck'
+import { Shield, Zap, MessageSquare, Star, Info, CheckCircle, Trophy } from 'lucide-react'
 
 interface ReviewFormProps {
-  projectId: string      // target contract address (0x...)
-  projectName: string
+  projectId: string      // target contract/agent address
+  projectName: string    // display name
   onSuccess?: () => void
 }
 
 export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProps) {
   const { authenticated, user, login } = usePrivy()
+  const walletAddress = user?.wallet?.address
+
   const [rating, setRating] = useState(5)
   const [content, setContent] = useState('')
   const [easReceiptId, setEasReceiptId] = useState('')
+  const [detectedEasId, setDetectedEasId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [scarabBalance, setScarabBalance] = useState<number | null>(null)
 
-  const address = user?.wallet?.address
-
-  // ── Interaction gate ──────────────────────────────────────────────────────
+  // ── Interaction Check ───────────────────────────────────────────────────
   const { status: interactionStatus, proof, check: checkInteraction } =
-    useInteractionCheck(address, projectId)
+    useInteractionCheck(walletAddress, projectId)
 
-  const handleVerifyInteraction = () => {
-    checkInteraction()
-  }
+  // ── Fetch Scarab Balance ───────────────────────────────────────────────
+  const fetchScarab = useCallback(async () => {
+    if (!walletAddress) return
+    try {
+      const res = await fetch(`/api/v1/scarab?address=${walletAddress}`)
+      if (res.ok) {
+        const data = await res.json()
+        setScarabBalance(data.balance)
+      }
+    } catch {}
+  }, [walletAddress])
 
-  // ── Review submit ─────────────────────────────────────────────────────────
+  // ── Auto-Detect EAS Receipts ──────────────────────────────────────────
+  const detectReceipts = useCallback(async () => {
+    if (!walletAddress || !projectId) return
+    try {
+      const res = await fetch(`/api/v1/wallet/${walletAddress}/eas-receipts`)
+      if (res.ok) {
+        const data = await res.json()
+        const receipts = data.receipts || []
+        
+        // Find if any receipt matches this target agent
+        const match = receipts.find((r: any) => {
+          try {
+            const json = JSON.parse(r.receiptJson)
+            return json.target?.toLowerCase() === projectId.toLowerCase() || 
+                   json.agentAddress?.toLowerCase() === projectId.toLowerCase()
+          } catch {
+            return false
+          }
+        })
+
+        if (match) {
+          setDetectedEasId(match.id)
+          setEasReceiptId(match.id)
+        }
+      }
+    } catch (err) {
+      console.warn("[EAS Detect] failed:", err)
+    }
+  }, [walletAddress, projectId])
+
+  useEffect(() => {
+    if (authenticated && walletAddress) {
+      fetchScarab()
+      detectReceipts()
+    }
+  }, [authenticated, walletAddress, fetchScarab, detectReceipts])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!address) return
-    // Safeguard: block if explicitly blocked (fail-open for error/idle)
+    if (!walletAddress) return
     if (interactionStatus === 'blocked') return
 
     setSubmitting(true)
@@ -44,10 +90,10 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           address: projectId,
-          reviewer: address,
+          reviewer: walletAddress,
           rating,
           comment: content.trim() || undefined,
-          easReceiptId: easReceiptId.trim() || undefined,
+          easReceiptId: (detectedEasId || easReceiptId.trim()) || undefined,
         }),
       })
 
@@ -57,8 +103,9 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
       setContent('')
       setRating(5)
       setEasReceiptId('')
+      fetchScarab()
       if (onSuccess) onSuccess()
-      alert('✅ Review submitted! (-2 Scarab spent)')
+      alert('✅ Opinion recorded on-chain!')
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error'
       setSubmitError(errorMessage)
@@ -67,14 +114,15 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
     }
   }
 
-  // ── Not signed in ─────────────────────────────────────────────────────────
   if (!authenticated) {
     return (
-      <div className="bg-[#111] border border-[#222] rounded-xl p-6 text-center">
-        <p className="text-gray-400 font-mono text-sm mb-3">Sign in to review this project</p>
-        <button
+      <div className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6 text-center">
+        <MessageSquare className="w-8 h-8 text-[#475569] mx-auto mb-3" />
+        <h3 className="text-sm font-bold text-white mb-1 uppercase tracking-wider">Connect to Review</h3>
+        <p className="text-xs text-[#94a3b8] mb-4 font-mono">Verify your interactions and earn Scarab rewards.</p>
+        <button 
           onClick={login}
-          className="bg-[#3b82f6] hover:bg-[#DC2626] text-white font-bold font-mono text-sm py-2.5 px-6 rounded-lg transition-colors"
+          className="w-full py-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold text-xs rounded-lg transition-colors uppercase tracking-widest"
         >
           Connect Wallet
         </button>
@@ -82,164 +130,129 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
     )
   }
 
-  // ── STEP 1: Interaction gate (idle / loading / blocked) ───────────────────
-  if (interactionStatus === 'idle') {
+  if (interactionStatus === 'idle' || interactionStatus === 'loading') {
     return (
-      <div className="bg-[#111] border border-[#222] rounded-xl p-6">
-        <div className="text-center mb-5">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/30 flex items-center justify-center">
-            <span className="text-xl">🔍</span>
-          </div>
-          <h3 className="text-white font-mono font-bold text-sm mb-2">Verify Interaction</h3>
-          <p className="text-gray-500 font-mono text-xs leading-relaxed">
-            Only wallets with on-chain history<br />
-            with this agent can submit reviews.
-          </p>
+      <div className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield className="w-4 h-4 text-[#3b82f6]" />
+          <span className="text-xs font-bold text-white uppercase tracking-wider">Interaction Proof</span>
         </div>
-        <button
-          onClick={handleVerifyInteraction}
-          className="w-full bg-[#3b82f6] hover:bg-[#DC2626] text-white font-bold font-mono text-sm py-3 rounded-lg transition-colors"
-        >
-          Verify On-Chain Interaction
-        </button>
-      </div>
-    )
-  }
-
-  if (interactionStatus === 'loading') {
-    return (
-      <div className="bg-[#111] border border-[#222] rounded-xl p-8 text-center">
-        <div className="w-10 h-10 mx-auto mb-3 rounded-full border-2 border-[#3b82f6] border-t-transparent animate-spin" />
-        <p className="text-gray-400 font-mono text-sm">
-          Checking on-chain interactions…
+        <p className="text-[10px] text-[#94a3b8] font-mono leading-relaxed mb-4">
+          Verify your on-chain interaction history with this agent before leaving an opinion.
         </p>
+        <button 
+          onClick={checkInteraction}
+          disabled={interactionStatus === 'loading'}
+          className="w-full py-2.5 bg-[#1e2035] hover:bg-[#2a2d45] disabled:opacity-50 text-white font-mono text-[10px] font-bold rounded-lg transition-all border border-[#3b82f6]/30 uppercase tracking-widest"
+        >
+          {interactionStatus === 'loading' ? 'Scanning Base Mainnet...' : 'Verify My Interactions'}
+        </button>
       </div>
     )
   }
 
   if (interactionStatus === 'blocked') {
     return (
-      <div className="bg-[#111] border border-[#222] rounded-xl p-6">
-        <div className="bg-[#1a0a0a] border border-[#3b82f6]/30 rounded-lg p-4 mb-4">
-          <div className="flex items-start gap-3">
-            <span className="text-lg">⛔</span>
-            <div>
-              <p className="text-[#3b82f6] font-mono font-bold text-sm mb-1">
-                No Interaction Found
-              </p>
-              <p className="text-gray-500 font-mono text-xs leading-relaxed">
-                <span className="text-gray-400">{address?.slice(0, 6)}…{address?.slice(-4)}</span> has no
-                recorded transactions with this agent on Base.
-              </p>
-            </div>
-          </div>
+      <div className="bg-[#0d0e17] border border-red-500/20 rounded-xl p-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield className="w-4 h-4 text-red-500" />
+          <span className="text-xs font-bold text-red-500 uppercase tracking-wider">Proof Required</span>
         </div>
-        <p className="text-gray-600 font-mono text-xs mb-4 text-center">
-          Interact with the agent first, then verify again.
-        </p>
-        <button
-          onClick={handleVerifyInteraction}
-          className="w-full border border-[#333] hover:border-[#555] text-gray-300 font-mono text-sm py-2.5 rounded-lg transition-colors"
-        >
-          Re-check Interaction
+        <div className="bg-red-500/5 border border-red-500/10 rounded-lg p-3 mb-4">
+          <p className="text-[10px] text-red-400 font-mono leading-relaxed">
+            NO INTERACTION FOUND: No recorded transactions with this agent on Base.
+          </p>
+        </div>
+        <button onClick={checkInteraction} className="w-full py-2 text-[10px] font-mono text-[#94a3b8] hover:text-white transition-colors uppercase">
+          Retry Scan
         </button>
       </div>
     )
   }
 
-  // ── STEP 2: Interaction verified (or error = fail-open) — show form ────────
   return (
-    <form onSubmit={handleSubmit} className="bg-[#111] border border-[#222] rounded-xl p-6">
-      {/* Interaction badge */}
-      {interactionStatus === 'verified' && proof && (
-        <div className="bg-[#0a1a0a] border border-[#3b82f6]/30 rounded-lg px-3 py-2 mb-4 text-xs font-mono text-[#3b82f6] flex items-center gap-2">
-          <span>✓</span>
-          <span>
-            Verified
-            {proof.txCount > 0 && ` · ${proof.txCount} tx${proof.txCount > 1 ? 's' : ''}`}
-            {proof.firstTxDate && ` · since ${new Date(proof.firstTxDate).toLocaleDateString()}`}
-          </span>
-        </div>
-      )}
-      {interactionStatus === 'error' && (
-        <div className="bg-[#1a1a0a] border border-[#06b6d4]/30 rounded-lg px-3 py-2 mb-4 text-xs font-mono text-[#06b6d4]">
-          ⚠ Could not verify — backend will re-check.
-        </div>
-      )}
+    <form onSubmit={handleSubmit} className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-5 flex flex-col gap-5">
+      <div className="flex flex-wrap gap-2">
+        {interactionStatus === 'verified' && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981] text-[9px] font-bold font-mono uppercase">
+            <CheckCircle className="w-3 h-3" /> On-Chain 3x
+          </div>
+        )}
+        {detectedEasId && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-[9px] font-bold font-mono uppercase">
+            <Trophy className="w-3 h-3" /> EAS RECEIPT 5x
+          </div>
+        )}
+        {scarabBalance !== null && (
+          <div className="ml-auto flex items-center gap-1 text-[9px] font-mono text-[#d4a017]">
+            <Zap className="w-3 h-3" /> {scarabBalance} 🪲
+          </div>
+        )}
+      </div>
 
-      {/* Rating */}
-      <div className="mb-5">
-        <label className="block text-xs font-mono text-gray-500 mb-2">Rating</label>
-        <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map((star) => (
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-between items-end">
+          <label className="text-[10px] font-bold text-[#475569] uppercase tracking-widest font-mono">Select Rating</label>
+          <span className="text-xs font-bold text-white font-mono">{rating}/5</span>
+        </div>
+        <div className="flex gap-1.5">
+          {[1, 2, 3, 4, 5].map((s) => (
             <button
-              key={star}
-              type="button"
-              onClick={() => setRating(star)}
-              className={`text-2xl transition-all hover:scale-110 ${
-                star <= rating ? 'text-cyan-400' : 'text-gray-700'
+              type="button" key={s} onClick={() => setRating(s)}
+              className={`flex-1 h-8 rounded border transition-all font-mono text-[10px] font-bold ${
+                s <= rating ? 'bg-[#3b82f6]/20 border-[#3b82f6] text-[#3b82f6]' : 'bg-black/40 border-[#1e2035] text-[#475569] hover:border-[#475569]'
               }`}
             >
-              ★
+              {s}
             </button>
           ))}
-          <span className="ml-3 text-xs font-mono text-gray-500">
-            {rating === 1 && 'Unsafe'}
-            {rating === 2 && 'Poor'}
-            {rating === 3 && 'Average'}
-            {rating === 4 && 'Good'}
-            {rating === 5 && 'Excellent'}
-          </span>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="mb-5">
-        <label className="block text-xs font-mono text-gray-500 mb-2">Review (optional)</label>
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-[#475569] uppercase tracking-widest font-mono">Your Opinion</label>
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Share your experience…"
+          placeholder={`Describe your experience with ${projectName}...`}
           rows={3}
-          maxLength={500}
-          className="w-full bg-[#0a0a0a] border border-[#333] focus:border-[#3b82f6] rounded-lg px-3 py-2.5 text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none transition-colors resize-none"
-        />
-        <div className="text-[10px] font-mono text-gray-600 mt-1">{content.length}/500</div>
-      </div>
-
-      {/* EAS Receipt ID */}
-      <div className="mb-5">
-        <label className="block text-xs font-mono text-gray-500 mb-2">
-          EAS Receipt ID <span className="text-[#3b82f6]">(×5 Rep boost)</span>
-        </label>
-        <input
-          type="text"
-          value={easReceiptId}
-          onChange={(e) => setEasReceiptId(e.target.value)}
-          placeholder="Paste receipt ID…"
-          className="w-full bg-[#0a0a0a] border border-[#333] focus:border-[#3b82f6] rounded-lg px-3 py-2.5 text-sm font-mono text-white placeholder:text-gray-600 focus:outline-none transition-colors"
+          required
+          className="w-full bg-black/40 border border-[#1e2035] focus:border-[#3b82f6]/50 rounded-lg p-3 text-sm text-white placeholder-[#475569] outline-none transition-all resize-none font-mono"
         />
       </div>
 
-      {/* Cost notice */}
-      <div className="bg-[#1a1a0a] border border-[#06b6d4]/20 rounded-lg px-3 py-2 mb-4 text-xs font-mono text-[#06b6d4]/80">
-        Submitting costs <strong>2 🪲 Scarab</strong>
-      </div>
-
-      {/* Submit error */}
-      {submitError && (
-        <div className="bg-[#1a0a0a] border border-[#3b82f6]/30 rounded-lg px-3 py-2 mb-4 text-xs font-mono text-[#3b82f6]">
-          {submitError}
+      {!detectedEasId && (
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between">
+            <label className="text-[10px] font-bold text-[#475569] uppercase tracking-widest font-mono">EAS Receipt ID</label>
+            <span className="text-[9px] text-[#475569] font-mono italic">Optional: 5x Weight</span>
+          </div>
+          <input
+            type="text"
+            value={easReceiptId}
+            onChange={(e) => setEasReceiptId(e.target.value)}
+            placeholder="0x attestation hash..."
+            className="w-full bg-black/40 border border-[#1e2035] focus:border-[#3b82f6]/50 rounded-lg px-3 py-2 text-[10px] text-[#94a3b8] font-mono outline-none"
+          />
         </div>
       )}
 
-      {/* Submit */}
+      <div className="bg-[#1a1a0a] border border-[#06b6d4]/20 rounded-lg px-3 py-2 text-[9px] font-mono text-[#06b6d4]/80">
+        Costs <strong>2 🪲 Scarab</strong> · Quality reviews earn up to <strong>+10 🪲</strong>
+      </div>
+
+      {submitError && (
+        <div className="flex items-center gap-2 text-[10px] text-red-400 font-mono bg-red-400/5 p-2 rounded border border-red-400/20">
+          <Info className="w-3 h-3" /> {submitError}
+        </div>
+      )}
+
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-[#3b82f6] hover:bg-[#DC2626] disabled:bg-[#333] disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold font-mono text-sm py-3 rounded-lg transition-colors"
+        className="w-full py-3 bg-[#3b82f6] hover:bg-[#2563eb] disabled:opacity-50 text-white font-bold text-xs rounded-lg transition-all shadow-lg shadow-[#3b82f6]/20 uppercase tracking-[2px] font-mono"
       >
-        {submitting ? 'Submitting…' : 'Submit Review'}
+        {submitting ? 'Broadcasting...' : 'Submit Opinion'}
       </button>
     </form>
   )
