@@ -17,6 +17,7 @@ import {
   CheckCircle, AlertTriangle, Bug, Zap, MessageSquare, Trophy, Flame
 } from 'lucide-react'
 import Link from 'next/link'
+import { ReviewForm } from '@/components/ReviewForm'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -145,202 +146,6 @@ function ScarabBadge({ count, dim = false }: { count: number; dim?: boolean }) {
     <span className={`inline-flex items-center gap-1 font-bold font-mono ${dim ? 'text-[#818384]' : 'text-[#d4a017]'}`}>
       <span>🪲</span>{count}
     </span>
-  )
-}
-
-// ─── Review Form ─────────────────────────────────────────────────────────────
-
-function ReviewFormInline({
-  projectAddress, projectName, scarabBalance, onSuccess
-}: {
-  projectAddress: string
-  projectName: string
-  scarabBalance: number | null
-  onSuccess: () => void
-}) {
-  const { authenticated, user, login } = usePrivy()
-  const [rating, setRating] = useState(5)
-  const [comment, setComment] = useState('')
-  const [easReceiptId, setEasReceiptId] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [result, setResult] = useState<{ earned?: number; msg?: string; error?: string } | null>(null)
-
-  const walletAddress = user?.wallet?.address
-  const canAfford = scarabBalance === null || scarabBalance >= 2
-
-  // ── Interaction gate ──────────────────────────────────────────────────────
-  const { status: interactionStatus, proof: interactionProof, check: checkInteraction } =
-    useInteractionCheck(walletAddress, projectAddress)
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!walletAddress || !canAfford) return
-    if (interactionStatus === 'blocked') return
-    setSubmitting(true)
-    setResult(null)
-    try {
-      const res = await fetch('/api/v1/review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address: projectAddress,
-          reviewer: walletAddress,
-          rating,
-          comment: comment.trim() || undefined,
-          easReceiptId: easReceiptId.trim() || undefined,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setResult({ error: data.error || 'Failed' }); return }
-      setResult({ earned: data.scarabEarned, msg: 'Review submitted!' })
-      setComment('')
-      setRating(5)
-      setEasReceiptId('')
-      onSuccess()
-    } catch {
-      setResult({ error: 'Network error' })
-    } finally { setSubmitting(false) }
-  }
-
-  if (!authenticated) {
-    return (
-      <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6 text-center">
-        <div className="text-2xl mb-2">🪲</div>
-        <p className="text-[#adadb0] text-sm mb-1">Sign in to review and earn Scarab</p>
-        <p className="text-[#818384] text-xs mb-4 font-mono">Reviews cost 2 🪲 · Quality reviews earn up to +10 🪲</p>
-        <button onClick={login} className="px-6 py-2 bg-[#d4a017] hover:bg-[#c49010] text-black font-bold text-sm rounded-lg transition-colors">
-          Connect Wallet
-        </button>
-      </div>
-    )
-  }
-
-  // ── Interaction gate states ───────────────────────────────────────────────
-  if (interactionStatus === 'idle') return (
-    <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6">
-      <p className="text-[#adadb0] text-sm font-semibold mb-1">Verify On-Chain Interaction</p>
-      <p className="text-[#818384] text-xs mb-4 font-mono">Only wallets that have interacted with this project can leave a review.</p>
-      <button onClick={checkInteraction} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-lg transition-colors">
-        🔍 Verify Interaction
-      </button>
-    </div>
-  )
-
-  if (interactionStatus === 'loading') return (
-    <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6 text-center">
-      <p className="text-[#adadb0] text-sm font-mono animate-pulse">⏳ Checking on-chain history…</p>
-    </div>
-  )
-
-  if (interactionStatus === 'blocked') return (
-    <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6">
-      <div className="bg-slate-500/10 border border-slate-500/20 rounded-lg p-3 mb-3">
-        <p className="text-slate-400 text-sm font-semibold mb-1">❌ No Interaction Found</p>
-        <p className="text-slate-400/70 text-xs font-mono">
-          Wallet {walletAddress?.slice(0,6)}…{walletAddress?.slice(-4)} has no recorded txs with {projectName}.
-        </p>
-      </div>
-      <p className="text-[#818384] text-xs font-mono mb-3">Interact with this project on-chain first, then re-check.</p>
-      <button onClick={checkInteraction} className="w-full py-2 border border-[#343536] hover:border-[#4a4a4b] text-[#adadb0] text-sm rounded-lg transition-colors">
-        🔄 Re-check
-      </button>
-    </div>
-  )
-
-  return (
-    <form onSubmit={handleSubmit} className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6 flex flex-col gap-4">
-      {/* Interaction badge */}
-      {interactionStatus === 'verified' && interactionProof && (
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2 text-xs text-blue-400 font-mono flex items-center gap-2">
-          <span>✅</span>
-          <span>
-            Interaction verified
-            {interactionProof.txCount > 0 && ` · ${interactionProof.txCount} tx${interactionProof.txCount > 1 ? 's' : ''}`}
-            {interactionProof.firstTxDate && ` · since ${new Date(interactionProof.firstTxDate).toLocaleDateString()}`}
-          </span>
-        </div>
-      )}
-      {interactionStatus === 'error' && (
-        <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-3 py-2 text-xs text-cyan-400 font-mono">
-          ⚠️ Could not verify on-chain — backend will re-check on submit.
-        </div>
-      )}
-
-      {/* Scarab cost/earn info */}
-      <div className="flex items-center justify-between text-xs font-mono">
-        <div className="flex items-center gap-3">
-          <span className="text-[#818384]">Costs</span>
-          <ScarabBadge count={2} />
-          <span className="text-[#818384]">·</span>
-          <span className="text-[#818384]">Earn up to</span>
-          <ScarabBadge count={10} />
-          <span className="text-[#818384]">for quality</span>
-        </div>
-        {scarabBalance !== null && (
-          <div className="text-[#818384]">
-            Balance: <ScarabBadge count={scarabBalance} dim={!canAfford} />
-          </div>
-        )}
-      </div>
-
-      {!canAfford && (
-        <div className="bg-slate-500/10 border border-slate-500/20 rounded-lg px-3 py-2 text-xs text-slate-400 font-mono">
-          Insufficient Scarab balance. Claim daily 🪲 to continue.
-        </div>
-      )}
-
-      {/* Rating */}
-      <div>
-        <label className="text-xs text-[#818384] font-mono uppercase tracking-wider block mb-2">Rating</label>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map(s => (
-            <button type="button" key={s} onClick={() => setRating(s)}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all ${s <= rating ? 'text-[#d4a017] scale-105' : 'text-[#343536] hover:text-[#818384]'}`}>
-              ★
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Comment */}
-      <div>
-        <label className="text-xs text-[#818384] font-mono uppercase tracking-wider block mb-2">Opinion</label>
-        <textarea
-          value={comment}
-          onChange={e => setComment(e.target.value)}
-          placeholder={`Share your experience with ${projectName}...`}
-          rows={3}
-          className="w-full bg-[#111113] border border-[#343536] rounded-lg px-4 py-3 text-sm text-[#d7dadc] placeholder-[#818384] focus:outline-none focus:border-[#d4a017]/50 resize-none font-sans"
-        />
-      </div>
-
-      {/* EAS Receipt (optional) */}
-      <div>
-        <label className="text-xs text-[#818384] font-mono uppercase tracking-wider block mb-2">
-          EAS Receipt ID <span className="text-[#4a4a4e] normal-case">(optional — 5× weight boost)</span>
-        </label>
-        <input
-          value={easReceiptId}
-          onChange={e => setEasReceiptId(e.target.value)}
-          placeholder="0x attestation hash..."
-          className="w-full bg-[#111113] border border-[#343536] rounded-lg px-4 py-2 text-sm text-[#d7dadc] placeholder-[#818384] focus:outline-none focus:border-[#d4a017]/50 font-mono"
-        />
-      </div>
-
-      {result?.error && (
-        <div className="bg-slate-500/10 border border-slate-500/20 rounded-lg px-3 py-2 text-xs text-slate-400 font-mono">{result.error}</div>
-      )}
-      {result?.msg && (
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2 text-xs text-blue-400 font-mono">
-          ✅ {result.msg} {result.earned ? `+${result.earned} 🪲 earned!` : ''}
-        </div>
-      )}
-
-      <button type="submit" disabled={submitting || !canAfford}
-        className="w-full py-2.5 bg-[#d4a017] hover:bg-[#c49010] disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-sm rounded-lg transition-colors font-mono uppercase tracking-wide">
-        {submitting ? 'Submitting...' : `Submit Review (−2 🪲)`}
-      </button>
-    </form>
   )
 }
 
@@ -491,7 +296,7 @@ function ProjectDetailPage() {
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
+              <div className="flex wrap items-center gap-2 mb-1">
                 <h1 className="text-2xl font-black">{project.name}</h1>
                 {project.symbol && (
                   <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-[#272729] text-[#d4a017]">{project.symbol}</span>
@@ -688,10 +493,9 @@ function ProjectDetailPage() {
             <Trophy className="w-4 h-4 text-[#d4a017]" />
             <span className="text-xs font-bold font-mono uppercase tracking-widest text-[#adadb0]">Leave a Review</span>
           </div>
-          <ReviewFormInline
-            projectAddress={project.address}
+          <ReviewForm
+            projectId={project.address}
             projectName={project.name}
-            scarabBalance={scarab?.balance ?? null}
             onSuccess={() => setReviewKey(k => k + 1)}
           />
         </div>
