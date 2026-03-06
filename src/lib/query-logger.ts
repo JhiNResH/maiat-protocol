@@ -64,6 +64,31 @@ async function getPrevHash(target: string): Promise<string | null> {
 // ─── Logger ────────────────────────────────────────────────────────────────────
 
 /**
+ * Compute SHA-256 hash for the evidence chain.
+ * recordHash = SHA-256(id|type|target|trustScore|verdict|prevHash|createdAt)
+ */
+function computeRecordHash(fields: {
+  id: string;
+  type: string;
+  target: string;
+  trustScore: number | null;
+  verdict: string | null;
+  prevHash: string | null;
+  createdAt: Date;
+}): string {
+  const payload = [
+    fields.id,
+    fields.type,
+    fields.target,
+    String(fields.trustScore ?? ""),
+    fields.verdict ?? "",
+    fields.prevHash ?? "",
+    fields.createdAt.toISOString(),
+  ].join("|");
+  return createHash("sha256").update(payload).digest("hex");
+}
+
+/**
  * Fire-and-forget query log — never throws, never blocks the response.
  * Every logged query is training data for Maiat's trust model.
  *
