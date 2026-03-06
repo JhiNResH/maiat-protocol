@@ -508,14 +508,25 @@ return (
               <div className="relative"><div className="absolute -left-2 top-0 bottom-0 w-0.5 bg-[#3b82f6]/30 rounded-full" /><p className="text-[11px] text-slate-300 leading-relaxed font-mono pl-3 italic">{selectedNode.raw?.description || "Monitoring active behavior..."}</p></div>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3"><div className="text-[8px] text-slate-500 uppercase mb-1">Completion</div><div className="text-xs font-black text-emerald-400">{Math.round((selectedNode.raw?.breakdown?.completionRate || 0.85)*100)}%</div></div>
-                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3"><div className="text-[8px] text-slate-500 uppercase mb-1">Jobs Ran</div><div className="text-xs font-black text-white">{selectedNode.raw?.breakdown?.totalJobs || '124'}</div></div>
-                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3"><div className="text-[8px] text-slate-500 uppercase mb-1">AGDP Impact</div><div className="text-xs font-black text-blue-400">${(selectedNode.raw?.breakdown?.agdp || 1200).toLocaleString()}</div></div>
-                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3"><div className="text-[8px] text-slate-500 uppercase mb-1">Stability</div><div className="text-xs font-black text-cyan-400">99.9%</div></div>
+                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3"><div className="text-[8px] text-slate-500 uppercase mb-1">Completion</div><div className="text-xs font-black text-emerald-400">{selectedNode.raw?.breakdown?.completionRate != null ? `${Math.round(selectedNode.raw.breakdown.completionRate * 100)}%` : '—'}</div></div>
+                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3"><div className="text-[8px] text-slate-500 uppercase mb-1">Jobs Ran</div><div className="text-xs font-black text-white">{selectedNode.raw?.breakdown?.totalJobs ?? 0}</div></div>
+                  {selectedNode.raw?.breakdown?.agdp != null && (
+                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3"><div className="text-[8px] text-slate-500 uppercase mb-1">AGDP Impact</div><div className="text-xs font-black text-blue-400">${selectedNode.raw.breakdown.agdp.toLocaleString()}</div></div>
+                  )}
+                  {selectedNode.raw?.breakdown?.paymentRate != null && (
+                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3"><div className="text-[8px] text-slate-500 uppercase mb-1">Payment Rate</div><div className="text-xs font-black text-cyan-400">{Math.round(selectedNode.raw.breakdown.paymentRate * 100)}%</div></div>
+                  )}
                 </div>
                 <div className="space-y-3 bg-white/[0.01] border border-white/5 rounded-2xl p-4">
-                  <ScoreBar label="On-Chain History" value={selectedNode.raw?.breakdown?.completionRate * 4.0 || 3.2} max={4.0} color="#10b981" icon={<CheckCircle size={10} />} />
-                  <ScoreBar label="Economic Impact" value={Math.min(3.0, (selectedNode.raw?.breakdown?.agdp || 1200)/5000 * 3.0)} max={3.0} color="#3b82f6" icon={<DollarSign size={10} />} />
+                  {selectedNode.raw?.breakdown?.completionRate != null && (
+                    <ScoreBar label="On-Chain History" value={selectedNode.raw.breakdown.completionRate * 4.0} max={4.0} color="#10b981" icon={<CheckCircle size={10} />} />
+                  )}
+                  {selectedNode.raw?.breakdown?.agdp != null && (
+                    <ScoreBar label="Economic Impact" value={Math.min(3.0, selectedNode.raw.breakdown.agdp / 5000 * 3.0)} max={3.0} color="#3b82f6" icon={<DollarSign size={10} />} />
+                  )}
+                  {selectedNode.raw?.breakdown?.paymentRate != null && (
+                    <ScoreBar label="Payment Rate" value={selectedNode.raw.breakdown.paymentRate * 3.0} max={3.0} color="#a855f7" icon={<Zap size={10} />} />
+                  )}
                 </div>
               </div>
               <div className="space-y-2 pt-2">
@@ -590,7 +601,7 @@ return (
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { label: 'Total Nodes', val: agentsData?.pagination?.total || radarAgents.length, icon: Globe },
-                    { label: 'Ecosystem Vol', val: `$${((agentsData?.agents?.reduce((acc:any,a:any)=>acc+(a.breakdown?.agdp||0),0)||0)/1000 + 42.5).toFixed(1)}K`, icon: BarChart3 },
+                    { label: 'Ecosystem Vol', val: (() => { const total = agentsData?.agents?.reduce((acc:any,a:any)=>acc+(a.breakdown?.agdp||0),0)||0; return total > 0 ? `$${(total/1000).toFixed(1)}K` : '—'; })(), icon: BarChart3 },
                   ].map((item, i) => (
                     <div key={i} className="flex flex-col gap-1 p-3 rounded-xl bg-white/[0.02] border border-white/5">
                       <div className="flex items-center gap-2 text-slate-500"><item.icon size={10} /><span className="text-[8px] font-bold uppercase tracking-widest">{item.label}</span></div>
