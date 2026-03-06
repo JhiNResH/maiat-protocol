@@ -20,52 +20,12 @@ export interface QueryLogInput {
 /**
  * Compute SHA-256 of a QueryLog record.
  *
- * recordHash = SHA-256(id || type || target || trustScore || verdict || createdAt || prevHash)
+ * recordHash = SHA-256(id|type|target|trustScore|verdict|prevHash|createdAt)
  *
  * Including `id` makes each record uniquely hashable even if two queries
  * share the same score/verdict for the same target at the same second.
  * prevHash chains records together per target — an auditor can walk the chain
  * and verify nothing was modified or deleted.
- */
-function computeRecordHash(fields: {
-  id: string;
-  type: string;
-  target: string;
-  trustScore: number | null;
-  verdict: string | null;
-  createdAt: Date;
-  prevHash: string | null;
-}): string {
-  const payload = [
-    fields.id,
-    fields.type,
-    fields.target,
-    String(fields.trustScore ?? ""),
-    fields.verdict ?? "",
-    fields.createdAt.toISOString(),
-    fields.prevHash ?? "",
-  ].join("|");
-  return createHash("sha256").update(payload).digest("hex");
-}
-
-/**
- * Get the most recent recordHash for a given target.
- * Returns null if this is the first record for the target.
- */
-async function getPrevHash(target: string): Promise<string | null> {
-  const latest = await prisma.queryLog.findFirst({
-    where: { target },
-    orderBy: { createdAt: "desc" },
-    select: { recordHash: true },
-  });
-  return latest?.recordHash ?? null;
-}
-
-// ─── Logger ────────────────────────────────────────────────────────────────────
-
-/**
- * Compute SHA-256 hash for the evidence chain.
- * recordHash = SHA-256(id|type|target|trustScore|verdict|prevHash|createdAt)
  */
 function computeRecordHash(fields: {
   id: string;
