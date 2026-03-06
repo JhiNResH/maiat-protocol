@@ -285,15 +285,11 @@ model QueryLog {
   amountOut   String?  // for trust_swap: quoted output
   clientId    String?  // SDK client identifier (X-Maiat-Client header)
   metadata    Json?    // full response snapshot for ML training
-  createdAt   DateTime @default(now())
-
-  // ── Evidence Chain (1A) ──────────────────────────────────────────────────
-  // Tamper-evident chain: each record hashes its own content + links to prev.
-  // Enables GET /api/v1/evidence/:address to serve independently verifiable history.
   prevHash    String?  // SHA-256 of the previous QueryLog.recordHash for same target
   recordHash  String?  // SHA-256(id + type + target + trustScore + verdict + createdAt + prevHash)
   outcome     String?  // Actual result reported back via POST /api/v1/outcome
                        // "success" | "failure" | "partial" | "expired" — null until reported
+  createdAt   DateTime @default(now())
 
   @@map("query_logs")
   @@index([type])
@@ -301,6 +297,7 @@ model QueryLog {
   @@index([createdAt])
   @@index([verdict])
   @@index([target, createdAt]) // for evidence chain lookups
+  @@index([recordHash])        // for chain integrity lookups
 }
 
 model Outcome {
