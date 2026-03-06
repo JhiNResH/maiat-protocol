@@ -64,6 +64,31 @@ async function getPrevHash(target: string): Promise<string | null> {
 // ─── Logger ────────────────────────────────────────────────────────────────────
 
 /**
+ * Compute SHA-256 hash for the evidence chain.
+ * recordHash = SHA-256(id|type|target|trustScore|verdict|prevHash|createdAt)
+ */
+function computeRecordHash(fields: {
+  id: string;
+  type: string;
+  target: string;
+  trustScore: number | null;
+  verdict: string | null;
+  prevHash: string | null;
+  createdAt: Date;
+}): string {
+  const payload = [
+    fields.id,
+    fields.type,
+    fields.target,
+    String(fields.trustScore ?? ""),
+    fields.verdict ?? "",
+    fields.prevHash ?? "",
+    fields.createdAt.toISOString(),
+  ].join("|");
+  return createHash("sha256").update(payload).digest("hex");
+}
+
+/**
  * Fire-and-forget query log — never throws, never blocks the response.
  * Every logged query is training data for Maiat's trust model.
  *
@@ -83,44 +108,55 @@ async function buildAndCreateLog(input: QueryLogInput): Promise<void> {
   const trustScore = typeof input.trustScore === "number" ? input.trustScore : null;
   const verdict = input.verdict ?? null;
 
-  // Step 1: get prevHash (latest chain tip for this target)
-  const prevHash = await getPrevHash(normalizedTarget);
+  // Steps 1-4 wrapped in a serializable transaction to prevent hash chain race conditions.
+  // Without a transaction, concurrent requests could read the same prevHash and corrupt the chain.
+  const record = await prisma.$transaction(async (tx) => {
+    // Step 1: get prevHash (latest chain tip for this target, inside tx)
+    const latest = await tx.queryLog.findFirst({
+      where: { target: normalizedTarget },
+      orderBy: { createdAt: "desc" },
+      select: { recordHash: true },
+    });
+    const prevHash = latest?.recordHash ?? null;
 
-  // Step 2: create the record (Prisma generates the id)
-  const record = await prisma.queryLog.create({
-    data: {
+    // Step 2: create the record (Prisma generates the id)
+    const created = await tx.queryLog.create({
+      data: {
+        type: input.type,
+        target: normalizedTarget,
+        buyer: input.buyer?.toLowerCase() ?? null,
+        jobId: input.jobId ?? null,
+        trustScore,
+        verdict,
+        amountIn: input.amountIn ?? null,
+        amountOut: input.amountOut ?? null,
+        clientId: input.clientId ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        metadata: (input.metadata ?? null) as any,
+        prevHash,
+        // recordHash filled in step 3
+      },
+      select: { id: true, createdAt: true },
+    });
+
+    // Step 3: compute recordHash now that we have the id + createdAt
+    const recordHash = computeRecordHash({
+      id: created.id,
       type: input.type,
       target: normalizedTarget,
-      buyer: input.buyer?.toLowerCase() ?? null,
-      jobId: input.jobId ?? null,
       trustScore,
       verdict,
-      amountIn: input.amountIn ?? null,
-      amountOut: input.amountOut ?? null,
-      clientId: input.clientId ?? null,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      metadata: (input.metadata ?? null) as any,
+      createdAt: created.createdAt,
       prevHash,
-      // recordHash filled in step 3
-    },
-    select: { id: true, createdAt: true },
-  });
+    });
 
-  // Step 3: compute recordHash now that we have the id + createdAt
-  const recordHash = computeRecordHash({
-    id: record.id,
-    type: input.type,
-    target: normalizedTarget,
-    trustScore,
-    verdict,
-    createdAt: record.createdAt,
-    prevHash,
-  });
+    // Step 4: patch recordHash back into the record
+    await tx.queryLog.update({
+      where: { id: created.id },
+      data: { recordHash },
+    });
 
-  // Step 4: patch recordHash back into the record
-  await prisma.queryLog.update({
-    where: { id: record.id },
-    data: { recordHash },
+    return created;
   });
 
   // Feedback loop: recalculate agent score after ACP query
@@ -131,4 +167,6 @@ async function buildAndCreateLog(input: QueryLogInput): Promise<void> {
       )
       .catch(() => {});
   }
+
+  void record; // suppress unused warning
 }
