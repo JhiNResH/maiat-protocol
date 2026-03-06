@@ -165,13 +165,24 @@ Source: `src/lib/scoring.ts`
 
 ### Required Env Vars
 ```env
-DATABASE_URL                   # Postgres (Supabase)
-CRON_SECRET                    # Protects /cron/* endpoints
-MAIAT_ADMIN_PRIVATE_KEY        # EAS attestation + oracle sync relayer
-EAS_TRUST_SCORE_SCHEMA_UID     # From /eas/register (one-time setup)
-UNISWAP_API_KEY                # Uniswap Trading API
-NEXT_PUBLIC_PRIVY_APP_ID       # Privy auth
+DATABASE_URL                   # Postgres (Supabase) — required
+DIRECT_URL                     # Supabase direct connection (for migrations)
+CRON_SECRET                    # Protects /api/v1/cron/* endpoints
+MAIAT_ADMIN_PRIVATE_KEY        # Oracle sync: writes trust scores to MaiatOracle on-chain
+BASE_RELAYER_PRIVATE_KEY       # EAS attestation: signs Maiat Receipt attestations on Base
+ALCHEMY_BASE_RPC               # Base mainnet RPC (e.g. base-mainnet.g.alchemy.com/v2/KEY)
+ALCHEMY_API_KEY                # Alchemy API key (used by token analysis)
+NEXT_PUBLIC_PRIVY_APP_ID       # Privy wallet auth (client-side)
+PRIVY_APP_ID                   # Privy server-side
+PRIVY_APP_SECRET               # Privy server-side secret
+UPSTASH_REDIS_REST_URL         # Rate limiter (graceful fallback if missing)
+UPSTASH_REDIS_REST_TOKEN       # Rate limiter token
+GEMINI_API_KEY                 # AI deep insights + review quality scoring
+BASE_BUILDER_CODE              # bc_cozhkj23 — appended to swap calldata
 ```
+
+> Note: `EAS_TRUST_SCORE_SCHEMA_UID` is hardcoded in `src/lib/eas.ts` — not an env var.  
+> Note: There is no `UNISWAP_API_KEY` env var — the Uniswap Trading API key lives in `~/maiat-agent/.env`.
 
 ---
 
