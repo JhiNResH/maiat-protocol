@@ -92,21 +92,21 @@ function chainDot(chain: string) {
 // WRAPPER (required for useSearchParams)
 // ============================================================================
 
-export default function ExplorePageWrapper() {
+export default function LeaderboardPageWrapper() {
   return (
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-            <Shield className="w-8 h-8 text-[#3b82f6] animate-pulse" />
+            <Trophy className="w-8 h-8 text-[#fbbf24] animate-pulse" />
             <span className="text-xs font-mono text-[#666666] uppercase tracking-widest">
-              LOADING...
+              LOADING LEADERBOARD...
             </span>
           </div>
         </div>
       }
     >
-      <ExplorePage />
+      <LeaderboardPage />
     </Suspense>
   );
 }
@@ -115,10 +115,11 @@ export default function ExplorePageWrapper() {
 // MAIN PAGE
 // ============================================================================
 
-function ExplorePage() {
+function LeaderboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isLeaderboard = searchParams.get("tab") === "leaderboard";
+  // Default to true for the new Leaderboard route
+  const isLeaderboard = true;
 
   const [agents, setAgents]   = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);

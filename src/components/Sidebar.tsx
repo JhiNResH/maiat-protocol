@@ -29,7 +29,7 @@ import useSWR from "swr";
 const NAV_ITEMS = [
   { name: "Monitor", icon: Radar, path: "/monitor" },
   { name: "Opinion Market", icon: TrendingUp, path: "/markets" },
-  { name: "Explore", icon: Compass, path: "/explore" },
+  { name: "Leaderboard", icon: Trophy, path: "/leaderboard" },
   { name: "Passport", icon: LayoutDashboard, path: "/dashboard" },
 ];
 

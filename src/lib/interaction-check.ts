@@ -198,8 +198,8 @@ export async function checkInteraction(
 
   } catch (error) {
     console.error(`[interaction-check] Error checking interaction on chain ${chainId} via Alchemy:`, error);
-    // Fail-closed on error: don't allow reviews if we can't verify interaction
-    return { hasInteracted: false, txCount: 0, firstTxDate: null, lastTxDate: null };
+    // Rethrow to let the API handle fail-open logic
+    throw error;
   }
 }
 

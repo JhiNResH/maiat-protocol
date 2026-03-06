@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl
     const sort = searchParams.get('sort') || 'trust'
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 200)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 1000)
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'))
     const search = searchParams.get('search') || ''
 
@@ -90,12 +90,14 @@ export async function GET(request: NextRequest) {
             typeof raw.name === 'string' ? raw.name : a.walletAddress.slice(0, 10) + '...'
           const category = typeof raw.category === 'string' ? raw.category : null
           const logo = typeof raw.profilePic === 'string' ? raw.profilePic : null
+          const description = typeof raw.description === 'string' ? raw.description : null
 
           return {
             id: a.walletAddress,
             name,
             category,
             logo,
+            description,
             chain: 'Base',
             trust: {
               score: a.trustScore,
