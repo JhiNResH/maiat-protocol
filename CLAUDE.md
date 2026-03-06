@@ -154,3 +154,19 @@ Follow the [Diataxis](https://diataxis.fr/) framework as a guide (not a strict r
 - Do not add external icon libraries (lucide-react only)
 - `'use client'` is already set on docs page — keep it
 
+
+### API Documentation
+Full API reference lives in `docs/api/` — generated 2026-03-06.
+When adding/modifying route handlers, update the corresponding docs file:
+- Agents: `docs/api/agents.md`
+- Markets: `docs/api/markets.md`
+- Scarab: `docs/api/scarab.md`
+- Swap: `docs/api/swap.md`
+- EAS: `docs/api/eas.md`
+- Wallet: `docs/api/wallet.md`
+- Explore: `docs/api/explore.md`
+- Monitor: `docs/api/monitor.md`
+- Cron (internal): `docs/api/cron.md`
+- Index: `docs/api/README.md`
+
+Rule: every new `route.ts` file = update the matching docs file on the same commit.
