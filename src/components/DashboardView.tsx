@@ -3,9 +3,11 @@
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
+import { getAddress } from 'viem'
+import { motion } from 'motion/react'
 import {
   Shield, Flame, Trophy, ArrowRight, Star, Clock,
-  MessageSquare, Zap, CheckCircle, ExternalLink, Copy, Target
+  MessageSquare, Zap, CheckCircle, ExternalLink, Copy, Target, User, LogOut
 } from 'lucide-react'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -68,10 +70,12 @@ function RepBar({ score, color }: { score: number; color: string }) {
   )
 }
 
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
 // ─── Main View ────────────────────────────────────────────────────────────────
 
 export function DashboardView() {
-  const { ready, authenticated, user, login } = usePrivy()
+  const { ready, authenticated, user, login, logout } = usePrivy()
   const { wallets } = useWallets()
   const walletAddress = user?.wallet?.address
 
@@ -109,26 +113,25 @@ export function DashboardView() {
       const nonceRes = await fetch(`/api/v1/scarab/nonce?address=${walletAddress}`);
       const { nonce, expiresAt } = await nonceRes.json();
       const activeWallet = wallets.find((w) => w.address.toLowerCase() === walletAddress.toLowerCase());
-      if (!activeWallet) throw new Error('Wallet not ready');
-
-      const message = [`Claim daily Scarab for ${activeWallet.address}`, `Nonce: ${nonce}`, `Expiration: ${expiresAt}`].join('\n');
+      if (!activeWallet) throw new Error('Wallet not ready. Try reconnecting.');
+      const checksumAddress = getAddress(activeWallet.address);
+      const message = [`Claim daily Scarab for ${checksumAddress}`, `Nonce: ${nonce}`, `Expiration: ${expiresAt}`].join('\n');
       const signature = await activeWallet.sign(message);
-
       const res = await fetch('/api/v1/scarab/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: walletAddress, signature, nonce, expiresAt }),
+        body: JSON.stringify({ address: checksumAddress, signature, nonce, expiresAt }),
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || 'Claim failed');
-
       if (result.alreadyClaimed) {
         setClaimMsg({ ok: false, text: 'Already claimed today. Come back tomorrow!' })
       } else {
         setClaimMsg({ ok: true, text: `+${result.amount ?? 5} 🪲 claimed! Streak: ${result.streak ?? 1} day(s)` })
       }
     } catch (err: any) {
-      setClaimMsg({ ok: false, text: err.message || 'Claim failed.' })
+      console.error("[Claim Error]", err);
+      setClaimMsg({ ok: false, text: err.message || 'Verification failed. Try again.' })
     } finally { setClaiming(false) }
   }
 
@@ -173,12 +176,12 @@ export function DashboardView() {
             </div>
             <h1 className="text-xl font-black text-white tracking-tighter uppercase">Reputation Passport</h1>
           </div>
-          <Link href="/explore" className="text-[10px] font-bold text-slate-500 hover:text-[#3b82f6] transition-colors uppercase tracking-widest border border-white/5 px-3 py-1.5 rounded-lg bg-white/[0.02]">
-            Explore Sector
-          </Link>
+          <button onClick={logout} className="text-[10px] font-bold text-slate-600 hover:text-red-400 transition-colors uppercase tracking-widest border border-white/5 px-3 py-1.5 rounded-lg bg-white/[0.02]">
+            Disconnect
+          </button>
         </div>
 
-        {/* ── PASSPORT CARD - RESTORED COLORS ── */}
+        {/* ── PASSPORT CARD ── */}
         <div
           className="rounded-3xl p-8 border-2 relative overflow-hidden group shadow-2xl transition-all hover:scale-[1.01]"
           style={{ background: `linear-gradient(135deg, ${trust.bg}, #000)`, borderColor: `${trust.color}40` }}
@@ -231,28 +234,28 @@ export function DashboardView() {
           </div>
         </div>
 
-        {/* ── Daily Claim Banner - Corrected to Blue ── */}
+        {/* ── Daily Claim Banner ── */}
         <div className="bg-blue-500/5 border border-blue-500/20 rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[50px] -mr-16 -mt-16 rounded-full" />
           <div className="relative z-10 text-center sm:text-left">
-            <div className="font-black text-[#3b82f6] flex items-center gap-2 mb-1 justify-center sm:justify-start uppercase tracking-tighter">
-              <Flame size={18} /> Daily Scarab Harvest
+            <div className="font-black text-[#3b82f6] flex items-center gap-2 mb-1 justify-center sm:justify-start uppercase tracking-tighter text-lg">
+              <Flame size={20} className="animate-pulse" /> Daily Scarab Harvest
             </div>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
               Streak: <span className="text-white">{data?.scarab.streak || 0} Days</span> · Bonus: up to <span className="text-white">+10 🪲</span>
             </p>
             {claimMsg && (
-              <div className={`mt-3 text-[10px] font-black uppercase ${claimMsg.ok ? 'text-blue-400' : 'text-red-400'}`}>
+              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className={`mt-3 text-[10px] font-black uppercase ${claimMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>
                 {claimMsg.text}
-              </div>
+              </motion.div>
             )}
           </div>
           <button 
             onClick={claimDaily} 
             disabled={claiming}
-            className="shrink-0 px-8 py-3 bg-[#3b82f6] hover:bg-blue-600 disabled:opacity-50 text-white font-black text-xs rounded-xl transition-all shadow-xl uppercase tracking-[0.2em] relative z-10"
+            className="shrink-0 px-10 py-4 bg-[#3b82f6] hover:bg-blue-600 disabled:opacity-50 text-white font-black text-sm rounded-2xl transition-all shadow-xl shadow-blue-500/20 uppercase tracking-[0.2em] relative z-10"
           >
-            {claiming ? 'Processing...' : 'Collect 🪲'}
+            {claiming ? 'Signing...' : 'Collect 🪲'}
           </button>
         </div>
 
