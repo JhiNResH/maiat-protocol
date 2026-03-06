@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { getQuote, getSwap } from "@/lib/uniswap";
 import { computeTrustScore } from "@/lib/scoring";
 import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
@@ -93,7 +94,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Log trust_swap query (fire-and-forget)
+    // Log trust_swap query (fire-and-forget) — generate jobId for outcome tracking
+    const jobId = randomUUID();
     const innerQuote = ((quote as unknown) as Record<string, unknown>)?.quote as Record<string, unknown> | undefined;
     const amountOut = String(innerQuote?.output && typeof innerQuote.output === "object"
       ? (innerQuote.output as Record<string, unknown>).amount ?? ""
@@ -102,6 +104,7 @@ export async function POST(request: NextRequest) {
       type: "trust_swap",
       target: tokenOut,
       buyer: swapper !== "0x0000000000000000000000000000000000000000" ? swapper : undefined,
+      jobId,
       trustScore: tokenOutScore?.score ?? null,
       verdict: tokenOutScore ? (tokenOutScore.score >= 70 ? "proceed" : tokenOutScore.score >= 40 ? "caution" : "avoid") : null,
       amountIn: amount,
@@ -111,6 +114,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
+        jobId,
         quote,
         calldata: swapCalldata,
         to: swapTo,
