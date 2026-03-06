@@ -1,5 +1,5 @@
 ---
-name: maiat-protocol
+name: maiat-api
 description: >
   Build integrations with Maiat Protocol — the trust layer for agentic commerce.
   Use this skill when: writing code that queries Maiat trust scores, integrating
@@ -12,12 +12,12 @@ description: >
 ## What is Maiat?
 
 Maiat is a **trust oracle for AI agents and tokens**.  
-It scores agents/tokens based on on-chain ACP behavioral data + community reviews,  
-then exposes that score as a trust gate for swaps, reviews, and prediction markets.
+Scores agents/tokens via on-chain ACP behavioral data + community reviews,  
+and exposes that score as a trust gate for swaps, reviews, and prediction markets.
 
 **Live:** `https://maiat-protocol.vercel.app`  
 **API base:** `https://maiat-protocol.vercel.app/api/v1`  
-**Full docs:** `docs/api/README.md`
+**Full docs:** `https://github.com/JhiNResH/maiat-protocol/tree/master/docs/api`
 
 ---
 
@@ -33,68 +33,97 @@ then exposes that score as a trust gate for swaps, reviews, and prediction marke
 
 ---
 
-## Key API Endpoints
+## SDK Usage (`maiat-sdk`) ← Preferred
 
-### Trust Score
 ```ts
+import { Maiat } from 'maiat-sdk'
+
+const maiat = new Maiat({
+  baseUrl: 'https://maiat-protocol.vercel.app', // optional, this is the default
+  apiKey: process.env.MAIAT_API_KEY,            // optional — raises rate limits
+  clientId: 'my-agent-name',                    // optional — for attribution
+})
+
 // Agent trust score
-GET /api/v1/agent/0xAbCd...
+const score = await maiat.agentTrust('0xAbCd...')
+// → { trustScore: 72, verdict: 'caution', breakdown: { completionRate, paymentRate, ... } }
 
-// Deep analysis (percentile, risk flags, tier)
-GET /api/v1/agent/0xAbCd.../deep
+if (score.verdict === 'avoid') throw new Error('Agent not trusted')
 
-// Token → agent reverse lookup
-GET /api/v1/agent/token-map/0xTokenAddress
+// Token safety check
+const token = await maiat.tokenCheck('0xTokenAddress')
+// → { verdict: 'proceed', honeypot: false, ... }
+
+// Trust-gated swap quote + execute
+const result = await maiat.trustSwap({ tokenIn, tokenOut, amount, swapper, chainId: 8453 })
+// → { allowed: true, quote: { calldata, ... }, trustScore, verdict }
+
+// Report outcome (for trust score training data)
+await maiat.reportOutcome({ target: '0x...', action: 'swap', result: 'success' })
+
+// Convenience helpers (fail-closed: unknown = untrusted)
+const trusted = await maiat.isAgentTrusted('0x...', 70)  // threshold default 60
+const safe    = await maiat.isTokenSafe('0xTokenAddress')
 ```
 
-### Trust-Gated Swap
-```ts
-// 1. Get quote (checks trust score)
-GET /api/v1/swap/quote?tokenIn=0x0000...&tokenOut=0x4ed4...&amount=1000000000000000000&swapper=0xYours
-
-// 2. Execute if allowed
-POST /api/v1/swap
-Body: { quoteId, tokenIn, tokenOut, amountIn, swapper, chainId: 8453 }
-```
-
-### Scarab
-```ts
-GET  /api/v1/scarab?address=0x...           // balance
-POST /api/v1/scarab/claim { address }        // daily claim
-GET  /api/v1/scarab/status?address=0x...    // eligibility
-```
-
-### Markets
-```ts
-GET  /api/v1/markets                          // list open markets
-POST /api/v1/markets/{id}/position { address, projectId, amount }  // stake
-```
+**SDK package:** `maiat-sdk` (v0.2.0) — `packages/sdk/` in repo
 
 ---
 
-## SDK Usage (`maiat-sdk`)
+## Key API Endpoints (raw HTTP)
 
-```ts
-import { MaiatClient } from 'maiat-sdk'
-
-const client = new MaiatClient({
-  baseUrl: 'https://maiat-protocol.vercel.app/api/v1',
-  apiKey: process.env.MAIAT_API_KEY,  // optional — raises rate limits
-})
-
-// Check trust before transacting
-const score = await client.agent.getScore('0xAbCd...')
-if (score.verdict === 'avoid') throw new Error('Agent not trusted')
-
-// Trust-gated swap
-const quote = await client.swap.quote({ tokenIn, tokenOut, amount, swapper })
-if (quote.allowed) {
-  const tx = await client.swap.execute(quote)
-  console.log(tx.explorer)
-}
+### Agent Trust
+```
+GET  /api/v1/agent/{address}           → trust score + verdict
+GET  /api/v1/agent/{address}/deep      → + percentile, risk flags, tier
+GET  /api/v1/agent/token-map/{token}   → token address → agent wallet reverse lookup
+GET  /api/v1/agents?sort=trust&limit=50&search=name   → list all indexed agents
 ```
 
-**SDK location:** `packages/sdk/`
+### Trust-Gated Swap
+```
+POST /api/v1/swap/quote
+Body: { swapper, tokenIn, tokenOut, amount, chainId?: 8453, slippage?: 0.5 }
+→ { allowed, trustScore, verdict, quote: { quoteId, calldata, ... } }
+
+POST /api/v1/swap
+Body: { quoteId, tokenIn, tokenOut, amountIn, swapper, chainId }
+→ { success, txHash, explorer }
+```
+
+> ⚠️ Both swap endpoints are **POST**, not GET. Rate limit: 15/min (quote), 10/min (execute).
+
+### Scarab
+```
+GET  /api/v1/scarab?address=0x...           → { balance, totalEarned, streak }
+POST /api/v1/scarab/claim { address }        → { amount, streak, isFirstClaim }
+GET  /api/v1/scarab/status?address=0x...    → { canClaim, nextClaimAt }
+GET  /api/v1/scarab/nonce?address=0x...     → SIWE nonce for signing
+```
+
+### Markets
+```
+GET  /api/v1/markets?status=open             → list markets
+GET  /api/v1/markets/{id}                    → market + positions
+POST /api/v1/markets/{id}/position
+Body: { address, projectId, amount }         → stake Scarab on outcome
+```
+
+### Wallet / Passport
+```
+GET /api/v1/wallet/{address}/passport              → trust tier, scarab, reviews
+GET /api/v1/wallet/{address}/interactions          → on-chain interaction history
+GET /api/v1/wallet/{address}/eas-receipts          → EAS attestation receipts
+GET /api/v1/wallet/{address}/check-interaction?contractAddress=0x...
+```
+
+### Other
+```
+POST /api/v1/deep-insight { projectId | projectName }   → AI deep analysis (10/day free)
+GET  /api/v1/monitor/feed                               → SSE live event stream
+GET  /api/v1/explore                                    → trending agents/tokens
+GET  /api/v1/stats                                      → platform stats
+```
 
 ---
 
@@ -109,33 +138,16 @@ if (quote.allowed) {
 
 ---
 
-## Coding Conventions
+## Coding Conventions (when working in maiat-protocol repo)
 
-### File Structure
-```
-src/
-  app/api/v1/          ← All public API routes
-  lib/                 ← Shared logic (scoring.ts, eas.ts, uniswap.ts, scarab.ts)
-  components/          ← React UI
-packages/sdk/          ← maiat-sdk npm package
-contracts/             ← Solidity (Foundry)
-docs/api/              ← API reference (keep in sync with routes)
-```
-
-### API Route Rules
-- Every `route.ts` → update matching `docs/api/*.md` in the **same commit**
-- Always add CORS headers (see existing routes for pattern)
-- Rate-limit sensitive endpoints via `src/lib/ratelimit.ts`
-- Cron endpoints: **always** verify `Authorization: Bearer <CRON_SECRET>`
-
-### Trust Score Calculation
+### Trust Score Formula
 ```
 Score = (ACP Behavioral × 0.7) + (Community Reviews × 0.3)
 ```
 Source: `src/lib/scoring.ts`
 
 ### Scarab Economy
-| Action | Delta |
+| Action | Δ |
 |---|---|
 | First claim | +20 |
 | Daily claim | +5 + streak |
@@ -143,9 +155,15 @@ Source: `src/lib/scoring.ts`
 | Project vote | −5 |
 | Market stake | −amount |
 
-Spend logic is atomic inside `prisma.$transaction` — do **not** check balance outside the transaction.
+> **Critical:** Scarab spend logic must be inside `prisma.$transaction`. Never check balance outside the transaction (TOCTOU).
 
-### Environment Variables (required for full functionality)
+### API Route Rules
+- Every new `route.ts` → update matching `docs/api/*.md` **same commit**
+- Always add CORS headers (see existing routes for pattern)
+- Rate-limit via `src/lib/ratelimit.ts`
+- Cron endpoints: always verify `Authorization: Bearer <CRON_SECRET>`
+
+### Required Env Vars
 ```env
 DATABASE_URL                   # Postgres (Supabase)
 CRON_SECRET                    # Protects /cron/* endpoints
@@ -159,20 +177,16 @@ NEXT_PUBLIC_PRIVY_APP_ID       # Privy auth
 
 ## Common Patterns
 
-### Trust-gate any action
 ```ts
-const { verdict, trustScore } = await fetch(`/api/v1/agent/${address}`).then(r => r.json())
-if (verdict === 'avoid') return { error: 'Agent trust score too low', trustScore }
-```
+// Trust-gate before any action
+const { verdict, trustScore } = await maiat.agentTrust(address)
+if (verdict === 'avoid') return { blocked: true, trustScore }
 
-### Check if wallet can review a project
-```ts
-GET /api/v1/wallet/{address}/check-interaction?contractAddress={projectContract}
-// interacted: true → can review
-```
-
-### Subscribe to live events (SSE)
-```ts
-const es = new EventSource('/api/v1/monitor/feed')
+// SSE live monitor
+const es = new EventSource('https://maiat-protocol.vercel.app/api/v1/monitor/feed')
 es.onmessage = ({ data }) => console.log(JSON.parse(data))
+
+// Check if wallet can review (must have interacted with contract)
+const res = await fetch(`/api/v1/wallet/${address}/check-interaction?contractAddress=${contract}`)
+const { interacted } = await res.json()
 ```
