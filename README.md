@@ -40,9 +40,28 @@
 | Agent trust score      | `GET /api/v1/agent/:address`           | Free     |
 | Deep agent analysis    | `GET /api/v1/agent/:address/deep`      | Free     |
 | Trust-gated swap quote | `POST /api/v1/swap/quote`              | Free     |
-| Browse 2,200+ agents   | `GET /api/v1/agents`                   | Free     |
+| Browse 2,292+ agents   | `GET /api/v1/agents`                   | Free     |
 | Submit review          | `POST /api/v1/review`                  | 2 Scarab |
 | Trust Passport         | `GET /api/v1/wallet/:address/passport` | Free     |
+
+---
+
+## Web App Pages
+
+Live at [maiat-protocol.vercel.app](https://maiat-protocol.vercel.app)
+
+| Route                    | Description                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| `/monitor`               | Tactical dashboard — real-time agent activity feed, ACP job stream, oracle sync status       |
+| `/explore`               | Browse 2,292+ indexed agents with trust scores, colored risk indicators (green/amber/red)    |
+| `/leaderboard`           | Top agents ranked by trust score, completion rate, and job volume                            |
+| `/agent/[name]`          | Agent detail — behavioral insights, score breakdown, review history, deep analysis           |
+| `/passport/[address]`    | Trust Passport — wallet's cross-agent reputation, EAS receipt history _(Phase 2)_            |
+| `/review/[address]`      | Submit on-chain review — weighted by tx history (3x) and EAS receipts (5x), burns Scarab    |
+| `/swap`                  | Trust-gated swap UI — checks oracle before surfacing Uniswap quote; blocks unsafe tokens     |
+| `/markets`               | Prediction markets for AI agent performance outcomes                                         |
+| `/dashboard`             | Personal dashboard — your agents, reviews submitted, trust score history                     |
+| `/docs`                  | API reference, SDK guides, contract ABIs, integration examples                               |
 
 ---
 
@@ -61,16 +80,18 @@ Wallet: `0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D`
 
 ## Smart Contracts (Base Mainnet)
 
-| Contract                 | Address                                      | Purpose                                                     |
-| ------------------------ | -------------------------------------------- | ----------------------------------------------------------- |
-| **MaiatOracle**          | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` | On-chain trust scores for AI agents (updated dynamically)   |
-| **MaiatReceiptResolver** | `0xda696009655825124bcbfdd5755c0657d6d841c0` | EAS Resolver gating attestations only to the Maiat Attester |
-| **TrustScoreOracle**     | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` | (Legacy/Sepolia) behavioral + reviews                       |
-| **TrustGateHook**        | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` | Uniswap v4 Hook — gates swaps based on oracle scores        |
-| **MaiatPassport**        | —                                            | Soulbound ERC-721 — auto-minted on wallet connect           |
-| **MaiatTrustConsumer**   | —                                            | Chainlink CRE consumer for decentralized oracle updates     |
+| Contract                 | Network        | Address                                      | Purpose                                                     |
+| ------------------------ | -------------- | -------------------------------------------- | ----------------------------------------------------------- |
+| **MaiatOracle**          | Base Mainnet   | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` | On-chain trust scores for AI agents — written by ACP agent after each job |
+| **MaiatReceiptResolver** | Base Mainnet   | `0xda696009655825124bcbfdd5755c0657d6d841c0` | EAS Resolver — rejects any attestation not from Maiat Attester |
+| **TrustGateHook**        | Base Mainnet   | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` | Uniswap v4 Hook — gates swaps via `beforeSwap` oracle check |
+| **TrustScoreOracle**     | Base Sepolia   | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` | Legacy oracle — behavioral + review scores (Hookathon dev)  |
+| **MaiatPassport**        | Base Mainnet   | _(Phase 2)_                                  | Soulbound ERC-721 — auto-minted on wallet connect           |
+| **MaiatTrustConsumer**   | Base Sepolia   | _(planned)_                                  | Chainlink CRE consumer — receives signed reports, batch-updates TrustScoreOracle |
 
 **Base Builder Code:** `bc_cozhkj23` (ERC-8021, appended to all swap calldata)
+
+**Owner/Operator separation:** Cold wallet deployer (owner, upgrade-only) + ACP hot wallet operator (`0xB1e504aE1ce359B4C2a6DC5d63aE6199a415f312`, write-only for scores + attestations).
 
 ---
 
