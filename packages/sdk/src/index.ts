@@ -7,13 +7,13 @@
  *   const score = await maiat.agentTrust("0x...");
  *   const token = await maiat.tokenCheck("0x...");
  *   const swap  = await maiat.trustSwap({ ... });
- *   await maiat.reportOutcome({ agent: "0x...", action: "swap", result: "success" });
+ *   await maiat.reportOutcome({ jobId: "...", outcome: "success" });
  */
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface MaiatConfig {
-  /** Base URL for Maiat Protocol API. Default: https://maiat-protocol.vercel.app */
+  /** Base URL for Maiat Protocol API. Default: https://app.maiat.io */
   baseUrl?: string;
   /** Optional API key for higher rate limits */
   apiKey?: string;
@@ -36,6 +36,16 @@ export interface AgentTrustResult {
   };
   verdict: "proceed" | "caution" | "avoid";
   lastUpdated: string;
+  feedback?: { queryId: string };
+}
+
+export interface DeepAnalysisResult {
+  address: string;
+  trustScore: number;
+  verdict: "proceed" | "caution" | "avoid";
+  deepAnalysis: Record<string, unknown>;
+  signals: Record<string, unknown>;
+  lastUpdated: string;
 }
 
 export interface TokenCheckResult {
@@ -46,6 +56,15 @@ export interface TokenCheckResult {
   riskFlags: string[];
   riskSummary: string;
   dataSource: string;
+}
+
+export interface ForensicsResult {
+  address: string;
+  chain: string;
+  forensics: Record<string, unknown>;
+  riskFlags: string[];
+  verdict: "proceed" | "caution" | "avoid";
+  lastUpdated: string;
 }
 
 export interface TrustSwapParams {
@@ -91,6 +110,27 @@ export interface OutcomeResponse {
   id?: string;
 }
 
+export interface OutcomeParams {
+  jobId: string;
+  outcome: "success" | "failure" | "partial" | "expired";
+  reporter?: string;
+  note?: string;
+}
+
+export interface OutcomeResult {
+  success: boolean;
+  id?: string;
+  message?: string;
+}
+
+export interface ScarabResult {
+  address: string;
+  balance: string;
+  balanceFormatted: number;
+  tier: string;
+  lastUpdated: string;
+}
+
 // ─── Client ───────────────────────────────────────────────────────────────────
 
 export class Maiat {
@@ -100,7 +140,7 @@ export class Maiat {
   private timeout: number;
 
   constructor(config: MaiatConfig = {}) {
-    this.baseUrl = (config.baseUrl ?? "https://maiat-protocol.vercel.app").replace(/\/$/, "");
+    this.baseUrl = (config.baseUrl ?? "https://app.maiat.io").replace(/\/$/, "");
     this.apiKey = config.apiKey;
     this.clientId = config.clientId;
     this.timeout = config.timeout ?? 15_000;
@@ -134,9 +174,20 @@ export class Maiat {
     return this.request<AgentTrustResult>(`/api/v1/agent/${address}`);
   }
 
+  /** Get deep analysis for an ACP agent by wallet address */
+  async deep(address: string): Promise<DeepAnalysisResult> {
+    return this.request<DeepAnalysisResult>(`/api/v1/agent/${address}/deep`);
+  }
+
   /** Check if a token is safe (honeypot, rug, liquidity) */
   async tokenCheck(address: string): Promise<TokenCheckResult> {
     return this.request<TokenCheckResult>(`/api/v1/token/${address}`);
+  }
+
+  /** Get forensics data for a token address */
+  async forensics(address: string, chain?: string): Promise<ForensicsResult> {
+    const query = chain ? `?chain=${chain}` : "";
+    return this.request<ForensicsResult>(`/api/v1/token/${address}/forensics${query}`);
   }
 
   /** Get a trust-verified swap quote with calldata */
@@ -152,21 +203,25 @@ export class Maiat {
     return this.request(`/api/v1/agents?limit=${limit}`);
   }
 
-  // ─── Outcome Reporting (Training Data) ────────────────────────────────────
+  /** Get SCARAB token balance for an address */
+  async scarab(address: string): Promise<ScarabResult> {
+    return this.request<ScarabResult>(`/api/v1/scarab?address=${address}`);
+  }
+
+  // ─── Outcome Reporting ────────────────────────────────────────────────────
 
   /**
-   * Report the outcome of an action taken after a Maiat trust check.
-   * This is the most valuable data for training the oracle.
+   * Report the outcome of a job (new API).
    *
    * Example flow:
-   *   1. maiat.isTrusted("0x...") → true
-   *   2. You swap with that agent
-   *   3. maiat.reportOutcome({ target: "0x...", action: "swap", result: "success" })
+   *   1. maiat.agentTrust("0x...") → proceed
+   *   2. You execute the job
+   *   3. maiat.reportOutcome({ jobId: "...", outcome: "success" })
    */
-  async reportOutcome(report: OutcomeReport): Promise<OutcomeResponse> {
-    return this.request<OutcomeResponse>("/api/v1/outcome", {
+  async reportOutcome(params: OutcomeParams): Promise<OutcomeResult> {
+    return this.request<OutcomeResult>("/api/v1/outcome", {
       method: "POST",
-      body: JSON.stringify(report),
+      body: JSON.stringify(params),
     });
   }
 
