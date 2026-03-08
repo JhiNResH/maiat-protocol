@@ -1,8 +1,96 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { VerificationButton } from './VerificationButton'
+import { usePrivy } from '@privy-io/react-auth'
+
+// ── Vote Bar Component ─────────────────────────────────────────────────────
+
+function VoteBar({ reviewId, initialUp, initialDown }: { reviewId: string; initialUp: number; initialDown: number }) {
+  const { user, authenticated } = usePrivy()
+  const [upvotes, setUpvotes] = useState(initialUp)
+  const [downvotes, setDownvotes] = useState(initialDown)
+  const [myVote, setMyVote] = useState<'up' | 'down' | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const score = upvotes - downvotes
+  const walletAddress = user?.wallet?.address
+
+  const handleVote = useCallback(async (vote: 'up' | 'down') => {
+    if (!authenticated || !walletAddress || loading) return
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/v1/review/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewId, voter: walletAddress, vote }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.action === 'unchanged') {
+          // Already voted same way — do nothing
+        } else {
+          // Update counts
+          if (myVote === null) {
+            // New vote
+            if (vote === 'up') setUpvotes(u => u + 1)
+            else setDownvotes(d => d + 1)
+          } else if (myVote !== vote) {
+            // Flipped
+            if (vote === 'up') { setUpvotes(u => u + 1); setDownvotes(d => d - 1) }
+            else { setDownvotes(d => d + 1); setUpvotes(u => u - 1) }
+          }
+          setMyVote(vote)
+        }
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setLoading(false)
+    }
+  }, [authenticated, walletAddress, loading, reviewId, myVote])
+
+  return (
+    <div className="flex items-center justify-between pt-3 border-t border-[#1f1f23]">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => handleVote('up')}
+          disabled={!authenticated || loading}
+          className={`flex items-center gap-1 px-2 py-1 rounded transition text-sm ${
+            myVote === 'up'
+              ? 'text-emerald-400 bg-emerald-400/10'
+              : 'text-[#6b6b70] hover:text-emerald-400 hover:bg-emerald-400/5'
+          } ${!authenticated ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          title={authenticated ? 'Helpful' : 'Connect wallet to vote'}
+        >
+          👍 {upvotes > 0 && <span>{upvotes}</span>}
+        </button>
+
+        <button
+          onClick={() => handleVote('down')}
+          disabled={!authenticated || loading}
+          className={`flex items-center gap-1 px-2 py-1 rounded transition text-sm ${
+            myVote === 'down'
+              ? 'text-red-400 bg-red-400/10'
+              : 'text-[#6b6b70] hover:text-red-400 hover:bg-red-400/5'
+          } ${!authenticated ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          title={authenticated ? 'Not helpful' : 'Connect wallet to vote'}
+        >
+          👎 {downvotes > 0 && <span>{downvotes}</span>}
+        </button>
+
+        {score !== 0 && (
+          <span className={`text-xs font-medium ${score > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {score > 0 ? '+' : ''}{score} helpful
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 interface Review {
   id: string
@@ -154,22 +242,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
       <p className="text-[#d9d4e8]/80 mb-4 leading-relaxed text-sm">{review.content}</p>
 
       {/* Footer / Vote Bar */}
-      <div className="flex items-center justify-between pt-3 border-t border-[#1f1f23]">
-        <div className="flex items-center gap-4">
-          {/* Simple Vote Display (TODO: make interactive) */}
-          <div className="flex items-center gap-1.5 text-[#6b6b70]">
-            <span className={review.upvotes - review.downvotes > 0 ? 'text-blue-400' : ''}>▲</span>
-            <span className="text-sm font-bold">
-              {review.upvotes - review.downvotes}
-            </span>
-            <span>▼</span>
-          </div>
-          <button className="flex items-center gap-1 text-[#6b6b70] hover:text-slate-400 transition text-sm">
-            <span>💬</span>
-            <span>0</span>
-          </button>
-        </div>
-      </div>
+      <VoteBar reviewId={review.id} initialUp={review.upvotes} initialDown={review.downvotes} />
 
       {/* AI Verification Section */}
       {!badges.aiVerified && (
