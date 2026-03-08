@@ -174,11 +174,26 @@ model TrustReview {
   helpfulness    Float?             // 0-10
   reviewerType   String   @default("human")  // "human" | "agent"
   hasEas         Boolean  @default(false)     // reviewer has EAS attestation
+  upvotes        Int      @default(0)         // "helpful" count
+  downvotes      Int      @default(0)         // "not helpful" count
 
   @@index([address])
   @@index([reviewer])
   @@index([createdAt])
   @@index([qualityScore])
+}
+
+model ReviewVote {
+  id         String   @id @default(cuid())
+  reviewId   String
+  voter      String                           // wallet address of voter
+  vote       String                           // "up" | "down"
+  createdAt  DateTime @default(now())
+
+  @@unique([reviewId, voter])                 // one vote per review per person
+  @@map("review_votes")
+  @@index([reviewId])
+  @@index([voter])
 }
 
 model EASReceipt {
