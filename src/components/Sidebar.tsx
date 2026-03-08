@@ -31,7 +31,7 @@ const NAV_ITEMS = [
   { name: "Monitor", icon: Radar, path: "/monitor" },
   { name: "Opinion Market", icon: TrendingUp, path: "/markets" },
   { name: "Leaderboard", icon: Trophy, path: "/leaderboard" },
-
+  { name: "Analytics", icon: BarChart3, path: "/analytics" },
   { name: "Passport", icon: LayoutDashboard, path: "/dashboard" },
 ];
 
