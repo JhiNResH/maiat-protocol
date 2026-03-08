@@ -408,7 +408,7 @@ useEffect(() => {
   return () => sse.close();
 }, []);
 
-const { data: agentsData } = useSWR('/api/v1/agents?limit=1000', fetcher, { refreshInterval: 30000 });
+const { data: agentsData } = useSWR('/api/v1/agents?limit=20000', fetcher, { refreshInterval: 30000 });
 
 const radarAgents = useMemo<AgentNode[]>(() => {
   if (!agentsData?.agents) return [];
