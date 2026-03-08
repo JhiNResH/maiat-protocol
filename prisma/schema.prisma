@@ -318,3 +318,18 @@ model Outcome {
   @@index([clientId])
   @@index([createdAt])
 }
+
+model CallerWallet {
+  id            String   @id @default(cuid())
+  clientId      String   @unique        // X-Maiat-Client header value
+  walletAddress String                  // Privy server wallet address
+  walletId      String?                 // Privy wallet ID for signing
+  provider      String   @default("privy")
+  scarabBalance Int      @default(0)    // off-chain Scarab credit
+  totalOutcomes Int      @default(0)    // total outcomes reported
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("caller_wallets")
+  @@index([walletAddress])
+}

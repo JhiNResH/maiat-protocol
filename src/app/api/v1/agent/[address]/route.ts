@@ -281,6 +281,17 @@ async function buildResponse(
   const clientId = request.headers.get("x-maiat-client") ?? undefined;
   const callerIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || undefined;
   const userAgent = request.headers.get("user-agent") || undefined;
+
+  // Auto-assign wallet for caller (async, non-blocking)
+  let callerWallet: string | null = null;
+  if (clientId) {
+    try {
+      const { getCallerWallet } = await import("@/lib/caller-wallet");
+      callerWallet = await getCallerWallet(clientId);
+    } catch {
+      // Non-critical — wallet assignment failure doesn't block response
+    }
+  }
   const queryId = await logQueryAsync({
     type: "agent_trust",
     target: checksumAddress,
@@ -328,7 +339,8 @@ async function buildResponse(
       ...(queryId && {
         feedback: {
           queryId,
-          reportOutcome: `POST /api/v1/outcome { "jobId": "${queryId}", "outcome": "success|failure|partial", "reporter": "<your-wallet>" }`,
+          reportOutcome: `POST /api/v1/outcome { "jobId": "${queryId}", "outcome": "success|failure|partial", "reporter": "${callerWallet || '<your-wallet>'}" }`,
+          ...(callerWallet && { yourWallet: callerWallet }),
           note: "Report outcome to improve oracle accuracy. Outcomes refine trust scores over time.",
         },
       }),
