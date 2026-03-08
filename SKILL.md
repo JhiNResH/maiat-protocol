@@ -219,6 +219,39 @@ GET  /api/v1/scarab/status?address=0x...    → { canClaim, nextClaimAt }
 GET  /api/v1/scarab/nonce?address=0x...     → SIWE nonce for signing
 ```
 
+### Reviews
+```
+POST /api/v1/review
+Body: {
+  address: "0xTargetAddress",     // entity being reviewed
+  rating: 4,                      // 1-5 stars
+  comment: "Detailed review...",   // min 10 chars for AI scoring
+  reviewer: "0xYourWallet",        // your wallet address
+  tags: ["reliable", "fast"],      // optional
+  source: "human"                  // "human" | "agent" (agents get 0.5x weight)
+}
+→ { id, qualityScore, weight, createdAt }
+
+# Quality scoring (automatic via Gemini):
+#   relevance + evidence + helpfulness → qualityScore (0-10 avg)
+#   ≥ 7 → full display, 1.0x weight
+#   4-6 → collapsed, 0.5x weight
+#   < 4 → hidden, 0x weight
+#   EAS attestation → 1.5x boost
+#   Agent reviews → 0.5x multiplier (anti-spam)
+```
+
+### Review Votes
+```
+POST /api/v1/review/vote
+Body: { reviewId: "cuid", voter: "0xYourWallet", vote: "up" | "down" }
+→ { success, action: "created"|"changed"|"unchanged", scarab?: { reviewerEarned: 2 } }
+
+# One vote per review per wallet. Can flip vote.
+# Can't vote on own review.
+# Upvote → reviewer earns +2 Scarab 🪲
+```
+
 ### Markets (Prediction)
 ```
 GET  /api/v1/markets?status=open             → list markets
@@ -304,6 +337,8 @@ GET  /api/v1/stats/api                                  → API usage analytics
 |---|---|
 | First claim | +20 |
 | Daily claim | +5 + streak |
+| Outcome report | +5 |
+| Receive upvote | +2 |
 | Submit review | −5 |
 | Project vote | −5 |
 | Market stake | −amount |

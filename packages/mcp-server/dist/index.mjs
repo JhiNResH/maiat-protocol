@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// src/index.ts
+// packages/mcp-server/src/index.ts
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
