@@ -77,7 +77,7 @@ The AI will call `trust_score` and return something like:
 |----------|----------|-------------|
 | `ALCHEMY_API_KEY` | Recommended | Enables live on-chain scoring |
 | `MAIAT_API_KEY` | Optional | Higher rate limits on Maiat API |
-| `MAIAT_API_URL` | Optional | Custom API endpoint (default: https://maiat.xyz/api/v1) |
+| `MAIAT_API_URL` | Optional | Custom API endpoint (default: https://app.maiat.io/api/v1) |
 
 ## How It Works
 

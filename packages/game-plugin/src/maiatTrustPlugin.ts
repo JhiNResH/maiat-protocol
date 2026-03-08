@@ -9,7 +9,7 @@ import {
 //  Config
 // ─────────────────────────────────────────────
 
-const DEFAULT_API_URL = "https://maiat-protocol.vercel.app";
+const DEFAULT_API_URL = "https://app.maiat.io";
 const DEFAULT_MIN_SCORE = 3.0; // 0–10 scale
 const DEFAULT_CHAIN = "base";
 

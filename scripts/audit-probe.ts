@@ -5,7 +5,7 @@
  * Run: npx tsx scripts/audit-probe.ts
  */
 
-const BASE_URL = 'https://maiat-protocol.vercel.app'
+const BASE_URL = 'https://app.maiat.io'
 const TIMEOUT = 10_000
 
 // ANSI colors

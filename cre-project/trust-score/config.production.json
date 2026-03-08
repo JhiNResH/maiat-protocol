@@ -1,6 +1,6 @@
 {
   "schedule": "0 */6 * * *",
-  "maiatApiUrl": "https://maiat-protocol.vercel.app/api/v1/agents",
+  "maiatApiUrl": "https://app.maiat.io/api/v1/agents",
   "geminiApiUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_GEMINI_API_KEY",
   "evms": [
     {

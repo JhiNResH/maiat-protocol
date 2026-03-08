@@ -1,6 +1,6 @@
 # @virtuals-protocol/game-maiat-plugin
 
-> Trust score verification for GAME agents — powered by [Maiat Protocol](https://maiat-protocol.vercel.app)
+> Trust score verification for GAME agents — powered by [Maiat Protocol](https://app.maiat.io)
 
 Give your Virtuals agent the ability to **check trust before it acts**. Maiat Protocol provides on-chain verified trust scores for tokens, DeFi protocols, and AI agents on Base.
 
@@ -93,7 +93,7 @@ Score multiple addresses at once, sorted by trust.
 
 ```typescript
 new MaiatTrustPlugin({
-  apiUrl: "https://maiat-protocol.vercel.app",  // default
+  apiUrl: "https://app.maiat.io",  // default
   apiKey: "your-api-key",                        // optional
   minScore: 3.0,                                 // 0–10 scale
   chain: "base",                                 // base | bnb | solana
@@ -110,10 +110,10 @@ new MaiatTrustPlugin({
 
 ## Links
 
-- 🌐 [maiat-protocol.vercel.app](https://maiat-protocol.vercel.app)
+- 🌐 [app.maiat.io](https://app.maiat.io)
 - 📦 [GitHub](https://github.com/JhiNResH/maiat-protocol)
 - 🔗 Oracle contract (Base Sepolia): `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139`
-- 📖 [API docs](https://maiat-protocol.vercel.app/docs)
+- 📖 [API docs](https://app.maiat.io/docs)
 
 ## License
 

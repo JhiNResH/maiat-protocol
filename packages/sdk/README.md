@@ -46,7 +46,7 @@ console.log(swap.calldata); // ready-to-sign tx calldata
 
 | Option    | Default                             | Description                             |
 | --------- | ----------------------------------- | --------------------------------------- |
-| `baseUrl` | `https://maiat-protocol.vercel.app` | API base URL                            |
+| `baseUrl` | `https://app.maiat.io` | API base URL                            |
 | `apiKey`  | —                                   | Optional API key for higher rate limits |
 | `timeout` | `15000`                             | Request timeout (ms)                    |
 
@@ -91,6 +91,6 @@ This closes the feedback loop: check → act → report → oracle gets smarter.
 
 ## Links
 
-- Protocol: [maiat-protocol.vercel.app](https://maiat-protocol.vercel.app)
+- Protocol: [app.maiat.io](https://app.maiat.io)
 - GitHub: [JhiNResH/maiat-protocol](https://github.com/JhiNResH/maiat-protocol)
 - ACP: [Agent #3723 on Virtuals](https://app.virtuals.io/acp)

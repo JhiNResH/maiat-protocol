@@ -8,6 +8,6 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: 'ClaudeBot', allow: '/' },
       { userAgent: 'PerplexityBot', allow: '/' },
     ],
-    sitemap: 'https://maiat-protocol.vercel.app/sitemap.xml',
+    sitemap: 'https://app.maiat.io/sitemap.xml',
   }
 }

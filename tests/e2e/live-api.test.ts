@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-const BASE_URL = 'https://maiat-protocol.vercel.app'
+const BASE_URL = 'https://app.maiat.io'
 const TIMEOUT = 10_000
 
 const skip = process.env.RUN_E2E !== 'true'

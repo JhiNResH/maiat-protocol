@@ -41,7 +41,7 @@ const STEPS: Step[] = [
       'No SDK required — just HTTP',
       'Free tier: 100 req/day'
     ],
-    code: `curl -X POST https://maiat.xyz/api/v1/trust-score \\
+    code: `curl -X POST https://app.maiat.io/api/v1/trust-score \\
   -H "Content-Type: application/json" \\
   -d '{"agentAddress": "0x1234..."}'`
   },
