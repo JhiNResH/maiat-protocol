@@ -1,20 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const ADMIN_KEY = process.env.ANALYTICS_KEY || "maiat-analytics-2026";
-
 /**
- * GET /api/v1/stats/api?key=<ADMIN_KEY>
+ * GET /api/v1/stats/api
  *
- * API usage analytics — protected by key param.
+ * Public API usage analytics — aggregated stats + recent queries.
  */
-export async function GET(req: NextRequest) {
-  const key = req.nextUrl.searchParams.get("key");
-  if (key !== ADMIN_KEY) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function GET() {
   try {
     const now = new Date();
     const h24 = new Date(now.getTime() - 24 * 60 * 60 * 1000);

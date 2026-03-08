@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, BarChart3, Users, Target, Clock, Lock } from "lucide-react";
-import { usePrivy } from "@privy-io/react-auth";
-
-const ADMIN_WALLETS = [
-  "0xe6ac05d2b50cd525f793024d75bb6f519a52af5d", // Maiat
-];
+import { Activity, BarChart3, Users, Target, Clock } from "lucide-react";
 
 interface ApiStats {
   overview: {
@@ -76,40 +71,16 @@ function verdictColor(v: string | null) {
 }
 
 export default function AnalyticsPage() {
-  const { user, authenticated, ready } = usePrivy();
   const [stats, setStats] = useState<ApiStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const walletAddress = user?.wallet?.address?.toLowerCase();
-  const isAdmin = authenticated && walletAddress && ADMIN_WALLETS.includes(walletAddress);
-
   useEffect(() => {
-    if (!isAdmin) return;
-    fetch("/api/v1/stats/api?key=maiat-analytics-2026")
+    fetch("/api/v1/stats/api")
       .then((r) => r.json())
       .then(setStats)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [isAdmin]);
-
-  if (!ready || loading && isAdmin) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <Activity className="w-6 h-6 text-[#3b82f6] animate-pulse" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <div className="text-center">
-          <Lock className="w-8 h-8 text-[#333] mx-auto mb-3" />
-          <p className="text-sm font-mono text-[#555]">Admin access only</p>
-        </div>
-      </div>
-    );
-  }
+  }, []);
 
   if (!stats) {
     return (
