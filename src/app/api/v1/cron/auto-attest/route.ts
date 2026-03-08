@@ -44,10 +44,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!process.env.MAIAT_ADMIN_PRIVATE_KEY) {
-    console.log("[auto-attest] Skipping: MAIAT_ADMIN_PRIVATE_KEY not configured");
+  if (!process.env.EAS_DEPLOYER_KEY && !process.env.MAIAT_ADMIN_PRIVATE_KEY) {
+    console.log("[auto-attest] Skipping: EAS_DEPLOYER_KEY not configured");
     return NextResponse.json(
-      { skipped: true, reason: "MAIAT_ADMIN_PRIVATE_KEY not configured" },
+      { skipped: true, reason: "EAS_DEPLOYER_KEY not configured" },
       { status: 200, headers: CORS_HEADERS }
     );
   }
@@ -89,16 +89,34 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fire-and-forget attestations
-    let attempted = 0;
-    for (const pair of pairs) {
+    // Attest up to 20 per run (gas budget)
+    const MAX_ATTESTATIONS = 20;
+    const batch = pairs.slice(0, MAX_ATTESTATIONS);
+    let attested = 0;
+    let failed = 0;
+    const attestedTargets: { target: string; score: number }[] = [];
+
+    for (const pair of batch) {
       try {
-        attestTrustScore(pair.target, pair.score, pair.verdict).catch((err) => {
-          console.warn(`[auto-attest] attestTrustScore failed for ${pair.target}:`, err.message);
-        });
-        attempted++;
+        const uid = await attestTrustScore(pair.target, pair.score, pair.verdict);
+        attested++;
+        attestedTargets.push({ target: pair.target, score: pair.score });
+        console.log(`[auto-attest] ✅ ${pair.target} score=${pair.score} uid=${uid}`);
       } catch (err: any) {
-        console.warn(`[auto-attest] failed to queue attestation for ${pair.target}:`, err.message);
+        failed++;
+        console.warn(`[auto-attest] ❌ ${pair.target}: ${err.message}`);
+      }
+    }
+
+    // Oracle sync: update TrustScoreOracle on-chain for attested agents
+    let oracleUpdated = 0;
+    if (attestedTargets.length > 0) {
+      try {
+        const { syncOracleScores } = await import("@/lib/oracle-sync");
+        oracleUpdated = await syncOracleScores(attestedTargets);
+        console.log(`[auto-attest] Oracle synced: ${oracleUpdated} agents`);
+      } catch (err: any) {
+        console.warn(`[auto-attest] Oracle sync failed: ${err.message}`);
       }
     }
 
@@ -107,7 +125,10 @@ export async function GET(request: NextRequest) {
         success: true,
         logsFound: logs.length,
         uniquePairs: pairs.length,
-        attestationsAttempted: attempted,
+        attested,
+        failed,
+        skippedOverLimit: Math.max(0, pairs.length - MAX_ATTESTATIONS),
+        oracleUpdated,
       },
       { status: 200, headers: CORS_HEADERS }
     );

@@ -88,9 +88,9 @@ async function getChangedScores() {
  * Batches up to 100 records per transaction.
  */
 export async function syncOracleScores(): Promise<SyncResult> {
-  const updaterKey = process.env.ORACLE_UPDATER_KEY
+  const updaterKey = process.env.ORACLE_UPDATER_KEY || process.env.EAS_DEPLOYER_KEY
   if (!updaterKey) {
-    throw new Error('ORACLE_UPDATER_KEY env var is not set')
+    throw new Error('ORACLE_UPDATER_KEY or EAS_DEPLOYER_KEY env var is not set')
   }
 
   const account = privateKeyToAccount(updaterKey as Hex)
