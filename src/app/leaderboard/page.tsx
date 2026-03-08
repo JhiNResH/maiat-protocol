@@ -39,6 +39,13 @@ function cleanAgentName(name: string) {
   return (name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
 }
 
+function formatAgdp(val: number | null | undefined): string {
+  if (val == null) return "—";
+  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+  if (val >= 1_000) return `$${(val / 1_000).toFixed(1)}K`;
+  return `$${val.toFixed(0)}`;
+}
+
 /** Derive verdict from trust score (0–100 scale). */
 function scoreToVerdict(score: number | null): "proceed" | "caution" | "avoid" | "unknown" {
   if (score === null || score === undefined) return "unknown";
@@ -504,7 +511,7 @@ function LeaderboardView({
                   <div className="text-right hidden md:block">
                     <div className="text-[10px] font-mono text-[#444444]">AGDP</div>
                     <div className="text-xs font-mono text-[#888888]">
-                      ${agent.breakdown?.agdp?.toFixed(2) ?? "—"}
+                      {formatAgdp(agent.breakdown?.agdp)}
                     </div>
                   </div>
 
