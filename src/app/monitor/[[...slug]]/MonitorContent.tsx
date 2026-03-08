@@ -559,7 +559,6 @@ return (
 
               <div className="space-y-4 flex-1">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-[#fbbf24]"><Trophy size={14} /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Protocol Leaderboard</span></div>
                   <span className="text-[8px] font-mono text-slate-500 uppercase">Top 5 Active</span>
                 </div>
                 
