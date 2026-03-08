@@ -73,6 +73,10 @@ if (score.verdict === 'avoid') throw new Error('Agent not trusted')
 const token = await maiat.tokenCheck('0xTokenAddress')
 // → { verdict: 'proceed', honeypot: false, ... }
 
+// Deep token forensics (rug pull risk analysis)
+const forensics = await maiat.tokenForensics('0xTokenAddress')
+// → { rugScore: 45, riskLevel: 'high', riskFlags: ['HIGH_CONCENTRATION'], contract, holders, liquidity }
+
 // Trust-gated swap quote + execute
 const result = await maiat.trustSwap({ tokenIn, tokenOut, amount, swapper, chainId: 8453 })
 // → { allowed: true, quote: { calldata, ... }, trustScore, verdict }
@@ -118,6 +122,49 @@ GET  /api/v1/agents?sort=trust&limit=50&search=name   → list all indexed agent
 GET  /api/v1/token/{address}           → honeypot check, liquidity, trust verdict
 GET  /api/v1/token/{address}/forensics → deep rug pull risk analysis (contract, holders, liquidity, rug score)
 ```
+
+#### Token Forensics Example
+```bash
+curl https://app.maiat.io/api/v1/token/0xYourToken/forensics
+```
+```json
+{
+  "address": "0x...",
+  "rugScore": 45,
+  "riskLevel": "high",
+  "riskFlags": ["OWNER_NOT_RENOUNCED", "HIGH_CONCENTRATION"],
+  "summary": "Top 10 holders control >80% of supply. Contract owner has not renounced.",
+  "contract": {
+    "hasOwner": true,
+    "owner": "0x...",
+    "isRenounced": false,
+    "isProxy": false,
+    "codeSizeBytes": 4821
+  },
+  "holders": {
+    "top10Percentage": 82.5,
+    "whaleCount": 3,
+    "topHolders": [{ "address": "0x...", "percentage": 45.2 }]
+  },
+  "liquidity": {
+    "hasLiquidity": true,
+    "poolCount": 2,
+    "estimatedUsd": 45000,
+    "isLocked": null
+  },
+  "feedback": {
+    "queryId": "cmmi...",
+    "reportOutcome": "POST /api/v1/outcome",
+    "note": "Report outcome to improve rug detection accuracy."
+  }
+}
+```
+
+**Risk flags:** `HONEYPOT_DETECTED`, `HONEYPOT_RISK`, `UPGRADEABLE_PROXY`, `OWNER_NOT_RENOUNCED`, `NO_CONTRACT_CODE`, `EXTREME_CONCENTRATION`, `HIGH_CONCENTRATION`, `MULTIPLE_WHALES`, `NO_LIQUIDITY`, `LOW_LIQUIDITY`
+
+**rugScore:** 0 = safe, 100 = definite rug. Risk levels: `low` (<20), `medium` (20-44), `high` (45-69), `critical` (≥70)
+
+**Use case:** Before swapping into any token, call forensics to check for rug indicators. Report outcome after — if the token rugs, report `"outcome": "scam"` so the oracle learns.
 
 ### Trust-Gated Swap
 ```
