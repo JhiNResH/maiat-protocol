@@ -84,6 +84,7 @@ export function DashboardView() {
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
   const [claimMsg, setClaimMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [refreshTick, setRefreshTick] = useState(0)
 
   // Load Passport Data
   useEffect(() => {
@@ -94,7 +95,7 @@ export function DashboardView() {
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [walletAddress, claimMsg])
+  }, [walletAddress, refreshTick])
 
   // Load Reviewable Agents
   useEffect(() => {
@@ -128,6 +129,8 @@ export function DashboardView() {
         setClaimMsg({ ok: false, text: 'Already claimed today. Come back tomorrow!' })
       } else {
         setClaimMsg({ ok: true, text: `+${result.amount ?? 5} 🪲 claimed! Streak: ${result.streak ?? 1} day(s)` })
+        // Delay refresh slightly so DB write completes before re-fetch
+        setTimeout(() => setRefreshTick(t => t + 1), 500)
       }
     } catch (err: any) {
       console.error("[Claim Error]", err);
