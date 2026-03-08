@@ -63,15 +63,8 @@ async function recomputeTrustScore(agentAddress: string, onchainScore: number): 
 }
 
 export async function POST(request: NextRequest) {
-  // Auth: require X-Maiat-Key header matching MAIAT_API_KEY env var
-  const apiKey = request.headers.get("X-Maiat-Key");
-  const expectedKey = process.env.MAIAT_API_KEY;
-  if (!expectedKey || apiKey !== expectedKey) {
-    return NextResponse.json(
-      { error: "Unauthorized: valid X-Maiat-Key required" },
-      { status: 401, headers: CORS_HEADERS }
-    );
-  }
+  // Auth: optional X-Maiat-Key for attribution (not required for reporting)
+  // Rate limiting via IP is the primary abuse prevention
 
   const { success: rlOk } = await checkIpRateLimit(request, rateLimiter);
   if (!rlOk) {
