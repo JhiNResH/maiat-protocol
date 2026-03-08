@@ -20,6 +20,7 @@
     "@ethereum-attestation-service/eas-sdk": "^2.9.0",
     "@google/generative-ai": "^0.24.1",
     "@jhinresh/viem-guard": "^0.1.0",
+    "@openzeppelin/contracts": "^5.6.1",
     "@prisma/client": "^5.22.0",
     "@privy-io/react-auth": "^1.95.0",
     "@privy-io/server-auth": "^1.32.5",
