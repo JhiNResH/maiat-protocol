@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://maiat-protocol.vercel.app">Live App</a> ·
-  <a href="https://maiat-protocol.vercel.app/docs">API Docs</a> ·
+  <a href="https://app.maiat.io">Live App</a> ·
+  <a href="https://app.maiat.io/docs">API Docs</a> ·
   <a href="https://app.virtuals.io/acp">ACP Agent #18281</a>
 </p>
 
@@ -48,7 +48,7 @@
 
 ## Web App Pages
 
-Live at [maiat-protocol.vercel.app](https://maiat-protocol.vercel.app)
+Live at [app.maiat.io](https://app.maiat.io)
 
 | Route                    | Description                                                                                  |
 | ------------------------ | -------------------------------------------------------------------------------------------- |

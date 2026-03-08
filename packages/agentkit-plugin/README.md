@@ -60,7 +60,7 @@ Pre-flight check before executing a transaction.
 | Option | Default | Description |
 |--------|---------|-------------|
 | `minScore` | `3.0` | Minimum trust score (0-10) |
-| `apiUrl` | `https://maiat-protocol.vercel.app` | API endpoint |
+| `apiUrl` | `https://app.maiat.io` | API endpoint |
 | `apiKey` | (none) | API key for higher limits |
 | `chain` | `base` | Default chain |
 | `warnOnly` | `false` | Log warnings instead of blocking |

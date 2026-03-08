@@ -10,7 +10,7 @@
  *   await maiat.reportOutcome({ agent: "0x...", action: "swap", result: "success" });
  */
 export interface MaiatConfig {
-    /** Base URL for Maiat Protocol API. Default: https://maiat-protocol.vercel.app */
+    /** Base URL for Maiat Protocol API. Default: https://app.maiat.io */
     baseUrl?: string;
     /** Optional API key for higher rate limits */
     apiKey?: string;

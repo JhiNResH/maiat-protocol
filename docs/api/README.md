@@ -1,6 +1,6 @@
 # Maiat Protocol API Reference
 
-**Base URL:** `https://maiat-protocol.vercel.app/api/v1`  
+**Base URL:** `https://app.maiat.io/api/v1`  
 **Format:** JSON over HTTPS  
 **Auth:** Most endpoints are public. Admin/cron endpoints require `Authorization: Bearer <secret>`.
 

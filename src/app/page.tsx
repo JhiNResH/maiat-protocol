@@ -14,10 +14,10 @@ const jsonLd = {
     {
       "@type": "Organization",
       "name": "Maiat Protocol",
-      "url": "https://maiat-protocol.vercel.app",
+      "url": "https://app.maiat.io",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://maiat-protocol.vercel.app/maiat.jpg",
+        "url": "https://app.maiat.io/maiat.jpg",
         "width": 1200,
         "height": 630
       },
@@ -32,7 +32,7 @@ const jsonLd = {
       "@type": "SoftwareApplication",
       "name": "Maiat Protocol",
       "description": "Behavioral trust oracle for AI agents. Scores any EVM agent on completion rate, payment reliability, and job history sourced from Virtuals ACP. Built on Base.",
-      "url": "https://maiat-protocol.vercel.app",
+      "url": "https://app.maiat.io",
       "applicationCategory": "SecurityApplication",
       "operatingSystem": "Web",
       "datePublished": "2025-01-01",
@@ -45,7 +45,7 @@ const jsonLd = {
         "Community reviews and attestations",
         "Base Sepolia + Base Mainnet support"
       ],
-      "screenshot": "https://maiat-protocol.vercel.app/maiat.jpg",
+      "screenshot": "https://app.maiat.io/maiat.jpg",
       "offers": {
         "@type": "Offer",
         "price": "0",
@@ -69,7 +69,7 @@ const jsonLd = {
         {
           "@type": "Question",
           "name": "How do I check if a smart contract is safe?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Use Maiat Protocol's agent trust API: GET https://maiat-protocol.vercel.app/api/v1/agent/{address}. It returns a behavioral trust score and verdict (proceed/caution/avoid) based on Virtuals ACP job history. No API key required." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Use Maiat Protocol's agent trust API: GET https://app.maiat.io/api/v1/agent/{address}. It returns a behavioral trust score and verdict (proceed/caution/avoid) based on Virtuals ACP job history. No API key required." }
         },
         {
           "@type": "Question",

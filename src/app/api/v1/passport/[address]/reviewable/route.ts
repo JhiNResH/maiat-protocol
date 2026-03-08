@@ -46,7 +46,7 @@ export async function GET(
     // Also check on-chain interactions via Alchemy and cross-reference with known agents
     try {
       const interactionsRes = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL || 'https://maiat-protocol.vercel.app'}/api/v1/wallet/${wallet}/interactions`
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'https://app.maiat.io'}/api/v1/wallet/${wallet}/interactions`
       );
       if (interactionsRes.ok) {
         const interactionsData = await interactionsRes.json();

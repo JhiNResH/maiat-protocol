@@ -122,7 +122,7 @@ Follow the [Diataxis](https://diataxis.fr/) framework as a guide (not a strict r
 - `src/app/api/v1/` — All REST API route handlers (source of truth for API docs)
 - `docs/` — Internal markdown references (trust-score-spec, tokenomics, demo scripts)
 
-### API Endpoints (live at maiat-protocol.vercel.app/api/v1)
+### API Endpoints (live at app.maiat.io/api/v1)
 | Route | Method | Description |
 |---|---|---|
 | `/api/v1/agent/:address` | GET | Agent trust score |

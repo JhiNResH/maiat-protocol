@@ -22,7 +22,7 @@
 export interface MaiatPluginConfig {
     /** Minimum trust score (0-10) to allow transactions. Default: 3.0 */
     minScore?: number;
-    /** Maiat API base URL. Default: https://maiat-protocol.vercel.app */
+    /** Maiat API base URL. Default: https://app.maiat.io */
     apiUrl?: string;
     /** API key for higher rate limits */
     apiKey?: string;
