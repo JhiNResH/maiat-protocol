@@ -325,7 +325,6 @@ model CallerWallet {
   walletAddress String                  // Privy server wallet address
   walletId      String?                 // Privy wallet ID for signing
   provider      String   @default("privy")
-  scarabBalance Int      @default(0)    // off-chain Scarab credit
   totalOutcomes Int      @default(0)    // total outcomes reported
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
