@@ -8,12 +8,12 @@
  *   - outcome_report: +10 Scarab (reported outcome for a query)
  *   - daily_claim:    +5 + streak
  *   - first_claim:    +20
- *   - review_submit:  -2
+ *   - review_submit:  -5
  */
 
 import { prisma } from "@/lib/prisma";
 
-const OUTCOME_REWARD = 10;
+const OUTCOME_REWARD = 5;
 
 /**
  * Credit Scarab reward for reporting an outcome.

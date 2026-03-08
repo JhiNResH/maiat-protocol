@@ -271,7 +271,7 @@ GET  /api/v1/stats/api                                  → API usage analytics
 |---|---|
 | First claim | +20 |
 | Daily claim | +5 + streak |
-| Submit review | −2 |
+| Submit review | −5 |
 | Project vote | −5 |
 | Market stake | −amount |
 

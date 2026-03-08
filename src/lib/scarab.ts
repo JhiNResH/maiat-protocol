@@ -23,7 +23,7 @@ export const SCARAB_CONFIG = {
   DAILY_CLAIM: 5,
   STREAK_BONUS: 1, // +1 per consecutive day
   MAX_STREAK_BONUS: 5, // cap at +5 extra
-  REVIEW_COST: 2,
+  REVIEW_COST: 5,
   VOTE_COST: 5,
   BOOST_MULTIPLIER: 2, // first-week boost
   PURCHASE_TIERS: {
@@ -185,7 +185,7 @@ export async function spendScarab(
         address: normalized,
         amount: -cost,
         type,
-        description: type === 'review_spend' ? 'Review submitted (-2 🪲)' : 'Weekly vote cast (-5 🪲)',
+        description: type === 'review_spend' ? 'Review submitted (-5 🪲)' : 'Weekly vote cast (-5 🪲)',
         referenceId,
         balanceAfter: newBalance,
       },
