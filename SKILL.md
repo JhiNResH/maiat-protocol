@@ -116,6 +116,7 @@ GET  /api/v1/agents?sort=trust&limit=50&search=name   → list all indexed agent
 ### Token Safety
 ```
 GET  /api/v1/token/{address}           → honeypot check, liquidity, trust verdict
+GET  /api/v1/token/{address}/forensics → deep rug pull risk analysis (contract, holders, liquidity, rug score)
 ```
 
 ### Trust-Gated Swap
