@@ -41,7 +41,6 @@ export async function GET() {
           id: true,
           type: true,
           target: true,
-          buyer: true,
           trustScore: true,
           verdict: true,
           outcome: true,
