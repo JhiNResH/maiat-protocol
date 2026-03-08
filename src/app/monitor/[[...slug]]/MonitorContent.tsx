@@ -408,7 +408,7 @@ useEffect(() => {
   return () => sse.close();
 }, []);
 
-const { data: agentsData } = useSWR('/api/v1/agents?limit=5000', fetcher, { refreshInterval: 30000 });
+const { data: agentsData } = useSWR('/api/v1/agents?limit=1000', fetcher, { refreshInterval: 30000 });
 
 const radarAgents = useMemo<AgentNode[]>(() => {
   if (!agentsData?.agents) return [];
@@ -462,7 +462,7 @@ useEffect(() => {
   }
 }, [radarAgents.length, selectedId]);
 
-const handleSelect = useCallback(async (query: string | null) => {
+const handleSelect = useCallback((query: string | null) => {
   if (!query) { router.replace('/monitor', { scroll: false }); mapRef.current?.resetView(); return; }
   const target = radarAgents.find(a => a.id.toLowerCase() === query.toLowerCase() || a.label.toLowerCase().includes(query.toLowerCase()));
   if (target) {
@@ -470,23 +470,7 @@ const handleSelect = useCallback(async (query: string | null) => {
     mapRef.current?.panToNode(id);
     const cleanName = (target.label || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
     router.replace(`/monitor/agent/${cleanName}/${id}`, { scroll: false });
-  } else {
-    // Server-side search fallback for agents not in the top 1000
-    try {
-      const res = await fetch(`/api/v1/agents?search=${encodeURIComponent(query)}&limit=1`);
-      const data = await res.json();
-      const agent = data.agents?.[0];
-      if (agent?.id) {
-        const id = agent.id.toLowerCase();
-        const cleanName = (agent.name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-        router.replace(`/monitor/agent/${cleanName}/${id}`, { scroll: false });
-      } else {
-        router.replace('/monitor', { scroll: false }); mapRef.current?.resetView();
-      }
-    } catch {
-      router.replace('/monitor', { scroll: false }); mapRef.current?.resetView();
-    }
-  }
+  } else { router.replace('/monitor', { scroll: false }); mapRef.current?.resetView(); }
 }, [router, radarAgents]);
 
 const selectedNode = useMemo(() => {
