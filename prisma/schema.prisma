@@ -157,20 +157,28 @@ model ScarabPurchase {
 }
 
 model TrustReview {
-  id           String   @id @default(cuid())
-  address      String
-  rating       Int
-  comment      String   @default("")
-  tags         String[] @default([])
-  reviewer     String
-  createdAt    DateTime @default(now())
-  easReceiptId String?
-  weight       Int      @default(1)
-  source       String?  @default("human")
+  id             String   @id @default(cuid())
+  address        String
+  rating         Int
+  comment        String   @default("")
+  tags           String[] @default([])
+  reviewer       String
+  createdAt      DateTime @default(now())
+  easReceiptId   String?
+  weight         Int      @default(1)
+  source         String?  @default("human")
+  // AI quality scoring
+  qualityScore   Float?             // 0-10 from Gemini
+  relevance      Float?             // 0-10
+  evidence       Float?             // 0-10
+  helpfulness    Float?             // 0-10
+  reviewerType   String   @default("human")  // "human" | "agent"
+  hasEas         Boolean  @default(false)     // reviewer has EAS attestation
 
   @@index([address])
   @@index([reviewer])
   @@index([createdAt])
+  @@index([qualityScore])
 }
 
 model EASReceipt {
