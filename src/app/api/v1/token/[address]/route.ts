@@ -362,6 +362,9 @@ export async function GET(
   { params }: { params: Promise<{ address: string }> }
 ) {
   const { address: rawAddress } = await params;
+  const _callerIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || undefined;
+  const _userAgent = request.headers.get("user-agent") || undefined;
+  const _clientId = request.headers.get("x-maiat-client") ?? undefined;
 
   // ── Validate address ─────────────────────────────────────────────────────────
   if (!rawAddress || !isAddress(rawAddress)) {
@@ -379,7 +382,7 @@ export async function GET(
   // ── Step 1: KNOWN_SAFE whitelist ─────────────────────────────────────────────
   if (KNOWN_SAFE[checksumAddress]) {
     const { symbol, name } = KNOWN_SAFE[checksumAddress];
-    logQuery({ type: "token_check", target: checksumAddress, trustScore: 100, verdict: "proceed", metadata: { tokenType: "known_safe", symbol } });
+    logQuery({ type: "token_check", target: checksumAddress, clientId: _clientId, callerIp: _callerIp, userAgent: _userAgent, trustScore: 100, verdict: "proceed", metadata: { tokenType: "known_safe", symbol } });
     return NextResponse.json(
       {
         address: checksumAddress,
@@ -428,7 +431,7 @@ export async function GET(
         if (score < 40) agentRiskFlags.push("LOW_AGENT_TRUST");
         if (!hasScore) agentRiskFlags.push("INSUFFICIENT_DATA");
         const scarabReviews = await getScarabReviews(checksumAddress);
-        logQuery({ type: "token_check", target: checksumAddress, trustScore: score, verdict, metadata: { tokenType: "agent_token", totalJobs: agentScore.totalJobs } });
+        logQuery({ type: "token_check", target: checksumAddress, clientId: _clientId, callerIp: _callerIp, userAgent: _userAgent, trustScore: score, verdict, metadata: { tokenType: "agent_token", totalJobs: agentScore.totalJobs } });
         return NextResponse.json(
           {
             address: checksumAddress,
@@ -518,7 +521,7 @@ export async function GET(
     );
 
     // ── Build response ─────────────────────────────────────────────────────────
-    logQuery({ type: "token_check", target: checksumAddress, trustScore, verdict, metadata: { tokenType: "memecoin", isHoneypot: honeypot.isHoneypot, riskFlags } });
+    logQuery({ type: "token_check", target: checksumAddress, clientId: _clientId, callerIp: _callerIp, userAgent: _userAgent, trustScore, verdict, metadata: { tokenType: "memecoin", isHoneypot: honeypot.isHoneypot, riskFlags } });
     return NextResponse.json(
       {
         address: checksumAddress,
