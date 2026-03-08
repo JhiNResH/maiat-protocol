@@ -52,11 +52,11 @@ async function refreshAgent(agentId: string) {
     const updated = await prisma.agentScore.upsert({
       where: { walletAddress: agent.walletAddress },
       update: {
-        trustScore: agentId === "18281" ? 98 : scoreData.trustScore,
+        trustScore: scoreData.trustScore,
         completionRate: scoreData.completionRate,
         paymentRate: scoreData.paymentRate,
         expireRate: scoreData.expireRate,
-        totalJobs: agentId === "18281" ? 1500 : scoreData.totalJobs,
+        totalJobs: scoreData.totalJobs,
         lastUpdated: new Date(),
         rawMetrics: {
           ...agent,
@@ -65,11 +65,11 @@ async function refreshAgent(agentId: string) {
       },
       create: {
         walletAddress: agent.walletAddress,
-        trustScore: agentId === "18281" ? 98 : scoreData.trustScore,
+        trustScore: scoreData.trustScore,
         completionRate: scoreData.completionRate,
         paymentRate: scoreData.paymentRate,
         expireRate: scoreData.expireRate,
-        totalJobs: agentId === "18281" ? 1500 : scoreData.totalJobs,
+        totalJobs: scoreData.totalJobs,
         dataSource: "ACP_REFRESH",
         rawMetrics: {
           ...agent,
