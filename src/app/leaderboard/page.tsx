@@ -386,11 +386,33 @@ function LeaderboardView({
   router: ReturnType<typeof useRouter>;
   sortBy?: "trust" | "jobs";
 }) {
-  const top = [...agents]
+  const [query, setQuery] = useState("");
+  const [serverResults, setServerResults] = useState<Agent[]>([]);
+
+  // Server-side search when query doesn't match local agents
+  useEffect(() => {
+    if (!query.trim()) { setServerResults([]); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/v1/agents?search=${encodeURIComponent(query.trim())}&limit=20&sort=${sortBy}`);
+        const data = await res.json();
+        setServerResults(data.agents?.map((a: any) => ({
+          id: a.id, name: a.name, category: a.category, chain: a.chain,
+          logo: a.logo, trust: a.trust, breakdown: a.breakdown,
+        })) || []);
+      } catch { setServerResults([]); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, sortBy]);
+
+  const sorted = [...agents]
     .sort((a, b) => sortBy === "jobs"
       ? (b.breakdown?.totalJobs ?? 0) - (a.breakdown?.totalJobs ?? 0)
-      : (b.trust.score ?? -1) - (a.trust.score ?? -1))
-    .slice(0, 50);
+      : (b.trust.score ?? -1) - (a.trust.score ?? -1));
+
+  const top = query.trim()
+    ? (serverResults.length > 0 ? serverResults : sorted.filter(a => a.name.toLowerCase().includes(query.toLowerCase()) || a.id.toLowerCase().includes(query.toLowerCase())))
+    : sorted.slice(0, 50);
 
   const rankStyle = (i: number) => {
     if (i === 0) return "text-[#FFD700] text-lg";
@@ -419,6 +441,18 @@ function LeaderboardView({
           <p className="text-[11px] text-[#444444] font-mono mt-1">
             Ranked by behavioral trust score · sourced from Virtuals ACP job history
           </p>
+        </div>
+
+        {/* Search */}
+        <div className="relative max-w-md mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#666666]" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="search by name or address..."
+            className="w-full bg-[#111111] border border-[#1F1F1F] rounded px-3 py-2 pl-9 text-xs font-mono text-[#E5E5E5] placeholder-[#444] outline-none focus:border-[#3b82f6]/40 transition-colors"
+          />
         </div>
 
         {loading ? (
