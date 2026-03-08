@@ -20,8 +20,41 @@ Think of it as **Yelp for the onchain world** — any entity can be rated, and s
 **Live app:** `https://app.maiat.io`  
 **Landing:** `https://maiat.io`  
 **API base:** `https://app.maiat.io/api/v1`  
+**MCP endpoint:** `https://app.maiat.io/api/mcp`  
 **Repo:** `https://github.com/JhiNResH/maiat-protocol`  
 **Full docs:** `https://github.com/JhiNResH/maiat-protocol/tree/master/docs/api`
+
+---
+
+## MCP Integration (Fastest Way to Connect)
+
+If you support **Model Context Protocol (MCP)**, point directly to:
+
+```
+https://app.maiat.io/api/mcp
+```
+
+No install, no CLI, no API key needed. Available tools via MCP:
+
+| Tool | Description |
+|---|---|
+| `get_agent_trust` | Trust score + verdict for any ACP agent wallet |
+| `get_token_forensics` | Rug risk analysis for any token contract |
+| `report_outcome` | Close the feedback loop after using an agent |
+| `get_scarab_balance` | Check Scarab reputation points for a wallet |
+
+**Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "maiat": {
+      "url": "https://app.maiat.io/api/mcp"
+    }
+  }
+}
+```
+
+**OpenClaw / skill.md users:** use the REST API below (works for any LLM).
 
 ---
 
