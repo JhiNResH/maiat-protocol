@@ -28,7 +28,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { logQuery } from "@/lib/query-logger";
+import { logQueryAsync } from "@/lib/query-logger";
 import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
 import { computeTrustScore, type AcpAgent } from "@/lib/acp-indexer";
@@ -185,7 +185,8 @@ async function fetchAndIndexAgent(
 
 async function buildDeepResponse(
   checksumAddress: string,
-  record: AgentScoreRecord
+  record: AgentScoreRecord,
+  request?: NextRequest
 ): Promise<NextResponse> {
   const ageWeeks = extractAgeWeeks(record.rawMetrics);
   const verdict  = scoreToVerdict(record.trustScore);
@@ -212,12 +213,18 @@ async function buildDeepResponse(
     if (typeof raw?.category === "string") category = raw.category;
   } catch { /* ignore */ }
 
-  // Fire-and-forget query log
-  logQuery({
+  // Async query log — returns queryId for feedback loop
+  const callerIp = request?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request?.headers.get("x-real-ip") || undefined;
+  const userAgent = request?.headers.get("user-agent") || undefined;
+  const clientId = request?.headers.get("x-maiat-client") ?? undefined;
+  const queryId = await logQueryAsync({
     type:       "agent_deep_check",
     target:     checksumAddress,
     trustScore: record.trustScore,
     verdict,
+    clientId,
+    callerIp,
+    userAgent,
     metadata:   { totalJobs: record.totalJobs, dataSource: record.dataSource, tier },
   });
 
@@ -242,6 +249,13 @@ async function buildDeepResponse(
         recommendation,
         category,
       },
+      ...(queryId && {
+        feedback: {
+          queryId,
+          reportOutcome: `POST /api/v1/outcome { "jobId": "${queryId}", "outcome": "success|failure|partial", "reporter": "<your-wallet>" }`,
+          note: "Report outcome to improve oracle accuracy.",
+        },
+      }),
     },
     {
       headers: {
@@ -291,7 +305,7 @@ export async function GET(
       // On-demand fetch from Virtuals API
       const onDemand = await fetchAndIndexAgent(checksumAddress);
       if (onDemand) {
-        return buildDeepResponse(checksumAddress, onDemand);
+        return buildDeepResponse(checksumAddress, onDemand, request);
       }
 
       // Truly unknown
@@ -315,7 +329,7 @@ export async function GET(
       );
     }
 
-    return buildDeepResponse(checksumAddress, record);
+    return buildDeepResponse(checksumAddress, record, request);
 
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
