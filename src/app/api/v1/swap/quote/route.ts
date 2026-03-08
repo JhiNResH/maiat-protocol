@@ -100,6 +100,9 @@ export async function POST(request: NextRequest) {
     const amountOut = String(innerQuote?.output && typeof innerQuote.output === "object"
       ? (innerQuote.output as Record<string, unknown>).amount ?? ""
       : "");
+    const _callerIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || undefined;
+    const _userAgent = request.headers.get("user-agent") || undefined;
+    const _clientId = request.headers.get("x-maiat-client") ?? undefined;
     logQuery({
       type: "trust_swap",
       target: tokenOut,
@@ -109,6 +112,9 @@ export async function POST(request: NextRequest) {
       verdict: tokenOutScore ? (tokenOutScore.score >= 70 ? "proceed" : tokenOutScore.score >= 40 ? "caution" : "avoid") : null,
       amountIn: amount,
       amountOut: amountOut || undefined,
+      clientId: _clientId,
+      callerIp: _callerIp,
+      userAgent: _userAgent,
       metadata: { tokenIn, calldataGenerated: !!swapCalldata },
     });
 

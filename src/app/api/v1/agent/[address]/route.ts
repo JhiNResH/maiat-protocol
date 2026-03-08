@@ -279,12 +279,16 @@ async function buildResponse(
 
   // Log for training data — async to get queryId for feedback loop
   const clientId = request.headers.get("x-maiat-client") ?? undefined;
+  const callerIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || undefined;
+  const userAgent = request.headers.get("user-agent") || undefined;
   const queryId = await logQueryAsync({
     type: "agent_trust",
     target: checksumAddress,
     trustScore: finalTrustScore,
     verdict,
     clientId,
+    callerIp,
+    userAgent,
     metadata: {
       totalJobs: record.totalJobs,
       dataSource: record.dataSource,

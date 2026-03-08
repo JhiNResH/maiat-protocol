@@ -53,12 +53,31 @@ export async function GET() {
       prisma.queryLog.groupBy({ by: ["target"] }).then((g) => g.length),
     ]);
 
+    // Extract unique callers from metadata
+    const recentWithMeta = await prisma.queryLog.findMany({
+      where: { createdAt: { gte: d7 } },
+      select: { metadata: true, clientId: true },
+    });
+    const uniqueIps = new Set<string>();
+    const clientCounts: Record<string, number> = {};
+    for (const r of recentWithMeta) {
+      const meta = r.metadata as Record<string, unknown> | null;
+      if (meta?.callerIp) uniqueIps.add(meta.callerIp as string);
+      const cid = (r.clientId || meta?.userAgent as string || "unknown");
+      clientCounts[cid] = (clientCounts[cid] || 0) + 1;
+    }
+    const topClients = Object.entries(clientCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([client, count]) => ({ client, count }));
+
     return NextResponse.json({
-      overview: { total, last24h, last7d, last30d, uniqueBuyers, uniqueTargets },
+      overview: { total, last24h, last7d, last30d, uniqueBuyers, uniqueTargets, uniqueCallers7d: uniqueIps.size },
       byType: Object.fromEntries(byType.map((r) => [r.type, r._count])),
       byVerdict: Object.fromEntries(byVerdict.map((r) => [r.verdict ?? "pending", r._count])),
       outcomes: Object.fromEntries(outcomeStats.map((r) => [r.outcome ?? "unreported", r._count])),
       recent: recentQueries,
+      topClients,
       generatedAt: now.toISOString(),
     });
   } catch (error) {

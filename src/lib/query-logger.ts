@@ -11,6 +11,8 @@ export interface QueryLogInput {
   amountIn?: string;
   amountOut?: string;
   clientId?: string;
+  callerIp?: string;
+  userAgent?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any>;
 }
@@ -104,7 +106,11 @@ async function buildAndCreateLog(input: QueryLogInput): Promise<string> {
         amountOut: input.amountOut ?? null,
         clientId: input.clientId ?? null,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        metadata: (input.metadata ?? null) as any,
+        metadata: {
+          ...(input.metadata ?? {}),
+          ...(input.callerIp && { callerIp: input.callerIp }),
+          ...(input.userAgent && { userAgent: input.userAgent }),
+        } as any,
         prevHash,
         // recordHash filled in step 3
       },
