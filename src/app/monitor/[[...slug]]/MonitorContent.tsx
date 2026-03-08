@@ -9,7 +9,7 @@ import {
   Plus, Minus, Maximize, PenTool, Search, Activity, FileText,
   Globe, BarChart3, TrendingUp, AlertCircle, LayoutDashboard,
   ShieldAlert, Eye, DollarSign, Clock, CheckCircle, Bug, ArrowRight,
-  Trophy, ArrowUpRight, Handshake
+  Trophy, ArrowUpRight, Handshake, Copy, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ReviewForm } from '@/components/ReviewForm';
@@ -500,11 +500,11 @@ return (
       </main>
 
       <aside className="w-80 shrink-0 border-l border-white/5 bg-black/60 backdrop-blur-xl flex flex-col overflow-y-auto">
-        <div className="px-4 py-3 border-b border-white/5 bg-black/20 sticky top-0 z-10 flex items-center gap-2"><Trophy className="w-3 h-3 text-[#fbbf24]" /> <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">Protocol Leaderboard</span></div>
+        <div className="px-4 py-3 border-b border-white/5 bg-black/20 sticky top-0 z-10 flex items-center gap-2">{selectedNode ? (<><Shield className="w-3 h-3 text-[#3b82f6]" /> <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">Agent Profile</span></>) : (<><Trophy className="w-3 h-3 text-[#fbbf24]" /> <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">Protocol Leaderboard</span></>)}</div>
         <div className="p-6 flex flex-col gap-6">
           {selectedNode ? (
             <>
-              <div className="flex gap-4 items-center"><div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 p-1 bg-white/5"><img src={selectedNode.raw?.logo || `https://api.dicebear.com/7.x/bottts/svg?seed=${selectedNode.id}&backgroundColor=transparent`} className="w-full h-full object-cover rounded-xl" /></div><div className="min-w-0 flex-1"><div className="text-sm font-bold text-white truncate">{selectedNode.label}</div><div className="text-[9px] font-mono text-slate-500 truncate mt-1">{selectedNode.id}</div></div></div>
+              <div className="flex gap-4 items-center"><div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 p-1 bg-white/5"><img src={selectedNode.raw?.logo || `https://api.dicebear.com/7.x/bottts/svg?seed=${selectedNode.id}&backgroundColor=transparent`} className="w-full h-full object-cover rounded-xl" /></div><div className="min-w-0 flex-1"><div className="text-sm font-bold text-white truncate">{selectedNode.label}</div><div className="flex items-center gap-1.5 mt-1 group/addr cursor-pointer" onClick={() => { navigator.clipboard.writeText(selectedNode.id); const el = document.getElementById('copy-check'); if (el) { el.style.opacity = '1'; setTimeout(() => { el.style.opacity = '0'; }, 1500); } }}><span className="text-[9px] font-mono text-slate-500 truncate">{selectedNode.id}</span><Copy size={10} className="shrink-0 text-slate-600 group-hover/addr:text-[#3b82f6] transition-colors" /><Check id="copy-check" size={10} className="shrink-0 text-emerald-400 transition-opacity" style={{ opacity: 0 }} /></div></div></div>
               <div className="relative"><div className="absolute -left-2 top-0 bottom-0 w-0.5 bg-[#3b82f6]/30 rounded-full" /><p className="text-[11px] text-slate-300 leading-relaxed font-mono pl-3 italic">{selectedNode.raw?.description || "Monitoring active behavior..."}</p></div>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
