@@ -438,6 +438,23 @@ export async function POST(request: NextRequest) {
 
     if (db) {
       // Persist to Supabase
+      // AI quality scoring (3 dimensions)
+      let aiQuality: { relevance: number; evidence: number; helpfulness: number; qualityScore: number } | null = null;
+      try {
+        const { scoreReviewQuality, getEffectiveWeight } = await import("@/lib/review-quality");
+        aiQuality = await scoreReviewQuality({ address: checksumAddress, rating, comment: comment ?? "" });
+        // Override weight with quality-based effective weight
+        const hasEasAttestation = !!verifiedReceiptId;
+        const effectiveWeight = getEffectiveWeight({
+          qualityScore: aiQuality.qualityScore,
+          reviewerType: (source === "agent" ? "agent" : "human") as "human" | "agent",
+          hasEas: hasEasAttestation,
+        });
+        weight = Math.max(1, Math.round(effectiveWeight * 10)); // scale to int
+      } catch {
+        // Non-critical
+      }
+
       const row = await db.trustReview.create({
         data: {
           address: checksumAddress,
@@ -448,6 +465,12 @@ export async function POST(request: NextRequest) {
           easReceiptId: verifiedReceiptId,
           weight,
           source,
+          qualityScore: aiQuality?.qualityScore ?? null,
+          relevance: aiQuality?.relevance ?? null,
+          evidence: aiQuality?.evidence ?? null,
+          helpfulness: aiQuality?.helpfulness ?? null,
+          reviewerType: source === "agent" ? "agent" : "human",
+          hasEas: !!verifiedReceiptId,
         },
       });
       saved = {
