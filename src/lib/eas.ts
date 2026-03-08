@@ -101,9 +101,9 @@ export async function createOffchainReceipt(
   serviceProtocol: string,
   txHash: string
 ) {
-  const privateKey = process.env.MAIAT_ADMIN_PRIVATE_KEY;
+  const privateKey = process.env.EAS_DEPLOYER_KEY || process.env.MAIAT_ADMIN_PRIVATE_KEY;
   if (!privateKey) {
-    throw new Error("[EAS] MAIAT_ADMIN_PRIVATE_KEY is missing. Cannot sign off-chain receipt.");
+    throw new Error("[EAS] EAS_DEPLOYER_KEY (or MAIAT_ADMIN_PRIVATE_KEY fallback) is missing. Cannot sign off-chain receipt.");
   }
 
   const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_BASE_RPC || "https://mainnet.base.org");
@@ -157,9 +157,9 @@ export async function createOffchainReceipt(
 // ─── EAS On-Chain Attestation Functions ──────────────────────────────────────
 
 function getEASSigner() {
-  const privateKey = process.env.MAIAT_ADMIN_PRIVATE_KEY;
+  const privateKey = process.env.EAS_DEPLOYER_KEY || process.env.MAIAT_ADMIN_PRIVATE_KEY;
   if (!privateKey) {
-    throw new Error("[EAS] MAIAT_ADMIN_PRIVATE_KEY is missing");
+    throw new Error("[EAS] EAS_DEPLOYER_KEY (or MAIAT_ADMIN_PRIVATE_KEY fallback) is missing");
   }
   const rpcUrl = process.env.ALCHEMY_BASE_SEPOLIA_RPC || process.env.ALCHEMY_BASE_RPC || "https://sepolia.base.org";
   const provider = new ethers.JsonRpcProvider(rpcUrl);
