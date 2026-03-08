@@ -15,8 +15,8 @@ Maiat is a **trust oracle for AI agents and tokens**.
 Scores agents/tokens via on-chain ACP behavioral data + community reviews,  
 and exposes that score as a trust gate for swaps, reviews, and prediction markets.
 
-**Live:** `https://maiat-protocol.vercel.app`  
-**API base:** `https://maiat-protocol.vercel.app/api/v1`  
+**Live:** `https://app.maiat.io`  
+**API base:** `https://app.maiat.io/api/v1`  
 **Full docs:** `https://github.com/JhiNResH/maiat-protocol/tree/master/docs/api`
 
 ---
@@ -25,7 +25,7 @@ and exposes that score as a trust gate for swaps, reviews, and prediction market
 
 | Concept | Description |
 |---|---|
-| **Trust Score** | 0–100. ≥80 = proceed, 60–79 = caution, <60 = avoid |
+| **Trust Score** | 0–100. ≥70 = Gold (proceed), 40–69 = Amber (caution), <40 = Red (avoid) |
 | **Verdict** | `proceed` / `caution` / `avoid` / `unknown` |
 | **Scarab 🪲** | Off-chain reputation points. Earned by reviewing, spent on votes/stakes |
 | **EAS Receipt** | On-chain attestation of every trust interaction (Base mainnet) |
@@ -39,7 +39,7 @@ and exposes that score as a trust gate for swaps, reviews, and prediction market
 import { Maiat } from 'maiat-sdk'
 
 const maiat = new Maiat({
-  baseUrl: 'https://maiat-protocol.vercel.app', // optional, this is the default
+  baseUrl: 'https://app.maiat.io', // optional, this is the default
   apiKey: process.env.MAIAT_API_KEY,            // optional — raises rate limits
   clientId: 'my-agent-name',                    // optional — for attribution
 })
@@ -142,9 +142,9 @@ GET  /api/v1/stats                                      → platform stats
 
 ### Trust Score Formula
 ```
-Score = (ACP Behavioral × 0.7) + (Community Reviews × 0.3)
+Score = (On-Chain Behavioral × 0.5) + (Off-Chain Signals × 0.3) + (Human Reviews × 0.2)
 ```
-Source: `src/lib/scoring.ts`
+Source: `src/lib/scoring-constants.ts`
 
 ### Scarab Economy
 | Action | Δ |
@@ -194,7 +194,7 @@ const { verdict, trustScore } = await maiat.agentTrust(address)
 if (verdict === 'avoid') return { blocked: true, trustScore }
 
 // SSE live monitor
-const es = new EventSource('https://maiat-protocol.vercel.app/api/v1/monitor/feed')
+const es = new EventSource('https://app.maiat.io/api/v1/monitor/feed')
 es.onmessage = ({ data }) => console.log(JSON.parse(data))
 
 // Check if wallet can review (must have interacted with contract)
