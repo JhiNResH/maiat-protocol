@@ -38,6 +38,13 @@ interface ScoreResult {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+function formatCompact(val: number): string {
+  if (val >= 1_000_000_000) return `$${(val / 1_000_000_000).toFixed(1)}B`;
+  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+  if (val >= 1_000) return `$${(val / 1_000).toFixed(1)}K`;
+  return `$${val.toFixed(0)}`;
+}
+
 function truncate(addr: string) {
   if (!addr || addr.length < 12) return addr
   return addr.slice(0, 6) + '...' + addr.slice(-4)
@@ -257,8 +264,8 @@ function AgentDetailContent() {
               <div className="grid grid-cols-2 gap-4 flex-1">
                 {[
                   { label: 'Transactions', val: agent.breakdown?.totalJobs?.toLocaleString() || '0' },
-                  { label: 'AGDP', val: agent.breakdown?.agdp ? `$${agent.breakdown.agdp.toFixed(2)}` : '—' },
-                  { label: 'Revenue', val: agent.breakdown?.revenue ? `$${agent.breakdown.revenue.toFixed(2)}` : '—' },
+                  { label: 'AGDP', val: agent.breakdown?.agdp ? formatCompact(agent.breakdown.agdp) : '—' },
+                  { label: 'Revenue', val: agent.breakdown?.revenue ? formatCompact(agent.breakdown.revenue) : '—' },
                   { label: 'Type', val: 'ACP Agent' },
                 ].map((s, i) => (
                   <div key={i} className="bg-[#111113] rounded-xl p-4 space-y-1">
