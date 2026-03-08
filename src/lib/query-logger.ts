@@ -63,7 +63,19 @@ export function logQuery(input: QueryLogInput): void {
   });
 }
 
-async function buildAndCreateLog(input: QueryLogInput): Promise<void> {
+/**
+ * Same as logQuery but returns the queryId for feedback loop.
+ */
+export async function logQueryAsync(input: QueryLogInput): Promise<string | null> {
+  try {
+    return await buildAndCreateLog(input);
+  } catch (err) {
+    console.error("[query-logger] failed to write log:", err);
+    return null;
+  }
+}
+
+async function buildAndCreateLog(input: QueryLogInput): Promise<string> {
   const normalizedTarget = input.target.toLowerCase();
   const trustScore = typeof input.trustScore === "number" ? input.trustScore : null;
   const verdict = input.verdict ?? null;
@@ -128,5 +140,5 @@ async function buildAndCreateLog(input: QueryLogInput): Promise<void> {
       .catch(() => {});
   }
 
-  void record; // suppress unused warning
+  return record.id;
 }

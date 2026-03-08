@@ -28,7 +28,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { logQuery } from "@/lib/query-logger";
+import { logQueryAsync } from "@/lib/query-logger";
 import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
 import { computeTrustScore, getBlendedTrustScore, type AcpAgent } from "@/lib/acp-indexer";
@@ -277,9 +277,9 @@ async function buildResponse(
   // Generate analysis summary
   const analysis = generateAnalysis(finalTrustScore, verdict, record.totalJobs, record.completionRate, record.expireRate, uniqueBuyerCount, name);
 
-  // Log for training data (fire-and-forget)
+  // Log for training data — async to get queryId for feedback loop
   const clientId = request.headers.get("x-maiat-client") ?? undefined;
-  logQuery({
+  const queryId = await logQueryAsync({
     type: "agent_trust",
     target: checksumAddress,
     trustScore: finalTrustScore,
@@ -321,6 +321,13 @@ async function buildResponse(
       verdict,
       analysis,
       lastUpdated: record.lastUpdated.toISOString(),
+      ...(queryId && {
+        feedback: {
+          queryId,
+          reportOutcome: `POST /api/v1/outcome { "jobId": "${queryId}", "outcome": "success|failure|partial", "reporter": "<your-wallet>" }`,
+          note: "Report outcome to improve oracle accuracy. Outcomes refine trust scores over time.",
+        },
+      }),
     },
     {
       headers: {
