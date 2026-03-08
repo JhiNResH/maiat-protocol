@@ -32,6 +32,39 @@
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
+## Connect in 30 Seconds
+
+**MCP (Claude Desktop, Cursor, any MCP-compatible agent):**
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "maiat": {
+      "url": "https://app.maiat.io/api/mcp"
+    }
+  }
+}
+```
+
+4 tools instantly available: `get_agent_trust` · `get_token_forensics` · `report_outcome` · `get_scarab_balance`
+
+**REST API (any agent, any LLM):**
+
+```bash
+# Agent trust score
+curl https://app.maiat.io/api/v1/agent/0x5facebd66d78a69b400dc702049374b95745fbc5
+
+# Token rug risk
+curl https://app.maiat.io/api/v1/token/0xYourToken/forensics
+
+# skill.md (for LLM agents)
+Read https://app.maiat.io/skill.md and follow the instructions
+```
+
+---
+
 ## What It Does
 
 | Use Case               | Endpoint                               | Fee      |
