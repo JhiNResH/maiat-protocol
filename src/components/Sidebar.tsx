@@ -19,7 +19,8 @@ import {
   TrendingUp,
   Wallet,
   LogOut,
-  User
+  User,
+  BarChart3
 } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import useSWR from "swr";
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { name: "Monitor", icon: Radar, path: "/monitor" },
   { name: "Opinion Market", icon: TrendingUp, path: "/markets" },
   { name: "Leaderboard", icon: Trophy, path: "/leaderboard" },
+  { name: "Analytics", icon: BarChart3, path: "/analytics" },
   { name: "Passport", icon: LayoutDashboard, path: "/dashboard" },
 ];
 
