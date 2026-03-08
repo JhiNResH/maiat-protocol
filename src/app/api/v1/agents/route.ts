@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl
     const sort = searchParams.get('sort') || 'trust'
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 20000)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 5000)
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'))
     const search = searchParams.get('search') || ''
 
