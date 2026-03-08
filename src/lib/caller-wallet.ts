@@ -98,3 +98,78 @@ export async function lookupCallerWallet(clientId: string): Promise<string | nul
 
   return null;
 }
+
+/**
+ * Sign a message with the agent's Privy server wallet.
+ * Used for SIWE claims, reviews, market positions — same as user signing with their wallet.
+ */
+export async function signMessage(clientId: string, message: string): Promise<string | null> {
+  if (!clientId) return null;
+  if (!process.env.PRIVY_APP_ID || !process.env.PRIVY_APP_SECRET) return null;
+
+  try {
+    // Get walletId from DB
+    const record = await prisma.callerWallet.findUnique({
+      where: { clientId },
+    });
+    if (!record?.walletId) return null;
+
+    const { PrivyClient } = await import("@privy-io/server-auth");
+    const privy = new PrivyClient(
+      process.env.PRIVY_APP_ID,
+      process.env.PRIVY_APP_SECRET
+    );
+
+    const { signature } = await privy.walletApi.ethereum.signMessage({
+      walletId: record.walletId,
+      message,
+    });
+
+    return signature;
+  } catch (err) {
+    console.error(`[caller-wallet] signMessage failed for ${clientId}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Full SIWE claim flow for agents — get nonce, sign, submit.
+ * Returns the claim result or null on failure.
+ */
+export async function agentClaimScarab(clientId: string): Promise<Record<string, unknown> | null> {
+  const walletAddress = await getCallerWallet(clientId);
+  if (!walletAddress) return null;
+
+  const { getAddress } = await import("viem");
+  const checksumAddress = getAddress(walletAddress);
+
+  // Step 1: Get nonce
+  const nonceRes = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL || "https://app.maiat.io"}/api/v1/scarab/nonce?address=${checksumAddress}`
+  );
+  if (!nonceRes.ok) return null;
+  const { nonce, expiresAt } = await nonceRes.json() as { nonce: string; expiresAt: string };
+
+  // Step 2: Sign the claim message (same format as frontend)
+  const message = [
+    `Claim daily Scarab for ${checksumAddress}`,
+    `Nonce: ${nonce}`,
+    `Expiration: ${expiresAt}`,
+  ].join("\n");
+
+  const signature = await signMessage(clientId, message);
+  if (!signature) return null;
+
+  // Step 3: Submit claim (same endpoint as users)
+  const claimRes = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL || "https://app.maiat.io"}/api/v1/scarab/claim`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: checksumAddress, signature, nonce, expiresAt }),
+    }
+  );
+
+  if (!claimRes.ok) return null;
+  return claimRes.json() as Promise<Record<string, unknown>>;
+}
