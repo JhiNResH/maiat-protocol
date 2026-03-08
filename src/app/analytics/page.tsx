@@ -19,7 +19,7 @@ interface ApiStats {
     id: string;
     type: string;
     target: string;
-    buyer: string | null;
+
     trustScore: number | null;
     verdict: string | null;
     outcome: string | null;
@@ -157,7 +157,6 @@ export default function AnalyticsPage() {
                 <tr className="text-[10px] text-[#444] uppercase border-b border-[#1a1a1a]">
                   <th className="text-left py-2 pr-3">Type</th>
                   <th className="text-left py-2 pr-3">Target</th>
-                  <th className="text-left py-2 pr-3">Buyer</th>
                   <th className="text-right py-2 pr-3">Score</th>
                   <th className="text-left py-2 pr-3">Verdict</th>
                   <th className="text-left py-2 pr-3">Outcome</th>
@@ -169,7 +168,6 @@ export default function AnalyticsPage() {
                   <tr key={q.id} className="border-b border-[#111] hover:bg-[#111]">
                     <td className="py-2 pr-3 text-[#3b82f6]">{q.type}</td>
                     <td className="py-2 pr-3 text-[#888]">{truncAddr(q.target)}</td>
-                    <td className="py-2 pr-3 text-[#666]">{q.buyer ? truncAddr(q.buyer) : "—"}</td>
                     <td className="py-2 pr-3 text-right text-[#E5E5E5]">{q.trustScore ?? "—"}</td>
                     <td className={`py-2 pr-3 ${verdictColor(q.verdict)}`}>{q.verdict ?? "—"}</td>
                     <td className="py-2 pr-3 text-[#666]">{q.outcome ?? "—"}</td>
