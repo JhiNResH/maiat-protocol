@@ -10,7 +10,7 @@ Real-time event stream and on-chain interaction monitoring.
 
 ### Usage
 ```js
-const es = new EventSource('https://maiat-protocol.vercel.app/api/v1/monitor/feed')
+const es = new EventSource('https://app.maiat.io/api/v1/monitor/feed')
 es.onmessage = (e) => console.log(JSON.parse(e.data))
 ```
 

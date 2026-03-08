@@ -97,4 +97,4 @@ Both `sendTransaction` and `writeContract` are intercepted. Unknown addresses (n
 
 ## Powered by
 
-[Maiat Protocol](https://maiat-protocol.vercel.app) — trust infrastructure for agentic commerce
+[Maiat Protocol](https://app.maiat.io) — trust infrastructure for agentic commerce

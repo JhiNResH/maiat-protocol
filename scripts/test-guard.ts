@@ -46,7 +46,7 @@ const TEST_CASES = [
 
 async function run() {
   console.log('\n🛡️  @jhinresh/viem-guard integration test\n')
-  console.log('  API: https://maiat-protocol.vercel.app/api/v1/trust-check')
+  console.log('  API: https://app.maiat.io/api/v1/trust-check')
   console.log('  Tier: free (10 req/min)\n')
   console.log('─'.repeat(60))
 

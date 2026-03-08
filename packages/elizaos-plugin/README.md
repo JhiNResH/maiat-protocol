@@ -4,7 +4,7 @@
 
 Adds trust-checking actions and evaluators to any ElizaOS agent so it can **refuse to interact with low-trust addresses** before executing swaps, transfers, or on-chain actions.
 
-Powered by [Maiat Protocol](https://maiat-protocol.vercel.app) — on-chain verified trust scores for tokens, DeFi protocols, and AI agents on Base.
+Powered by [Maiat Protocol](https://app.maiat.io) — on-chain verified trust scores for tokens, DeFi protocols, and AI agents on Base.
 
 ## Install
 
@@ -47,7 +47,7 @@ const agent = new ElizaAgent({
 
 ```typescript
 maiatPlugin({
-  apiUrl: "https://maiat-protocol.vercel.app",  // default
+  apiUrl: "https://app.maiat.io",  // default
   apiKey: "your-key",   // optional — free tier: 100 req/day
   minScore: 3.0,        // 0–10 scale
   chain: "base",        // base | bnb | solana
@@ -56,8 +56,8 @@ maiatPlugin({
 
 ## Links
 
-- 🌐 [Live app](https://maiat-protocol.vercel.app)
-- 📖 [API docs](https://maiat-protocol.vercel.app/docs)
+- 🌐 [Live app](https://app.maiat.io)
+- 📖 [API docs](https://app.maiat.io/docs)
 - 🔗 [GitHub](https://github.com/JhiNResH/maiat-protocol)
 - 📦 [npm](https://www.npmjs.com/package/@jhinresh/elizaos-plugin)
 

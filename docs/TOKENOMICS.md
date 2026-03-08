@@ -99,7 +99,7 @@ $MAIAT 回到金庫 or 燒毀
 - Claim 後 Scarab 歸零
 
 **Scarab 積分來源（pre-launch）：**
-- 在 maiat-protocol.vercel.app 提交 review
+- 在 app.maiat.io 提交 review
 - Opinion Market 參與
 - ACP offering 使用
 

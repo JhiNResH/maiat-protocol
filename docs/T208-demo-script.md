@@ -105,7 +105,7 @@ cd contracts && forge test --force --match-test "StaleScore\|TrustScore\|BeforeS
 
 ## 🎬 Scene 6 — Score UI (2:30–2:50)
 
-**Show:** Maiat frontend (`maiat-protocol.vercel.app`)
+**Show:** Maiat frontend (`app.maiat.io`)
 - Score page: `6.5/10 amber` for a token
 - TrustGauge visual
 - AI summary from Gemini

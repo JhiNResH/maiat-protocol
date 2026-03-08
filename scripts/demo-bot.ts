@@ -10,7 +10,7 @@
  *   npx tsx scripts/demo-bot.ts --loop    # run every hour
  */
 
-const MAIAT_API = process.env.MAIAT_API_URL || "https://maiat-protocol.vercel.app";
+const MAIAT_API = process.env.MAIAT_API_URL || "https://app.maiat.io";
 
 // Popular Base tokens to rotate through
 const TOKENS = [

@@ -129,7 +129,7 @@ function sleep(ms: number): Promise<void> {
 
 /** Build the per-agent endpoint URL for ERC-8004 feedback metadata. */
 function buildEndpoint(walletAddress: string): string {
-  return `https://maiat-protocol.vercel.app/api/v1/agent/${walletAddress}`;
+  return `https://app.maiat.io/api/v1/agent/${walletAddress}`;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────

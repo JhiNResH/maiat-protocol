@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { prisma } from '@/lib/prisma'
 
 const skip = process.env.RUN_E2E !== 'true'
-const BASE_URL = 'https://maiat-protocol.vercel.app'
+const BASE_URL = 'https://app.maiat.io'
 const TIMEOUT = 10_000
 
 const testAgent = '0xf4b485452905746de642a6d57bc46586ac31d924'

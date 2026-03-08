@@ -46,7 +46,7 @@ interface GameFunctionConfig<T extends Record<string, string>> {
 export interface MaiatVirtualsConfig {
     /** Minimum trust score (0-10). Default: 3.0 */
     minScore?: number;
-    /** Maiat API base URL. Default: https://maiat-protocol.vercel.app */
+    /** Maiat API base URL. Default: https://app.maiat.io */
     apiUrl?: string;
     /** Optional API key for higher rate limits */
     apiKey?: string;

@@ -24,7 +24,7 @@ Maiat 出具的所有報告都帶有無法篡改的密碼學收據 (Maiat Receip
 
 ---
 
-## 🌐 Protocol Web App（maiat-protocol.vercel.app）
+## 🌐 Protocol Web App（app.maiat.io）
 
 以「高科技冷藍色調」為基底，結合局部玻璃擬物化 (Glassmorphism)，打造最具 Web3 / AI cyber-infrastructure 風格的信任樞紐平台。
 

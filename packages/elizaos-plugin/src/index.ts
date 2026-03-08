@@ -46,7 +46,7 @@ async function queryMaiat(
   address: string,
   config: MaiatElizaConfig
 ): Promise<TrustResult> {
-  const apiUrl = config.apiUrl || "https://maiat-protocol.vercel.app";
+  const apiUrl = config.apiUrl || "https://app.maiat.io";
   const chain = config.chain || "base";
   const minScore = config.minScore ?? 3.0;
 
