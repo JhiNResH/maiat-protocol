@@ -77,8 +77,9 @@ const token = await maiat.tokenCheck('0xTokenAddress')
 const result = await maiat.trustSwap({ tokenIn, tokenOut, amount, swapper, chainId: 8453 })
 // → { allowed: true, quote: { calldata, ... }, trustScore, verdict }
 
-// Report outcome (for trust score training data)
-await maiat.reportOutcome({ target: '0x...', action: 'swap', result: 'success' })
+// Report outcome (IMPORTANT — improves oracle accuracy)
+// Use feedback.queryId from the trust check response
+await maiat.reportOutcome({ jobId: score.feedback.queryId, outcome: 'success', reporter: '0xYourWallet' })
 
 // Convenience helpers (fail-closed: unknown = untrusted)
 const trusted = await maiat.isAgentTrusted('0x...', 70)  // threshold default 60
@@ -106,7 +107,7 @@ Body: { name?, email?, address? }
 
 ### Agent Trust
 ```
-GET  /api/v1/agent/{address}           → trust score + verdict
+GET  /api/v1/agent/{address}           → trust score + verdict + feedback.queryId
 GET  /api/v1/agent/{address}/deep      → + percentile, risk flags, tier
 GET  /api/v1/agent/token-map/{token}   → token address → agent wallet reverse lookup
 GET  /api/v1/agents?sort=trust&limit=50&search=name   → list all indexed agents
@@ -153,12 +154,27 @@ GET /api/v1/wallet/{address}/eas-receipts          → EAS attestation receipts
 GET /api/v1/wallet/{address}/check-interaction?contractAddress=0x...
 ```
 
+### Outcome Feedback (improves oracle accuracy)
+```
+POST /api/v1/outcome
+Body: { "jobId": "<queryId from API response>", "outcome": "success|failure|partial|expired", "reporter": "0xYourWallet" }
+→ { newTrustScore, message }
+```
+
+**How it works:**
+1. Call any Maiat API → response includes `feedback.queryId`
+2. After acting on the trust score (e.g., completed a swap, interacted with the agent), report the outcome
+3. Maiat oracle recomputes trust: `40% on-chain behavioral + 60% outcome history` (when ≥5 outcomes exist)
+
+> ⚠️ **Always report outcomes** — this is what makes the oracle smarter over time. Without feedback, scores only reflect on-chain data.
+
 ### Other
 ```
 POST /api/v1/deep-insight { projectId | projectName }   → AI deep analysis (10/day free)
 GET  /api/v1/monitor/feed                               → SSE live event stream
 GET  /api/v1/explore                                    → trending agents/tokens
 GET  /api/v1/stats                                      → platform stats
+GET  /api/v1/stats/api                                  → API usage analytics
 ```
 
 ---
