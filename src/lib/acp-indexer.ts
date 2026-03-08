@@ -142,22 +142,25 @@ export function computeTrustScore(agent: AcpAgent): AgentScore {
 export async function getBlendedTrustScore(
   agentAddress: string,
   onchainScore: number,
-  prisma: any // PrismaClient
+  prisma: PrismaClient
 ): Promise<{
   blendedScore: number;
   onchainScore: number;
-  outcomeScore: number;
+  outcomeScore: number | null;
   outcomeCount: number;
   chainIntegrity: boolean;
 }> {
-  const normalizedAddr = agentAddress.toLowerCase();
-
-  // Fetch outcome history for this agent
+  // Fetch outcome history for this agent — case-insensitive to handle
+  // checksummed vs lowercase address mismatch in stored records
   const outcomes = await prisma.queryLog.findMany({
     where: {
-      target: normalizedAddr,
+      target: {
+        equals: agentAddress,
+        mode: "insensitive",
+      },
       outcome: { not: null },
     },
+    orderBy: { createdAt: "asc" },
   });
 
   if (outcomes.length === 0) {
@@ -165,22 +168,36 @@ export async function getBlendedTrustScore(
     return {
       blendedScore: onchainScore,
       onchainScore,
-      outcomeScore: null as any,
+      outcomeScore: null,
       outcomeCount: 0,
       chainIntegrity: true, // empty chain is valid
     };
   }
 
   // Count successful vs total outcomes
-  const successCount = outcomes.filter((q) => q.outcome === "success").length;
+  const successCount = outcomes.filter(
+    (q): q is typeof q & { outcome: string } => q.outcome === "success"
+  ).length;
   const outcomeScore = Math.round((successCount / outcomes.length) * 100);
 
-  // Check chain integrity: verify prevHash chain isn't broken
+  // Check chain integrity: verify actual prev→current recordHash linkage
   let chainIntegrity = true;
   try {
-    // Simple check: if all records have prevHash or recordHash, chain is likely valid
-    const recordsWithHashes = outcomes.filter((q) => q.metadata?.recordHash);
-    chainIntegrity = recordsWithHashes.length === outcomes.length;
+    for (let i = 1; i < outcomes.length; i++) {
+      const prevMeta = outcomes[i - 1].metadata as Record<string, unknown> | null;
+      const currMeta = outcomes[i].metadata as Record<string, unknown> | null;
+      const prevRecordHash = prevMeta?.recordHash;
+      const currPrevHash = currMeta?.prevHash;
+      // Only fail if both fields are present and don't match
+      if (
+        prevRecordHash !== undefined &&
+        currPrevHash !== undefined &&
+        prevRecordHash !== currPrevHash
+      ) {
+        chainIntegrity = false;
+        break;
+      }
+    }
   } catch {
     chainIntegrity = false;
   }

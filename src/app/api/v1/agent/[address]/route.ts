@@ -138,7 +138,7 @@ export async function GET(
         // ── On-demand lookup from Virtuals API ──────────────────────────────
         const onDemand = await fetchAndIndexAgent(checksumAddress);
         if (onDemand) {
-          return buildResponse(checksumAddress, onDemand, request);
+          return await buildResponse(checksumAddress, onDemand, request);
         }
 
         // Truly unknown — not in DB, not in Virtuals API
@@ -285,8 +285,8 @@ async function buildResponse(
     trustScore: finalTrustScore,
     verdict,
     clientId,
-    metadata: { 
-      totalJobs: record.totalJobs, 
+    metadata: {
+      totalJobs: record.totalJobs,
       dataSource: record.dataSource,
       outcomeCount: blended.outcomeCount,
       chainIntegrity: blended.chainIntegrity,
