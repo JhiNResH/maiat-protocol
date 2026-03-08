@@ -31,7 +31,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { logQuery } from "@/lib/query-logger";
 import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
-import { computeTrustScore, type AcpAgent } from "@/lib/acp-indexer";
+import { computeTrustScore, getBlendedTrustScore, type AcpAgent } from "@/lib/acp-indexer";
 
 const ACP_AGENTS_URL = "https://acpx.virtuals.io/api/agents";
 
@@ -138,7 +138,7 @@ export async function GET(
         // ── On-demand lookup from Virtuals API ──────────────────────────────
         const onDemand = await fetchAndIndexAgent(checksumAddress);
         if (onDemand) {
-          return buildResponse(checksumAddress, onDemand, request);
+          return await buildResponse(checksumAddress, onDemand, request);
         }
 
         // Truly unknown — not in DB, not in Virtuals API
@@ -162,10 +162,10 @@ export async function GET(
       }
 
       // Use the case-insensitive match
-      return buildResponse(checksumAddress, recordLower, request);
+      return await buildResponse(checksumAddress, recordLower, request);
     }
 
-    return buildResponse(checksumAddress, record, request);
+    return await buildResponse(checksumAddress, record, request);
 
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -235,11 +235,11 @@ interface AgentScoreRecord {
   rawMetrics:     unknown;
 }
 
-function buildResponse(
+async function buildResponse(
   checksumAddress: string,
   record: AgentScoreRecord,
   request: NextRequest
-): NextResponse {
+): Promise<NextResponse> {
   // Calculate ageWeeks from rawMetrics if available
   let ageWeeks: number | null = null;
   try {
@@ -255,7 +255,15 @@ function buildResponse(
     // rawMetrics may not have expected shape; that's fine
   }
 
-  const verdict = scoreToVerdict(record.trustScore);
+  // Phase 1C: Blend on-chain score with outcome history
+  const blended = await getBlendedTrustScore(
+    checksumAddress,
+    record.trustScore,
+    prisma
+  );
+
+  const finalTrustScore = blended.blendedScore;
+  const verdict = scoreToVerdict(finalTrustScore);
 
   // Extract enrichment data from rawMetrics
   const raw = record.rawMetrics as Record<string, unknown> | null;
@@ -267,17 +275,23 @@ function buildResponse(
   const successRate = (raw?.successRate as number) ?? null;
 
   // Generate analysis summary
-  const analysis = generateAnalysis(record.trustScore, verdict, record.totalJobs, record.completionRate, record.expireRate, uniqueBuyerCount, name);
+  const analysis = generateAnalysis(finalTrustScore, verdict, record.totalJobs, record.completionRate, record.expireRate, uniqueBuyerCount, name);
 
   // Log for training data (fire-and-forget)
   const clientId = request.headers.get("x-maiat-client") ?? undefined;
   logQuery({
     type: "agent_trust",
     target: checksumAddress,
-    trustScore: record.trustScore,
+    trustScore: finalTrustScore,
     verdict,
     clientId,
-    metadata: { totalJobs: record.totalJobs, dataSource: record.dataSource },
+    metadata: {
+      totalJobs: record.totalJobs,
+      dataSource: record.dataSource,
+      outcomeCount: blended.outcomeCount,
+      chainIntegrity: blended.chainIntegrity,
+      onchainScore: blended.onchainScore,
+    },
   });
 
   return NextResponse.json(
@@ -287,7 +301,7 @@ function buildResponse(
       profilePic,
       category,
       description,
-      trustScore: record.trustScore,
+      trustScore: finalTrustScore,
       dataSource: record.dataSource,
       breakdown: {
         completionRate: record.completionRate,
@@ -300,6 +314,9 @@ function buildResponse(
         agdp: (raw?.grossAgenticAmount as number) ?? null,
         revenue: (raw?.revenue as number) ?? null,
         transactionCount: (raw?.transactionCount as number) ?? null,
+        outcomeCount: blended.outcomeCount,
+        chainIntegrity: blended.chainIntegrity,
+        onchainScore: blended.onchainScore,
       },
       verdict,
       analysis,

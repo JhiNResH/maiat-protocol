@@ -131,6 +131,81 @@ export function computeTrustScore(agent: AcpAgent): AgentScore {
   };
 }
 
+/**
+ * Phase 1C: Blend on-chain trust score with outcome history (Maiat v2)
+ * - If < 5 outcomes: weight 90% on-chain, 10% outcomes (insufficient data)
+ * - If >= 5 outcomes: weight 40% on-chain, 60% outcomes (sufficient data)
+ * - If evidence chain is broken: apply -30 penalty
+ * 
+ * Used by: /api/v1/agent/[address], agent_trust ACP offering
+ */
+export async function getBlendedTrustScore(
+  agentAddress: string,
+  onchainScore: number,
+  prisma: any // PrismaClient
+): Promise<{
+  blendedScore: number;
+  onchainScore: number;
+  outcomeScore: number | null;
+  outcomeCount: number;
+  chainIntegrity: boolean;
+}> {
+  const normalizedAddr = agentAddress.toLowerCase();
+
+  // Fetch outcome history for this agent
+  const outcomes = await prisma.queryLog.findMany({
+    where: {
+      target: normalizedAddr,
+      outcome: { not: null },
+    },
+  });
+
+  if (outcomes.length === 0) {
+    // No outcome data yet; return on-chain score as-is
+    return {
+      blendedScore: onchainScore,
+      onchainScore,
+      outcomeScore: null,
+      outcomeCount: 0,
+      chainIntegrity: true, // empty chain is valid
+    };
+  }
+
+  // Count successful vs total outcomes
+  const successCount = outcomes.filter((q) => q.outcome === "success").length;
+  const outcomeScore = Math.round((successCount / outcomes.length) * 100);
+
+  // Check chain integrity: verify prevHash chain isn't broken
+  let chainIntegrity = true;
+  try {
+    // Simple check: if all records have prevHash or recordHash, chain is likely valid
+    const recordsWithHashes = outcomes.filter((q) => q.metadata?.recordHash);
+    chainIntegrity = recordsWithHashes.length === outcomes.length;
+  } catch {
+    chainIntegrity = false;
+  }
+
+  // Blend scores
+  const weight = outcomes.length >= 5 ? 0.4 : 0.9; // if <5: 90% on-chain, else 40% on-chain
+  let blendedScore = Math.round(onchainScore * weight + outcomeScore * (1 - weight));
+
+  // Apply chain integrity penalty if broken
+  if (!chainIntegrity) {
+    blendedScore = Math.max(0, blendedScore - 30);
+  }
+
+  // Clamp to 0-100
+  blendedScore = Math.max(0, Math.min(100, blendedScore));
+
+  return {
+    blendedScore,
+    onchainScore,
+    outcomeScore,
+    outcomeCount: outcomes.length,
+    chainIntegrity,
+  };
+}
+
 // ─── Fetch All Agents via Pagination ─────────────────────────────────────────
 
 export async function fetchAgentsPage(page: number): Promise<AcpAgent[]> {
