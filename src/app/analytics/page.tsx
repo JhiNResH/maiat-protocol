@@ -85,7 +85,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    fetch("/api/v1/stats/api")
+    fetch("/api/v1/stats/api?key=maiat-analytics-2026")
       .then((r) => r.json())
       .then(setStats)
       .catch(console.error)
