@@ -16,6 +16,7 @@ contract TrustScoreOracleTest is Test {
 
     event TokenScoreUpdated(address indexed token, uint256 score, uint256 reviewCount);
     event UserReputationUpdated(address indexed user, uint256 score, uint256 feeBps);
+    event UserReputationReset(address indexed user);
 
     function setUp() public {
         oracle = new TrustScoreOracle(admin);
@@ -377,6 +378,113 @@ contract TrustScoreOracleTest is Test {
         assertEq(data.scarabPoints, scarabPoints);
         assertTrue(data.initialized);
     }
+
+    // ─── resetUserReputation ────────────────────────────────────
+
+    function test_ResetUserReputation_Success() public {
+        // First set up a user with non-default reputation
+        oracle.updateUserReputation(user, 100, 20, 500);
+        assertEq(oracle.getUserFee(user), oracle.VERIFIED_FEE());
+
+        TrustScoreOracle.UserReputation memory repBefore = oracle.getUserData(user);
+        assertTrue(repBefore.initialized);
+
+        // Reset
+        vm.expectEmit(true, false, false, false);
+        emit UserReputationReset(user);
+
+        oracle.resetUserReputation(user);
+
+        // After reset, user should have BASE_FEE (uninitialized)
+        assertEq(oracle.getUserFee(user), oracle.BASE_FEE());
+
+        TrustScoreOracle.UserReputation memory repAfter = oracle.getUserData(user);
+        assertFalse(repAfter.initialized);
+        assertEq(repAfter.reputationScore, 0);
+        assertEq(repAfter.totalReviews, 0);
+        assertEq(repAfter.scarabPoints, 0);
+        assertEq(repAfter.feeBps, 0);
+    }
+
+    function test_ResetUserReputation_Unauthorized() public {
+        oracle.updateUserReputation(user, 100, 20, 500);
+
+        vm.prank(attacker);
+        vm.expectRevert();
+        oracle.resetUserReputation(user);
+    }
+
+    function test_ResetUserReputation_WhenPaused_Reverts() public {
+        oracle.updateUserReputation(user, 100, 20, 500);
+        oracle.pause();
+
+        vm.expectRevert();
+        oracle.resetUserReputation(user);
+    }
+
+    // ─── batchUpdate: avgRating boundary ───────────────────────
+
+    function test_BatchUpdate_AvgRatingOverMaxReverts() public {
+        address[] memory tokens = new address[](2);
+        uint256[] memory scores = new uint256[](2);
+        uint256[] memory reviewCounts = new uint256[](2);
+        uint256[] memory avgRatings = new uint256[](2);
+
+        tokens[0]      = address(0x100);
+        scores[0]      = 70;
+        reviewCounts[0] = 10;
+        avgRatings[0]  = 400; // valid
+
+        tokens[1]      = address(0x200);
+        scores[1]      = 80;
+        reviewCounts[1] = 5;
+        avgRatings[1]  = 501; // OVER MAX_AVG_RATING (500) → should revert
+
+        vm.expectRevert(
+            abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__AvgRatingOutOfRange.selector, 501)
+        );
+        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
+    }
+
+    // ─── Fee tier exact boundaries ──────────────────────────────
+
+    function test_UserRep_ExactBoundaryAt10() public {
+        // rep=10 → TRUSTED tier (>= 10, < 50)
+        oracle.updateUserReputation(user, 10, 1, 0);
+        assertEq(oracle.getUserFee(user), oracle.TRUSTED_FEE()); // 30 bps
+    }
+
+    function test_UserRep_ExactBoundaryAt50() public {
+        // rep=50 → VERIFIED tier (>= 50, < 200)
+        oracle.updateUserReputation(user, 50, 1, 0);
+        assertEq(oracle.getUserFee(user), oracle.VERIFIED_FEE()); // 10 bps
+    }
+
+    function test_UserRep_ExactBoundaryAt200() public {
+        // rep=200 → GUARDIAN tier (>= 200)
+        oracle.updateUserReputation(user, 200, 1, 0);
+        assertEq(oracle.getUserFee(user), oracle.GUARDIAN_FEE()); // 0 bps
+    }
+
+    function test_UserRep_OneBelowTrusted() public {
+        // rep=9 → BASE tier (< 10)
+        oracle.updateUserReputation(user, 9, 1, 0);
+        assertEq(oracle.getUserFee(user), oracle.BASE_FEE()); // 50 bps
+    }
+
+    function test_UserRep_OneBelowVerified() public {
+        // rep=49 → TRUSTED tier (>= 10, < 50)
+        oracle.updateUserReputation(user, 49, 1, 0);
+        assertEq(oracle.getUserFee(user), oracle.TRUSTED_FEE()); // 30 bps
+    }
+
+    function test_UserRep_OneBelowGuardian() public {
+        // rep=199 → VERIFIED tier (>= 50, < 200)
+        oracle.updateUserReputation(user, 199, 1, 0);
+        assertEq(oracle.getUserFee(user), oracle.VERIFIED_FEE()); // 10 bps
+    }
+
+    // ─── Existing fuzz tests ────────────────────────────────────
 
     function testFuzz_BatchUpdateTokenScores(
         address[] memory tokens,

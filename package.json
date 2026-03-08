@@ -49,7 +49,8 @@
     "viem": "^2.45.1",
     "wagmi": "^2.5.0",
     "zod": "^4.3.6",
-    "zustand": "^5.0.11"
+    "zustand": "^5.0.11",
+    "@modelcontextprotocol/sdk": "^1.10.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.4",
