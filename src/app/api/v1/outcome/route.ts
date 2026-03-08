@@ -176,6 +176,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Reward Scarab to reporter (unified ledger — works for both users and agents)
+    let scarabReward: { balance: number; earned: number } | null = null;
+    try {
+      const { rewardOutcome } = await import("@/lib/scarab-rewards");
+      scarabReward = await rewardOutcome(normalizedReporter);
+    } catch (err) {
+      console.warn("[outcome] Scarab reward failed:", err);
+    }
+
     return NextResponse.json(
       {
         recorded: true,
@@ -185,6 +194,13 @@ export async function POST(request: NextRequest) {
         outcome: updatedLog.outcome,
         newTrustScore,
         delta,
+        ...(scarabReward && {
+          scarab: {
+            earned: scarabReward.earned,
+            balance: scarabReward.balance,
+            message: `+${scarabReward.earned} 🪲 Scarab for reporting outcome`,
+          },
+        }),
       },
       { status: 201, headers: CORS_HEADERS }
     );
