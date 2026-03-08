@@ -78,9 +78,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate required fields (Phase 1: signature optional)
-    const { jobId, agentAddress, outcome, actualAmountOut, callerSignature } = body as {
+    const { jobId, agentAddress, reporter, outcome, actualAmountOut, callerSignature } = body as {
       jobId?: string;
       agentAddress?: string;
+      reporter?: string;
       outcome?: string;
       actualAmountOut?: string;
       callerSignature?: string;
@@ -93,9 +94,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!agentAddress || !isAddress(agentAddress)) {
+    // Accept either agentAddress or reporter
+    const reporterAddr = agentAddress || reporter;
+    if (!reporterAddr) {
       return NextResponse.json(
-        { error: "Valid agentAddress required" },
+        { error: "agentAddress or reporter required" },
         { status: 400, headers: CORS_HEADERS }
       );
     }
@@ -107,26 +110,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalizedAgent = agentAddress.toLowerCase();
+    const normalizedReporter = reporterAddr.toLowerCase();
 
-    // Find the QueryLog for this job
-    const queryLog = await prisma.queryLog.findFirst({
-      where: {
-        jobId,
-        target: normalizedAgent,
-        type: "trust_swap",
-      },
-    });
+    // Find the QueryLog — first try by ID (queryId), then by jobId field
+    let queryLog = await prisma.queryLog.findUnique({ where: { id: jobId } });
+    if (!queryLog) {
+      queryLog = await prisma.queryLog.findFirst({ where: { jobId } });
+    }
 
     if (!queryLog) {
       return NextResponse.json(
         {
-          error: "QueryLog not found for this jobId + agentAddress",
+          error: "QueryLog not found for this jobId/queryId",
           recorded: false,
         },
         { status: 404, headers: CORS_HEADERS }
       );
     }
+
+    const normalizedAgent = queryLog.target;
 
     // Prevent double-recording (idempotent)
     if (queryLog.outcome !== null) {
@@ -179,6 +181,7 @@ export async function POST(request: NextRequest) {
         recorded: true,
         jobId,
         agentAddress: normalizedAgent,
+        reporter: normalizedReporter,
         outcome: updatedLog.outcome,
         newTrustScore,
         delta,
