@@ -402,16 +402,26 @@ function MarketPositions({ address }: { address: string }) {
     if (!address || !/^0x[a-f0-9]{40}$/.test(address)) { setLoading(false); return; }
     setLoading(true);
     fetch(`/api/v1/wallet/${address}/positions`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(d => {
-        console.log('[Passport] positions for', address, d.positions?.length ?? 0);
+        console.log('[Passport] positions for', address, '→', d.positions?.length ?? 0);
         setPositions(d.positions ?? []);
       })
-      .catch((e) => console.error('[Passport] positions error', e))
+      .catch((e) => {
+        console.error('[Passport] positions error:', e);
+        setPositions([]);
+      })
       .finally(() => setLoading(false))
   }, [address])
 
-  if (loading) return null
+  if (loading) return (
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
+      <p className="text-gray-500 font-mono text-[10px] animate-pulse">// LOADING POSITIONS…</p>
+    </div>
+  )
   if (positions.length === 0) return (
     <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
       <p className="text-gray-500 font-mono text-[10px]">// MARKET POSITIONS</p>
