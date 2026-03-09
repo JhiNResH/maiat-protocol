@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
   }
 
   const addressParam = request.nextUrl.searchParams.get("address");
+  const voterParam = request.nextUrl.searchParams.get("voter");
   if (!addressParam) {
     return NextResponse.json({ error: "address required" }, { status: 400, headers: CORS_HEADERS });
   }
@@ -122,14 +123,32 @@ export async function GET(request: NextRequest) {
     ? Math.round((weightedSum / totalWeight) * 10) / 10
     : 0;
 
+  // Look up voter's existing votes if voter param provided
+  let voterVotes: Record<string, 'up' | 'down'> = {};
+  if (voterParam && isAddress(voterParam) && db) {
+    const checksumVoter = getAddress(voterParam);
+    const reviewIds = reviews.map(r => r.id);
+    if (reviewIds.length > 0) {
+      const existingVotes = await db.reviewVote.findMany({
+        where: { voterId: checksumVoter, reviewId: { in: reviewIds } },
+        select: { reviewId: true, direction: true },
+      });
+      for (const v of existingVotes) {
+        voterVotes[v.reviewId] = v.direction as 'up' | 'down';
+      }
+    }
+  }
+
   return NextResponse.json({
     address: checksummed,
     reviews: reviews.map(r => ({
       ...r,
       timestamp: r.createdAt.toISOString(),
+      ...(voterVotes[r.id] ? { myVote: voterVotes[r.id] } : {}),
     })),
     count: reviews.length,
     averageRating: avgRating,
+    ...(voterParam ? { voterAddress: voterParam } : {}),
   }, { status: 200, headers: CORS_HEADERS });
 }
 
