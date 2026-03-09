@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// packages/mcp-server/src/index.ts
+// src/index.ts
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -39,7 +39,7 @@ async function maiatPost(path, body) {
 }
 var server = new McpServer({
   name: "maiat-trust",
-  version: "0.3.0"
+  version: "0.5.0"
 });
 server.tool(
   "get_agent_trust",
@@ -183,6 +183,38 @@ server.tool(
   }
 );
 server.tool(
+  "get_agent_reputation",
+  "Get community reputation for an ACP agent \u2014 reviews, average rating, sentiment analysis, and market consensus. Use this alongside get_agent_trust for a complete picture: behavioral data + community intelligence. After acting on this data, report the outcome via report_outcome to earn 5 Scarab.",
+  {
+    address: z.string().describe("Ethereum/Base wallet address (0x...) of the agent")
+  },
+  async ({ address }) => {
+    try {
+      const data = await maiatGet(`/api/v1/review?address=${address}`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(data, null, 2)
+          }
+        ]
+      };
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              error: err instanceof Error ? err.message : String(err),
+              address
+            })
+          }
+        ]
+      };
+    }
+  }
+);
+server.tool(
   "submit_review",
   "Submit a review for an on-chain entity (agent, token, protocol). Use after completing a job, swap, or interaction. Your wallet is auto-assigned via X-Maiat-Client. Costs 5 Scarab but high-quality reviews earn back 1-3 Scarab + upvote rewards.",
   {
@@ -263,10 +295,11 @@ server.resource(
 
 Base URL: https://app.maiat.io
 
-- \`GET /api/v1/agent/{address}\` \u2014 standard trust score
-- \`GET /api/v1/agent/{address}/deep\` \u2014 deep analysis
+- \`GET /api/v1/agent/{address}\` \u2014 standard trust score (includes deep data)
+- \`GET /api/v1/agent/{address}/deep\` \u2014 deep analysis with percentile + risk flags
+- \`GET /api/v1/review?address={address}\` \u2014 community reviews, sentiment, market consensus
 - \`GET /api/v1/token/{address}/forensics?chain=base\` \u2014 token forensics
-- \`POST /api/v1/outcome\` \u2014 report job outcome
+- \`POST /api/v1/outcome\` \u2014 report job outcome (earns +5 Scarab)
 - \`GET /api/v1/scarab?address={address}\` \u2014 SCARAB balance
 
 Learn more: https://app.maiat.io/docs
@@ -278,7 +311,7 @@ Learn more: https://app.maiat.io/docs
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("\u{1F6E1}\uFE0F Maiat MCP Server v0.4.0 (stdio) \u2014 6 tools active");
+  console.error("\u{1F6E1}\uFE0F Maiat MCP Server v0.5.0 (stdio) \u2014 7 tools active");
 }
 main().catch((err) => {
   console.error("Fatal:", err);
