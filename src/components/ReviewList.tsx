@@ -108,7 +108,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
 
   if (reviews.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-4 bg-[#111] rounded-2xl border border-dashed border-[#1F1F1F]">
+      <div className="flex flex-col items-center justify-center py-12 gap-4 bg-[var(--bg-surface)] rounded-2xl border border-dashed border-[var(--border-default)]">
         <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
           <MessageSquare className="w-6 h-6 text-[#666]" />
         </div>
@@ -146,7 +146,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
 
           return (
             <details key={review.id} open={!quality.isLow}>
-              <summary className={`list-none cursor-pointer flex flex-col gap-3 bg-[#111] rounded-xl border border-[#1F1F1F] p-5 transition-all hover:border-[#333] ${quality.cardClass}`}>
+              <summary className={`list-none cursor-pointer flex flex-col gap-3 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] p-5 transition-all hover:border-[#333] ${quality.cardClass}`}>
                 {/* Header: Reviewer, Badges, Rating */}
                 <div className="flex items-start justify-between">
                   <div className="flex flex-col gap-2">

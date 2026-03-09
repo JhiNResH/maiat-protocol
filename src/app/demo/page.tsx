@@ -245,7 +245,7 @@ function DetailPanel({ step }: { step: Step }) {
 
       {/* Code */}
       {step.code && (
-        <div className="rounded-lg border border-zinc-800 bg-[#0a0a0f] overflow-hidden">
+        <div className="rounded-lg border border-zinc-800 bg-[var(--bg-surface)] overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/80">
             <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Code</span>
           </div>
@@ -341,9 +341,9 @@ export default function DemoPage() {
   const currentStep = STEPS[activeStep - 1]
 
   return (
-    <div className="min-h-screen bg-[#050508] text-zinc-100">
+    <div className="min-h-screen bg-[var(--bg-page)] text-zinc-100">
       {/* Top Bar */}
-      <div className="border-b border-zinc-800/60 bg-[#050508]/80 backdrop-blur-sm sticky top-0 z-50">
+      <div className="border-b border-zinc-800/60 bg-[rgba(8,11,26,0.8)] backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/monitor" className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors">
@@ -445,7 +445,7 @@ export default function DemoPage() {
         <div className="mt-16 rounded-xl border border-zinc-800/40 bg-zinc-900/10 p-6">
           <h3 className="text-sm font-mono uppercase tracking-wider text-zinc-500 mb-4">Deployed Contracts (Base Sepolia)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800/50 bg-[#050508]">
+            <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800/50 bg-[var(--bg-page)]">
               <div>
                 <p className="text-xs font-mono text-blue-400">TrustScoreOracle</p>
                 <p className="text-[11px] font-mono text-zinc-600 mt-1">0xf662902ca227baba3a4d11a1bc58073e0b0d1139</p>
@@ -458,7 +458,7 @@ export default function DemoPage() {
                 <ExternalLink className="w-4 h-4" />
               </a>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800/50 bg-[#050508]">
+            <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800/50 bg-[var(--bg-page)]">
               <div>
                 <p className="text-xs font-mono text-cyan-400">TrustGateHook</p>
                 <p className="text-[11px] font-mono text-zinc-600 mt-1">0xf6065fb076090af33ee0402f7e902b2583e7721e</p>

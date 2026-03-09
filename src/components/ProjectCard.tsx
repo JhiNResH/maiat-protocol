@@ -91,7 +91,7 @@ export function ProjectCard({
   return (
     <Link
       href={href}
-      className="group flex items-center gap-4 px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg transition-all duration-200 hover:border-[#3b82f6]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.15)]"
+      className="group flex items-center gap-4 px-4 py-3 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg transition-all duration-200 hover:border-[#3b82f6]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.15)]"
       style={{ minHeight: '72px' }}
     >
       {/* LEFT: Avatar + Name + Chain */}

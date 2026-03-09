@@ -294,7 +294,7 @@ const handlePointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) =
 }, [onSelect, agents]);
 
 return (
-  <div ref={containerRef} className="relative w-full h-full bg-[#010204]">
+  <div ref={containerRef} className="relative w-full h-full bg-[var(--bg-page)]">
     <canvas ref={canvasRef} className="w-full h-full cursor-grab active:cursor-grabbing block touch-none" 
       onWheel={(e) => { e.preventDefault(); (ref as any).current?.zoom(e.deltaY < 0 ? 1.1 : 0.9); }}
       onPointerDown={handlePointerDown}
@@ -501,7 +501,7 @@ const selectedNode = useMemo(() => {
 }, [selectedId, radarAgents, fallbackAgent]);
 
 return (
-  <div className="flex flex-col h-screen w-full overflow-hidden bg-[#010204]" style={{fontFamily:'Inter, system-ui, sans-serif'}}>
+  <div className="flex flex-col h-screen w-full overflow-hidden bg-[var(--bg-page)]" style={{fontFamily:'Inter, system-ui, sans-serif'}}>
     <div className="flex items-center gap-2 px-6 py-2 border-b border-white/5 bg-black/40 shrink-0">
       {['ALL','HIGH TRUST ✓','MINES ⚠','UN-AUDITED'].map(label => (
         <button key={label} onClick={()=>setFilter(label)} className={`px-3 py-1 rounded-lg text-[9px] font-bold tracking-widest border transition-all ${filter===label?'border-[#3b82f6]/50 text-[#3b82f6] bg-[#3b82f6]/10':'border-transparent text-slate-500 hover:text-slate-300'}`}>{label}</button>
@@ -516,7 +516,7 @@ return (
     </div>
     
     <div className="flex flex-1 overflow-hidden relative">
-      <main ref={containerRef} className="flex-1 relative bg-[#010204] overflow-hidden">
+      <main ref={containerRef} className="flex-1 relative bg-[var(--bg-page)] overflow-hidden">
         <AgentBubbleMap ref={mapRef} agents={radarAgents} onSelect={handleSelect} selectedId={selectedId} />
         <TacticalLegend /><NavControls onMove={(dx, dy) => mapRef.current?.move(dx, dy)} onZoom={(f) => mapRef.current?.zoom(f)} onReset={() => mapRef.current?.resetView()} containerRef={containerRef} />
       </main>

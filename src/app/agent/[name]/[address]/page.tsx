@@ -99,7 +99,7 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function AgentDetailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#030303] flex items-center justify-center text-[#d4a017] font-mono uppercase tracking-widest">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[#d4a017] font-mono uppercase tracking-widest">Loading...</div>}>
       <AgentDetailContent />
     </Suspense>
   )
@@ -135,7 +135,7 @@ function AgentDetailContent() {
   }
 
   if (agentLoading) return (
-    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="w-10 h-10 border-2 border-[#d4a017] border-t-transparent rounded-full animate-spin" />
         <span className="text-[#818384] font-mono text-sm uppercase tracking-widest">Loading Project...</span>
@@ -144,7 +144,7 @@ function AgentDetailContent() {
   )
 
   if (!agent) return (
-    <div className="min-h-screen bg-[#030303] flex items-center justify-center font-mono">
+    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center font-mono">
       <div className="text-center space-y-6">
         <div className="text-6xl animate-pulse opacity-20">🪲</div>
         <p className="text-slate-500 font-bold uppercase tracking-widest">Project Not Found</p>
@@ -165,7 +165,7 @@ function AgentDetailContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#030303] text-[#d7dadc] font-['JetBrains_Mono',monospace] antialiased selection:bg-[#d4a017]/30">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[#d7dadc] font-['JetBrains_Mono',monospace] antialiased selection:bg-[#d4a017]/30">
       <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col gap-8">
 
         {/* ── Breadcrumb ── */}
@@ -182,7 +182,7 @@ function AgentDetailContent() {
           <div className="flex flex-col lg:flex-row items-start gap-10 relative z-10">
             {/* Avatar */}
             <div className="relative shrink-0">
-              <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[#343536] bg-[#030303] flex items-center justify-center text-3xl font-black text-white">
+              <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[#343536] bg-[var(--bg-page)] flex items-center justify-center text-3xl font-black text-white">
                 {agent.logo ? (
                   <img src={agent.logo} alt={agent.name} className="w-full h-full object-cover" />
                 ) : (
@@ -269,7 +269,7 @@ function AgentDetailContent() {
                   { label: 'Revenue', val: agent.breakdown?.revenue ? formatCompact(agent.breakdown.revenue) : '—' },
                   { label: 'Type', val: 'ACP Agent' },
                 ].map((s, i) => (
-                  <div key={i} className="bg-[#111113] rounded-xl p-4 space-y-1">
+                  <div key={i} className="bg-[var(--bg-surface)] rounded-xl p-4 space-y-1">
                     <div className="text-[9px] text-[#818384] font-mono uppercase tracking-wider">{s.label}</div>
                     <div className="text-sm font-bold text-[#d7dadc]">{s.val}</div>
                   </div>
