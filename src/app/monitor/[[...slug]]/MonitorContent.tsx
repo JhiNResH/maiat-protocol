@@ -73,7 +73,7 @@ const nodeOffsets = React.useRef<Record<string, { dx: number, dy: number, s: num
 
 const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 const selectedIdRef = React.useRef(selectedId);
-React.useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+React.useEffect(() => { selectedIdRef.current = selectedId; if (selectedId && directSelectedId) setDirectSelectedId(null); }, [selectedId]);
 
 useEffect(() => {
   if (typeof window === 'undefined') return;
@@ -422,6 +422,7 @@ useEffect(() => {
 
 const { data: agentsData } = useSWR('/api/v1/agents?limit=1000&include8004=true', fetcher, { refreshInterval: 30000 });
 const [fallbackAgent, setFallbackAgent] = useState<any>(null);
+const [directSelectedId, setDirectSelectedId] = useState<string | null>(null);
 
 const radarAgents = useMemo<AgentNode[]>(() => {
   if (!agentsData?.agents) return [];
@@ -482,7 +483,7 @@ useEffect(() => {
 }, [radarAgents.length, selectedId]);
 
 const handleSelect = useCallback(async (query: string | null) => {
-  if (!query) { setFallbackAgent(null); router.replace('/monitor', { scroll: false }); mapRef.current?.resetView(); return; }
+  if (!query) { setFallbackAgent(null); setDirectSelectedId(null); router.replace('/monitor', { scroll: false }); mapRef.current?.resetView(); return; }
   const target = radarAgents.find(a => a.id.toLowerCase() === query.toLowerCase() || a.label.toLowerCase().includes(query.toLowerCase()));
   if (target) {
     const id = target.id.toLowerCase();
@@ -508,8 +509,10 @@ const handleSelect = useCallback(async (query: string | null) => {
           raw: agent,
         };
         setFallbackAgent(fb);
-        // Inject into bubble map and select immediately
+        // Force selectedId update via URL
         router.replace(`/monitor/agent/${cleanName}/${fb.id}`, { scroll: false });
+        // Also set a direct override so sidebar renders immediately without waiting for URL
+        setDirectSelectedId(fb.id);
         // Give React multiple render cycles to inject fallbackAgent into radarAgents
         setTimeout(() => mapRef.current?.panToNode(fb.id), 50);
         setTimeout(() => mapRef.current?.panToNode(fb.id), 300);
@@ -518,12 +521,13 @@ const handleSelect = useCallback(async (query: string | null) => {
   }
 }, [router, radarAgents]);
 
+const effectiveSelectedId = directSelectedId || selectedId;
 const selectedNode = useMemo(() => {
-  if (!selectedId) return null;
+  if (!effectiveSelectedId) return null;
   // Check fallbackAgent FIRST — it's set immediately on search, before radarAgents re-renders
-  if (fallbackAgent && fallbackAgent.id.toLowerCase() === selectedId.toLowerCase()) return fallbackAgent;
-  return radarAgents.find(a => a.id.toLowerCase() === selectedId.toLowerCase()) || null;
-}, [selectedId, radarAgents, fallbackAgent]);
+  if (fallbackAgent && fallbackAgent.id.toLowerCase() === effectiveSelectedId.toLowerCase()) return fallbackAgent;
+  return radarAgents.find(a => a.id.toLowerCase() === effectiveSelectedId.toLowerCase()) || null;
+}, [effectiveSelectedId, radarAgents, fallbackAgent]);
 
 return (
   <div className="flex flex-col h-screen w-full overflow-hidden bg-[var(--bg-page)]" style={{fontFamily:'Inter, system-ui, sans-serif'}}>
@@ -542,7 +546,7 @@ return (
     
     <div className="flex flex-1 overflow-hidden relative">
       <main ref={containerRef} className="flex-1 relative bg-[var(--bg-page)] overflow-hidden" style={{background:'radial-gradient(ellipse at 50% 50%, rgba(212,160,23,0.03) 0%, var(--bg-page) 70%)'}}>
-        <AgentBubbleMap ref={mapRef} agents={radarAgents} onSelect={handleSelect} selectedId={selectedId} />
+        <AgentBubbleMap ref={mapRef} agents={radarAgents} onSelect={handleSelect} selectedId={effectiveSelectedId} />
         <TacticalLegend /><NavControls onMove={(dx, dy) => mapRef.current?.move(dx, dy)} onZoom={(f) => mapRef.current?.zoom(f)} onReset={() => mapRef.current?.resetView()} containerRef={containerRef} />
       </main>
 
