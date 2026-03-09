@@ -520,8 +520,9 @@ const handleSelect = useCallback(async (query: string | null) => {
 
 const selectedNode = useMemo(() => {
   if (!selectedId) return null;
-  return radarAgents.find(a => a.id.toLowerCase() === selectedId.toLowerCase()) 
-    || (fallbackAgent && fallbackAgent.id.toLowerCase() === selectedId.toLowerCase() ? fallbackAgent : null);
+  // Check fallbackAgent FIRST — it's set immediately on search, before radarAgents re-renders
+  if (fallbackAgent && fallbackAgent.id.toLowerCase() === selectedId.toLowerCase()) return fallbackAgent;
+  return radarAgents.find(a => a.id.toLowerCase() === selectedId.toLowerCase()) || null;
 }, [selectedId, radarAgents, fallbackAgent]);
 
 return (
