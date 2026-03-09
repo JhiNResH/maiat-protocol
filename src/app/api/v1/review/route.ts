@@ -41,7 +41,7 @@ const rateLimiter = createRateLimiter("review", 30, 60);
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, X-Maiat-Client, X-Maiat-Key",
 };
 
 export async function OPTIONS() {
@@ -224,8 +224,28 @@ export async function POST(request: NextRequest) {
       source?: string; // "human" or "agent"
     };
 
-    const { address, rating, comment, tags, reviewer, signature, easReceiptId, txHash } = body;
-    const source: string = body.source === 'agent' ? 'agent' : 'human';
+    let { address, rating, comment, tags, reviewer, signature, easReceiptId, txHash } = body;
+    let source: string = body.source === 'agent' ? 'agent' : 'human';
+
+    // --- Auto-resolve reviewer from X-Maiat-Client header ---
+    const clientId = request.headers.get("x-maiat-client");
+    if (!reviewer && clientId) {
+      try {
+        const { getCallerWallet, signMessage } = await import("@/lib/caller-wallet");
+        const walletAddr = await getCallerWallet(clientId);
+        if (walletAddr) {
+          reviewer = walletAddr;
+          source = 'agent'; // auto-resolved = agent
+
+          // Auto-sign for SIWE verification (if no signature/txHash provided)
+          if (!signature && !txHash && address && rating) {
+            const msg = `Maiat Review: ${getAddress(address)} Rating: ${rating} Reviewer: ${getAddress(walletAddr)}`;
+            const sig = await signMessage(clientId, msg);
+            if (sig) signature = sig;
+          }
+        }
+      } catch { /* non-critical — fall through to manual validation */ }
+    }
 
     // --- Validation ---
     if (!address || !isAddress(address)) {
@@ -235,7 +255,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Rating must be 1-10" }, { status: 400, headers: CORS_HEADERS });
     }
     if (!reviewer || !isAddress(reviewer)) {
-      return NextResponse.json({ error: "Valid reviewer wallet address required" }, { status: 400, headers: CORS_HEADERS });
+      return NextResponse.json({ error: "Valid reviewer wallet address required. Send X-Maiat-Client header for auto-assignment." }, { status: 400, headers: CORS_HEADERS });
     }
 
     const checksumAddress = getAddress(address);
