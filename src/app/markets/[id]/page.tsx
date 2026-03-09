@@ -65,10 +65,12 @@ function MarketDetailContent() {
       setLoading(true);
       const res = await fetch(`/api/v1/markets/${marketId}`);
       const data = await res.json();
-      if (data.market) {
-        setMarket(data.market);
-        if (data.market.positions.length > 0) {
-          setSelectedProjectId(data.market.positions[0].projectId);
+      // API returns market fields directly (not nested under .market)
+      const marketData = data.market ?? data;
+      if (marketData?.id) {
+        setMarket(marketData);
+        if (marketData.positions?.length > 0) {
+          setSelectedProjectId(marketData.positions[0].projectId);
         }
       }
     } catch (err) {
