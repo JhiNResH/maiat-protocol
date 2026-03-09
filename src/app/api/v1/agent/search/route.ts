@@ -46,7 +46,31 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ results }, { headers: CORS_HEADERS });
+    // Fallback: also search Project table for agents not in AgentScore
+    const existingAddresses = new Set(results.map(r => r.walletAddress.toLowerCase()));
+    const projects = await prisma.project.findMany({
+      where: {
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { address: { startsWith: q, mode: 'insensitive' } },
+        ],
+      },
+      take: limit,
+      select: { address: true, name: true, logo: true, trust: true },
+    });
+
+    for (const p of projects) {
+      if (p.address && !existingAddresses.has(p.address.toLowerCase())) {
+        results.push({
+          walletAddress: p.address,
+          name: p.name ?? p.address.slice(0, 10) + "...",
+          trustScore: (p.trust as any)?.score ? Number((p.trust as any).score) / 10 : 0,
+          profilePic: p.logo ?? null,
+        });
+      }
+    }
+
+    return NextResponse.json({ results: results.slice(0, limit) }, { headers: CORS_HEADERS });
   } catch (err) {
     console.error("[agent/search] Error:", err);
     return NextResponse.json({ error: "Search failed", results: [] }, { status: 500, headers: CORS_HEADERS });
