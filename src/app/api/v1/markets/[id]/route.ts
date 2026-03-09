@@ -64,6 +64,7 @@ export async function GET(
         id: true,
         name: true,
         slug: true,
+        address: true,
         trustScore: true,
         category: true,
         image: true,
@@ -72,17 +73,57 @@ export async function GET(
 
     const projectMap = new Map(projects.map((p) => [p.id, p]));
 
+    // Enrich with AgentScore data (real trust scores + logos)
+    const projectAddresses = projects.map(p => p.address).filter(Boolean) as string[];
+    const agentScores = projectAddresses.length > 0
+      ? await prisma.agentScore.findMany({
+          where: { walletAddress: { in: projectAddresses, mode: 'insensitive' } },
+          select: { walletAddress: true, trustScore: true, rawMetrics: true },
+        })
+      : [];
+    
+    // Also try matching by name for agents indexed under different addresses
+    const projectNames = projects.map(p => p.name).filter(Boolean) as string[];
+    const agentScoresByName = projectNames.length > 0
+      ? await prisma.agentScore.findMany({
+          where: { rawMetrics: { path: ['name'], string_contains: projectNames[0] ?? '' } },
+          select: { walletAddress: true, trustScore: true, rawMetrics: true },
+        })
+      : [];
+
+    const allAgentScores = [...agentScores, ...agentScoresByName];
+    
+    // Build lookup: project address → agent score
+    const agentScoreMap = new Map<string, { trustScore: number; profilePic: string | null }>();
+    for (const as of allAgentScores) {
+      const raw = as.rawMetrics as Record<string, unknown> | null;
+      agentScoreMap.set(as.walletAddress.toLowerCase(), {
+        trustScore: as.trustScore,
+        profilePic: (raw?.profilePic as string) ?? null,
+      });
+      // Also map by name
+      const name = raw?.name as string;
+      if (name) agentScoreMap.set(name.toLowerCase(), {
+        trustScore: as.trustScore,
+        profilePic: (raw?.profilePic as string) ?? null,
+      });
+    }
+
     // Build project standings
     const projectStandings = Object.entries(projectStakes)
       .map(([projectId, stats]) => {
         const project = projectMap.get(projectId);
+        // Try to get real trust score + logo from AgentScore
+        const agentData = (project?.address ? agentScoreMap.get(project.address.toLowerCase()) : null)
+          ?? (project?.name ? agentScoreMap.get(project.name.toLowerCase()) : null);
+        
         return {
           projectId,
           projectName: project?.name ?? "Unknown",
           projectSlug: project?.slug ?? projectId,
-          trustScore: project?.trustScore ?? 0,
+          trustScore: agentData?.trustScore ?? project?.trustScore ?? 0,
           category: project?.category ?? "unknown",
-          image: project?.image ?? null,
+          image: project?.image ?? agentData?.profilePic ?? null,
           totalStake: stats.totalStake,
           positionCount: stats.positionCount,
           voterCount: stats.voters.length,
