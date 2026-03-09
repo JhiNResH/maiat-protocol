@@ -96,20 +96,21 @@ export async function GET(
 
     const allAgentScores = [...agentScores, ...agentScoresByName];
     
-    // Build lookup: project address → agent score
+    // Build lookup: project address/name → agent score (keep highest trust score)
     const agentScoreMap = new Map<string, { trustScore: number; profilePic: string | null }>();
+    // Sort by trust score descending so highest wins in map
+    allAgentScores.sort((a, b) => b.trustScore - a.trustScore);
     for (const as of allAgentScores) {
       const raw = as.rawMetrics as Record<string, unknown> | null;
-      agentScoreMap.set(as.walletAddress.toLowerCase(), {
-        trustScore: as.trustScore,
-        profilePic: (raw?.profilePic as string) ?? null,
-      });
-      // Also map by name
+      const entry = { trustScore: as.trustScore, profilePic: (raw?.profilePic as string) ?? null };
+      
+      const addrKey = as.walletAddress.toLowerCase();
+      if (!agentScoreMap.has(addrKey)) agentScoreMap.set(addrKey, entry);
+      
       const name = raw?.name as string;
-      if (name) agentScoreMap.set(name.toLowerCase(), {
-        trustScore: as.trustScore,
-        profilePic: (raw?.profilePic as string) ?? null,
-      });
+      if (name && !agentScoreMap.has(name.toLowerCase())) {
+        agentScoreMap.set(name.toLowerCase(), entry);
+      }
     }
 
     // Build project standings
