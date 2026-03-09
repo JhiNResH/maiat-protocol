@@ -173,7 +173,7 @@ async function getFirstTxTimestamp(address: string, chain: SupportedChain): Prom
   const { url, key, chainId } = EXPLORER_APIS[chain];
   if (!key) return null;
   try {
-    const res  = await fetch(`${url}?chainid=${chainId}&module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=1&sort=asc&apikey=${key}`);
+    const res  = await fetch(`${url}?chainid=${chainId}&module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=1&sort=asc&apikey=${key}`, { signal: AbortSignal.timeout(15_000) });
     const data = await res.json() as { status: string; result: Array<{ timeStamp: string }> };
     if (data.status === "1" && data.result?.length > 0) return parseInt(data.result[0].timeStamp) * 1000;
   } catch { /* ignore */ }

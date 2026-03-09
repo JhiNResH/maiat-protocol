@@ -12,12 +12,20 @@ import {
   type Hex,
   type Address,
 } from 'viem'
-import { baseSepolia } from 'viem/chains'
+import { base, baseSepolia } from 'viem/chains'
 import { privateKeyToAccount } from 'viem/accounts'
 import { prisma } from '@/lib/prisma'
 
-// TrustScoreOracle on Base Sepolia
-const ORACLE_ADDRESS = '0xf6629021AE4E138Dc0869A4CB81462Bb4C28c819' as const
+// TrustScoreOracle — Base Mainnet (production)
+// Env var overrides allow testnet usage during development
+const ORACLE_ADDRESS = (
+  process.env.ORACLE_ADDRESS ||
+  process.env.TRUST_SCORE_ORACLE_ADDRESS ||
+  '0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da'  // MaiatOracle on Base Mainnet
+) as `0x${string}`
+
+const USE_TESTNET = process.env.ORACLE_USE_TESTNET === 'true'
+const CHAIN = USE_TESTNET ? baseSepolia : base
 
 // DataSource enum matches contract: NONE=0, SEED=1, API=2, COMMUNITY=3, VERIFIED=4
 const DATA_SOURCE_MAP: Record<string, number> = {
@@ -95,15 +103,17 @@ export async function syncOracleScores(): Promise<SyncResult> {
 
   const account = privateKeyToAccount(updaterKey as Hex)
 
+  const rpcUrl = process.env.ALCHEMY_BASE_RPC || undefined  // falls back to viem default
+
   const publicClient = createPublicClient({
-    chain: baseSepolia,
-    transport: http(),
+    chain: CHAIN,
+    transport: http(rpcUrl),
   })
 
   const walletClient = createWalletClient({
     account,
-    chain: baseSepolia,
-    transport: http(),
+    chain: CHAIN,
+    transport: http(rpcUrl),
   })
 
   const records = await getChangedScores()

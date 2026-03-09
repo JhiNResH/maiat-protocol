@@ -193,8 +193,8 @@ export class MaiatClient {
       return cached.result;
     }
 
-    const url = `${this.apiUrl}/api/v1/score/${address}?chain=${chain || this.chain}`;
-    const res = await fetch(url, { headers: this.headers });
+    const url = `${this.apiUrl}/api/v1/agent/${address}`;
+    const res = await fetch(url, { headers: this.headers, signal: AbortSignal.timeout(15_000) });
 
     if (!res.ok) {
       throw new Error(`Maiat API error (${res.status}): ${await res.text()}`);

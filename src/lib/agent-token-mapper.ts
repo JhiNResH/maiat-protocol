@@ -40,7 +40,7 @@ interface VirtualsSearchResponse {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const VIRTUALS_SEARCH_URL = "http://acpx.virtuals.io/api/agents/v5/search";
+const VIRTUALS_SEARCH_URL = "https://acpx.virtuals.io/api/agents/v5/search";
 
 // ─── Helper: Normalize address ───────────────────────────────────────────────
 
@@ -101,7 +101,7 @@ export async function getAgentToken(
   // 2. Query Virtuals API
   try {
     const url = `${VIRTUALS_SEARCH_URL}?query=${encodeURIComponent(normalized)}&topK=5`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
 
     if (!res.ok) {
       console.warn(`[agent-token-mapper] Virtuals API error: ${res.status}`);
@@ -230,7 +230,7 @@ export async function fetchAgentTokenFromVirtuals(
 
   try {
     const url = `${VIRTUALS_SEARCH_URL}?query=${encodeURIComponent(normalized)}&topK=5`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
 
     if (!res.ok) {
       return { tokenAddress: null, tokenSymbol: null, agentName: null };
