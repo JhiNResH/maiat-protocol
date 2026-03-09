@@ -51,7 +51,9 @@ function MarketDetailContent() {
   const prefillName = searchParams.get("name");
   const { authenticated, user, login } = usePrivy();
   const { wallets } = useWallets();
-  const walletAddress = user?.wallet?.address;
+  // Prefer external wallet (MetaMask etc.) over Privy embedded wallet
+  const externalWallet = wallets.find(w => w.walletClientType !== 'privy');
+  const walletAddress = externalWallet?.address ?? user?.wallet?.address;
 
   const [market, setMarket] = useState<MarketDetail | null>(null);
   const [loading, setLoading] = useState(true);
