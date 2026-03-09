@@ -409,6 +409,7 @@ useEffect(() => {
 }, []);
 
 const { data: agentsData } = useSWR('/api/v1/agents?limit=1000', fetcher, { refreshInterval: 30000 });
+const [fallbackAgent, setFallbackAgent] = useState<any>(null);
 
 const radarAgents = useMemo<AgentNode[]>(() => {
   if (!agentsData?.agents) return [];
@@ -467,7 +468,6 @@ useEffect(() => {
   }
 }, [radarAgents.length, selectedId]);
 
-const [fallbackAgent, setFallbackAgent] = useState<any>(null);
 const handleSelect = useCallback(async (query: string | null) => {
   setFallbackAgent(null);
   if (!query) { router.replace('/monitor', { scroll: false }); mapRef.current?.resetView(); return; }
