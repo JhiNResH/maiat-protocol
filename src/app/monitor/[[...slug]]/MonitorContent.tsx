@@ -631,8 +631,100 @@ return (
 }
 
 function AgentReviews({ agentId }: { agentId: string }) {
-  const { data } = useSWR(`/api/v1/review?address=${agentId}`, fetcher);
+  const { data, mutate } = useSWR(`/api/v1/review?address=${agentId}`, fetcher);
+  const { user } = usePrivy();
+  const walletAddress = user?.wallet?.address;
+  const [votingId, setVotingId] = useState<string | null>(null);
   const reviews = data?.reviews || [];
-  if (reviews.length === 0) return null;
-  return (<div className="space-y-3">{reviews.slice(0, 3).map((r: any) => (<div key={r.id} className="bg-white/5 border border-white/5 rounded-2xl p-3 text-[9px] text-slate-400 italic">"{r.comment}"</div>))}</div>);
+  if (reviews.length === 0) return (
+    <p className="text-[9px] font-mono text-[#666] text-center py-4">No reviews yet — be the first to report intel</p>
+  );
+
+  // Sort: verified first, low quality last
+  const sorted = [...reviews].sort((a: any, b: any) => {
+    const tierOrder = (qs: number) => qs >= 70 ? 0 : qs >= 40 ? 1 : 2;
+    return tierOrder(a.qualityScore ?? 50) - tierOrder(b.qualityScore ?? 50);
+  });
+
+  const getInteractionBadge = (r: any) => {
+    if (r.interactionTier === 'acp' || r.hasEas) return { label: 'ACP Verified', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' };
+    if (r.interactionTier === 'onchain') return { label: 'On-chain', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' };
+    return { label: 'Unverified', color: 'text-[#666] bg-white/5 border-white/5' };
+  };
+
+  const getQualityStyle = (qs: number) => {
+    if (qs >= 70) return { badge: '✓ Verified', badgeClass: 'text-emerald-400', cardClass: 'bg-white/5 border-white/10' };
+    if (qs >= 40) return { badge: null, badgeClass: '', cardClass: 'bg-white/5 border-white/5' };
+    return { badge: 'Low Quality', badgeClass: 'text-red-400', cardClass: 'bg-white/[0.02] border-white/[0.03] opacity-60' };
+  };
+
+  async function handleVote(reviewId: string, direction: 'up' | 'down') {
+    if (!walletAddress || votingId) return;
+    setVotingId(reviewId);
+    try {
+      await fetch('/api/v1/review/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewId, voter: walletAddress, direction }),
+      });
+      mutate();
+    } catch { /* silent */ }
+    finally { setVotingId(null); }
+  }
+
+  return (
+    <div className="space-y-2">
+      {sorted.map((r: any) => {
+        const qs = r.qualityScore ?? 50;
+        const style = getQualityStyle(qs);
+        const badge = getInteractionBadge(r);
+        const isLow = qs < 40;
+        
+        return (
+          <details key={r.id} open={!isLow} className={`rounded-xl border ${style.cardClass} transition-all`}>
+            <summary className="p-3 cursor-pointer list-none">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    {/* Rating */}
+                    <span className="text-[10px] font-bold text-amber-400">{'★'.repeat(Math.round(r.rating / 2))}{'☆'.repeat(5 - Math.round(r.rating / 2))}</span>
+                    <span className="text-[9px] font-mono text-[#666]">{r.rating}/10</span>
+                    {/* Quality badge */}
+                    {style.badge && <span className={`text-[8px] font-bold uppercase tracking-wider ${style.badgeClass}`}>{style.badge}</span>}
+                    {/* Interaction tier */}
+                    <span className={`text-[8px] px-1.5 py-0.5 rounded border font-mono ${badge.color}`}>{badge.label}</span>
+                  </div>
+                  <p className={`text-[10px] leading-relaxed ${isLow ? 'text-[#555]' : 'text-[#999]'}`}>
+                    {r.comment ? (r.comment.length > 200 && isLow ? r.comment.slice(0, 100) + '…' : r.comment) : <em>No comment</em>}
+                  </p>
+                </div>
+                {/* Vote buttons */}
+                <div className="flex flex-col items-center gap-0.5 shrink-0 ml-2">
+                  <button
+                    onClick={(e) => { e.preventDefault(); handleVote(r.id, 'up'); }}
+                    disabled={!walletAddress || votingId === r.id}
+                    className="text-[#666] hover:text-emerald-400 transition-colors disabled:opacity-30 text-xs"
+                  >▲</button>
+                  <span className="text-[9px] font-mono text-[#888]">{r.upvotes ?? 0}</span>
+                  <button
+                    onClick={(e) => { e.preventDefault(); handleVote(r.id, 'down'); }}
+                    disabled={!walletAddress || votingId === r.id}
+                    className="text-[#666] hover:text-red-400 transition-colors disabled:opacity-30 text-xs"
+                  >▼</button>
+                </div>
+              </div>
+              {/* Reviewer + time */}
+              <div className="flex items-center gap-2 mt-2 text-[8px] font-mono text-[#555]">
+                <span>{r.reviewer?.slice(0, 6)}…{r.reviewer?.slice(-4)}</span>
+                <span>·</span>
+                <span>{r.source === 'agent' ? '🤖' : '👤'} {r.source}</span>
+                <span>·</span>
+                <span>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span>
+              </div>
+            </summary>
+          </details>
+        );
+      })}
+    </div>
+  );
 }

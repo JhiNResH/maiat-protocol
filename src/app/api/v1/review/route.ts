@@ -95,7 +95,12 @@ export async function GET(request: NextRequest) {
       comment: r.comment,
       tags: r.tags,
       reviewer: r.reviewer,
-      qualityScore: null,
+      qualityScore: r.qualityScore != null ? Math.round(r.qualityScore * 10) : null, // 0-10 → 0-100 for display
+      interactionTier: r.interactionTier ?? 'none',
+      source: r.source ?? r.reviewerType ?? 'human',
+      hasEas: r.hasEas,
+      upvotes: r.upvotes,
+      downvotes: r.downvotes,
       interactionProof: false,
       weight: r.weight,
       createdAt: r.createdAt,
@@ -537,6 +542,7 @@ export async function POST(request: NextRequest) {
           helpfulness: aiQuality?.helpfulness ?? null,
           reviewerType: source === "agent" ? "agent" : "human",
           hasEas: !!verifiedReceiptId,
+          interactionTier: interactionTier ?? "none",
         },
       });
       saved = {
