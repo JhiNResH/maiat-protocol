@@ -10,14 +10,14 @@ import {
 } from "lucide-react";
 import useSWR from "swr";
 
-interface Position {
-  id: string;
+interface ProjectStanding {
   projectId: string;
   projectName: string;
-  projectLogo: string | null;
+  image: string | null;
   totalStake: number;
-  shareOfPool: number;
-  potentialPayout: number;
+  positionCount: number;
+  voterCount: number;
+  trustScore: number;
 }
 
 interface MarketDetail {
@@ -28,7 +28,8 @@ interface MarketDetail {
   totalPool: number;
   positionCount: number;
   closesAt: string;
-  positions: Position[];
+  projectStandings: ProjectStanding[];
+  positions: any[];
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -65,12 +66,11 @@ function MarketDetailContent() {
       setLoading(true);
       const res = await fetch(`/api/v1/markets/${marketId}`);
       const data = await res.json();
-      // API returns market fields directly (not nested under .market)
       const marketData = data.market ?? data;
       if (marketData?.id) {
         setMarket(marketData);
-        if (marketData.positions?.length > 0) {
-          setSelectedProjectId(marketData.positions[0].projectId);
+        if (marketData.projectStandings?.length > 0) {
+          setSelectedProjectId(marketData.projectStandings[0].projectId);
         }
       }
     } catch (err) {
@@ -165,27 +165,33 @@ function MarketDetailContent() {
                 <Users size={14} /> // Current Market Positions
               </div>
               <div className="space-y-2">
-                {market.positions.map(pos => (
-                  <div 
-                    key={pos.projectId}
-                    onClick={() => setSelectedProjectId(pos.projectId)}
-                    className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer group ${selectedProjectId === pos.projectId ? 'bg-[#3b82f6]/5 border-[#3b82f6]/40 shadow-[0_0_20px_rgba(59,130,246,0.05)]' : 'bg-[#111111] border-[#1F1F1F] hover:border-[#333]'}`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#1F1F1F] bg-[#0A0A0A] p-1">
-                        <img src={pos.projectLogo || `https://api.dicebear.com/7.x/bottts/svg?seed=${pos.projectId}&backgroundColor=transparent`} alt="" className="w-full h-full object-cover rounded" />
+                {(market.projectStandings ?? []).map(standing => {
+                  const shareOfPool = market.totalPool > 0 ? (standing.totalStake / market.totalPool * 100) : 0;
+                  return (
+                    <div 
+                      key={standing.projectId}
+                      onClick={() => setSelectedProjectId(standing.projectId)}
+                      className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer group ${selectedProjectId === standing.projectId ? 'bg-[#3b82f6]/5 border-[#3b82f6]/40 shadow-[0_0_20px_rgba(59,130,246,0.05)]' : 'bg-[#111111] border-[#1F1F1F] hover:border-[#333]'}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#1F1F1F] bg-[#0A0A0A] p-1">
+                          <img src={standing.image || `https://api.dicebear.com/7.x/bottts/svg?seed=${standing.projectId}&backgroundColor=transparent`} alt="" className="w-full h-full object-cover rounded" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white group-hover:text-[#3b82f6] transition-colors">{standing.projectName}</p>
+                          <p className="text-[10px] font-mono text-[#666666]">{shareOfPool.toFixed(1)}% of pool · {standing.voterCount} voter{standing.voterCount !== 1 ? 's' : ''}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-white group-hover:text-[#3b82f6] transition-colors">{pos.projectName}</p>
-                        <p className="text-[10px] font-mono text-[#666666]">{pos.shareOfPool.toFixed(1)}% of pool</p>
+                      <div className="text-right">
+                        <p className="text-sm font-bold font-mono text-white">{standing.totalStake.toLocaleString()} 🪲</p>
+                        <p className="text-[9px] font-mono text-[#3b82f6]">Trust: {standing.trustScore}/100</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold font-mono text-white">{pos.totalStake.toLocaleString()} 🪲</p>
-                      <p className="text-[9px] font-mono text-[#10b981]">Payout: {pos.potentialPayout.toFixed(2)}x</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
+                {(market.projectStandings ?? []).length === 0 && (
+                  <p className="text-[10px] font-mono text-[#666666] text-center py-8">No positions yet — be the first to stake</p>
+                )}
               </div>
             </div>
           </div>
@@ -220,13 +226,13 @@ function MarketDetailContent() {
                   <div className="flex justify-between text-[10px] font-mono">
                     <span className="text-[#666666]">Target Agent</span>
                     <span className="text-white truncate max-w-[150px]">
-                      {market.positions.find(p => p.projectId === selectedProjectId)?.projectName || 'Select above'}
+                      {market.projectStandings?.find(p => p.projectId === selectedProjectId)?.projectName || 'Select above'}
                     </span>
                   </div>
                   <div className="flex justify-between text-[10px] font-mono">
-                    <span className="text-[#666666]">Expected Payout</span>
+                    <span className="text-[#666666]">Trust Score</span>
                     <span className="text-[#10b981]">
-                      {market.positions.find(p => p.projectId === selectedProjectId)?.potentialPayout.toFixed(2)}x
+                      {market.projectStandings?.find(p => p.projectId === selectedProjectId)?.trustScore ?? '—'}/100
                     </span>
                   </div>
                 </div>
@@ -250,7 +256,7 @@ function MarketDetailContent() {
                 <div className="flex items-start gap-3">
                   <Info size={14} className="text-[#3b82f6] shrink-0" />
                   <p className="text-[10px] text-[#666666] leading-relaxed">
-                    Staking requires a minimum of 50 Scarab. Positions are locked until market resolution.
+                    Staking requires a minimum of 10 Scarab. Positions are locked until market resolution.
                   </p>
                 </div>
               </div>
