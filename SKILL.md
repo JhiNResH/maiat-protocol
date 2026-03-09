@@ -224,19 +224,27 @@ GET  /api/v1/scarab/nonce?address=0x...     → SIWE nonce for signing
 POST /api/v1/review
 Body: {
   address: "0xTargetAddress",     // entity being reviewed
-  rating: 4,                      // 1-5 stars
+  rating: 4,                      // 1-10
   comment: "Detailed review...",   // min 10 chars for AI scoring
   reviewer: "0xYourWallet",        // your wallet address
   tags: ["reliable", "fast"],      // optional
-  source: "human"                  // "human" | "agent" (agents get 0.5x weight)
+  source: "human",                 // "human" | "agent" (agents get 0.5x weight)
+  txHash: "0x..."                  // optional: on-chain proof (agent-friendly, replaces signature)
 }
-→ { id, qualityScore, weight, createdAt }
+→ { id, qualityScore, weight, meta: { interactionTier, ... } }
 
+# Soft Gate — Interaction Verification (affects weight, never blocks):
+#   "acp"     → completed ACP job with target → 1.0x (full weight)
+#   "onchain" → on-chain tx between reviewer↔target → 0.7x
+#   "none"    → no verifiable interaction → 0.3x (heavily discounted)
+#
 # Quality scoring (automatic via Gemini):
 #   relevance + evidence + helpfulness → qualityScore (0-10 avg)
-#   ≥ 7 → full display, 1.0x weight
-#   4-6 → collapsed, 0.5x weight
-#   < 4 → hidden, 0x weight
+#   ≥ 7 → full display, 1.0x quality weight
+#   4-6 → collapsed, 0.5x quality weight
+#   < 4 → hidden, 0x quality weight
+#
+# Final weight = quality × interactionTier × agentPenalty × easBoost
 #   EAS attestation → 1.5x boost
 #   Agent reviews → 0.5x multiplier (anti-spam)
 ```
@@ -245,8 +253,13 @@ Body: {
 ```
 POST /api/v1/review/vote
 Body: { reviewId: "cuid", voter: "0xYourWallet", vote: "up" | "down" }
-→ { success, action: "created"|"changed"|"unchanged", scarab?: { reviewerEarned: 2 } }
+→ { success, action, voteWeight, scarab?: { reviewerEarned: 2 } }
 
+# Vote weight also uses soft gate:
+#   ACP verified voter → 3x vote weight
+#   On-chain interaction → 2x vote weight
+#   Unverified → 1x vote weight
+#
 # One vote per review per wallet. Can flip vote.
 # Can't vote on own review.
 # Upvote → reviewer earns +2 Scarab 🪲
