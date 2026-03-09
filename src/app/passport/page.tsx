@@ -2,19 +2,22 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { Header } from '@/components/Header'
 
 export default function PassportIndexPage() {
   const router = useRouter()
   const { authenticated, user, login } = usePrivy()
+  const { wallets } = useWallets()
+  const externalWallet = wallets.find(w => w.walletClientType !== 'privy')
   const [manualAddr, setManualAddr] = useState('')
   const [error, setError] = useState('')
 
   // Auto-redirect if wallet is already connected
   useEffect(() => {
-    if (authenticated && user?.wallet?.address) {
-      router.push(`/passport/${user.wallet.address}`)
+    const addr = externalWallet?.address ?? user?.wallet?.address
+    if (authenticated && addr) {
+      router.push(`/passport/${addr}`)
     }
   }, [authenticated, user, router])
 

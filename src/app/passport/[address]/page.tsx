@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivy, useWallets } from '@privy-io/react-auth'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 
@@ -88,6 +88,8 @@ export default function PassportPage() {
   const params = useParams()
   const address = (params?.address as string)?.toLowerCase()
   const { user } = usePrivy()
+  const { wallets } = useWallets()
+  const externalWallet = wallets.find(w => w.walletClientType !== 'privy')
 
   const [data, setData] = useState<PassportData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -97,7 +99,7 @@ export default function PassportPage() {
   const [agentsLoading, setAgentsLoading] = useState(false)
   const [showAllAgents, setShowAllAgents] = useState(false)
 
-  const isOwn = user?.wallet?.address?.toLowerCase() === address
+  const isOwn = (externalWallet?.address ?? user?.wallet?.address)?.toLowerCase() === address
 
   useEffect(() => {
     if (!address || !/^0x[a-f0-9]{40}$/.test(address)) return
