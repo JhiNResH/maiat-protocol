@@ -3,9 +3,9 @@
   "version": "0.5.0",
   "description": "Maiat Trust Score MCP Server — query trust scores for any on-chain address from Claude, GPT, or any MCP-compatible AI",
   "type": "module",
-  "main": "dist/index.mjs",
+  "main": "dist/index.js",
   "bin": {
-    "maiat-mcp": "dist/index.mjs"
+    "maiat-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --clean",
