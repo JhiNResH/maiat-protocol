@@ -84,12 +84,15 @@ export async function GET(
     
     // Also try matching by name for agents indexed under different addresses
     const projectNames = projects.map(p => p.name).filter(Boolean) as string[];
-    const agentScoresByName = projectNames.length > 0
-      ? await prisma.agentScore.findMany({
-          where: { rawMetrics: { path: ['name'], string_contains: projectNames[0] ?? '' } },
-          select: { walletAddress: true, trustScore: true, rawMetrics: true },
-        })
-      : [];
+    const agentScoresByName: typeof agentScores = [];
+    for (const name of projectNames) {
+      const matches = await prisma.agentScore.findMany({
+        where: { rawMetrics: { path: ['name'], string_contains: name } },
+        select: { walletAddress: true, trustScore: true, rawMetrics: true },
+        take: 3,
+      });
+      agentScoresByName.push(...matches);
+    }
 
     const allAgentScores = [...agentScores, ...agentScoresByName];
     
