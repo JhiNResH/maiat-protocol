@@ -100,7 +100,7 @@ function CopyBlock({ text }: { text: string }) {
   return (
     <div
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="group relative bg-black/40 border border-[var(--primary-gold)]/10 rounded-xl px-4 py-3 font-mono text-sm text-[var(--primary-gold-light)] cursor-pointer hover:border-[var(--primary-gold)]/30 transition-all"
+      className="group relative bg-black/40 border border-[rgba(212,160,23,0.1)] rounded-xl px-4 py-3 font-mono text-sm text-[var(--primary-gold-light)] cursor-pointer hover:border-[rgba(212,160,23,0.3)] transition-all"
     >
       <code className="break-all">{text}</code>
       <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-[var(--primary-gold)] transition-colors">
@@ -168,7 +168,7 @@ export function LandingHero() {
             onClick={() => setMode('agent')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-500 ${
               mode === 'agent'
-                ? 'bg-[var(--primary-gold)]/15 text-[var(--primary-gold-light)] shadow-lg shadow-[var(--primary-gold)]/10 border border-[var(--primary-gold)]/30'
+                ? 'bg-[rgba(212,160,23,0.15)] text-[var(--primary-gold-light)] shadow-lg shadow-[rgba(212,160,23,0.1)] border border-[rgba(212,160,23,0.3)]'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
@@ -203,7 +203,7 @@ export function LandingHero() {
                     { icon: Shield, label: 'On-chain Verified', desc: 'Built on Base' },
                     { icon: Terminal, label: 'Free API', desc: 'No key required' },
                   ].map((item, i) => (
-                    <div key={i} className="flex flex-col gap-1.5 p-3 rounded-xl bg-white/[0.03] border border-[var(--primary-gold)]/5">
+                    <div key={i} className="flex flex-col gap-1.5 p-3 rounded-xl bg-white/[0.03] border border-[rgba(212,160,23,0.05)]">
                       <item.icon size={14} className="text-[var(--primary-gold)]" />
                       <span className="text-[11px] font-bold text-white">{item.label}</span>
                       <span className="text-[10px] text-slate-500">{item.desc}</span>
@@ -212,7 +212,7 @@ export function LandingHero() {
                 </div>
                 <Link
                   href="/monitor"
-                  className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-[var(--primary-gold-dim)] to-[var(--primary-gold)] hover:from-[var(--primary-gold)] hover:to-[var(--primary-gold-light)] rounded-xl text-sm font-bold text-white transition-all duration-500 group shadow-lg shadow-[var(--primary-gold)]/15"
+                  className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-[var(--primary-gold-dim)] to-[var(--primary-gold)] hover:from-[var(--primary-gold)] hover:to-[var(--primary-gold-light)] rounded-xl text-sm font-bold text-white transition-all duration-500 group shadow-lg shadow-[rgba(212,160,23,0.15)]"
                 >
                   Open Trust Monitor
                   <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
@@ -228,7 +228,7 @@ export function LandingHero() {
               transition={{ duration: 0.5, ease: "easeOut" }}
               className="w-full max-w-lg"
             >
-              <div className="glass-card rounded-2xl p-6 space-y-5 border-[var(--primary-gold)]/15 shadow-lg shadow-[var(--primary-gold)]/5">
+              <div className="glass-card rounded-2xl p-6 space-y-5 border-[rgba(212,160,23,0.15)] shadow-lg shadow-[rgba(212,160,23,0.05)]">
                 <h2 className="text-base font-black text-white flex items-center gap-2">
                   <Bot size={16} className="text-[var(--primary-gold)]" />
                   Integrate Maiat Trust ⚖️
@@ -243,7 +243,7 @@ export function LandingHero() {
                     { n: 3, text: 'Use the verdict to gate your agent\'s actions' },
                   ].map((step) => (
                     <div key={step.n} className="flex items-start gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-lg bg-[var(--primary-gold)]/15 border border-[var(--primary-gold)]/25 flex items-center justify-center text-[11px] font-black text-[var(--primary-gold)]">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-lg bg-[rgba(212,160,23,0.15)] border border-[rgba(212,160,23,0.25)] flex items-center justify-center text-[11px] font-black text-[var(--primary-gold)]">
                         {step.n}
                       </span>
                       <span className="text-slate-300 pt-0.5">{step.text}</span>
@@ -251,9 +251,9 @@ export function LandingHero() {
                   ))}
                 </div>
 
-                <div className="bg-black/30 border border-[var(--primary-gold)]/8 rounded-xl p-4 space-y-2">
+                <div className="bg-black/30 border border-[rgba(212,160,23,0.08)] rounded-xl p-4 space-y-2">
                   <span className="text-[10px] font-bold text-[var(--primary-gold-dim)] uppercase tracking-widest">Quick API Example</span>
-                  <pre className="text-[11px] font-mono text-[var(--primary-gold-light)]/70 leading-relaxed overflow-x-auto">
+                  <pre className="text-[11px] font-mono text-[rgba(232,184,74,0.7)] leading-relaxed overflow-x-auto">
 {`GET /api/v1/agent/0x...
 → { trustScore: 85, verdict: "proceed" }`}
                   </pre>
@@ -262,7 +262,7 @@ export function LandingHero() {
                 <div className="flex gap-2">
                   <Link
                     href="/docs"
-                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-[var(--primary-gold-dim)] to-[var(--primary-gold)] hover:from-[var(--primary-gold)] hover:to-[var(--primary-gold-light)] rounded-xl text-sm font-bold text-white transition-all duration-500 group shadow-lg shadow-[var(--primary-gold)]/15"
+                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-[var(--primary-gold-dim)] to-[var(--primary-gold)] hover:from-[var(--primary-gold)] hover:to-[var(--primary-gold-light)] rounded-xl text-sm font-bold text-white transition-all duration-500 group shadow-lg shadow-[rgba(212,160,23,0.15)]"
                   >
                     Read Docs
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />

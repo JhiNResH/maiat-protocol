@@ -27,7 +27,7 @@ export function TopNav() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-50 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--border)] h-[65px]">
+    <header className="sticky top-0 z-50 bg-[rgba(8,11,26,0.8)] backdrop-blur-xl border-b border-[var(--border)] h-[65px]">
       <div className="h-full px-6 flex items-center justify-between">
         {/* Left: Logo */}
         <div className="flex items-center gap-10">
