@@ -153,7 +153,7 @@ function ScarabBadge({ count, dim = false }: { count: number; dim?: boolean }) {
 
 export default function ProjectPageClient() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#030303] flex items-center justify-center text-[#d4a017] font-mono">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[#d4a017] font-mono">Loading...</div>}>
       <ProjectDetailPage />
     </Suspense>
   )
@@ -239,7 +239,7 @@ function ProjectDetailPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="w-8 h-8 border-2 border-[#d4a017] border-t-transparent rounded-full animate-spin" />
         <span className="text-[#818384] font-mono text-sm uppercase tracking-widest">Loading Project...</span>
@@ -248,7 +248,7 @@ function ProjectDetailPage() {
   )
 
   if (error || !project) return (
-    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
       <div className="text-center">
         <div className="text-4xl mb-4">🪲</div>
         <p className="text-[#d7dadc] font-bold mb-2">{error || 'Project not found'}</p>
@@ -272,7 +272,7 @@ function ProjectDetailPage() {
   const isEVM = /^0x[0-9a-fA-F]{40}$/.test(project.address)
 
   return (
-    <div className="min-h-screen bg-[#030303] text-[#d7dadc]">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[#d7dadc]">
       <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col gap-5">
 
         {/* Breadcrumb */}

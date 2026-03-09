@@ -142,7 +142,7 @@ export function DashboardView() {
   }
 
   if (!ready || (authenticated && loading)) return (
-    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="w-8 h-8 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
         <span className="text-[#818384] font-mono text-xs uppercase tracking-[0.3em]">Initialising Passport...</span>
@@ -151,7 +151,7 @@ export function DashboardView() {
   )
 
   if (!authenticated) return (
-    <div className="min-h-screen bg-[#030303] flex flex-col items-center justify-center gap-8 px-6 text-center">
+    <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center gap-8 px-6 text-center">
       <div className="relative">
         <div className="absolute -inset-4 bg-blue-500/20 rounded-full blur-2xl animate-pulse" />
         <Shield size={64} className="text-[#3b82f6] relative z-10" />
@@ -171,7 +171,7 @@ export function DashboardView() {
   const unreviewed = reviewable.filter(a => !a.reviewed)
 
   return (
-    <div className="min-h-screen bg-[#030303] text-[#d7dadc] font-['JetBrains_Mono',monospace] selection:bg-blue-500/30 antialiased pb-20">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[#d7dadc] font-['JetBrains_Mono',monospace] selection:bg-blue-500/30 antialiased pb-20">
       <div className="max-w-2xl mx-auto px-6 py-12 flex flex-col gap-8">
 
         {/* ── Page Header ── */}

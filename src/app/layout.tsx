@@ -18,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} ${mono.variable} font-sans bg-[#030303] text-txt-primary min-h-screen antialiased`}>
+      <body className={`${inter.variable} ${mono.variable} font-sans bg-[var(--bg-page)] text-txt-primary min-h-screen antialiased`}>
         <ClientLayout>
           {children}
         </ClientLayout>
