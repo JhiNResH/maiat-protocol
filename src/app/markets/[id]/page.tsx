@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Suspense } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import Link from "next/link";
 import { 
@@ -45,7 +45,10 @@ export default function MarketDetailPage() {
 function MarketDetailContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const marketId = params.id as string;
+  const prefillAgent = searchParams.get("agent");
+  const prefillName = searchParams.get("name");
   const { authenticated, user, login } = usePrivy();
   const { wallets } = useWallets();
   const walletAddress = user?.wallet?.address;
@@ -84,6 +87,14 @@ function MarketDetailContent() {
   }
 
   const { data: scarab } = useSWR(walletAddress ? `/api/v1/scarab?address=${walletAddress}` : null, fetcher);
+
+  // Auto-fill agent from URL params (e.g. from agent page "Stake" button)
+  useEffect(() => {
+    if (prefillAgent && !selectedProjectId) {
+      setSelectedProjectId(prefillAgent);
+      if (prefillName) setAgentSearch(prefillName);
+    }
+  }, [prefillAgent, prefillName]);
 
   // Agent search for staking on new agents
   useEffect(() => {

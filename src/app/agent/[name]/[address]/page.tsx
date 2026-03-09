@@ -283,10 +283,10 @@ function AgentDetailContent() {
                   <Radar size={14} /> Monitor
                 </Link>
                 <Link 
-                  href="/markets"
+                  href={`/markets?agent=${address}&name=${encodeURIComponent(agent?.name || '')}`}
                   className="w-full py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[10px] font-bold text-blue-400 hover:bg-blue-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
                 >
-                  <BarChart3 size={14} /> Markets
+                  <BarChart3 size={14} /> Stake on Markets
                 </Link>
               </div>
             </div>
