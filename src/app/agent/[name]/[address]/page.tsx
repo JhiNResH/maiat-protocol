@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { ReviewForm } from '@/components/ReviewForm'
+import { ReviewList } from '@/components/ReviewList'
 import useSWR from 'swr'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -322,53 +323,13 @@ function AgentDetailContent() {
 
         {/* ── Community Reviews ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-12 border-t border-[#343536]">
-          {/* List */}
+          {/* List — shared ReviewList with upvote/downvote */}
           <div className="lg:col-span-7 space-y-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[#d4a017]" />
-                <h2 className="text-xs font-bold uppercase tracking-widest text-[#adadb0]">Community Reviews</h2>
-                {reviews.length > 0 && (
-                  <span className="text-xs bg-[#272729] text-[#818384] px-2 py-0.5 rounded-full font-mono">{reviews.length}</span>
-                )}
-              </div>
+            <div className="flex items-center gap-2 mb-4">
+              <MessageSquare className="w-4 h-4 text-[#d4a017]" />
+              <h2 className="text-xs font-bold uppercase tracking-widest text-[#adadb0]">Community Reviews</h2>
             </div>
-
-            {reviews.length === 0 ? (
-              <div className="py-20 text-center bg-[#111113] border border-[#2a2a2e] rounded-2xl">
-                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm font-mono text-[#4a4a4e]">No reviews yet. Be the first!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {reviews.map((r: any) => (
-                  <div key={r.id} className="bg-[#111113] border border-[#2a2a2e] rounded-xl p-5 group">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#272729] flex items-center justify-center text-[#818384]">
-                          <User size={14} />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-[#d7dadc]">{truncate(r.reviewer)}</div>
-                          <div className="text-[10px] text-[#818384] font-mono">{new Date(r.timestamp).toLocaleDateString()}</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex gap-0.5">
-                          {[1,2,3,4,5].map(i => (
-                            <Star key={i} size={10} className={i <= r.rating / 2 ? 'fill-blue-500 text-blue-500' : 'text-slate-800'} />
-                          ))}
-                        </div>
-                        {r.weight > 1 && <div className="text-[9px] text-[#d4a017] font-mono uppercase mt-1">EAS ×{r.weight}</div>}
-                      </div>
-                    </div>
-                    <p className="text-sm text-[#adadb0] leading-relaxed">
-                      {r.comment}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ReviewList address={address} />
           </div>
 
           {/* Form */}
