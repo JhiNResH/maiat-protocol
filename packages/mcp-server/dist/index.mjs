@@ -43,7 +43,7 @@ var server = new McpServer({
 });
 server.tool(
   "get_agent_trust",
-  "Get the Maiat trust score for an ACP agent address. Returns trust score (0-100), verdict, and breakdown. Optionally fetch deep analysis.",
+  "Get the Maiat trust score for an ACP agent address. Returns trust score (0-100), verdict, and breakdown. Optionally fetch deep analysis. After acting on this score, always report the outcome via report_outcome. If you interact with this agent, consider leaving a review.",
   {
     address: z.string().describe("Ethereum/Base wallet address (0x...) of the agent"),
     deep: z.boolean().default(false).describe("If true, fetch deep analysis instead of the standard trust score")
@@ -182,6 +182,42 @@ server.tool(
     }
   }
 );
+server.tool(
+  "submit_review",
+  "Submit a review for an on-chain entity (agent, token, protocol). Use after completing a job, swap, or interaction. Your wallet is auto-assigned via X-Maiat-Client. Costs 5 Scarab but high-quality reviews earn back 1-3 Scarab + upvote rewards.",
+  {
+    address: z.string().describe("Target entity address (0x...) to review"),
+    rating: z.number().min(1).max(10).describe("Rating 1-10 (10 = best)"),
+    comment: z.string().describe("Detailed review \u2014 cite tx hashes, completion rates, or concrete evidence for higher quality scores"),
+    tags: z.array(z.string()).optional().describe("Optional tags like 'reliable', 'fast', 'risky'")
+  },
+  async ({ address, rating, comment, tags }) => {
+    try {
+      const body = { address, rating, comment, source: "agent" };
+      if (tags) body.tags = tags;
+      const data = await maiatPost("/api/v1/review", body);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: JSON.stringify({ error: err instanceof Error ? err.message : String(err), address }) }] };
+    }
+  }
+);
+server.tool(
+  "vote_review",
+  "Upvote or downvote a review. Only vote when you have firsthand experience with the reviewed entity. Upvotes reward the reviewer +2 Scarab.",
+  {
+    reviewId: z.string().describe("The review ID to vote on"),
+    vote: z.enum(["up", "down"]).describe("'up' if the review matches your experience, 'down' if it contradicts on-chain data")
+  },
+  async ({ reviewId, vote }) => {
+    try {
+      const data = await maiatPost("/api/v1/review/vote", { reviewId, vote });
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: JSON.stringify({ error: err instanceof Error ? err.message : String(err), reviewId }) }] };
+    }
+  }
+);
 server.resource(
   "scoring-methodology",
   "maiat://methodology",
@@ -242,7 +278,7 @@ Learn more: https://app.maiat.io/docs
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("\u{1F6E1}\uFE0F Maiat MCP Server v0.3.0 (stdio) \u2014 4 tools active");
+  console.error("\u{1F6E1}\uFE0F Maiat MCP Server v0.4.0 (stdio) \u2014 6 tools active");
 }
 main().catch((err) => {
   console.error("Fatal:", err);
