@@ -346,7 +346,7 @@ export default function DemoPage() {
       <div className="border-b border-zinc-800/60 bg-[#050508]/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/explore" className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors">
+            <Link href="/monitor" className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors">
               <Shield className="w-5 h-5 text-[#3b82f6]" />
               <span className="font-semibold text-sm">Maiat Protocol</span>
             </Link>
@@ -481,7 +481,7 @@ export default function DemoPage() {
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link
-              href="/explore"
+              href="/monitor"
               className="px-5 py-2.5 rounded-lg bg-[#3b82f6] text-white text-sm font-medium hover:bg-[#3b82f6]/90 transition-colors"
             >
               Explore Projects →
