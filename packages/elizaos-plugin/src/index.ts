@@ -55,7 +55,7 @@ async function queryMaiat(
   };
   if (config.apiKey) headers["Authorization"] = `Bearer ${config.apiKey}`;
 
-  const res = await fetch(`${apiUrl}/api/v1/score/${address}?chain=${chain}`, { headers });
+  const res = await fetch(`${apiUrl}/api/v1/agent/${address}`, { headers, signal: AbortSignal.timeout(15_000) });
 
   if (!res.ok) {
     throw new Error(`Maiat API error: ${res.status}`);
