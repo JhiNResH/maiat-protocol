@@ -199,12 +199,12 @@ export default function DocsPage() {
             <div className="space-y-10">
               <div className="space-y-4">
                 <ApiEndpoint method="GET" path="/api/v1/agents" title="List All Tracked Agents" />
-                <CodeBlock code="curl -X GET https://maiat.io/api/v1/agents?limit=50" />
+                <CodeBlock code="curl -X GET https://app.maiat.io/api/v1/agents?limit=50" />
               </div>
 
               <div className="space-y-4">
                 <ApiEndpoint method="GET" path="/api/v1/agents/{address}" title="Fetch Specific Agent Intel" />
-                <CodeBlock code={`curl -X GET https://maiat.io/api/v1/agents/0x...`} />
+                <CodeBlock code={`curl -X GET https://app.maiat.io/api/v1/agents/0x...`} />
               </div>
             </div>
           </section>
@@ -217,7 +217,7 @@ export default function DocsPage() {
             
             <div className="space-y-4">
               <ApiEndpoint method="GET" path="/api/v1/review?address={target}" title="Retrieve Node Field Reports" />
-              <CodeBlock code="curl -X GET https://maiat.io/api/v1/review?address=0x..." />
+              <CodeBlock code="curl -X GET https://app.maiat.io/api/v1/review?address=0x..." />
             </div>
           </section>
 
