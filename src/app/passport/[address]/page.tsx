@@ -145,7 +145,7 @@ export default function PassportPage() {
         <Header />
         <div className="m-auto flex flex-col items-center gap-3">
           <p className="font-mono text-slate-400 text-sm">// INVALID ADDRESS</p>
-          <Link href="/monitor" className="font-mono text-[#3b82f6] text-xs hover:underline">← back to explore</Link>
+          <Link href="/monitor" className="font-mono text-[#3b82f6] text-xs hover:underline">← back to monitor</Link>
         </div>
       </div>
     )

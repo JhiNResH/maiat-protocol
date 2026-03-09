@@ -7,7 +7,7 @@ export function RedirectToExplore() {
   const router = useRouter()
 
   useEffect(() => {
-    router.replace('/explore')
+    router.replace('/monitor')
   }, [router])
 
   return null
