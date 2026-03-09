@@ -307,6 +307,68 @@ function AgentDetailContent() {
               </p>
             </div>
 
+            {/* Risk + Sentiment Card */}
+            <div className="bg-[#111113] border border-[#2a2a2e] rounded-2xl p-6 space-y-5">
+              {/* Risk Assessment */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[10px] font-bold text-[#adadb0] uppercase tracking-widest">Risk Assessment</div>
+                  <div className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${
+                    risk === 'LOW' ? 'text-[#10b981] bg-[#10b981]/10 border-[#10b981]/20' :
+                    risk === 'MEDIUM' ? 'text-[#d4a017] bg-[#d4a017]/10 border-[#d4a017]/20' :
+                    'text-[#ef4444] bg-[#ef4444]/10 border-[#ef4444]/20'
+                  }`}>
+                    {risk === 'LOW' ? '🟢 PROCEED' : risk === 'MEDIUM' ? '🟡 CAUTION' : '🔴 AVOID'}
+                  </div>
+                </div>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-2xl font-black" style={{ color: scoreColor(score) }}>{(score * 10).toFixed(0)}</span>
+                  <span className="text-[10px] text-[#818384] font-mono">/100</span>
+                </div>
+                <p className="text-[10px] text-[#818384] leading-relaxed">
+                  {score >= 9 ? 'Elite tier agent. Extensive on-chain history with zero risk flags.' :
+                   score >= 7 ? 'Reliable agent. Solid behavioral history and clean record.' :
+                   score >= 4 ? 'Exercise caution. Limited history or minor risk signals detected.' :
+                   'High risk. Insufficient data or significant red flags.'}
+                </p>
+              </div>
+
+              <div className="h-px bg-[#2a2a2e]" />
+
+              {/* Community Sentiment */}
+              <div>
+                <div className="text-[10px] font-bold text-[#adadb0] uppercase tracking-widest mb-3">Community Sentiment</div>
+                {reviews.length === 0 ? (
+                  <p className="text-[10px] text-[#4a4a4e] font-mono">No reviews yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-black text-[#d7dadc]">
+                          {(reviewData?.averageRating / 2).toFixed(1)}
+                        </span>
+                        <div className="flex gap-0.5">
+                          {[1,2,3,4,5].map(i => (
+                            <Star key={i} size={10} className={i <= Math.round(reviewData?.averageRating / 2) ? 'fill-[#d4a017] text-[#d4a017]' : 'text-[#2a2a2e]'} />
+                          ))}
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-[#818384] font-mono">{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        reviewData?.averageRating >= 7 ? 'text-[#10b981] bg-[#10b981]/10 border-[#10b981]/20' :
+                        reviewData?.averageRating >= 4 ? 'text-[#d4a017] bg-[#d4a017]/10 border-[#d4a017]/20' :
+                        'text-[#ef4444] bg-[#ef4444]/10 border-[#ef4444]/20'
+                      }`}>
+                        {reviewData?.averageRating >= 7 ? '👍 Positive' : reviewData?.averageRating >= 4 ? '🤔 Mixed' : '👎 Negative'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
 
