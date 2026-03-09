@@ -320,22 +320,55 @@ export async function POST(request: NextRequest) {
       passportLevel = reputation.trustLevel;
     } catch { /* DB unavailable — treat as new user */ }
 
-    let hasInteraction: boolean;
-    if (txHashInteracts) {
-      // Strongest on-chain proof — tx.from===reviewer AND tx.to===target confirmed
-      hasInteraction = true;
-    } else if (easReceiptId) {
-      // EAS receipt claim — gate passes, weight boosted to 5× at Step 4.5
-      hasInteraction = true;
-    } else {
-      // Always run Alchemy check — passport level does NOT bypass this gate
-      const interaction = await checkInteraction(checksumReviewer, checksumAddress);
-      hasInteraction = interaction.hasInteracted;
+    // --- Interaction verification: 3-tier soft gate ---
+    // "acp"     → completed ACP job with target (1.0x)
+    // "onchain" → on-chain tx between reviewer↔target (0.7x)
+    // "none"    → no verifiable interaction (0.3x)
+    type InteractionTier = "acp" | "onchain" | "none";
+    let interactionTier: InteractionTier = "none";
+    let hasInteraction = false;
+
+    // Tier 1: Check ACP job completion (strongest proof)
+    // Uses raw SQL since acp_jobs table may not exist in Prisma schema yet
+    if (db) {
+      try {
+        const acpRows = await db.$queryRawUnsafe<{ id: string }[]>(
+          `SELECT id FROM acp_jobs
+           WHERE status = 'completed'
+             AND ((LOWER(buyer_wallet) = LOWER($1) AND LOWER(seller_wallet) = LOWER($2))
+               OR (LOWER(seller_wallet) = LOWER($1) AND LOWER(buyer_wallet) = LOWER($2)))
+           LIMIT 1`,
+          checksumReviewer,
+          checksumAddress
+        );
+        if (acpRows.length > 0) {
+          interactionTier = "acp";
+          hasInteraction = true;
+        }
+      } catch {
+        // acp_jobs table doesn't exist yet — fall through to on-chain check
+      }
     }
 
-    // Interaction is now OPTIONAL — no 403 block.
-    // hasInteraction affects weight: with proof → 3×, without → 1× (default).
-    // EAS receipt still gets 5×.
+    // Tier 2: On-chain interaction (txHash or Alchemy check)
+    if (interactionTier === "none") {
+      if (txHashInteracts) {
+        interactionTier = "onchain";
+        hasInteraction = true;
+      } else if (easReceiptId) {
+        // EAS receipt → at least on-chain level (EAS boost applied separately at Step 4.5)
+        interactionTier = "onchain";
+        hasInteraction = true;
+      } else {
+        const interaction = await checkInteraction(checksumReviewer, checksumAddress);
+        if (interaction.hasInteracted) {
+          interactionTier = "onchain";
+          hasInteraction = true;
+        }
+      }
+    }
+
+    // Tier 3: "none" — no proof. Review allowed but weight heavily discounted (0.3x).
 
     // --- Step 3: Deduct Scarab (if DB available) ---
     let scarabDeducted = false;
@@ -449,6 +482,7 @@ export async function POST(request: NextRequest) {
           qualityScore: aiQuality.qualityScore,
           reviewerType: (source === "agent" ? "agent" : "human") as "human" | "agent",
           hasEas: hasEasAttestation,
+          interactionTier,
         });
         weight = Math.max(1, Math.round(effectiveWeight * 10)); // scale to int
       } catch {
@@ -610,14 +644,15 @@ export async function POST(request: NextRequest) {
       meta: {
         persisted: !!db,
         interactionVerified: hasInteraction,
+        interactionTier,        // "acp" | "onchain" | "none" — soft gate tier
         qualityScore,
         scarabDeducted,
         scarabReward,
         signatureVerified: !!signature,
-        txHashVerified,         // true if txHash was provided and verified on-chain
-        txHashInteracts,        // true if txHash proved reviewer → target interaction
-        passportLevel,          // reviewer's Trust Passport level
-        easWeight: weight,      // final weight (1|2|3|5) for frontend display
+        txHashVerified,
+        txHashInteracts,
+        passportLevel,
+        easWeight: weight,
       },
     }, { status: 201, headers: CORS_HEADERS });
   } catch (err) {

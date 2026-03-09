@@ -188,6 +188,7 @@ model ReviewVote {
   reviewId   String
   voter      String                           // wallet address of voter
   vote       String                           // "up" | "down"
+  weight     Int      @default(1)             // 1=unverified, 2=onchain, 3=acp
   createdAt  DateTime @default(now())
 
   @@unique([reviewId, voter])                 // one vote per review per person

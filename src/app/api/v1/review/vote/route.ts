@@ -54,6 +54,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Can't vote on your own review" }, { status: 400, headers: CORS_HEADERS });
     }
 
+    // --- Voter interaction verification (soft gate) ---
+    // Votes from verified interactors count more
+    let voteWeight = 1;
+    try {
+      // Check ACP job with target entity
+      const targetAddress = review.address;
+      const acpRows = await prisma.$queryRawUnsafe<{ id: string }[]>(
+        `SELECT id FROM acp_jobs
+         WHERE status = 'completed'
+           AND ((LOWER(buyer_wallet) = LOWER($1) AND LOWER(seller_wallet) = LOWER($2))
+             OR (LOWER(seller_wallet) = LOWER($1) AND LOWER(buyer_wallet) = LOWER($2)))
+         LIMIT 1`,
+        checksumVoter,
+        targetAddress
+      );
+      if (acpRows.length > 0) {
+        voteWeight = 3; // ACP verified voter → 3x vote weight
+      } else {
+        // Check on-chain interaction
+        const { checkInteraction } = await import("@/lib/interaction-check");
+        const interaction = await checkInteraction(checksumVoter, targetAddress);
+        if (interaction.hasInteracted) {
+          voteWeight = 2; // On-chain interaction → 2x vote weight
+        }
+        // else voteWeight stays 1 (unverified voter)
+      }
+    } catch {
+      // Non-critical — default weight 1
+    }
+
     // Check existing vote
     const existing = await prisma.reviewVote.findUnique({
       where: { reviewId_voter: { reviewId, voter: checksumVoter } },
@@ -66,17 +96,18 @@ export async function POST(req: NextRequest) {
       if (existing.vote === vote) {
         action = "unchanged";
       } else {
-        // Flip vote
+        // Flip vote — undo old weight, apply new weight
+        const oldWeight = existing.weight ?? 1;
         await prisma.$transaction([
           prisma.reviewVote.update({
             where: { id: existing.id },
-            data: { vote },
+            data: { vote, weight: voteWeight },
           }),
           prisma.trustReview.update({
             where: { id: reviewId },
             data: {
-              upvotes: { increment: vote === "up" ? 1 : -1 },
-              downvotes: { increment: vote === "down" ? 1 : -1 },
+              upvotes: { increment: vote === "up" ? voteWeight : -oldWeight },
+              downvotes: { increment: vote === "down" ? voteWeight : -oldWeight },
             },
           }),
         ]);
@@ -100,11 +131,11 @@ export async function POST(req: NextRequest) {
       // New vote
       await prisma.$transaction([
         prisma.reviewVote.create({
-          data: { reviewId, voter: checksumVoter, vote },
+          data: { reviewId, voter: checksumVoter, vote, weight: voteWeight },
         }),
         prisma.trustReview.update({
           where: { id: reviewId },
-          data: vote === "up" ? { upvotes: { increment: 1 } } : { downvotes: { increment: 1 } },
+          data: vote === "up" ? { upvotes: { increment: voteWeight } } : { downvotes: { increment: voteWeight } },
         }),
       ]);
       action = "created";
@@ -128,6 +159,7 @@ export async function POST(req: NextRequest) {
         action,
         vote,
         reviewId,
+        voteWeight,
         ...(scarabAwarded > 0 && {
           scarab: { reviewerEarned: scarabAwarded, message: `Reviewer earned +${scarabAwarded} 🪲` },
         }),

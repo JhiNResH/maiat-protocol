@@ -99,12 +99,28 @@ export async function scoreReviewQuality(params: {
 }
 
 /**
+ * Interaction verification tier
+ *
+ * Determines how strongly we trust the reviewer actually used the target:
+ *   - "acp"     → completed ACP job with target (strongest proof)  → 1.0x
+ *   - "onchain" → on-chain tx between reviewer↔target             → 0.7x
+ *   - "none"    → no verifiable interaction                        → 0.3x
+ */
+export type InteractionTier = "acp" | "onchain" | "none";
+
+/**
  * Calculate effective weight for a review
+ *
+ * Weight formula:
+ *   base (quality) × interactionMultiplier × agentPenalty × easBoost
+ *
+ * This affects both the review's influence on trust score AND vote weight.
  */
 export function getEffectiveWeight(params: {
   qualityScore: number;
   reviewerType: "human" | "agent";
   hasEas: boolean;
+  interactionTier?: InteractionTier;
 }): number {
   let weight: number;
 
@@ -115,6 +131,16 @@ export function getEffectiveWeight(params: {
     weight = 0.5;
   } else {
     weight = 0; // hidden, no influence
+  }
+
+  // Interaction verification multiplier (soft gate)
+  const tier = params.interactionTier ?? "none";
+  if (tier === "acp") {
+    weight *= 1.0;   // full weight — verified ACP job
+  } else if (tier === "onchain") {
+    weight *= 0.7;   // on-chain proof but not ACP-level
+  } else {
+    weight *= 0.3;   // no proof — heavily discounted
   }
 
   // Agent reviews get 0.5x (anti-spam)
