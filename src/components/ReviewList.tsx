@@ -51,17 +51,24 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
   const fetchReviews = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch(`/api/v1/review?address=${address}`)
+      const voterQ = walletAddress ? `&voter=${walletAddress}` : ''
+      const res = await fetch(`/api/v1/review?address=${address}${voterQ}`)
       if (!res.ok) throw new Error('Failed to fetch reviews')
       const data = await res.json()
       setReviews(data.reviews || [])
       setCount(data.count || 0)
+      // Hydrate vote state from API
+      const votes: Record<string, 'up' | 'down'> = {}
+      for (const r of (data.reviews || [])) {
+        if (r.myVote) votes[r.id] = r.myVote
+      }
+      setMyVotes(prev => ({ ...prev, ...votes }))
     } catch (err: any) {
       setError(err.message)
     } finally {
       setLoading(false)
     }
-  }, [address])
+  }, [address, walletAddress])
 
   useEffect(() => {
     fetchReviews()
