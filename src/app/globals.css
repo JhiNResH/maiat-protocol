@@ -22,14 +22,14 @@
   --text-secondary: #94a3b8;
   --text-muted: #475569;
 
-  /* Monitor / Command-Center tactical colors */
-  --monitor-bg: #030303;
-  --monitor-primary: #00f0ff;
-  --monitor-danger: #ff0055;
-  --monitor-warning: #ffb800;
-  --monitor-success: #00ff9d;
-  --monitor-panel: rgba(0, 240, 255, 0.03);
-  --monitor-panel-border: rgba(0, 240, 255, 0.15);
+  /* Monitor — unified with main palette */
+  --monitor-bg: #050508;
+  --monitor-primary: #6d8aff;
+  --monitor-danger: #ef4444;
+  --monitor-warning: #d4a017;
+  --monitor-success: #10b981;
+  --monitor-panel: rgba(109, 138, 255, 0.04);
+  --monitor-panel-border: rgba(212, 160, 23, 0.12);
 
   /* Terminal/Deckard-style colors */
   --terminal-bg: #0a0a0a;
@@ -37,10 +37,10 @@
   --terminal-border: #1f1f1f;
   --terminal-text: #e5e5e5;
   --terminal-text-dim: #666666;
-  --terminal-safe: #22c55e;
-  --terminal-medium: #f59e0b;
+  --terminal-safe: #10b981;
+  --terminal-medium: #d4a017;
   --terminal-high: #ef4444;
-  --terminal-glow: rgba(0, 82, 255, 0.4);
+  --terminal-glow: rgba(212, 160, 23, 0.3);
 }
 
 @layer base {
@@ -94,21 +94,21 @@ body {
 
 /* ─── Liquid Glass (default card style) ─── */
 .glass-card {
-  background: rgba(17, 17, 19, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(13, 14, 23, 0.75);
+  border: 1px solid rgba(212, 160, 23, 0.08);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   box-shadow: 
-    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-    0 8px 32px rgba(0, 0, 0, 0.4);
+    0 0 0 1px rgba(212, 160, 23, 0.04) inset,
+    0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 .glass-card-hover:hover {
-  background: rgba(17, 17, 19, 0.75);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(13, 14, 23, 0.85);
+  border-color: rgba(212, 160, 23, 0.15);
   box-shadow: 
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-    0 12px 48px rgba(0, 0, 0, 0.5);
+    0 0 0 1px rgba(212, 160, 23, 0.06) inset,
+    0 12px 48px rgba(0, 0, 0, 0.6);
 }
 
 .hex-clip {
