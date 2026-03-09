@@ -343,7 +343,7 @@ export default function DemoPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-zinc-100">
       {/* Top Bar */}
-      <div className="border-b border-zinc-800/60 bg-[rgba(8,11,26,0.8)] backdrop-blur-sm sticky top-0 z-50">
+      <div className="border-b border-zinc-800/60 bg-[rgba(5,5,8,0.8)] backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/monitor" className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors">
