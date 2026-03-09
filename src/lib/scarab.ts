@@ -268,6 +268,56 @@ export async function confirmPurchase(purchaseId: string, txHash: string) {
 }
 
 // ============================================
+// First API Call Bonus (auto-onboarding)
+// ============================================
+
+const FIRST_CALL_BONUS = 10;
+
+/**
+ * Grant 10 Scarab on first-ever API call.
+ * Idempotent — only awards once per address.
+ * Call this from any API endpoint that receives a wallet address.
+ */
+export async function maybeGrantFirstCallBonus(address: string): Promise<boolean> {
+  const normalized = address.toLowerCase();
+
+  try {
+    // Check if this address already has any Scarab record
+    const existing = await prisma.scarabBalance.findUnique({
+      where: { address: normalized },
+    });
+
+    if (existing) return false; // Already onboarded
+
+    // First time — create with bonus
+    await prisma.$transaction(async (tx) => {
+      await tx.scarabBalance.create({
+        data: {
+          address: normalized,
+          balance: FIRST_CALL_BONUS,
+          totalEarned: FIRST_CALL_BONUS,
+        },
+      });
+
+      await tx.scarabTransaction.create({
+        data: {
+          address: normalized,
+          amount: FIRST_CALL_BONUS,
+          type: 'reward',
+          description: `Welcome bonus: ${FIRST_CALL_BONUS} Scarab 🪲 for first API call`,
+          balanceAfter: FIRST_CALL_BONUS,
+        },
+      });
+    });
+
+    return true; // Bonus granted
+  } catch {
+    // Race condition (duplicate insert) or DB error — safe to ignore
+    return false;
+  }
+}
+
+// ============================================
 // Reward Scarab (for resolved predictions, etc.)
 // ============================================
 
