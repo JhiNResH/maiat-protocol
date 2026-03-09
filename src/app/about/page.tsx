@@ -119,7 +119,7 @@ export default function AboutPage() {
         {/* Back to Explore */}
         <div className="mt-8">
           <Link
-            href="/explore"
+            href="/monitor"
             className="text-sm font-mono text-[#3b82f6] hover:underline"
           >
             ← Back to Explorer

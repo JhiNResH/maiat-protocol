@@ -145,7 +145,7 @@ export default function PassportPage() {
         <Header />
         <div className="m-auto flex flex-col items-center gap-3">
           <p className="font-mono text-slate-400 text-sm">// INVALID ADDRESS</p>
-          <Link href="/explore" className="font-mono text-[#3b82f6] text-xs hover:underline">← back to explore</Link>
+          <Link href="/monitor" className="font-mono text-[#3b82f6] text-xs hover:underline">← back to explore</Link>
         </div>
       </div>
     )
@@ -247,7 +247,7 @@ export default function PassportPage() {
             ) : unreviewedAgents.length === 0 ? (
               <div className="text-center py-2">
                 <p className="text-gray-600 font-mono text-[10px]">No unreviewed agents.</p>
-                <Link href="/explore" className="text-[10px] font-mono text-[#3b82f6] hover:underline">Explore agents →</Link>
+                <Link href="/monitor" className="text-[10px] font-mono text-[#3b82f6] hover:underline">Explore agents →</Link>
               </div>
             ) : (
               <>
@@ -308,7 +308,7 @@ export default function PassportPage() {
             </div>
             {data.passport.trustLevel !== 'guardian' && (
               <p className="mt-1.5 text-[10px] font-mono text-gray-600">
-                Review more to level up → <Link href="/explore" className="text-[#3b82f6] hover:underline">browse</Link>
+                Review more to level up → <Link href="/monitor" className="text-[#3b82f6] hover:underline">browse</Link>
               </p>
             )}
           </div>

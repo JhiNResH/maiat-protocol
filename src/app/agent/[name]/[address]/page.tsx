@@ -148,7 +148,7 @@ function AgentDetailContent() {
       <div className="text-center space-y-6">
         <div className="text-6xl animate-pulse opacity-20">🪲</div>
         <p className="text-slate-500 font-bold uppercase tracking-widest">Project Not Found</p>
-        <Link href="/explore" className="inline-block text-[#d4a017] border border-[#d4a017]/30 px-6 py-2 rounded-xl hover:bg-[#d4a017]/10 transition-all uppercase text-[10px] font-bold tracking-widest">← Back to Explorer</Link>
+        <Link href="/monitor" className="inline-block text-[#d4a017] border border-[#d4a017]/30 px-6 py-2 rounded-xl hover:bg-[#d4a017]/10 transition-all uppercase text-[10px] font-bold tracking-widest">← Back to Explorer</Link>
       </div>
     </div>
   )
@@ -170,7 +170,7 @@ function AgentDetailContent() {
 
         {/* ── Breadcrumb ── */}
         <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">
-          <Link href="/explore" className="hover:text-[#d4a017] transition-colors">Explorer</Link>
+          <Link href="/monitor" className="hover:text-[#d4a017] transition-colors">Explorer</Link>
           <span className="opacity-30">/</span>
           <span className="text-slate-400">Project Details</span>
           <span className="opacity-30">/</span>

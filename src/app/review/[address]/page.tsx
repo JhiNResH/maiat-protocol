@@ -125,7 +125,7 @@ export default function ReviewPage() {
           <p className="font-mono text-gray-600 text-xs text-center">
             {address} is not in the ACP ecosystem yet.
           </p>
-          <Link href="/explore" className="text-xs font-mono text-[#3b82f6] hover:underline">
+          <Link href="/monitor" className="text-xs font-mono text-[#3b82f6] hover:underline">
             ← Browse all agents
           </Link>
         </div>
@@ -224,7 +224,7 @@ export default function ReviewPage() {
               <p className="text-gray-500 font-mono text-xs mb-4">Thank you for contributing to the trust network.</p>
               <div className="flex gap-3 justify-center">
                 <Link
-                  href="/explore"
+                  href="/monitor"
                   className="text-xs font-mono text-[#3b82f6] border border-[#3b82f6]/30 hover:bg-[#3b82f6]/10 px-4 py-2 rounded-lg transition-colors"
                 >
                   Browse agents

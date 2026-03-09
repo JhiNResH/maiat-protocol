@@ -252,7 +252,7 @@ function ProjectDetailPage() {
       <div className="text-center">
         <div className="text-4xl mb-4">🪲</div>
         <p className="text-[#d7dadc] font-bold mb-2">{error || 'Project not found'}</p>
-        <Link href="/explore" className="text-[#d4a017] text-sm font-mono hover:underline">← Back to Explorer</Link>
+        <Link href="/monitor" className="text-[#d4a017] text-sm font-mono hover:underline">← Back to Explorer</Link>
       </div>
     </div>
   )
@@ -277,7 +277,7 @@ function ProjectDetailPage() {
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-xs font-mono text-[#818384]">
-          <Link href="/explore" className="hover:text-[#d4a017] transition-colors uppercase tracking-widest">Explorer</Link>
+          <Link href="/monitor" className="hover:text-[#d4a017] transition-colors uppercase tracking-widest">Explorer</Link>
           <span>/</span>
           <Link href={`/explore?cat=${category}`} className="hover:text-[#d4a017] transition-colors uppercase tracking-widest">{category}</Link>
           <span>/</span>

@@ -283,7 +283,7 @@ export function DashboardView() {
             <div className="py-10 text-center space-y-4">
               <Target size={32} className="mx-auto text-slate-800 opacity-20" />
               <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em]">No pending behavioral audits found.</p>
-              <Link href="/explore" className="text-[10px] text-[#3b82f6] hover:underline uppercase tracking-widest font-black">Scan Network →</Link>
+              <Link href="/monitor" className="text-[10px] text-[#3b82f6] hover:underline uppercase tracking-widest font-black">Scan Network →</Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
