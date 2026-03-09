@@ -89,7 +89,8 @@ export async function POST(request: NextRequest) {
           : null;
         swapTo = swapResult.swap?.to ?? null;
         swapValue = swapResult.swap?.value ?? null;
-      } catch {
+      } catch (swapErr) {
+        console.error("[swap/quote] getSwap failed:", swapErr instanceof Error ? swapErr.message : swapErr);
         // calldata unavailable — quote-only mode
       }
     }
