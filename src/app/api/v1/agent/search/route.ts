@@ -21,22 +21,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: [] }, { headers: CORS_HEADERS });
     }
 
-    // Search by name in rawMetrics OR by wallet address prefix
-    const agents = await prisma.agentScore.findMany({
-      where: {
-        OR: [
-          { walletAddress: { startsWith: q, mode: "insensitive" } },
-          { rawMetrics: { path: ["name"], string_contains: q } },
-        ],
-      },
-      select: {
-        walletAddress: true,
-        trustScore: true,
-        rawMetrics: true,
-      },
-      orderBy: { trustScore: "desc" },
-      take: limit,
-    });
+    // Search by name (case-insensitive) OR wallet address prefix
+    const agents = await prisma.$queryRawUnsafe<Array<{
+      walletAddress: string;
+      trustScore: number;
+      rawMetrics: Record<string, unknown> | null;
+    }>>(
+      `SELECT "walletAddress", "trustScore", "rawMetrics"
+       FROM "AgentScore"
+       WHERE LOWER("walletAddress") LIKE LOWER($1)
+          OR LOWER("rawMetrics"->>'name') LIKE LOWER($2)
+       ORDER BY "trustScore" DESC
+       LIMIT $3`,
+      `${q}%`,
+      `%${q}%`,
+      limit
+    );
 
     const results = agents.map((a) => {
       const raw = a.rawMetrics as Record<string, unknown> | null;
