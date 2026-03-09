@@ -188,7 +188,7 @@ export async function POST(
           id: position.id,
           marketId: position.marketId,
           projectId: position.projectId,
-          projectName: project.name,
+          projectName: projectName,
           voterId: position.voterId,
           amount: position.amount,
           createdAt: position.createdAt.toISOString(),
