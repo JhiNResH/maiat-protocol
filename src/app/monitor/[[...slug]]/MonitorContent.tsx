@@ -482,8 +482,7 @@ useEffect(() => {
 }, [radarAgents.length, selectedId]);
 
 const handleSelect = useCallback(async (query: string | null) => {
-  setFallbackAgent(null);
-  if (!query) { router.replace('/monitor', { scroll: false }); mapRef.current?.resetView(); return; }
+  if (!query) { setFallbackAgent(null); router.replace('/monitor', { scroll: false }); mapRef.current?.resetView(); return; }
   const target = radarAgents.find(a => a.id.toLowerCase() === query.toLowerCase() || a.label.toLowerCase().includes(query.toLowerCase()));
   if (target) {
     const id = target.id.toLowerCase();
@@ -511,10 +510,9 @@ const handleSelect = useCallback(async (query: string | null) => {
         setFallbackAgent(fb);
         // Inject into bubble map and select immediately
         router.replace(`/monitor/agent/${cleanName}/${fb.id}`, { scroll: false });
-        // Give React time to re-render with fallbackAgent before panning
-        requestAnimationFrame(() => {
-          setTimeout(() => mapRef.current?.panToNode(fb.id), 100);
-        });
+        // Give React multiple render cycles to inject fallbackAgent into radarAgents
+        setTimeout(() => mapRef.current?.panToNode(fb.id), 50);
+        setTimeout(() => mapRef.current?.panToNode(fb.id), 300);
       }
     } catch {}
   }
