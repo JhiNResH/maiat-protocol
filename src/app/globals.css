@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 :root {
-  /* Design system colors — deep indigo trust palette */
-  --bg-page: #080b1a;
-  --bg-surface: #0d1225;
-  --bg-elevated: #131830;
-  --border-default: #1e2545;
-  --border-subtle: #181d38;
+  /* Design system colors */
+  --bg-page: #050508;
+  --bg-surface: #0d0e17;
+  --bg-elevated: #13141f;
+  --border-default: #1e2035;
+  --border-subtle: #181928;
   --primary-gold: #d4a017;
   --primary-gold-light: #e8b84a;
   --primary-gold-dim: #b8860b;
@@ -22,25 +22,25 @@
   --text-secondary: #94a3b8;
   --text-muted: #475569;
 
-  /* Monitor — unified with main palette (no neon) */
-  --monitor-bg: #060919;
-  --monitor-primary: #6d8aff;
-  --monitor-danger: #ef4444;
-  --monitor-warning: #d4a017;
-  --monitor-success: #10b981;
-  --monitor-panel: rgba(109, 138, 255, 0.04);
-  --monitor-panel-border: rgba(212, 160, 23, 0.12);
+  /* Monitor / Command-Center tactical colors */
+  --monitor-bg: #030303;
+  --monitor-primary: #00f0ff;
+  --monitor-danger: #ff0055;
+  --monitor-warning: #ffb800;
+  --monitor-success: #00ff9d;
+  --monitor-panel: rgba(0, 240, 255, 0.03);
+  --monitor-panel-border: rgba(0, 240, 255, 0.15);
 
   /* Terminal/Deckard-style colors */
-  --terminal-bg: #070a18;
-  --terminal-surface: #0d1225;
-  --terminal-border: #1e2545;
+  --terminal-bg: #0a0a0a;
+  --terminal-surface: #111111;
+  --terminal-border: #1f1f1f;
   --terminal-text: #e5e5e5;
   --terminal-text-dim: #666666;
-  --terminal-safe: #10b981;
-  --terminal-medium: #d4a017;
+  --terminal-safe: #22c55e;
+  --terminal-medium: #f59e0b;
   --terminal-high: #ef4444;
-  --terminal-glow: rgba(212, 160, 23, 0.3);
+  --terminal-glow: rgba(0, 82, 255, 0.4);
 }
 
 @layer base {
@@ -94,21 +94,21 @@ body {
 
 /* ─── Liquid Glass (default card style) ─── */
 .glass-card {
-  background: rgba(13, 18, 37, 0.75);
-  border: 1px solid rgba(212, 160, 23, 0.08);
+  background: rgba(17, 17, 19, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   box-shadow: 
-    0 0 0 1px rgba(212, 160, 23, 0.04) inset,
-    0 8px 32px rgba(0, 0, 0, 0.5);
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .glass-card-hover:hover {
-  background: rgba(13, 18, 37, 0.85);
-  border-color: rgba(212, 160, 23, 0.15);
+  background: rgba(17, 17, 19, 0.75);
+  border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 
-    0 0 0 1px rgba(212, 160, 23, 0.06) inset,
-    0 12px 48px rgba(0, 0, 0, 0.6);
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 12px 48px rgba(0, 0, 0, 0.5);
 }
 
 .hex-clip {
