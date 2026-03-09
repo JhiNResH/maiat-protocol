@@ -226,3 +226,14 @@ export async function buildOwnerMap(): Promise<Map<string, bigint>> {
 
   return map
 }
+
+// ── Aliases for backward compatibility ──────────────────────────────────────
+
+export type ERC8004Data = Awaited<ReturnType<typeof getERC8004Data>> | null;
+
+/**
+ * Alias for buildOwnerMap() — returns Map<walletAddress, agentId>
+ */
+export async function getAllRegisteredAgents(): Promise<Map<string, bigint>> {
+  return buildOwnerMap();
+}
