@@ -462,7 +462,9 @@ useEffect(() => {
   }
 }, [radarAgents.length, selectedId]);
 
+const [fallbackAgent, setFallbackAgent] = useState<any>(null);
 const handleSelect = useCallback(async (query: string | null) => {
+  setFallbackAgent(null);
   if (!query) { router.replace('/monitor', { scroll: false }); mapRef.current?.resetView(); return; }
   const target = radarAgents.find(a => a.id.toLowerCase() === query.toLowerCase() || a.label.toLowerCase().includes(query.toLowerCase()));
   if (target) {
@@ -477,6 +479,15 @@ const handleSelect = useCallback(async (query: string | null) => {
       const agent = data.agents?.[0];
       if (agent?.id) {
         const cleanName = (agent.name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+        // Inject as fallback so selectedNode resolves
+        setFallbackAgent({
+          id: agent.id,
+          label: agent.name || 'Unknown',
+          trust: agent.trust?.score ? Number(agent.trust.score) / 10 : 0,
+          type: 'safe',
+          logo: agent.logo || null,
+          raw: agent,
+        });
         router.replace(`/monitor/agent/${cleanName}/${agent.id.toLowerCase()}`, { scroll: false });
       }
     } catch {}
@@ -485,8 +496,9 @@ const handleSelect = useCallback(async (query: string | null) => {
 
 const selectedNode = useMemo(() => {
   if (!selectedId) return null;
-  return radarAgents.find(a => a.id.toLowerCase() === selectedId.toLowerCase()) || null;
-}, [selectedId, radarAgents]);
+  return radarAgents.find(a => a.id.toLowerCase() === selectedId.toLowerCase()) 
+    || (fallbackAgent && fallbackAgent.id.toLowerCase() === selectedId.toLowerCase() ? fallbackAgent : null);
+}, [selectedId, radarAgents, fallbackAgent]);
 
 return (
   <div className="flex flex-col h-screen w-full overflow-hidden bg-[#010204]" style={{fontFamily:'Inter, system-ui, sans-serif'}}>
