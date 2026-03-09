@@ -83,6 +83,7 @@ export function DashboardView() {
   const [reviewable, setReviewable] = useState<ReviewableAgent[]>([])
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
+  const [hasClaimed, setHasClaimed] = useState(false)
   const [claimMsg, setClaimMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [refreshTick, setRefreshTick] = useState(0)
 
@@ -126,8 +127,10 @@ export function DashboardView() {
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || 'Claim failed');
       if (result.alreadyClaimed) {
+        setHasClaimed(true)
         setClaimMsg({ ok: false, text: 'Already claimed today. Come back tomorrow!' })
       } else {
+        setHasClaimed(true)
         setClaimMsg({ ok: true, text: `+${result.amount ?? 5} 🪲 claimed! Streak: ${result.streak ?? 1} day(s)` })
         // Delay refresh slightly so DB write completes before re-fetch
         setTimeout(() => setRefreshTick(t => t + 1), 500)
@@ -255,10 +258,10 @@ export function DashboardView() {
           </div>
           <button 
             onClick={claimDaily} 
-            disabled={claiming}
-            className="shrink-0 px-10 py-4 bg-[#3b82f6] hover:bg-blue-600 disabled:opacity-50 text-white font-black text-sm rounded-2xl transition-all shadow-xl shadow-blue-500/20 uppercase tracking-[0.2em] relative z-10"
+            disabled={claiming || hasClaimed}
+            className={`shrink-0 px-10 py-4 font-black text-sm rounded-2xl transition-all uppercase tracking-[0.2em] relative z-10 ${hasClaimed ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 cursor-not-allowed' : 'bg-[#3b82f6] hover:bg-blue-600 disabled:opacity-50 text-white shadow-xl shadow-blue-500/20'}`}
           >
-            {claiming ? 'Signing...' : 'Collect 🪲'}
+            {claiming ? 'Signing...' : hasClaimed ? 'Claimed ✓' : 'Collect 🪲'}
           </button>
         </div>
 
