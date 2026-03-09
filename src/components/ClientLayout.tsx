@@ -14,7 +14,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <PrivyProvider>
       <div className="flex min-h-screen">
-        <Suspense fallback={<div className="w-[220px] bg-[#050508] border-r border-[#1e2035]" />}>
+        <Suspense fallback={<div className="w-[220px] bg-[var(--bg-page)] border-r border-[#1e2035]" />}>
           <Sidebar />
         </Suspense>
         

@@ -95,7 +95,7 @@ export function MarketCard({
   return (
     <Link
       href={marketHref}
-      className="group block bg-[#111111] border border-[#1F1F1F] rounded-lg p-4 transition-all duration-200 hover:border-[#3b82f6]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.1)]"
+      className="group block bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg p-4 transition-all duration-200 hover:border-[#3b82f6]/50 hover:shadow-[0_0_20px_rgba(0,82,255,0.1)]"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -154,7 +154,7 @@ export function MarketCard({
 
       {/* Top 3 Staked */}
       {topProjects.length > 0 && (
-        <div className="border-t border-[#1F1F1F] pt-3">
+        <div className="border-t border-[var(--border-default)] pt-3">
           <span className="text-[9px] font-mono text-[#666666] uppercase tracking-wider mb-2 block">
             TOP STAKED
           </span>
@@ -178,7 +178,7 @@ export function MarketCard({
 
       {/* Empty State */}
       {topProjects.length === 0 && status === 'open' && (
-        <div className="border-t border-[#1F1F1F] pt-3">
+        <div className="border-t border-[var(--border-default)] pt-3">
           <div className="flex items-center gap-2 text-[10px] font-mono text-[#666666]">
             <Trophy className="w-3 h-3" />
             <span>Be the first to stake!</span>

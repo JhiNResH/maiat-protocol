@@ -143,7 +143,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       
       {/* Modal */}
       <div className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-2xl z-50">
-        <div className="bg-[#111113] border border-[#2a2a2e] rounded-xl shadow-2xl overflow-hidden">
+        <div className="bg-[var(--bg-surface)] border border-[#2a2a2e] rounded-xl shadow-2xl overflow-hidden">
           {/* Search Input */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2a2a2e]">
             {isLoading ? (
@@ -174,7 +174,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
           {/* Search Hint */}
           {query.length === 0 && (
-            <div className="px-4 py-3 border-b border-[#1f1f23]">
+            <div className="px-4 py-3 border-b border-[var(--border-default)]">
               <p className="text-xs text-[#6b6b70]">
                 💡 <span className="text-[#adadb0]">Try:</span> AI agent names, DeFi protocols, or project URLs
               </p>
@@ -185,7 +185,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
           {query.length >= 2 && (
             <div className="max-h-[400px] overflow-y-auto">
               {/* Tabs */}
-              <div className="flex gap-2 px-4 py-2 border-b border-[#1f1f23]">
+              <div className="flex gap-2 px-4 py-2 border-b border-[var(--border-default)]">
                 {(['all', 'projects', 'reviews', 'users'] as const).map(tab => (
                   <button
                     key={tab}
@@ -204,14 +204,14 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               {/* Auto-created indicator + AI Analysis */}
               {results?.autoCreated && results.projects.length > 0 && (
                 <>
-                  <div className="flex items-center gap-2 px-4 py-2 border-b border-[#1f1f23] bg-blue-500/5">
+                  <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border-default)] bg-blue-500/5">
                     <Sparkles className="w-4 h-4 text-blue-400" />
                     <span className="text-xs text-blue-400">Auto-discovered from CoinGecko/DeFiLlama</span>
                   </div>
                   
                   {/* AI Analysis Panel */}
                   {results.aiAnalysis && (
-                    <div className="px-4 py-3 border-b border-[#1f1f23] bg-purple-500/5">
+                    <div className="px-4 py-3 border-b border-[var(--border-default)] bg-purple-500/5">
                       <div className="flex items-center gap-2 mb-2">
                         <Sparkles className="w-4 h-4 text-purple-400" />
                         <span className="text-sm font-medium text-purple-300">🤖 AI Analysis Complete</span>
@@ -268,7 +268,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                   
                   return (
                     <div key={category}>
-                      <div className="px-4 py-2 bg-[#0d0d0e] border-b border-[#1f1f23]">
+                      <div className="px-4 py-2 bg-[var(--bg-surface)] border-b border-[var(--border-default)]">
                         <p className="text-xs font-medium text-[#adadb0] flex items-center gap-2">
                           <span>{meta.icon}</span>
                           <span>{meta.label}</span>
@@ -280,7 +280,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                         <button
                           key={project.id}
                           onClick={() => handleProjectClick(project)}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[#1f1f23] transition-colors"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[var(--border-default)] transition-colors"
                         >
                           <div className={`w-10 h-10 rounded-lg ${
                             meta.color === 'purple' ? 'bg-purple-500/10' : 'bg-slate-500/10'
@@ -313,7 +313,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 <button
                   key={review.id}
                   onClick={() => handleReviewClick(review.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[#1f1f23] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[var(--border-default)] transition-colors"
                 >
                   <div className="w-10 h-10 rounded-lg bg-[#1a1a1d] flex items-center justify-center">
                     <FileText className="w-5 h-5 text-slate-400" />
@@ -335,7 +335,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 <button
                   key={user.id}
                   onClick={() => handleUserClick(user.address)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[#1f1f23] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[var(--border-default)] transition-colors"
                 >
                   <div className="w-10 h-10 rounded-lg bg-[#1a1a1d] flex items-center justify-center">
                     <User className="w-5 h-5 text-indigo-400" />
@@ -358,7 +358,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
           )}
 
           {/* Footer */}
-          <div className="px-4 py-2 border-t border-[#1f1f23] flex items-center gap-4 text-xs text-[#6b6b70]">
+          <div className="px-4 py-2 border-t border-[var(--border-default)] flex items-center gap-4 text-xs text-[#6b6b70]">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
             <span>ESC Close</span>

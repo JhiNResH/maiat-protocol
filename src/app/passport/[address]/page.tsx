@@ -132,7 +132,7 @@ export default function PassportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center">
         <Header />
         <p className="font-mono text-gray-500 text-xs animate-pulse m-auto">// LOADING PASSPORT…</p>
       </div>
@@ -141,7 +141,7 @@ export default function PassportPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-3">
+      <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center gap-3">
         <Header />
         <div className="m-auto flex flex-col items-center gap-3">
           <p className="font-mono text-slate-400 text-sm">// INVALID ADDRESS</p>
@@ -157,7 +157,7 @@ export default function PassportPage() {
   const visibleAgents = showAllAgents ? unreviewedAgents : unreviewedAgents.slice(0, 10)
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
+    <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
       <Header />
 
       <main className="flex-1 flex flex-col items-center pt-6 px-4 pb-12">
@@ -234,7 +234,7 @@ export default function PassportPage() {
           </div>
 
           {/* ── Review Agents (2-col grid, max 10) ────────────────────── */}
-          <div className="bg-[#111] border border-[#1e1e1e] rounded-xl px-4 py-3">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <p className="text-gray-500 font-mono text-[10px]">// AGENTS YOU CAN REVIEW</p>
               {unreviewedAgents.length > 0 && (
@@ -262,7 +262,7 @@ export default function PassportPage() {
                       <Link
                         key={agent.address}
                         href={`/review/${agent.address}`}
-                        className="flex items-center gap-2 border border-[#1e1e1e] rounded-lg px-2 py-1.5 hover:border-[#333] transition-colors"
+                        className="flex items-center gap-2 border border-[var(--border-default)] rounded-lg px-2 py-1.5 hover:border-[#333] transition-colors"
                       >
                         {agent.logo ? (
                           <img src={agent.logo} alt={agent.name} className="w-6 h-6 rounded object-cover shrink-0" />
@@ -293,7 +293,7 @@ export default function PassportPage() {
           </div>
 
           {/* ── Level Perks (inline pills) ────────────────────────────── */}
-          <div className="bg-[#111] border border-[#1e1e1e] rounded-xl px-4 py-3">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-gray-500 font-mono text-[10px] shrink-0">PERKS</span>
               {perks.map((p, i) => (
@@ -314,7 +314,7 @@ export default function PassportPage() {
           </div>
 
           {/* ── Review history ─────────────────────────────────────────────── */}
-          <div className="bg-[#111] border border-[#1e1e1e] rounded-xl px-4 py-3">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <p className="text-gray-500 font-mono text-[10px]">// REVIEW HISTORY</p>
               {data.reviews.count > 0 && (
@@ -334,7 +334,7 @@ export default function PassportPage() {
             ) : (
               <div className="space-y-1.5">
                 {data.reviews.recent.map(r => (
-                  <div key={r.id} className="border border-[#1e1e1e] rounded-lg px-2.5 py-1.5">
+                  <div key={r.id} className="border border-[var(--border-default)] rounded-lg px-2.5 py-1.5">
                     <div className="flex items-center justify-between">
                       <Link
                         href={`/review/${r.address}`}
@@ -365,7 +365,7 @@ export default function PassportPage() {
 
           {/* ── CTA ───────────────────────────────────────────────────────── */}
           {!isOwn && (
-            <div className="bg-[#111] border border-[#1e1e1e] rounded-xl px-4 py-3 text-center">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-center">
               <p className="text-gray-500 font-mono text-[10px] mb-2">View your own trust passport</p>
               <Link
                 href="/passport"
@@ -406,7 +406,7 @@ function MarketPositions({ address }: { address: string }) {
 
   if (loading) return null
   if (positions.length === 0) return (
-    <div className="bg-[#111] border border-[#1e1e1e] rounded-xl px-4 py-3">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
       <p className="text-gray-500 font-mono text-[10px]">// MARKET POSITIONS</p>
       <p className="text-gray-600 font-mono text-[10px] mt-1">No positions yet. <Link href="/markets" className="text-[#3b82f6] hover:underline">Browse markets →</Link></p>
     </div>
@@ -415,7 +415,7 @@ function MarketPositions({ address }: { address: string }) {
   const totalStaked = positions.reduce((s, p) => s + p.amount, 0)
 
   return (
-    <div className="bg-[#111] border border-[#1e1e1e] rounded-xl px-4 py-3">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
       <div className="flex items-center justify-between mb-2">
         <p className="text-gray-500 font-mono text-[10px]">// MARKET POSITIONS</p>
         <span className="text-[10px] font-mono text-[#3b82f6]">{totalStaked} 🪲 staked</span>
@@ -425,7 +425,7 @@ function MarketPositions({ address }: { address: string }) {
           <Link
             key={i}
             href={`/markets/${pos.marketId}`}
-            className="flex items-center justify-between border border-[#1e1e1e] rounded-lg px-2.5 py-1.5 hover:border-[#333] transition-colors"
+            className="flex items-center justify-between border border-[var(--border-default)] rounded-lg px-2.5 py-1.5 hover:border-[#333] transition-colors"
           >
             <div className="min-w-0">
               <p className="text-white font-mono text-[10px] font-semibold truncate">{pos.projectName}</p>

@@ -153,7 +153,7 @@ function ScarabBadge({ count, dim = false }: { count: number; dim?: boolean }) {
 
 export default function ProjectPageClient() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#030303] flex items-center justify-center text-[#d4a017] font-mono">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[#d4a017] font-mono">Loading...</div>}>
       <ProjectDetailPage />
     </Suspense>
   )
@@ -239,7 +239,7 @@ function ProjectDetailPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="w-8 h-8 border-2 border-[#d4a017] border-t-transparent rounded-full animate-spin" />
         <span className="text-[#818384] font-mono text-sm uppercase tracking-widest">Loading Project...</span>
@@ -248,7 +248,7 @@ function ProjectDetailPage() {
   )
 
   if (error || !project) return (
-    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
       <div className="text-center">
         <div className="text-4xl mb-4">🪲</div>
         <p className="text-[#d7dadc] font-bold mb-2">{error || 'Project not found'}</p>
@@ -272,7 +272,7 @@ function ProjectDetailPage() {
   const isEVM = /^0x[0-9a-fA-F]{40}$/.test(project.address)
 
   return (
-    <div className="min-h-screen bg-[#030303] text-[#d7dadc]">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[#d7dadc]">
       <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col gap-5">
 
         {/* Breadcrumb */}
@@ -331,7 +331,7 @@ function ProjectDetailPage() {
             </div>
 
             {/* Score */}
-            <div className="shrink-0 flex flex-col items-center justify-center bg-[#111113] border border-[#2a2a2e] rounded-xl px-6 py-4 min-w-[100px]">
+            <div className="shrink-0 flex flex-col items-center justify-center bg-[var(--bg-surface)] border border-[#2a2a2e] rounded-xl px-6 py-4 min-w-[100px]">
               <span className="text-4xl font-black" style={{ color: scoreColor(score) }}>{score.toFixed(1)}</span>
               <span className="text-[10px] text-[#818384] font-mono uppercase tracking-widest mt-1">Trust Score</span>
               <div className="flex items-center gap-1 mt-2">
@@ -375,7 +375,7 @@ function ProjectDetailPage() {
                   { label: 'Wallet Age', val: scoreResult.details.ageLabel ?? '—' },
                   { label: 'Type', val: scoreResult.type ?? '—' },
                 ].map(({ label, val }) => (
-                  <div key={label} className="bg-[#111113] rounded-lg p-3">
+                  <div key={label} className="bg-[var(--bg-surface)] rounded-lg p-3">
                     <div className="text-[10px] text-[#818384] font-mono uppercase tracking-wider mb-1">{label}</div>
                     <div className="text-sm font-bold text-[#d7dadc]">{val}</div>
                   </div>
@@ -463,7 +463,7 @@ function ProjectDetailPage() {
           ) : (
             <div className="flex flex-col gap-3">
               {reviews.map(r => (
-                <div key={r.id} className="bg-[#111113] border border-[#2a2a2e] rounded-lg p-4">
+                <div key={r.id} className="bg-[var(--bg-surface)] border border-[#2a2a2e] rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-mono text-[#818384]">{truncate(r.reviewer)}</span>

@@ -21,7 +21,7 @@ export function SearchBar() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search projects, agents, protocols..."
-        className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm font-mono text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-slate-500 bg-white dark:bg-[#0f1117]"
+        className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm font-mono text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-slate-500 bg-white dark:bg-[var(--bg-surface)]"
       />
     </form>
   )

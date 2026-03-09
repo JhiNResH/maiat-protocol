@@ -83,10 +83,10 @@ export default function DocsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#030303] text-slate-200 font-['JetBrains_Mono',monospace] antialiased">
+    <div className="min-h-screen bg-[var(--bg-page)] text-slate-200 font-['JetBrains_Mono',monospace] antialiased">
       <div className="flex min-h-screen">
         {/* ── Sidebar ── */}
-        <aside className="w-[264px] bg-[#050508] border-r border-white/5 pt-12 flex flex-col h-screen sticky top-0 overflow-y-auto shrink-0">
+        <aside className="w-[264px] bg-[var(--bg-page)] border-r border-white/5 pt-12 flex flex-col h-screen sticky top-0 overflow-y-auto shrink-0">
           <Link href="/" className="flex items-center gap-3 px-8 pb-8 border-b border-white/5 hover:opacity-80 transition-opacity">
             <Image src="/maiat-logo.jpg" alt="Maiat" width={24} height={24} className="w-6 h-6 rounded shadow-lg shadow-[#3b82f6]/20" />
             <span className="font-mono text-base font-bold tracking-[3px] text-white">MAIAT</span>

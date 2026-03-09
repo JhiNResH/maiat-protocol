@@ -54,7 +54,7 @@ export function LeaderboardPreview() {
             <Link
               key={item.id}
               href={`/project/${item.id}`}
-              className="flex items-center gap-3 p-3 bg-[#0a0a0b] hover:bg-[#1a1a1d] border border-[#1f1f23] rounded-lg transition-colors group"
+              className="flex items-center gap-3 p-3 bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-lg transition-colors group"
             >
               <span className="text-xs font-bold text-[#6b6b70] w-6">#{item.rank}</span>
               <div className="flex-1 min-w-0">

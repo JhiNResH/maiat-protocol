@@ -103,7 +103,7 @@ export default function LeaderboardPageWrapper() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <Trophy className="w-8 h-8 text-[#fbbf24] animate-pulse" />
             <span className="text-xs font-mono text-[#666666] uppercase tracking-widest">
@@ -178,7 +178,7 @@ function LeaderboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5]">
       <main className="max-w-5xl mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">
@@ -206,14 +206,14 @@ function LeaderboardPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="search by name or address..."
-              className="w-full bg-[#111111] border border-[#1F1F1F] rounded px-3 py-2 pl-9 text-xs font-mono text-[#E5E5E5] placeholder-[#444] outline-none focus:border-[#3b82f6]/40 transition-colors"
+              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded px-3 py-2 pl-9 text-xs font-mono text-[#E5E5E5] placeholder-[#444] outline-none focus:border-[#3b82f6]/40 transition-colors"
             />
           </div>
 
           {/* Sort */}
           <button
             onClick={toggleSort}
-            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono uppercase tracking-wide bg-[#111111] border border-[#1F1F1F] rounded text-[#666666] hover:text-[#999] hover:border-[#333] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono uppercase tracking-wide bg-[var(--bg-surface)] border border-[var(--border-default)] rounded text-[#666666] hover:text-[#999] hover:border-[#333] transition-colors"
           >
             <ArrowUpDown className="w-3 h-3" />
             {sortBy === "trust" ? "SORT: TRUST ↓" : "SORT: JOBS ↓"}
@@ -228,7 +228,7 @@ function LeaderboardPage() {
         </div>
 
         {/* Table Header */}
-        <div className="grid grid-cols-[1fr_160px_120px_100px] gap-4 px-4 py-2 text-[9px] font-mono uppercase text-[#666666] tracking-wider border-b border-[#1F1F1F] mb-2">
+        <div className="grid grid-cols-[1fr_160px_120px_100px] gap-4 px-4 py-2 text-[9px] font-mono uppercase text-[#666666] tracking-wider border-b border-[var(--border-default)] mb-2">
           <span>AGENT</span>
           <span className="text-center">ADDRESS</span>
           <span className="text-center">VERDICT</span>
@@ -241,7 +241,7 @@ function LeaderboardPage() {
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
-                className="h-[68px] bg-[#111111] border border-[#1F1F1F] rounded-lg animate-pulse"
+                className="h-[68px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg animate-pulse"
               />
             ))}
           </div>
@@ -250,7 +250,7 @@ function LeaderboardPage() {
         {/* Empty State */}
         {!loading && agents.length === 0 && (
           <div className="flex flex-col items-center gap-5 py-20 text-center">
-            <div className="w-16 h-16 rounded-xl bg-[#111111] border border-[#1F1F1F] flex items-center justify-center">
+            <div className="w-16 h-16 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center">
               <Bot className="w-7 h-7 text-[#333333]" />
             </div>
             <div>
@@ -287,7 +287,7 @@ function LeaderboardPage() {
                 <button
                   key={agent.id}
                   onClick={() => router.push(`/agent/${cleanAgentName(agent.name)}/${agent.id}`)}
-                  className="group grid grid-cols-[1fr_160px_120px_100px] gap-4 items-center px-4 py-3 bg-[#111111] border border-[#1F1F1F] rounded-lg text-left transition-all duration-150 hover:border-[#3b82f6]/50 hover:shadow-[0_0_16px_rgba(0,82,255,0.08)] cursor-pointer w-full"
+                  className="group grid grid-cols-[1fr_160px_120px_100px] gap-4 items-center px-4 py-3 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-left transition-all duration-150 hover:border-[#3b82f6]/50 hover:shadow-[0_0_16px_rgba(0,82,255,0.08)] cursor-pointer w-full"
                   style={{ minHeight: "68px" }}
                 >
                   {/* Agent Info */}
@@ -328,7 +328,7 @@ function LeaderboardPage() {
 
                   {/* Address */}
                   <div className="flex justify-center">
-                    <span className="text-[10px] font-mono text-[#555555] bg-[#0A0A0A] border border-[#1F1F1F] px-2 py-1 rounded">
+                    <span className="text-[10px] font-mono text-[#555555] bg-[var(--bg-page)] border border-[var(--border-default)] px-2 py-1 rounded">
                       {truncateAddress(agent.id)}
                     </span>
                   </div>
@@ -436,7 +436,7 @@ function LeaderboardView({
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5]">
       <main className="max-w-3xl mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
@@ -458,7 +458,7 @@ function LeaderboardView({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="search by name or address..."
-            className="w-full bg-[#111111] border border-[#1F1F1F] rounded px-3 py-2 pl-9 text-xs font-mono text-[#E5E5E5] placeholder-[#444] outline-none focus:border-[#3b82f6]/40 transition-colors"
+            className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded px-3 py-2 pl-9 text-xs font-mono text-[#E5E5E5] placeholder-[#444] outline-none focus:border-[#3b82f6]/40 transition-colors"
           />
         </div>
 
@@ -475,7 +475,7 @@ function LeaderboardView({
                 <div
                   key={agent.id}
                   onClick={() => router.push(`/agent/${cleanAgentName(agent.name)}/${agent.id}`)}
-                  className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#1a1a1a] bg-[#0D0D0D] hover:border-[#3b82f6]/30 hover:bg-[#111111] cursor-pointer transition-all group"
+                  className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#1a1a1a] bg-[#0D0D0D] hover:border-[#3b82f6]/30 hover:bg-[var(--bg-surface)] cursor-pointer transition-all group"
                 >
                   {/* Rank */}
                   <div className={`w-10 text-center font-mono font-bold ${rankStyle(i)}`}>

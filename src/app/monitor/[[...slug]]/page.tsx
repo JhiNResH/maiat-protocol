@@ -11,7 +11,7 @@ const MonitorContent = dynamic(
 
 export default function MonitorPage() { 
   return (
-    <Suspense fallback={<div className="h-screen bg-black flex items-center justify-center text-cyan-500 font-mono tracking-tighter uppercase">Initializing Tactical Interface...</div>}>
+    <Suspense fallback={<div className="h-screen bg-[var(--bg-page)] flex items-center justify-center text-[var(--primary-gold)] font-mono tracking-tighter uppercase">Initializing Tactical Interface...</div>}>
       <MonitorContent />
     </Suspense>
   ); 

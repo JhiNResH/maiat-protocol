@@ -73,7 +73,7 @@ export function Sidebar() {
       {/* Mobile Toggle */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-[60] p-2 bg-[#050508] border border-[#1e2035] rounded-lg text-slate-400"
+        className="lg:hidden fixed top-4 left-4 z-[60] p-2 bg-[var(--bg-page)] border border-[#1e2035] rounded-lg text-slate-400"
       >
         {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
@@ -88,7 +88,7 @@ export function Sidebar() {
 
       {/* Sidebar Container */}
       <aside className={`
-        fixed top-0 left-0 bottom-0 w-[220px] bg-[#050508] border-r border-[#1e2035] z-[55]
+        fixed top-0 left-0 bottom-0 w-[220px] bg-[var(--bg-page)] border-r border-[#1e2035] z-[55]
         transition-transform duration-300 ease-in-out lg:translate-x-0
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
