@@ -13,13 +13,13 @@ export default function PassportIndexPage() {
   const [manualAddr, setManualAddr] = useState('')
   const [error, setError] = useState('')
 
-  // Auto-redirect if wallet is already connected
+  // Auto-redirect if wallet is already connected — prefer external wallet (MetaMask)
   useEffect(() => {
     const addr = externalWallet?.address ?? user?.wallet?.address
     if (authenticated && addr) {
       router.push(`/passport/${addr}`)
     }
-  }, [authenticated, user, router])
+  }, [authenticated, user, externalWallet, router])
 
   const handleLookup = () => {
     const val = manualAddr.trim()
