@@ -121,8 +121,8 @@ export class MaiatClient {
     if (hit && hit.exp > Date.now()) return hit.data;
 
     const res = await fetch(
-      `${this.apiUrl}/api/v1/score/${address}?chain=${this.chain}`,
-      { headers: this.headers }
+      `${this.apiUrl}/api/v1/agent/${address}`,
+      { headers: this.headers, signal: AbortSignal.timeout(15_000) }
     );
     if (!res.ok) throw new Error(`Maiat API ${res.status}: ${await res.text()}`);
 
@@ -157,7 +157,12 @@ export class MaiatClient {
   }
 
   async getDefiInfo(query: string) {
-    const res = await fetch(`${this.apiUrl}/api/v1/defi/${query}`, { headers: this.headers });
+    // Route to /api/v1/token/{address} for addresses, /api/v1/explore?search={name} for slugs
+    const isAddress = /^0x[0-9a-fA-F]{40}$/.test(query);
+    const url = isAddress
+      ? `${this.apiUrl}/api/v1/token/${query}`
+      : `${this.apiUrl}/api/v1/explore?search=${encodeURIComponent(query)}`;
+    const res = await fetch(url, { headers: this.headers, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
   }

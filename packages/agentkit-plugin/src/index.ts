@@ -193,8 +193,8 @@ export class MaiatClient {
       return cached.result;
     }
 
-    const url = `${this.apiUrl}/api/v1/score/${address}?chain=${chain || this.chain}`;
-    const res = await fetch(url, { headers: this.headers });
+    const url = `${this.apiUrl}/api/v1/agent/${address}`;
+    const res = await fetch(url, { headers: this.headers, signal: AbortSignal.timeout(15_000) });
 
     if (!res.ok) {
       throw new Error(`Maiat API error (${res.status}): ${await res.text()}`);
@@ -247,12 +247,13 @@ export class MaiatClient {
     return res.json();
   }
 
-  /** Get DeFi protocol info by slug or address. */
+  /** Get DeFi/token info by address, or search by name. */
   async getDefiInfo(slugOrAddress: string): Promise<EntityInfoResult> {
-    const res = await fetch(
-      `${this.apiUrl}/api/v1/defi/${slugOrAddress}`,
-      { headers: this.headers }
-    );
+    const isAddr = /^0x[0-9a-fA-F]{40}$/.test(slugOrAddress);
+    const url = isAddr
+      ? `${this.apiUrl}/api/v1/token/${slugOrAddress}`
+      : `${this.apiUrl}/api/v1/explore?search=${encodeURIComponent(slugOrAddress)}`;
+    const res = await fetch(url, { headers: this.headers, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) throw new Error(`DeFi info API error: ${res.status}`);
     return res.json();
   }

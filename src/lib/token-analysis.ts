@@ -50,7 +50,7 @@ async function isSourceVerified(address: string): Promise<boolean | null> {
   if (!BASESCAN_API_KEY) return null;
   try {
     const url = `https://api.basescan.org/api?module=contract&action=getabi&address=${address}&apikey=${BASESCAN_API_KEY}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     const data = await res.json() as { status: string; result: string };
     return data.status === "1" && data.result !== "Contract source code not verified";
   } catch { return null; }
@@ -61,7 +61,7 @@ async function isProxy(address: string): Promise<boolean | null> {
   if (!BASESCAN_API_KEY) return null;
   try {
     const url = `https://api.basescan.org/api?module=contract&action=getabi&address=${address}&apikey=${BASESCAN_API_KEY}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     const data = await res.json() as { status: string; result: string };
     if (data.status === "1") {
       const abiStr = data.result.toLowerCase();
