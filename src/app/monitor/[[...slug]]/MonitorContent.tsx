@@ -632,8 +632,6 @@ return (
 
 function AgentReviews({ agentId }: { agentId: string }) {
   const { data, mutate } = useSWR(`/api/v1/review?address=${agentId}`, fetcher);
-  const { user } = usePrivy();
-  const walletAddress = user?.wallet?.address;
   const [votingId, setVotingId] = useState<string | null>(null);
   const reviews = data?.reviews || [];
   if (reviews.length === 0) return (
@@ -659,13 +657,13 @@ function AgentReviews({ agentId }: { agentId: string }) {
   };
 
   async function handleVote(reviewId: string, direction: 'up' | 'down') {
-    if (!walletAddress || votingId) return;
+    if (votingId) return;
     setVotingId(reviewId);
     try {
       await fetch('/api/v1/review/vote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviewId, voter: walletAddress, direction }),
+        body: JSON.stringify({ reviewId, voter: 'anonymous', direction }),
       });
       mutate();
     } catch { /* silent */ }
@@ -702,13 +700,13 @@ function AgentReviews({ agentId }: { agentId: string }) {
                 <div className="flex flex-col items-center gap-0.5 shrink-0 ml-2">
                   <button
                     onClick={(e) => { e.preventDefault(); handleVote(r.id, 'up'); }}
-                    disabled={!walletAddress || votingId === r.id}
+                    disabled={votingId === r.id}
                     className="text-[#666] hover:text-emerald-400 transition-colors disabled:opacity-30 text-xs"
                   >▲</button>
                   <span className="text-[9px] font-mono text-[#888]">{r.upvotes ?? 0}</span>
                   <button
                     onClick={(e) => { e.preventDefault(); handleVote(r.id, 'down'); }}
-                    disabled={!walletAddress || votingId === r.id}
+                    disabled={votingId === r.id}
                     className="text-[#666] hover:text-red-400 transition-colors disabled:opacity-30 text-xs"
                   >▼</button>
                 </div>
