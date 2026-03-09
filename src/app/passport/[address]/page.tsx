@@ -399,10 +399,15 @@ function MarketPositions({ address }: { address: string }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!address || !/^0x[a-f0-9]{40}$/.test(address)) { setLoading(false); return; }
+    setLoading(true);
     fetch(`/api/v1/wallet/${address}/positions`)
       .then(r => r.json())
-      .then(d => setPositions(d.positions ?? []))
-      .catch(() => {})
+      .then(d => {
+        console.log('[Passport] positions for', address, d.positions?.length ?? 0);
+        setPositions(d.positions ?? []);
+      })
+      .catch((e) => console.error('[Passport] positions error', e))
       .finally(() => setLoading(false))
   }, [address])
 
