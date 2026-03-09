@@ -491,7 +491,7 @@ const handleSelect = useCallback(async (query: string | null) => {
           trust,
           type: (trust >= 75 ? 'safe' : trust <= 40 ? 'mine' : 'unaudited') as 'safe' | 'mine' | 'unaudited',
           r: 24,
-          x: 0, y: 0, // will be placed near center
+          x: 200 + Math.random() * 100, y: -150 + Math.random() * 100,
           logo: agent.logo || null,
           raw: agent,
         };

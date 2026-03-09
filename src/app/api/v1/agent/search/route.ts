@@ -22,27 +22,35 @@ export async function GET(request: NextRequest) {
     }
 
     // Search by name (case-insensitive) OR wallet address prefix
-    // Use tagged template $queryRaw for safe parameterized queries
-    const addrPattern = `${q.toLowerCase()}%`;
-    const namePattern = `%${q.toLowerCase()}%`;
-    const agents = await prisma.$queryRaw<Array<{
-      walletAddress: string;
-      trustScore: number;
-      rawMetrics: Record<string, unknown> | null;
-    }>>`SELECT "walletAddress", "trustScore", "rawMetrics"
-       FROM "AgentScore"
-       WHERE LOWER("walletAddress") LIKE ${addrPattern}
-          OR LOWER(CAST("rawMetrics"->>'name' AS TEXT)) LIKE ${namePattern}
-       ORDER BY "trustScore" DESC
-       LIMIT ${limit}`;
+    // Use Prisma findMany instead of raw SQL to avoid parameterization issues
+    const qLower = q.toLowerCase();
+    const isAddress = qLower.startsWith('0x');
 
-    const results = agents.map((a) => {
+    // Search AgentScore table
+    const agents = await prisma.agentScore.findMany({
+      where: isAddress
+        ? { walletAddress: { startsWith: q, mode: 'insensitive' } }
+        : { walletAddress: { not: '' } }, // will filter by rawMetrics name below
+      orderBy: { trustScore: 'desc' },
+      take: isAddress ? limit : 200, // fetch more for name filtering
+    });
+
+    // Filter by name in rawMetrics (can't do JSONB query via Prisma findMany)
+    const filtered = isAddress
+      ? agents
+      : agents.filter((a) => {
+          const raw = a.rawMetrics as Record<string, unknown> | null;
+          const name = (raw?.name as string) ?? '';
+          return name.toLowerCase().includes(qLower);
+        }).slice(0, limit);
+
+    const results = filtered.map((a) => {
       const raw = a.rawMetrics as Record<string, unknown> | null;
       return {
         walletAddress: a.walletAddress,
         name: (raw?.name as string) ?? a.walletAddress.slice(0, 10) + "...",
         trustScore: a.trustScore,
-        profilePic: (raw?.profilePic as string) ?? null,
+        profilePic: (raw?.profilePic as string) ?? (raw?.logo as string) ?? null,
       };
     });
 
