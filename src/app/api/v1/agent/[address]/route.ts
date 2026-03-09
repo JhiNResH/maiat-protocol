@@ -32,6 +32,7 @@ import { logQueryAsync } from "@/lib/query-logger";
 import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
 import { computeTrustScore, getBlendedTrustScore, type AcpAgent } from "@/lib/acp-indexer";
+import { getERC8004Data, type ERC8004Data } from "@/lib/erc8004";
 
 const ACP_AGENTS_URL = "https://acpx.virtuals.io/api/agents";
 
@@ -138,10 +139,14 @@ export async function GET(
         // ── On-demand lookup from Virtuals API ──────────────────────────────
         const onDemand = await fetchAndIndexAgent(checksumAddress);
         if (onDemand) {
-          return await buildResponse(checksumAddress, onDemand, request);
+          // Fetch ERC-8004 data in parallel (non-blocking)
+          const erc8004Data = await fetchERC8004DataSafe(checksumAddress);
+          return await buildResponse(checksumAddress, onDemand, request, erc8004Data);
         }
 
         // Truly unknown — not in DB, not in Virtuals API
+        // Still try to get ERC-8004 data
+        const erc8004Data = await fetchERC8004DataSafe(checksumAddress);
         return NextResponse.json(
           {
             address:     checksumAddress,
@@ -153,6 +158,7 @@ export async function GET(
               "This address has no ACP history on Virtuals. " +
               "They may not be registered as an ACP agent yet.",
             lastUpdated: null,
+            erc8004: erc8004Data,
           },
           {
             status:  404,
@@ -162,10 +168,13 @@ export async function GET(
       }
 
       // Use the case-insensitive match
-      return await buildResponse(checksumAddress, recordLower, request);
+      const erc8004DataLower = await fetchERC8004DataSafe(checksumAddress);
+      return await buildResponse(checksumAddress, recordLower, request, erc8004DataLower);
     }
 
-    return await buildResponse(checksumAddress, record, request);
+    // Fetch ERC-8004 data (non-blocking)
+    const erc8004Data = await fetchERC8004DataSafe(checksumAddress);
+    return await buildResponse(checksumAddress, record, request, erc8004Data);
 
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -235,10 +244,22 @@ interface AgentScoreRecord {
   rawMetrics:     unknown;
 }
 
+// ─── ERC-8004 Lookup (Non-blocking) ────────────────────────────────────────────
+
+async function fetchERC8004DataSafe(address: string): Promise<ERC8004Data> {
+  try {
+    return await getERC8004Data(address);
+  } catch (err) {
+    console.error("[Agent Trust API] ERC-8004 lookup failed:", err);
+    return null;
+  }
+}
+
 async function buildResponse(
   checksumAddress: string,
   record: AgentScoreRecord,
-  request: NextRequest
+  request: NextRequest,
+  erc8004Data?: ERC8004Data
 ): Promise<NextResponse> {
   // Calculate ageWeeks from rawMetrics if available
   let ageWeeks: number | null = null;
@@ -344,6 +365,8 @@ async function buildResponse(
           note: "Report outcome to improve oracle accuracy. Outcomes refine trust scores over time.",
         },
       }),
+      // ERC-8004 on-chain identity & reputation
+      erc8004: erc8004Data ?? null,
     },
     {
       headers: {

@@ -114,9 +114,13 @@ function AgentDetailContent() {
   const [copied, setCopied] = useState(false)
   const [reviewKey, setReviewKey] = useState(0)
 
-  // 1. Fetch Agent Data
+  // 1. Fetch Agent Data (with detailed ERC-8004 from dedicated endpoint)
   const { data: agentData, isLoading: agentLoading } = useSWR(`/api/v1/agents?search=${address}&limit=1`, fetcher);
   const agent = agentData?.agents?.[0];
+
+  // 1b. Fetch detailed agent data including ERC-8004
+  const { data: agentDetail } = useSWR(agent ? `/api/v1/agent/${address}` : null, fetcher);
+  const erc8004 = agentDetail?.erc8004;
 
   // 2. Fetch Score Result
   const { data: scoreResult } = useSWR(agent ? `/api/v1/score/${address}?summary=true&chain=base` : null, fetcher);
@@ -201,6 +205,14 @@ function AgentDetailContent() {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${riskBg(risk)}`}>
                       {risk} RISK
                     </span>
+                    {erc8004?.registered && (
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/30 cursor-help"
+                        title={`ERC-8004 Identity #${erc8004.agentId} — Reputation: ${erc8004.reputation?.normalizedScore ?? 0}/100`}
+                      >
+                        8004
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -275,6 +287,30 @@ function AgentDetailContent() {
                   </div>
                 ))}
               </div>
+              {/* ERC-8004 Identity Section */}
+              {erc8004?.registered && (
+                <div className="bg-[#10b981]/5 border border-[#10b981]/20 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-[#10b981] uppercase tracking-widest">ERC-8004 Identity</span>
+                      <span className="text-[9px] font-mono text-[#818384]">#{erc8004.agentId}</span>
+                    </div>
+                    <CheckCircle size={12} className="text-[#10b981]" />
+                  </div>
+                  {erc8004.reputation && (
+                    <div className="flex items-center gap-4 text-[10px]">
+                      <div>
+                        <span className="text-[#818384]">Reputation: </span>
+                        <span className="font-bold text-[#10b981]">{erc8004.reputation.normalizedScore}/100</span>
+                      </div>
+                      <div>
+                        <span className="text-[#818384]">Reviews: </span>
+                        <span className="font-bold text-[#d7dadc]">{erc8004.reputation.count}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Link 
                   href={`/monitor/agent/${(agent.name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}/${address}`}
