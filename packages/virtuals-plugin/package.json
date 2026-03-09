@@ -1,7 +1,7 @@
 {
   "name": "@jhinresh/virtuals-plugin",
-  "version": "0.2.1",
-  "description": "Maiat Trust Score plugin for Virtuals GAME SDK — trust-gate agent transactions on Virtuals Protocol",
+  "version": "0.2.2",
+  "description": "Maiat Trust Score plugin for Virtuals GAME SDK \u2014 trust-gate agent transactions on Virtuals Protocol",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -28,7 +28,15 @@
     "typescript": "^5.5.0",
     "@virtuals-protocol/game": "^0.1.14"
   },
-  "keywords": ["maiat", "virtuals", "game-sdk", "trust-score", "ai-agent", "web3", "virtual-protocol"],
+  "keywords": [
+    "maiat",
+    "virtuals",
+    "game-sdk",
+    "trust-score",
+    "ai-agent",
+    "web3",
+    "virtual-protocol"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/JhiNResH/maiat-protocol"

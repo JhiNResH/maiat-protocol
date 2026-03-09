@@ -35,7 +35,8 @@ export async function GET(request: NextRequest) {
     if (search) {
       // Use raw SQL for ILIKE on JSON field + wallet address
       const searchPattern = `%${search}%`
-      const orderCol = sort === 'jobs' ? 'total_jobs' : 'trust_score'
+      // Allowlist column names — never interpolate user input into SQL
+      const isByJobs = sort === 'jobs'
 
       const countResult = await prisma.$queryRawUnsafe<{ count: bigint }[]>(
         `SELECT COUNT(*)::bigint as count FROM agent_scores
@@ -46,17 +47,19 @@ export async function GET(request: NextRequest) {
       )
       total = Number(countResult[0]?.count ?? 0)
 
-      agents = await prisma.$queryRawUnsafe(
-        `SELECT id, wallet_address as "walletAddress", trust_score as "trustScore",
+      const SELECT_COLS = `SELECT id, wallet_address as "walletAddress", trust_score as "trustScore",
                 completion_rate as "completionRate", payment_rate as "paymentRate",
                 total_jobs as "totalJobs", data_source as "dataSource",
                 last_updated as "lastUpdated", raw_metrics as "rawMetrics"
          FROM agent_scores
          WHERE wallet_address ILIKE $1
             OR raw_metrics->>'name' ILIKE $1
-            OR raw_metrics->>'category' ILIKE $1
-         ORDER BY ${orderCol} DESC
-         LIMIT $2 OFFSET $3`,
+            OR raw_metrics->>'category' ILIKE $1`
+
+      agents = await prisma.$queryRawUnsafe(
+        isByJobs
+          ? `${SELECT_COLS} ORDER BY total_jobs DESC LIMIT $2 OFFSET $3`
+          : `${SELECT_COLS} ORDER BY trust_score DESC LIMIT $2 OFFSET $3`,
         searchPattern,
         limit,
         offset
