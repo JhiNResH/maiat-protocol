@@ -32,7 +32,7 @@ const NAV_ITEMS = [
   { name: "Opinion Market", icon: TrendingUp, path: "/markets" },
   { name: "Leaderboard", icon: Trophy, path: "/leaderboard" },
   { name: "Analytics", icon: BarChart3, path: "/analytics" },
-  { name: "Passport", icon: LayoutDashboard, path: "/dashboard" },
+  { name: "Passport", icon: LayoutDashboard, path: "/passport" },
 ];
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -170,7 +170,7 @@ export function Sidebar() {
                 </div>
                 
                 <Link 
-                  href="/dashboard"
+                  href="/passport"
                   className="flex items-center justify-center gap-1.5 w-full py-2 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 text-[#3b82f6] rounded-lg text-[9px] font-bold uppercase transition-all"
                 >
                   <Flame size={10} />
