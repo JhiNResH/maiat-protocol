@@ -137,6 +137,14 @@ async function buildAndCreateLog(input: QueryLogInput): Promise<string> {
     return created;
   });
 
+  // Auto-onboard: grant 10 Scarab on first API call (fire-and-forget)
+  const callerAddress = input.buyer || input.clientId;
+  if (callerAddress && /^0x[a-fA-F0-9]{40}$/i.test(callerAddress)) {
+    import("@/lib/scarab")
+      .then(({ maybeGrantFirstCallBonus }) => maybeGrantFirstCallBonus(callerAddress))
+      .catch(() => {});
+  }
+
   // Feedback loop: recalculate agent score after ACP query
   if (input.type === "agent_trust" || input.type === "agent_deep_check") {
     import("@/lib/feedback-loop")
