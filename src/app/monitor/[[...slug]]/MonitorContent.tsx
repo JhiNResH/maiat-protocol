@@ -447,8 +447,13 @@ const radarAgents = useMemo<AgentNode[]>(() => {
     return { id, label: acc.name || id.slice(0,6), trust, type, r, x, y, raw: acc };
   });
 
+  // Inject fallback agent into map if not already present
+  if (fallbackAgent && !processed.find((n: any) => n.id === fallbackAgent.id)) {
+    processed.push(fallbackAgent);
+  }
+
   return processed.filter((n: any) => filter === 'ALL' || (filter === 'HIGH TRUST ✓' && n.type === 'safe') || (filter === 'MINES ⚠' && n.type === 'mine') || (filter === 'UN-AUDITED' && n.type === 'unaudited'));
-}, [agentsData, filter]);
+}, [agentsData, filter, fallbackAgent]);
 
 const lastFocusRef = useRef<string | null>(null);
 useEffect(() => {
@@ -479,16 +484,21 @@ const handleSelect = useCallback(async (query: string | null) => {
       const agent = data.agents?.[0];
       if (agent?.id) {
         const cleanName = (agent.name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-        // Inject as fallback so selectedNode resolves
-        setFallbackAgent({
-          id: agent.id,
+        const trust = agent.trust?.score ? Number(agent.trust.score) : 0;
+        const fb = {
+          id: (agent.id || agent.walletAddress || '').toLowerCase(),
           label: agent.name || 'Unknown',
-          trust: agent.trust?.score ? Number(agent.trust.score) / 10 : 0,
-          type: 'safe',
+          trust,
+          type: (trust >= 75 ? 'safe' : trust <= 40 ? 'mine' : 'unaudited') as 'safe' | 'mine' | 'unaudited',
+          r: 24,
+          x: 0, y: 0, // will be placed near center
           logo: agent.logo || null,
           raw: agent,
-        });
-        router.replace(`/monitor/agent/${cleanName}/${agent.id.toLowerCase()}`, { scroll: false });
+        };
+        setFallbackAgent(fb);
+        // Inject into bubble map so it can be panned to
+        setTimeout(() => mapRef.current?.panToNode(fb.id), 300);
+        router.replace(`/monitor/agent/${cleanName}/${fb.id}`, { scroll: false });
       }
     } catch {}
   }
