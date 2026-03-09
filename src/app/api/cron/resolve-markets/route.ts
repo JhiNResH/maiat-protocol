@@ -178,11 +178,23 @@ async function resolveMarket(market: MarketWithPositions) {
 
   const payouts: { positionId: string; voterId: string; originalStake: number; winnings: number; totalPayout: number }[] = [];
 
-  for (const pos of market.positions) {
+  // Sort positions by creation order for first-mover bonus
+  const sortedPositions = [...market.positions].sort(
+    (a, b) => (a as any).createdAt?.getTime?.() - (b as any).createdAt?.getTime?.() || 0
+  );
+  const FIRST_MOVER_LIMIT = 10;
+  let firstMoverCount = 0;
+
+  for (const pos of sortedPositions) {
+    const isFirstMover = firstMoverCount < FIRST_MOVER_LIMIT;
+    if (isFirstMover) firstMoverCount++;
+
     if (winnerSet.has(pos.projectId)) {
       // Winner: gets share of loser pool + original stake back
       const shareOfPool = winningPool > 0 ? pos.amount / winningPool : 0;
-      const winnings = Math.floor(shareOfPool * redistributablePool);
+      let winnings = Math.floor(shareOfPool * redistributablePool);
+      // First-mover bonus: 2x winnings for first 10 stakers
+      if (isFirstMover) winnings = winnings * 2;
       const totalPayout = pos.amount + winnings;
 
       payouts.push({

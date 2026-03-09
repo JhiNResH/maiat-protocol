@@ -318,12 +318,27 @@ Body: { reviewId: "cuid", voter: "0xYourWallet", vote: "up" | "down" }
 # Upvote → reviewer earns +2 Scarab 🪲
 ```
 
-### Markets (Prediction)
+### Markets (Opinion / Prediction)
 ```
 GET  /api/v1/markets?status=open             → list markets
 GET  /api/v1/markets/{id}                    → market + positions
 POST /api/v1/markets/{id}/position
 Body: { address, projectId, amount }         → stake Scarab on outcome
+
+# Payout formula (on market resolution):
+#   Winners = top 3 projects by trust score at resolution time
+#   Loser pool → 5% burned, 95% redistributed to winners
+#   Each winner gets: original stake + (their stake / total winning stakes) × redistributable pool
+#   Losers get nothing (stake already deducted)
+#
+# Example: You stake 10 on winner, total winning pool = 50, loser pool = 100
+#   Your share = 10/50 = 20%
+#   Redistributable = 100 × 0.95 = 95
+#   Your payout = 10 (stake back) + 19 (20% of 95) = 29 Scarab 🪲
+#
+# Markets auto-resolve via cron. New market seeded immediately after.
+#
+# First-mover bonus: first 10 stakers get 2x Scarab back if they win.
 ```
 
 ### Wallet / Passport
