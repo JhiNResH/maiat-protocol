@@ -8,7 +8,7 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, X-Maiat-Client, X-Maiat-Key",
 };
 
-const MIN_STAKE = 5;
+const MIN_STAKE = 10;
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
