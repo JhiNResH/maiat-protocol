@@ -57,9 +57,13 @@ export async function scoreReviewQuality(params: {
 }): Promise<QualityResult> {
   const apiKey = process.env.GEMINI_API_KEY;
 
-  if (!apiKey || !params.comment || params.comment.length < 10) {
-    // No API key or too short → default mid score
-    return { relevance: 5, evidence: 3, helpfulness: 4, qualityScore: 4 };
+  if (!apiKey) {
+    return { relevance: 3, evidence: 1, helpfulness: 2, qualityScore: 2 };
+  }
+
+  // Short comments get hard-capped quality
+  if (!params.comment || params.comment.length < 50) {
+    return { relevance: 2, evidence: 1, helpfulness: 1, qualityScore: 1.3 };
   }
 
   try {
@@ -124,13 +128,13 @@ export function getEffectiveWeight(params: {
 }): number {
   let weight: number;
 
-  // Base weight by quality
+  // Base weight by quality (0-10 scale)
   if (params.qualityScore >= 7) {
-    weight = 1.0;
+    weight = 1.0;     // High quality — full influence
   } else if (params.qualityScore >= 4) {
-    weight = 0.5;
+    weight = 0.5;     // Medium — reduced influence
   } else {
-    weight = 0; // hidden, no influence
+    weight = 0.1;     // Low quality — near-zero but not hidden (transparency)
   }
 
   // Interaction verification multiplier (soft gate)
@@ -158,9 +162,12 @@ export function getEffectiveWeight(params: {
 
 /**
  * Display tier for UI
+ *   "verified"  → qualityScore ≥ 7 → green badge "✓ Verified Quality"
+ *   "normal"    → 4-6.9 → no badge
+ *   "low"       → < 4 → grey, collapsed, sorted last, "Low Quality" label
  */
-export function getDisplayTier(qualityScore: number): "visible" | "collapsed" | "hidden" {
-  if (qualityScore >= 7) return "visible";
-  if (qualityScore >= 4) return "collapsed";
-  return "hidden";
+export function getDisplayTier(qualityScore: number): "verified" | "normal" | "low" {
+  if (qualityScore >= 7) return "verified";
+  if (qualityScore >= 4) return "normal";
+  return "low";
 }
