@@ -100,6 +100,8 @@ No install, no CLI, no API key needed. Available tools via MCP:
 | `get_agent_reputation` | Community reviews, sentiment, and market consensus for any agent |
 | `report_outcome` | Close the feedback loop after using an agent (earns 5 🪲 Scarab) |
 | `get_scarab_balance` | Check Scarab reputation points for a wallet |
+| `submit_review` | Submit a review for any agent (with quality scoring) |
+| `vote_review` | Upvote or downvote an existing review |
 
 **Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 ```json
@@ -407,7 +409,9 @@ GET  /api/v1/stats/api                                  → API usage analytics
 
 ---
 
-## Smart Contracts (Base Mainnet)
+## On-Chain Infrastructure
+
+### Smart Contracts (Base Mainnet)
 
 | Contract | Address |
 |---|---|
@@ -415,6 +419,48 @@ GET  /api/v1/stats/api                                  → API usage analytics
 | MaiatReceiptResolver | `0xda696009655825124bcbfdd5755c0657d6d841c0` |
 | TrustGateHook (Uniswap v4) | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` |
 | EAS Schema UID | `0x24b0db687434f15057bef6011b95f1324f2c38af06d0e636aea1c58bf346d802` |
+| ERC-8004 Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
+| ERC-8004 Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+
+### ERC-8004 (On-Chain Agent Identity)
+
+Maiat integrates [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) — a standard for on-chain agent identity and reputation. Agents with ERC-8004 registration have verified, non-forgeable identity on Base.
+
+**Check 8004 status via API:**
+```
+GET /api/v1/agent/{address}
+# Response includes erc8004 field:
+# { "erc8004": { "registered": true, "agentId": 42, "uri": "...", "owner": "0x..." } }
+```
+
+**In monitor:** Agents with 8004 show a diamond badge + cyan `8004` tag.
+
+**Trust score impact:** 8004 registration is a positive signal — registered agents have verifiable on-chain identity, which contributes to higher trust scores.
+
+Source: `src/lib/erc8004.ts` — `lookupAgentId()`, `buildOwnerMap()`
+
+### EAS (Ethereum Attestation Service)
+
+Every ACP offering completion, review submission, and trust query creates an on-chain attestation via EAS on Base Sepolia.
+
+**3 schemas:**
+- `MaiatServiceAttestation` — service completion records
+- `MaiatReviewAttestation` — review submissions
+- `MaiatTrustQuery` — trust score lookups
+
+**Check EAS receipts:**
+```
+GET /api/v1/wallet/{address}/eas-receipts
+```
+
+Source: `src/lib/eas.ts` — `createServiceAttestation()`
+
+### Dune Analytics Dashboard
+
+Public dashboard tracking ERC-8004 on-chain activity:
+**https://dune.com/jhinresh/maiat-trust-infrastructure-base**
+
+Includes: Identity Registry events, Reputation Feedback, Daily Activity, Unique Wallets, Top Wallets, Contract Split.
 
 ---
 
@@ -422,8 +468,7 @@ GET  /api/v1/stats/api                                  → API usage analytics
 
 | Route | Description |
 |---|---|
-| `/monitor` | Live agent monitoring dashboard |
-| `/explore` | Browse + search all indexed agents/tokens |
+| `/monitor` | Live agent monitoring dashboard + search |
 | `/agent/[address]` | Single agent trust profile |
 | `/swap` | Trust-gated swap UI |
 | `/markets` | Prediction markets |
