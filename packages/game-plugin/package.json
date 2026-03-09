@@ -1,7 +1,7 @@
 {
   "name": "@jhinresh/game-maiat-plugin",
-  "version": "0.1.1",
-  "description": "Maiat Trust Score plugin for the GAME SDK — lets your Virtuals agent verify trust before swapping or transacting",
+  "version": "0.1.2",
+  "description": "Maiat Trust Score plugin for the GAME SDK \u2014 lets your Virtuals agent verify trust before swapping or transacting",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
