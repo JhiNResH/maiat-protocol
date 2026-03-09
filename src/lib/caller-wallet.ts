@@ -61,6 +61,12 @@ export async function getCallerWallet(clientId: string): Promise<string | null> 
           provider: "privy",
         },
       });
+
+      // Auto-onboard: grant first-call Scarab bonus
+      try {
+        const { maybeGrantFirstCallBonus } = await import("@/lib/scarab");
+        await maybeGrantFirstCallBonus(walletAddress);
+      } catch { /* non-critical */ }
     } else {
       // Fallback: no Privy — log and skip
       console.log(`[caller-wallet] Privy not configured, skipping wallet for ${clientId}`);
