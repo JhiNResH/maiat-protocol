@@ -271,7 +271,7 @@ export async function confirmPurchase(purchaseId: string, txHash: string) {
 // First API Call Bonus (auto-onboarding)
 // ============================================
 
-const FIRST_CALL_BONUS = 20;
+const FIRST_CALL_BONUS = 10;
 
 /**
  * Grant 10 Scarab on first-ever API call.
