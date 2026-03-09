@@ -113,6 +113,23 @@ export async function GET(
       }
     }
 
+    // Pre-resolve agent names for wallet-address projectIds not in Project table
+    const walletProjectIds = Object.keys(projectStakes).filter(
+      id => id.startsWith('0x') && !projectMap.get(id)?.name
+    );
+    const agentNameMap = new Map<string, string>();
+    if (walletProjectIds.length > 0) {
+      const agentScores = await prisma.agentScore.findMany({
+        where: { walletAddress: { in: walletProjectIds, mode: 'insensitive' } },
+        select: { walletAddress: true, rawMetrics: true },
+      });
+      for (const as of agentScores) {
+        const raw = as.rawMetrics as Record<string, unknown> | null;
+        const name = raw?.name as string;
+        if (name) agentNameMap.set(as.walletAddress.toLowerCase(), name);
+      }
+    }
+
     // Build project standings
     const projectStandings = Object.entries(projectStakes)
       .map(([projectId, stats]) => {
@@ -121,25 +138,13 @@ export async function GET(
         const agentData = (project?.address ? agentScoreMap.get(project.address.toLowerCase()) : null)
           ?? (project?.name ? agentScoreMap.get(project.name.toLowerCase()) : null);
         
-        // Resolve name: Project table → AgentScore rawMetrics → truncated address
-        let resolvedName = project?.name;
-        if (!resolvedName && projectId.startsWith('0x')) {
-          // Look up agent name from AgentScore
-          const agentEntry = agentScoreMap.get(projectId.toLowerCase());
-          if (!agentEntry) {
-            // Direct DB lookup for name
-            const agentScore = await prisma.agentScore.findFirst({
-              where: { walletAddress: { equals: projectId, mode: 'insensitive' } },
-              select: { rawMetrics: true },
-            });
-            const raw = agentScore?.rawMetrics as Record<string, unknown> | null;
-            resolvedName = (raw?.name as string) ?? null;
-          }
-        }
+        const resolvedName = project?.name 
+          ?? agentNameMap.get(projectId.toLowerCase())
+          ?? (projectId.startsWith('0x') ? `${projectId.slice(0, 6)}...${projectId.slice(-4)}` : "Unknown");
 
         return {
           projectId,
-          projectName: resolvedName ?? (projectId.startsWith('0x') ? `${projectId.slice(0, 6)}...${projectId.slice(-4)}` : "Unknown"),
+          projectName: resolvedName,
           projectSlug: project?.slug ?? projectId,
           trustScore: agentData?.trustScore ?? project?.trustScore ?? 0,
           category: project?.category ?? "unknown",
