@@ -313,6 +313,9 @@ export default function PassportPage() {
             )}
           </div>
 
+          {/* ── Market Positions ─────────────────────────────────────────── */}
+          <MarketPositions address={address} />
+
           {/* ── Review history ─────────────────────────────────────────────── */}
           <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
             <div className="flex items-center justify-between mb-2">
@@ -359,9 +362,6 @@ export default function PassportPage() {
               </div>
             )}
           </div>
-
-          {/* ── Market Positions ─────────────────────────────────────────── */}
-          <MarketPositions address={address} />
 
           {/* ── CTA ───────────────────────────────────────────────────────── */}
           {!isOwn && (

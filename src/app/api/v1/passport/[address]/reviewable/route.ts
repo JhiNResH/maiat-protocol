@@ -119,13 +119,24 @@ export async function GET(
       };
     });
 
+    // Filter: exclude test agents and zero-trust unverified addresses
+    const filteredList = agentList.filter((a) => {
+      const name = a.name.toLowerCase();
+      // Skip test agents (test*, sandbox, demo*)
+      if (/^(test|sandbox|demo)\d*/.test(name)) return false;
+      // Skip addresses not in agentScore table (no real name resolved) with zero trust
+      const hasRealName = agentNames.has(a.address.toLowerCase());
+      if (!hasRealName && (a.score === null || a.score === 0)) return false;
+      return true;
+    });
+
     // Sort: unreviewed first, then by most recent interaction
-    agentList.sort((a, b) => {
+    filteredList.sort((a, b) => {
       if (a.reviewed !== b.reviewed) return a.reviewed ? 1 : -1;
       return new Date(b.lastInteraction).getTime() - new Date(a.lastInteraction).getTime();
     });
 
-    return NextResponse.json({ agents: agentList });
+    return NextResponse.json({ agents: filteredList });
   } catch (err) {
     console.error("[reviewable] error:", err);
     return NextResponse.json(
