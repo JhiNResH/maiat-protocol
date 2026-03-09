@@ -34,11 +34,14 @@ Dimensions:
 - evidence: Does it cite specific data? (tx hashes, on-chain metrics, job completion rates, timestamps)
 - helpfulness: Would this help someone decide whether to trust this entity?
 
-Scoring guide:
-- 0-3: Spam, irrelevant, or zero substance ("great agent!" with nothing else)
-- 4-6: Has opinion but weak evidence, or relevant but generic
-- 7-8: Solid review with specific claims and some data
-- 9-10: Exceptional — detailed analysis with verifiable evidence
+Scoring guide (BE HARSH — inflate = broken trust oracle):
+- 0-2: Spam, test, irrelevant, or zero substance ("great agent!", "test review", single sentence)
+- 3-4: Has opinion but no evidence, or just repeats publicly available stats without insight
+- 5-6: Decent review with personal experience OR specific claims, but lacks hard evidence
+- 7-8: Solid review with specific data points AND personal insight from actual usage
+- 9-10: Exceptional — detailed first-hand analysis with verifiable on-chain evidence (tx hashes, dates, amounts)
+
+CRITICAL: Simply restating an agent's public stats (job count, completion rate) is NOT evidence — that's just reading a dashboard. Evidence means the reviewer's OWN experience or independently verified data. Score such reviews 3-4 max on evidence.
 
 Return ONLY valid JSON: {"relevance": X, "evidence": X, "helpfulness": X}
 
