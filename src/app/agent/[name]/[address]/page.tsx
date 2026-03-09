@@ -306,18 +306,7 @@ function AgentDetailContent() {
                 Costs <strong className="text-[#d7dadc]">2 🪲</strong> to submit · Quality reviews earn up to <strong className="text-[#d7dadc]">+10 🪲</strong> back
               </p>
             </div>
-            
-            <div className="bg-[#1a1a1b] border border-[#343536] rounded-2xl p-6 flex flex-col justify-center items-center text-center space-y-4 flex-1">
-              <div className="w-12 h-12 rounded-full bg-[#10b981]/10 border border-[#10b981]/20 flex items-center justify-center text-[#10b981]">
-                <Shield size={24} />
-              </div>
-              <div className="space-y-1">
-                <div className="text-[10px] font-bold text-[#adadb0] uppercase tracking-widest">Analysis</div>
-                <p className="text-[11px] text-[#818384] leading-relaxed">
-                  Behavioral trust analysis complete. Node history verified.
-                </p>
-              </div>
-            </div>
+
           </div>
         </div>
 
