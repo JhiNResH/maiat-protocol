@@ -133,7 +133,7 @@ function MarketsContent() {
                   className={`px-3 py-1 text-[10px] font-mono uppercase tracking-wide rounded border transition-all ${
                     filter === f
                       ? "bg-[#3b82f6]/10 border-[#3b82f6]/40 text-[#3b82f6]"
-                      : "border-[var(--border-default)] text-[#666666] hover:border-[#333] hover:text-[#999]"
+                      : "border-[var(--border-default)] text-[#666666] hover:border-[var(--border-default)] hover:text-[#999]"
                   }`}
                 >
                   [{f.toUpperCase()}]
@@ -153,7 +153,7 @@ function MarketsContent() {
                   className={`px-3 py-1 text-[10px] font-mono uppercase tracking-wide rounded border transition-all ${
                     categoryFilter === cat
                       ? "bg-[#6366f1]/10 border-[#6366f1]/40 text-[#6366f1]"
-                      : "border-[var(--border-default)] text-[#666666] hover:border-[#333] hover:text-[#999]"
+                      : "border-[var(--border-default)] text-[#666666] hover:border-[var(--border-default)] hover:text-[#999]"
                   }`}
                 >
                   [{cat === "all" ? "ALL" : cat.replace("-", " ").toUpperCase()}]
@@ -207,7 +207,7 @@ function MarketsContent() {
                   <span className="text-xs font-mono text-[#3b82f6] uppercase tracking-widest">
                     // ACTIVE MARKETS
                   </span>
-                  <div className="flex-1 h-px bg-[#1F1F1F]" />
+                  <div className="flex-1 h-px bg-[var(--border-default)]" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {openMarkets.map((market) => (
@@ -237,7 +237,7 @@ function MarketsContent() {
                   <span className="text-xs font-mono text-[#666666] uppercase tracking-widest">
                     // RESOLVED MARKETS
                   </span>
-                  <div className="flex-1 h-px bg-[#1F1F1F]" />
+                  <div className="flex-1 h-px bg-[var(--border-default)]" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {resolvedMarkets.map((market) => (

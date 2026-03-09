@@ -146,7 +146,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
 
           return (
             <details key={review.id} open={!quality.isLow}>
-              <summary className={`list-none cursor-pointer flex flex-col gap-3 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] p-5 transition-all hover:border-[#333] ${quality.cardClass}`}>
+              <summary className={`list-none cursor-pointer flex flex-col gap-3 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] p-5 transition-all hover:border-[var(--border-default)] ${quality.cardClass}`}>
                 {/* Header: Reviewer, Badges, Rating */}
                 <div className="flex items-start justify-between">
                   <div className="flex flex-col gap-2">

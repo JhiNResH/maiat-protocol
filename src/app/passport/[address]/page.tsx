@@ -73,7 +73,7 @@ function RepBar({ score }: { score: number }) {
   const pct = Math.min(100, score)
   const color = pct >= 70 ? '#A78BFA' : pct >= 40 ? '#FBBF24' : pct >= 15 ? '#34D399' : '#9CA3AF'
   return (
-    <div className="w-full bg-[#1a1a1a] rounded-full h-1.5 overflow-hidden">
+    <div className="w-full bg-[var(--bg-elevated)] rounded-full h-1.5 overflow-hidden">
       <div
         className="h-full rounded-full transition-all duration-700"
         style={{ width: `${pct}%`, backgroundColor: color }}
@@ -170,7 +170,7 @@ export default function PassportPage() {
           )}
           <button
             onClick={handleCopy}
-            className="text-[10px] font-mono text-gray-500 hover:text-gray-300 border border-[#333] hover:border-[#555] px-2 py-1 rounded transition-colors"
+            className="text-[10px] font-mono text-gray-500 hover:text-gray-300 border border-[var(--border-default)] hover:border-[#555] px-2 py-1 rounded transition-colors"
           >
             {copied ? '✓ Copied' : '⎘ Share'}
           </button>
@@ -262,7 +262,7 @@ export default function PassportPage() {
                       <Link
                         key={agent.address}
                         href={`/review/${agent.address}`}
-                        className="flex items-center gap-2 border border-[var(--border-default)] rounded-lg px-2 py-1.5 hover:border-[#333] transition-colors"
+                        className="flex items-center gap-2 border border-[var(--border-default)] rounded-lg px-2 py-1.5 hover:border-[var(--border-default)] transition-colors"
                       >
                         {agent.logo ? (
                           <img src={agent.logo} alt={agent.name} className="w-6 h-6 rounded object-cover shrink-0" />
@@ -425,7 +425,7 @@ function MarketPositions({ address }: { address: string }) {
           <Link
             key={i}
             href={`/markets/${pos.marketId}`}
-            className="flex items-center justify-between border border-[var(--border-default)] rounded-lg px-2.5 py-1.5 hover:border-[#333] transition-colors"
+            className="flex items-center justify-between border border-[var(--border-default)] rounded-lg px-2.5 py-1.5 hover:border-[var(--border-default)] transition-colors"
           >
             <div className="min-w-0">
               <p className="text-white font-mono text-[10px] font-semibold truncate">{pos.projectName}</p>

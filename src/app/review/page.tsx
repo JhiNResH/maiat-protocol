@@ -50,7 +50,7 @@ export default function ReviewIndexPage() {
               onChange={e => { setInput(e.target.value); setError('') }}
               onKeyDown={e => e.key === 'Enter' && handleGo()}
               placeholder="0x contract address…"
-              className="flex-1 bg-[var(--bg-surface)] border border-[#333] focus:border-[#3b82f6] text-white font-mono text-sm px-4 py-3 rounded-lg outline-none transition-colors placeholder:text-gray-600"
+              className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-default)] focus:border-[#3b82f6] text-white font-mono text-sm px-4 py-3 rounded-lg outline-none transition-colors placeholder:text-gray-600"
             />
             <button
               onClick={handleGo}
@@ -69,10 +69,10 @@ export default function ReviewIndexPage() {
                 <Link
                   key={p.address}
                   href={`/review/${p.address}`}
-                  className="flex items-center justify-between bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[#333] rounded-lg px-4 py-3 transition-colors group"
+                  className="flex items-center justify-between bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-default)] rounded-lg px-4 py-3 transition-colors group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-xs font-bold text-gray-400">
+                    <div className="w-7 h-7 rounded bg-[var(--bg-elevated)] border border-[var(--border-default)] flex items-center justify-center text-xs font-bold text-gray-400">
                       {p.name.charAt(0)}
                     </div>
                     <span className="text-white font-mono text-sm">{p.name}</span>

@@ -182,7 +182,7 @@ function AgentDetailContent() {
           <div className="flex flex-col lg:flex-row items-start gap-10 relative z-10">
             {/* Avatar */}
             <div className="relative shrink-0">
-              <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[#343536] bg-[var(--bg-page)] flex items-center justify-center text-3xl font-black text-white">
+              <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-page)] flex items-center justify-center text-3xl font-black text-white">
                 {agent.logo ? (
                   <img src={agent.logo} alt={agent.name} className="w-full h-full object-cover" />
                 ) : (
@@ -373,7 +373,7 @@ function AgentDetailContent() {
         </div>
 
         {/* ── Community Reviews ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-12 border-t border-[#343536]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-12 border-t border-[var(--border-default)]">
           {/* List — shared ReviewList with upvote/downvote */}
           <div className="lg:col-span-7 space-y-8">
             <div className="flex items-center gap-2 mb-4">
@@ -401,7 +401,7 @@ function AgentDetailContent() {
 
       </div>
 
-      <footer className="mt-20 border-t border-[#343536] py-12 text-center">
+      <footer className="mt-20 border-t border-[var(--border-default)] py-12 text-center">
         <div className="text-[10px] font-mono text-[#818384] tracking-[0.4em] uppercase">
           Maiat Protocol // Behavioral Oracle System
         </div>

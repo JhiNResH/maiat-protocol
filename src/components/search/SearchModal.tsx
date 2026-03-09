@@ -143,9 +143,9 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       
       {/* Modal */}
       <div className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-2xl z-50">
-        <div className="bg-[var(--bg-surface)] border border-[#2a2a2e] rounded-xl shadow-2xl overflow-hidden">
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl shadow-2xl overflow-hidden">
           {/* Search Input */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2a2a2e]">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-default)]">
             {isLoading ? (
               <Loader2 className="w-5 h-5 text-purple-500 animate-spin" />
             ) : (
@@ -167,7 +167,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 <X className="w-4 h-4" />
               </button>
             )}
-            <kbd className="hidden sm:inline-flex h-6 items-center gap-1 rounded border border-[#2a2a2e] bg-[#1a1a1d] px-2 text-xs text-[#6b6b70]">
+            <kbd className="hidden sm:inline-flex h-6 items-center gap-1 rounded border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2 text-xs text-[#6b6b70]">
               ESC
             </kbd>
           </div>
@@ -280,7 +280,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                         <button
                           key={project.id}
                           onClick={() => handleProjectClick(project)}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[var(--border-default)] transition-colors"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--bg-elevated)] border-b border-[var(--border-default)] transition-colors"
                         >
                           <div className={`w-10 h-10 rounded-lg ${
                             meta.color === 'purple' ? 'bg-purple-500/10' : 'bg-slate-500/10'
@@ -313,9 +313,9 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 <button
                   key={review.id}
                   onClick={() => handleReviewClick(review.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[var(--border-default)] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--bg-elevated)] border-b border-[var(--border-default)] transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[#1a1a1d] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--bg-elevated)] flex items-center justify-center">
                     <FileText className="w-5 h-5 text-slate-400" />
                   </div>
                   <div className="flex-1">
@@ -335,9 +335,9 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 <button
                   key={user.id}
                   onClick={() => handleUserClick(user.address)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[var(--border-default)] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--bg-elevated)] border-b border-[var(--border-default)] transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[#1a1a1d] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--bg-elevated)] flex items-center justify-center">
                     <User className="w-5 h-5 text-indigo-400" />
                   </div>
                   <div className="flex-1">

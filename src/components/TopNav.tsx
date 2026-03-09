@@ -62,7 +62,7 @@ export function TopNav() {
               Search projects, reviews...
             </div>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border border-[#2a2a2e] bg-[#1a1a1d] px-1.5 font-mono text-[10px] font-medium text-[#adadb0]">
+              <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border border-[var(--border-default)] bg-[var(--bg-elevated)] px-1.5 font-mono text-[10px] font-medium text-[#adadb0]">
                 ⌘K
               </kbd>
             </div>
@@ -75,7 +75,7 @@ export function TopNav() {
           {/* API Docs */}
           <Link
             href="/docs"
-            className="hidden sm:flex items-center px-3 py-2 rounded-lg text-[13px] font-medium text-[#adadb0] hover:text-white hover:bg-[#1a1a1d] transition-colors"
+            className="hidden sm:flex items-center px-3 py-2 rounded-lg text-[13px] font-medium text-[#adadb0] hover:text-white hover:bg-[var(--bg-elevated)] transition-colors"
           >
             API Docs
           </Link>

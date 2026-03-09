@@ -81,7 +81,7 @@ export default function AboutPage() {
               href="https://twitter.com/0xmaiat"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[var(--border-default)] hover:text-white transition-all"
             >
               <Twitter className="w-4 h-4" />
               @0xmaiat
@@ -90,7 +90,7 @@ export default function AboutPage() {
               href="https://github.com/maiat-protocol"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[var(--border-default)] hover:text-white transition-all"
             >
               <Github className="w-4 h-4" />
               GitHub
@@ -99,7 +99,7 @@ export default function AboutPage() {
               href="https://www.x402.org/directory"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[var(--border-default)] hover:text-white transition-all"
             >
               <ExternalLink className="w-4 h-4" />
               x402 Directory
@@ -108,7 +108,7 @@ export default function AboutPage() {
               href="https://app.virtuals.io/acp"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[var(--border-default)] hover:text-white transition-all"
             >
               <ExternalLink className="w-4 h-4" />
               Virtuals ACP

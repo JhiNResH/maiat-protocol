@@ -213,7 +213,7 @@ function LeaderboardPage() {
           {/* Sort */}
           <button
             onClick={toggleSort}
-            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono uppercase tracking-wide bg-[var(--bg-surface)] border border-[var(--border-default)] rounded text-[#666666] hover:text-[#999] hover:border-[#333] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono uppercase tracking-wide bg-[var(--bg-surface)] border border-[var(--border-default)] rounded text-[#666666] hover:text-[#999] hover:border-[var(--border-default)] transition-colors"
           >
             <ArrowUpDown className="w-3 h-3" />
             {sortBy === "trust" ? "SORT: TRUST ↓" : "SORT: JOBS ↓"}
@@ -475,7 +475,7 @@ function LeaderboardView({
                 <div
                   key={agent.id}
                   onClick={() => router.push(`/agent/${cleanAgentName(agent.name)}/${agent.id}`)}
-                  className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#1a1a1a] bg-[#0D0D0D] hover:border-[#3b82f6]/30 hover:bg-[var(--bg-surface)] cursor-pointer transition-all group"
+                  className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[#3b82f6]/30 hover:bg-[var(--bg-surface)] cursor-pointer transition-all group"
                 >
                   {/* Rank */}
                   <div className={`w-10 text-center font-mono font-bold ${rankStyle(i)}`}>

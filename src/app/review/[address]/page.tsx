@@ -151,7 +151,7 @@ export default function ReviewPage() {
                 <img
                   src={agent.profilePic}
                   alt={name}
-                  className="w-14 h-14 rounded-xl object-cover shrink-0 border border-[#333]"
+                  className="w-14 h-14 rounded-xl object-cover shrink-0 border border-[var(--border-default)]"
                 />
               ) : (
                 <div className="w-14 h-14 rounded-xl bg-[#3b82f6]/10 border border-[#3b82f6]/30 flex items-center justify-center text-xl font-bold text-[#3b82f6] shrink-0">
@@ -169,7 +169,7 @@ export default function ReviewPage() {
                 </div>
 
                 {agent.category && (
-                  <span className="text-[10px] font-mono text-gray-500 bg-[#1a1a1a] border border-[var(--border-default)] px-2 py-0.5 rounded inline-block mb-2">
+                  <span className="text-[10px] font-mono text-gray-500 bg-[var(--bg-elevated)] border border-[var(--border-default)] px-2 py-0.5 rounded inline-block mb-2">
                     {agent.category}
                   </span>
                 )}
@@ -197,7 +197,7 @@ export default function ReviewPage() {
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-[#1a1a1a]">
+            <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-[var(--border-default)]">
               <div className="text-center">
                 <div className="text-xs font-mono font-bold text-white">{bd?.totalJobs ?? '—'}</div>
                 <div className="text-[9px] font-mono text-gray-600">Jobs</div>
@@ -231,7 +231,7 @@ export default function ReviewPage() {
                 </Link>
                 <Link
                   href={`/agent/${agent.address}`}
-                  className="text-xs font-mono text-gray-400 border border-[#333] hover:border-gray-500 px-4 py-2 rounded-lg transition-colors"
+                  className="text-xs font-mono text-gray-400 border border-[var(--border-default)] hover:border-gray-500 px-4 py-2 rounded-lg transition-colors"
                 >
                   View agent
                 </Link>

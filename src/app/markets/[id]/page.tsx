@@ -198,7 +198,7 @@ function MarketDetailContent() {
                     <div 
                       key={standing.projectId}
                       onClick={() => setSelectedProjectId(standing.projectId)}
-                      className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer group ${selectedProjectId === standing.projectId ? 'bg-[#3b82f6]/5 border-[#3b82f6]/40 shadow-[0_0_20px_rgba(59,130,246,0.05)]' : 'bg-[var(--bg-surface)] border-[var(--border-default)] hover:border-[#333]'}`}
+                      className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer group ${selectedProjectId === standing.projectId ? 'bg-[#3b82f6]/5 border-[#3b82f6]/40 shadow-[0_0_20px_rgba(59,130,246,0.05)]' : 'bg-[var(--bg-surface)] border-[var(--border-default)] hover:border-[var(--border-default)]'}`}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-lg overflow-hidden border border-[var(--border-default)] bg-[var(--bg-page)] p-1">

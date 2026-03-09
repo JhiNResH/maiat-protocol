@@ -32,7 +32,7 @@ export function CategoryTabs({ categories, activeKey }: CategoryTabsProps) {
           className={`px-3 py-1.5 text-xs font-mono font-medium rounded-md transition-colors whitespace-nowrap ${
             activeKey === cat.key
               ? 'bg-[#3b82f6] text-white'
-              : 'bg-white dark:bg-[#1a1b23] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+              : 'bg-white dark:bg-[var(--bg-elevated)] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
           }`}
         >
           {cat.label}

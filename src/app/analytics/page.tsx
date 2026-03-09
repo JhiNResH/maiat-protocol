@@ -30,7 +30,7 @@ interface ApiStats {
 
 function StatCard({ icon: Icon, label, value, sub }: { icon: typeof Activity; label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-[#0D0D0D] border border-[#1a1a1a] rounded-xl p-4">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
       <div className="flex items-center gap-2 mb-2">
         <Icon className="w-3.5 h-3.5 text-[#3b82f6]" />
         <span className="text-[10px] font-mono text-[#555] uppercase tracking-wider">{label}</span>
@@ -115,7 +115,7 @@ export default function AnalyticsPage() {
 
         {/* Type + Verdict */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-[#0D0D0D] border border-[#1a1a1a] rounded-xl p-4">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
             <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">By Type</h2>
             <div className="space-y-2">
               {Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-[#0D0D0D] border border-[#1a1a1a] rounded-xl p-4">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
             <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">Verdicts</h2>
             <div className="space-y-2">
               {Object.entries(byVerdict).sort((a, b) => b[1] - a[1]).map(([verdict, count]) => (
@@ -149,12 +149,12 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Recent Queries */}
-        <div className="bg-[#0D0D0D] border border-[#1a1a1a] rounded-xl p-4">
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
           <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">Recent Queries</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-xs font-mono">
               <thead>
-                <tr className="text-[10px] text-[#444] uppercase border-b border-[#1a1a1a]">
+                <tr className="text-[10px] text-[#444] uppercase border-b border-[var(--border-default)]">
                   <th className="text-left py-2 pr-3">Type</th>
                   <th className="text-left py-2 pr-3">Target</th>
                   <th className="text-right py-2 pr-3">Score</th>
