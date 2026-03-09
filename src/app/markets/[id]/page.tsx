@@ -102,9 +102,14 @@ function MarketDetailContent() {
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await fetch(`/api/v1/agent/search?q=${encodeURIComponent(agentSearch)}&limit=5`);
+        const res = await fetch(`/api/v1/agents?search=${encodeURIComponent(agentSearch)}&limit=5`);
         const data = await res.json();
-        setSearchResults(data.results ?? []);
+        setSearchResults((data.agents ?? []).map((a: any) => ({
+          walletAddress: a.id || a.walletAddress,
+          name: a.name || a.id?.slice(0, 10) + '...',
+          trustScore: a.trust?.score ?? a.trustScore ?? 0,
+          profilePic: a.logo || null,
+        })));
       } catch { setSearchResults([]); }
       finally { setSearching(false); }
     }, 300);
