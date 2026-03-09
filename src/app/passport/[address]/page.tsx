@@ -73,7 +73,7 @@ function RepBar({ score }: { score: number }) {
   const pct = Math.min(100, score)
   const color = pct >= 70 ? '#A78BFA' : pct >= 40 ? '#FBBF24' : pct >= 15 ? '#34D399' : '#9CA3AF'
   return (
-    <div className="w-full bg-[var(--bg-elevated)] rounded-full h-1.5 overflow-hidden">
+    <div className="w-full bg-white/[0.06] rounded-full h-1.5 overflow-hidden">
       <div
         className="h-full rounded-full transition-all duration-700"
         style={{ width: `${pct}%`, backgroundColor: color }}
@@ -172,7 +172,7 @@ export default function PassportPage() {
           )}
           <button
             onClick={handleCopy}
-            className="text-[10px] font-mono text-gray-500 hover:text-gray-300 border border-[var(--border-default)] hover:border-[#555] px-2 py-1 rounded transition-colors"
+            className="text-[10px] font-mono text-gray-500 hover:text-gray-300 border border-white/10 hover:border-[#555] px-2 py-1 rounded transition-colors"
           >
             {copied ? '✓ Copied' : '⎘ Share'}
           </button>
@@ -236,7 +236,7 @@ export default function PassportPage() {
           </div>
 
           {/* ── Review Agents (2-col grid, max 10) ────────────────────── */}
-          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <p className="text-gray-500 font-mono text-[10px]">// AGENTS YOU CAN REVIEW</p>
               {unreviewedAgents.length > 0 && (
@@ -264,7 +264,7 @@ export default function PassportPage() {
                       <Link
                         key={agent.address}
                         href={`/review/${agent.address}`}
-                        className="flex items-center gap-2 border border-[var(--border-default)] rounded-lg px-2 py-1.5 hover:border-[var(--border-default)] transition-colors"
+                        className="flex items-center gap-2 border border-white/10 rounded-lg px-2 py-1.5 hover:border-white/10 transition-colors"
                       >
                         {agent.logo ? (
                           <img src={agent.logo} alt={agent.name} className="w-6 h-6 rounded object-cover shrink-0" />
@@ -298,7 +298,7 @@ export default function PassportPage() {
           <MarketPositions address={address} />
 
           {/* ── Level Perks (inline pills) ────────────────────────────── */}
-          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-gray-500 font-mono text-[10px] shrink-0">PERKS</span>
               {perks.map((p, i) => (
@@ -319,7 +319,7 @@ export default function PassportPage() {
           </div>
 
           {/* ── Review history ─────────────────────────────────────────────── */}
-          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <p className="text-gray-500 font-mono text-[10px]">// REVIEW HISTORY</p>
               {data.reviews.count > 0 && (
@@ -339,7 +339,7 @@ export default function PassportPage() {
             ) : (
               <div className="space-y-1.5">
                 {data.reviews.recent.map(r => (
-                  <div key={r.id} className="border border-[var(--border-default)] rounded-lg px-2.5 py-1.5">
+                  <div key={r.id} className="border border-white/10 rounded-lg px-2.5 py-1.5">
                     <div className="flex items-center justify-between">
                       <Link
                         href={`/review/${r.address}`}
@@ -367,7 +367,7 @@ export default function PassportPage() {
 
           {/* ── CTA ───────────────────────────────────────────────────────── */}
           {!isOwn && (
-            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-center">
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 text-center">
               <p className="text-gray-500 font-mono text-[10px] mb-2">View your own trust passport</p>
               <Link
                 href="/passport"
@@ -418,12 +418,12 @@ function MarketPositions({ address }: { address: string }) {
   }, [address])
 
   if (loading) return (
-    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
+    <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3">
       <p className="text-gray-500 font-mono text-[10px] animate-pulse">// LOADING POSITIONS…</p>
     </div>
   )
   if (positions.length === 0) return (
-    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
+    <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3">
       <p className="text-gray-500 font-mono text-[10px]">// MARKET POSITIONS</p>
       <p className="text-gray-600 font-mono text-[10px] mt-1">No positions yet. <Link href="/markets" className="text-[#3b82f6] hover:underline">Browse markets →</Link></p>
     </div>
@@ -432,7 +432,7 @@ function MarketPositions({ address }: { address: string }) {
   const totalStaked = positions.reduce((s, p) => s + p.amount, 0)
 
   return (
-    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
+    <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3">
       <div className="flex items-center justify-between mb-2">
         <p className="text-gray-500 font-mono text-[10px]">// MARKET POSITIONS</p>
         <span className="text-[10px] font-mono text-[#3b82f6]">{totalStaked} 🪲 staked</span>
@@ -442,7 +442,7 @@ function MarketPositions({ address }: { address: string }) {
           <Link
             key={i}
             href={`/markets/${pos.marketId}`}
-            className="flex items-center justify-between border border-[var(--border-default)] rounded-lg px-2.5 py-1.5 hover:border-[var(--border-default)] transition-colors"
+            className="flex items-center justify-between border border-white/10 rounded-lg px-2.5 py-1.5 hover:border-white/10 transition-colors"
           >
             <div className="min-w-0">
               <p className="text-white font-mono text-[10px] font-semibold truncate">{pos.projectName}</p>
