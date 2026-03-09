@@ -22,21 +22,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Search by name (case-insensitive) OR wallet address prefix
-    const agents = await prisma.$queryRawUnsafe<Array<{
+    // Use tagged template $queryRaw for safe parameterized queries
+    const addrPattern = `${q.toLowerCase()}%`;
+    const namePattern = `%${q.toLowerCase()}%`;
+    const agents = await prisma.$queryRaw<Array<{
       walletAddress: string;
       trustScore: number;
       rawMetrics: Record<string, unknown> | null;
-    }>>(
-      `SELECT "walletAddress", "trustScore", "rawMetrics"
+    }>>`SELECT "walletAddress", "trustScore", "rawMetrics"
        FROM "AgentScore"
-       WHERE LOWER("walletAddress") LIKE LOWER($1)
-          OR LOWER("rawMetrics"->>'name') LIKE LOWER($2)
+       WHERE LOWER("walletAddress") LIKE ${addrPattern}
+          OR LOWER(CAST("rawMetrics"->>'name' AS TEXT)) LIKE ${namePattern}
        ORDER BY "trustScore" DESC
-       LIMIT $3`,
-      `${q}%`,
-      `%${q}%`,
-      limit
-    );
+       LIMIT ${limit}`;
 
     const results = agents.map((a) => {
       const raw = a.rawMetrics as Record<string, unknown> | null;
