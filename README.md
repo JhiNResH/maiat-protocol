@@ -48,7 +48,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-4 tools instantly available: `get_agent_trust` · `get_token_forensics` · `report_outcome` · `get_scarab_balance`
+5 tools instantly available: `get_agent_trust` · `get_token_forensics` · `get_agent_reputation` · `report_outcome` · `get_scarab_balance`
 
 **REST API (any agent, any LLM):**
 
@@ -102,12 +102,14 @@ Live at [app.maiat.io](https://app.maiat.io)
 
 Wallet: `0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D`
 
-| Offering           | Fee           | Description                                            |
-| ------------------ | ------------- | ------------------------------------------------------ |
-| `token_check`      | $0.01         | Honeypot detection, tax analysis, risk flags           |
-| `agent_trust`      | $0.02         | Behavioral trust score from on-chain job history       |
-| `agent_deep_check` | $0.10         | Percentile rank, risk flags, tier, recommendation      |
-| `trust_swap`       | $0.05 + 0.15% | Trust-gated Uniswap swap (calldata withheld if unsafe) |
+| Offering            | Fee   | Description                                                                  |
+| ------------------- | ----- | ---------------------------------------------------------------------------- |
+| `token_check`       | $0.01 | Honeypot detection, tax analysis, risk flags                                 |
+| `agent_trust`       | $0.02 | Behavioral trust score + deep analysis (percentile, risk flags, tier)        |
+| `token_forensics`   | $0.03 | Deep rug pull risk analysis (contract, holders, liquidity, rug score)        |
+| `agent_reputation`  | $0.03 | Community reviews, sentiment, and market consensus for any agent             |
+
+> Each offering response includes `_feedback` with outcome reporting instructions + cross-sell hints. Report outcomes to earn 5 🪲 Scarab and improve oracle accuracy.
 
 ---
 

@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 /**
- * Maiat Trust Score MCP Server v0.3.0 (stdio)
+ * Maiat Trust Score MCP Server v0.5.0 (stdio)
  *
  * Exposes Maiat's trust API as MCP tools so any AI assistant
  * (Claude, GPT, etc.) can check agent trust, token forensics,
- * report outcomes, and query SCARAB balances — in one call.
+ * community reputation, report outcomes, and query SCARAB balances.
  *
  * Tools:
- *   - get_agent_trust      — trust score for an ACP agent address
+ *   - get_agent_trust      — trust score for an ACP agent address (includes deep analysis)
  *   - get_token_forensics  — forensics/safety data for a token
- *   - report_outcome       — report a job outcome back to Maiat
+ *   - get_agent_reputation — community reviews, sentiment, market consensus for any agent
+ *   - report_outcome       — report a job outcome back to Maiat (earns 5 🪲 Scarab)
  *   - get_scarab_balance   — get SCARAB token balance for an address
+ *   - submit_review        — submit a review for an on-chain entity
+ *   - vote_review          — upvote or downvote a review
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -72,7 +75,7 @@ async function maiatPost(path: string, body: Record<string, unknown>) {
 
 const server = new McpServer({
   name: "maiat-trust",
-  version: "0.3.0",
+  version: "0.5.0",
 });
 
 // ---- Tool: get_agent_trust ----
@@ -245,6 +248,42 @@ server.tool(
   }
 );
 
+// ---- Tool: get_agent_reputation ----
+server.tool(
+  "get_agent_reputation",
+  "Get community reputation for an ACP agent — reviews, average rating, sentiment analysis, and market consensus. Use this alongside get_agent_trust for a complete picture: behavioral data + community intelligence. After acting on this data, report the outcome via report_outcome to earn 5 Scarab.",
+  {
+    address: z
+      .string()
+      .describe("Ethereum/Base wallet address (0x...) of the agent"),
+  },
+  async ({ address }) => {
+    try {
+      const data = await maiatGet(`/api/v1/review?address=${address}`);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(data, null, 2),
+          },
+        ],
+      };
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({
+              error: err instanceof Error ? err.message : String(err),
+              address,
+            }),
+          },
+        ],
+      };
+    }
+  }
+);
+
 // ---- Tool: submit_review ----
 server.tool(
   "submit_review",
@@ -331,10 +370,11 @@ server.resource(
 
 Base URL: https://app.maiat.io
 
-- \`GET /api/v1/agent/{address}\` — standard trust score
-- \`GET /api/v1/agent/{address}/deep\` — deep analysis
+- \`GET /api/v1/agent/{address}\` — standard trust score (includes deep data)
+- \`GET /api/v1/agent/{address}/deep\` — deep analysis with percentile + risk flags
+- \`GET /api/v1/review?address={address}\` — community reviews, sentiment, market consensus
 - \`GET /api/v1/token/{address}/forensics?chain=base\` — token forensics
-- \`POST /api/v1/outcome\` — report job outcome
+- \`POST /api/v1/outcome\` — report job outcome (earns +5 Scarab)
 - \`GET /api/v1/scarab?address={address}\` — SCARAB balance
 
 Learn more: https://app.maiat.io/docs
@@ -351,7 +391,7 @@ Learn more: https://app.maiat.io/docs
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("🛡️ Maiat MCP Server v0.4.0 (stdio) — 6 tools active");
+  console.error("🛡️ Maiat MCP Server v0.5.0 (stdio) — 7 tools active");
 }
 
 main().catch((err) => {
