@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { MarketCard } from "@/components/MarketCard";
 import { Shield, TrendingUp, Clock, Trophy } from "lucide-react";
@@ -18,6 +19,17 @@ interface Market {
 }
 
 export default function MarketsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center font-mono text-[#3b82f6]">LOADING…</div>}>
+      <MarketsContent />
+    </Suspense>
+  )
+}
+
+function MarketsContent() {
+  const searchParams = useSearchParams();
+  const agentParam = searchParams.get("agent");
+  const agentName = searchParams.get("name");
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "open" | "resolved">("all");
@@ -179,6 +191,15 @@ export default function MarketsPage() {
         {/* Markets Grid */}
         {!loading && filteredMarkets.length > 0 && (
           <div className="space-y-8">
+            {/* Agent stake banner */}
+            {agentParam && agentName && (
+              <div className="bg-[#3b82f6]/10 border border-[#3b82f6]/30 rounded-lg p-4 flex items-center gap-3">
+                <Trophy className="w-5 h-5 text-[#3b82f6] shrink-0" />
+                <p className="text-sm font-mono text-[#E5E5E5]">
+                  Stake on <strong className="text-[#3b82f6]">{decodeURIComponent(agentName)}</strong> — pick a market below
+                </p>
+              </div>
+            )}
             {/* Active Markets */}
             {openMarkets.length > 0 && (
               <div>
@@ -201,6 +222,8 @@ export default function MarketsPage() {
                       positionCount={market.positionCount}
                       closesAt={market.closesAt}
                       topProjects={market.topProjects}
+                      agentParam={agentParam || undefined}
+                      agentName={agentName || undefined}
                     />
                   ))}
                 </div>
