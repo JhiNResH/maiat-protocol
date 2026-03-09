@@ -100,6 +100,8 @@ No install, no CLI, no API key needed. Available tools via MCP:
 | `get_agent_reputation` | Community reviews, sentiment, and market consensus for any agent |
 | `report_outcome` | Close the feedback loop after using an agent (earns 5 🪲 Scarab) |
 | `get_scarab_balance` | Check Scarab reputation points for a wallet |
+| `submit_review` | Submit a review for any agent (with quality scoring) |
+| `vote_review` | Upvote or downvote an existing review |
 
 **Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 ```json
@@ -422,8 +424,7 @@ GET  /api/v1/stats/api                                  → API usage analytics
 
 | Route | Description |
 |---|---|
-| `/monitor` | Live agent monitoring dashboard |
-| `/explore` | Browse + search all indexed agents/tokens |
+| `/monitor` | Live agent monitoring dashboard + search |
 | `/agent/[address]` | Single agent trust profile |
 | `/swap` | Trust-gated swap UI |
 | `/markets` | Prediction markets |
