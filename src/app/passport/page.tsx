@@ -68,11 +68,11 @@ export default function PassportIndexPage() {
                 onChange={e => { setManualAddr(e.target.value); setError('') }}
                 onKeyDown={e => e.key === 'Enter' && handleLookup()}
                 placeholder="0x wallet address…"
-                className="flex-1 bg-[var(--bg-surface)] border border-[#333] focus:border-[#3b82f6] text-white font-mono text-sm px-4 py-2.5 rounded-lg outline-none transition-colors placeholder:text-gray-600"
+                className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-default)] focus:border-[#3b82f6] text-white font-mono text-sm px-4 py-2.5 rounded-lg outline-none transition-colors placeholder:text-gray-600"
               />
               <button
                 onClick={handleLookup}
-                className="border border-[#333] hover:border-[#555] text-gray-300 font-mono text-sm px-4 py-2.5 rounded-lg transition-colors"
+                className="border border-[var(--border-default)] hover:border-[#555] text-gray-300 font-mono text-sm px-4 py-2.5 rounded-lg transition-colors"
               >
                 →
               </button>

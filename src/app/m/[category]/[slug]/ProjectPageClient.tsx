@@ -132,7 +132,7 @@ function ScoreBar({ label, value, max, icon }: { label: string; value: number; m
         </div>
         <span className="font-bold font-mono" style={{ color }}>{(value ?? 0).toFixed(1)} / {max}</span>
       </div>
-      <div className="h-1.5 bg-[#1a1a1b] rounded-full overflow-hidden">
+      <div className="h-1.5 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: color }} />
       </div>
     </div>
@@ -285,7 +285,7 @@ function ProjectDetailPage() {
         </div>
 
         {/* ── Hero Card ── */}
-        <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-6">
+        <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl p-6">
           <div className="flex flex-col sm:flex-row items-start gap-6">
 
             {/* Avatar */}
@@ -331,7 +331,7 @@ function ProjectDetailPage() {
             </div>
 
             {/* Score */}
-            <div className="shrink-0 flex flex-col items-center justify-center bg-[var(--bg-surface)] border border-[#2a2a2e] rounded-xl px-6 py-4 min-w-[100px]">
+            <div className="shrink-0 flex flex-col items-center justify-center bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-6 py-4 min-w-[100px]">
               <span className="text-4xl font-black" style={{ color: scoreColor(score) }}>{score.toFixed(1)}</span>
               <span className="text-[10px] text-[#818384] font-mono uppercase tracking-widest mt-1">Trust Score</span>
               <div className="flex items-center gap-1 mt-2">
@@ -346,7 +346,7 @@ function ProjectDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           {/* Score breakdown */}
-          <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-5 flex flex-col gap-4">
+          <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl p-5 flex flex-col gap-4">
             <div className="flex items-center gap-2 mb-1">
               <Shield className="w-4 h-4 text-[#d4a017]" />
               <span className="text-xs font-bold font-mono uppercase tracking-widest text-[#adadb0]">Score Breakdown</span>
@@ -362,7 +362,7 @@ function ProjectDetailPage() {
           </div>
 
           {/* On-chain stats */}
-          <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-5 flex flex-col gap-4">
+          <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl p-5 flex flex-col gap-4">
             <div className="flex items-center gap-2 mb-1">
               <Activity className="w-4 h-4 text-[#d4a017]" />
               <span className="text-xs font-bold font-mono uppercase tracking-widest text-[#adadb0]">On-Chain Details</span>
@@ -425,7 +425,7 @@ function ProjectDetailPage() {
 
         {/* ── AI Summary ── */}
         {(scoreResult?.summary || project.description) && (
-          <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-5">
+          <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl p-5">
             <div className="flex items-center gap-2 mb-3">
               <Flame className="w-4 h-4 text-[#d4a017]" />
               <span className="text-xs font-bold font-mono uppercase tracking-widest text-[#adadb0]">Analysis</span>
@@ -435,7 +435,7 @@ function ProjectDetailPage() {
         )}
 
         {/* ── Community Reviews ── */}
-        <div className="bg-[#1a1a1b] border border-[#343536] rounded-xl p-5 flex flex-col gap-4">
+        <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-[#d4a017]" />
@@ -463,7 +463,7 @@ function ProjectDetailPage() {
           ) : (
             <div className="flex flex-col gap-3">
               {reviews.map(r => (
-                <div key={r.id} className="bg-[var(--bg-surface)] border border-[#2a2a2e] rounded-lg p-4">
+                <div key={r.id} className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-mono text-[#818384]">{truncate(r.reviewer)}</span>

@@ -65,7 +65,7 @@ export function TrustScoreTooltip({
       </div>
       
       {show && (
-        <div className="absolute z-10 left-0 top-full mt-1 bg-white dark:bg-[#1a1b23] border border-gray-300 dark:border-gray-600 rounded-md shadow-lg p-3 w-56 text-xs font-mono">
+        <div className="absolute z-10 left-0 top-full mt-1 bg-white dark:bg-[var(--bg-elevated)] border border-gray-300 dark:border-gray-600 rounded-md shadow-lg p-3 w-56 text-xs font-mono">
           <div className="font-bold mb-2 text-gray-900 dark:text-gray-100">Trust Score Breakdown</div>
           <div className="space-y-1.5">
             <div className="flex justify-between">
