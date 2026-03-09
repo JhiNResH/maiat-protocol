@@ -292,6 +292,9 @@ export default function PassportPage() {
             )}
           </div>
 
+          {/* ── Market Positions ─────────────────────────────────────────── */}
+          <MarketPositions address={address} />
+
           {/* ── Level Perks (inline pills) ────────────────────────────── */}
           <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 flex-wrap">
@@ -312,9 +315,6 @@ export default function PassportPage() {
               </p>
             )}
           </div>
-
-          {/* ── Market Positions ─────────────────────────────────────────── */}
-          <MarketPositions address={address} />
 
           {/* ── Review history ─────────────────────────────────────────────── */}
           <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
