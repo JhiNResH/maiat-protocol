@@ -30,7 +30,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logQueryAsync } from "@/lib/query-logger";
 import { isAddress, getAddress } from "viem";
-import { prisma } from "@/lib/prisma";
+import { prisma, dbAvailable } from "@/lib/prisma";
 import { computeTrustScore, getBlendedTrustScore, type AcpAgent } from "@/lib/acp-indexer";
 
 const ACP_AGENTS_URL = "https://acpx.virtuals.io/api/agents";
@@ -57,31 +57,46 @@ async function fetchAndIndexAgent(
 
     const score = computeTrustScore(agent);
 
-    // Upsert into DB for future cache
-    const upserted = await prisma.agentScore.upsert({
-      where:  { walletAddress: checksumAddress },
-      update: {
-        trustScore:     score.trustScore,
-        completionRate: score.completionRate,
-        paymentRate:    score.paymentRate,
-        expireRate:     score.expireRate,
-        totalJobs:      score.totalJobs,
-        dataSource:     "ACP_BEHAVIORAL",
-        rawMetrics:     JSON.parse(JSON.stringify(agent ?? {})),
-      },
-      create: {
-        walletAddress:  checksumAddress,
-        trustScore:     score.trustScore,
-        completionRate: score.completionRate,
-        paymentRate:    score.paymentRate,
-        expireRate:     score.expireRate,
-        totalJobs:      score.totalJobs,
-        dataSource:     "ACP_BEHAVIORAL",
-        rawMetrics:     JSON.parse(JSON.stringify(agent ?? {})),
-      },
-    });
+    // Build a lightweight record from live data (no DB required)
+    const liveRecord: AgentScoreRecord = {
+      walletAddress:  checksumAddress,
+      trustScore:     score.trustScore,
+      completionRate: score.completionRate,
+      paymentRate:    score.paymentRate,
+      expireRate:     score.expireRate,
+      totalJobs:      score.totalJobs,
+      dataSource:     "ACP_BEHAVIORAL_LIVE",
+      lastUpdated:    new Date(),
+      rawMetrics:     agent,
+    };
 
-    return upserted;
+    // Try to upsert into DB for future cache — non-blocking, ignore failures
+    if (dbAvailable) {
+      prisma.agentScore.upsert({
+        where:  { walletAddress: checksumAddress },
+        update: {
+          trustScore:     score.trustScore,
+          completionRate: score.completionRate,
+          paymentRate:    score.paymentRate,
+          expireRate:     score.expireRate,
+          totalJobs:      score.totalJobs,
+          dataSource:     "ACP_BEHAVIORAL",
+          rawMetrics:     JSON.parse(JSON.stringify(agent ?? {})),
+        },
+        create: {
+          walletAddress:  checksumAddress,
+          trustScore:     score.trustScore,
+          completionRate: score.completionRate,
+          paymentRate:    score.paymentRate,
+          expireRate:     score.expireRate,
+          totalJobs:      score.totalJobs,
+          dataSource:     "ACP_BEHAVIORAL",
+          rawMetrics:     JSON.parse(JSON.stringify(agent ?? {})),
+        },
+      }).catch(() => { /* fire-and-forget: cache write is non-fatal */ });
+    }
+
+    return liveRecord;
   } catch {
     return null;
   }
@@ -117,55 +132,60 @@ export async function GET(
     // Normalize to checksum address
     const checksumAddress = getAddress(rawAddress);
 
-    // ── Query Supabase ────────────────────────────────────────────────────────
-    const record = await prisma.agentScore.findUnique({
-      where: { walletAddress: checksumAddress },
-    });
+    // ── Query DB (with graceful fallback when DB unavailable) ────────────────
+    let record: AgentScoreRecord | null = null;
 
-    // ── Not indexed yet ───────────────────────────────────────────────────────
-    if (!record) {
-      // Also try lowercase (in case indexer stored it lowercase)
-      const recordLower = await prisma.agentScore.findFirst({
-        where: {
-          walletAddress: {
-            equals: rawAddress.toLowerCase(),
-            mode:   "insensitive",
-          },
-        },
-      });
+    if (dbAvailable) {
+      try {
+        record = await prisma.agentScore.findUnique({
+          where: { walletAddress: checksumAddress },
+        });
 
-      if (!recordLower) {
-        // ── On-demand lookup from Virtuals API ──────────────────────────────
-        const onDemand = await fetchAndIndexAgent(checksumAddress);
-        if (onDemand) {
-          return await buildResponse(checksumAddress, onDemand, request);
+        if (!record) {
+          record = await prisma.agentScore.findFirst({
+            where: {
+              walletAddress: {
+                equals: rawAddress.toLowerCase(),
+                mode:   "insensitive",
+              },
+            },
+          });
         }
-
-        // Truly unknown — not in DB, not in Virtuals API
-        return NextResponse.json(
-          {
-            address:     checksumAddress,
-            trustScore:  null,
-            dataSource:  "ACP_BEHAVIORAL",
-            breakdown:   null,
-            verdict:     "unknown",
-            message:
-              "This address has no ACP history on Virtuals. " +
-              "They may not be registered as an ACP agent yet.",
-            lastUpdated: null,
-          },
-          {
-            status:  404,
-            headers: { "Cache-Control": "public, s-maxage=60" },
-          }
-        );
+      } catch {
+        // DB unavailable at runtime — fall through to on-demand Virtuals lookup
+        record = null;
       }
-
-      // Use the case-insensitive match
-      return await buildResponse(checksumAddress, recordLower, request);
     }
 
-    return await buildResponse(checksumAddress, record, request);
+    // ── Hit: return from DB cache ─────────────────────────────────────────────
+    if (record) {
+      return await buildResponse(checksumAddress, record, request);
+    }
+
+    // ── Miss: on-demand lookup from Virtuals ACP API ──────────────────────────
+    const onDemand = await fetchAndIndexAgent(checksumAddress);
+    if (onDemand) {
+      return await buildResponse(checksumAddress, onDemand, request);
+    }
+
+    // ── Truly unknown ─────────────────────────────────────────────────────────
+    return NextResponse.json(
+      {
+        address:     checksumAddress,
+        trustScore:  null,
+        dataSource:  "ACP_BEHAVIORAL",
+        breakdown:   null,
+        verdict:     "unknown",
+        message:
+          "This address has no ACP history on Virtuals. " +
+          "They may not be registered as an ACP agent yet.",
+        lastUpdated: null,
+      },
+      {
+        status:  404,
+        headers: { "Cache-Control": "public, s-maxage=60" },
+      }
+    );
 
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
