@@ -119,14 +119,22 @@ export async function GET(
     );
     const agentNameMap = new Map<string, string>();
     if (walletProjectIds.length > 0) {
-      const agentScores = await prisma.agentScore.findMany({
+      const extraAgentScores = await prisma.agentScore.findMany({
         where: { walletAddress: { in: walletProjectIds, mode: 'insensitive' } },
-        select: { walletAddress: true, rawMetrics: true },
+        select: { walletAddress: true, trustScore: true, rawMetrics: true },
       });
-      for (const as of agentScores) {
+      for (const as of extraAgentScores) {
         const raw = as.rawMetrics as Record<string, unknown> | null;
         const name = raw?.name as string;
-        if (name) agentNameMap.set(as.walletAddress.toLowerCase(), name);
+        const addrKey = as.walletAddress.toLowerCase();
+        if (name) agentNameMap.set(addrKey, name);
+        // Also populate agentScoreMap if missing (wallet-only agents)
+        if (!agentScoreMap.has(addrKey)) {
+          agentScoreMap.set(addrKey, {
+            trustScore: as.trustScore,
+            profilePic: (raw?.profilePic as string) ?? null,
+          });
+        }
       }
     }
 
@@ -136,7 +144,8 @@ export async function GET(
         const project = projectMap.get(projectId);
         // Try to get real trust score + logo from AgentScore
         const agentData = (project?.address ? agentScoreMap.get(project.address.toLowerCase()) : null)
-          ?? (project?.name ? agentScoreMap.get(project.name.toLowerCase()) : null);
+          ?? (project?.name ? agentScoreMap.get(project.name.toLowerCase()) : null)
+          ?? (projectId.startsWith('0x') ? agentScoreMap.get(projectId.toLowerCase()) : null);
         
         const resolvedName = project?.name 
           ?? agentNameMap.get(projectId.toLowerCase())
