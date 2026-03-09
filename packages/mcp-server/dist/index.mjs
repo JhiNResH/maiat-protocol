@@ -5,11 +5,18 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 var MAIAT_API_URL = process.env.MAIAT_API_URL || "https://app.maiat.io";
+var CLIENT_ID = process.env.MAIAT_CLIENT_ID || `mcp-${(process.env.USER || "anon").slice(0, 20)}`;
+function baseHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-Maiat-Client": CLIENT_ID
+  };
+}
 async function maiatGet(path) {
   const url = `${MAIAT_API_URL}${path}`;
   const res = await fetch(url, {
     method: "GET",
-    headers: { "Content-Type": "application/json" }
+    headers: baseHeaders()
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -21,7 +28,7 @@ async function maiatPost(path, body) {
   const url = `${MAIAT_API_URL}${path}`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: baseHeaders(),
     body: JSON.stringify(body)
   });
   if (!res.ok) {
