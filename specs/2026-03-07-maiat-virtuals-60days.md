@@ -487,7 +487,7 @@ Trust Score = f(
 | **A (Now)** | Base mainnet events | EAS attestations, ERC-8004 registrations | ✅ Live — event listener |
 | **B (Volume trigger)** | GoPlus Security API | Contract risk flags, rug probability | Planned — Layer 6 |
 | **C (Volume trigger)** | ACP Smart Contract events | On-chain job lifecycle (create/accept/complete/dispute) | Planned — true decentralization |
-| **D (Post-launch)** | Dune Analytics | Behavioral patterns, cross-protocol activity | Planned — public dashboard |
+| **D (Live)** | Dune Analytics | ERC-8004 activity, wallet patterns, registry splits | ✅ [Dashboard](https://dune.com/jhinresh/maiat-trust-infrastructure-base) |
 
 **Transition from A → C:**
 - **Phase A** (current): Poll Virtuals REST API. Fast to build, covers all agents, 5-min latency acceptable for trust scoring.
