@@ -360,6 +360,9 @@ export default function PassportPage() {
             )}
           </div>
 
+          {/* ── Market Positions ─────────────────────────────────────────── */}
+          <MarketPositions address={address} />
+
           {/* ── CTA ───────────────────────────────────────────────────────── */}
           {!isOwn && (
             <div className="bg-[#111] border border-[#1e1e1e] rounded-xl px-4 py-3 text-center">
@@ -375,6 +378,72 @@ export default function PassportPage() {
 
         </div>
       </main>
+    </div>
+  )
+}
+
+// ── Market Positions component ────────────────────────────────────────────────
+
+function MarketPositions({ address }: { address: string }) {
+  const [positions, setPositions] = useState<Array<{
+    marketId: string
+    marketTitle: string
+    projectName: string
+    amount: number
+    status: string
+    payout: number | null
+    createdAt: string
+  }>>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/v1/wallet/${address}/positions`)
+      .then(r => r.json())
+      .then(d => setPositions(d.positions ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [address])
+
+  if (loading) return null
+  if (positions.length === 0) return (
+    <div className="bg-[#111] border border-[#1e1e1e] rounded-xl px-4 py-3">
+      <p className="text-gray-500 font-mono text-[10px]">// MARKET POSITIONS</p>
+      <p className="text-gray-600 font-mono text-[10px] mt-1">No positions yet. <Link href="/markets" className="text-[#3b82f6] hover:underline">Browse markets →</Link></p>
+    </div>
+  )
+
+  const totalStaked = positions.reduce((s, p) => s + p.amount, 0)
+
+  return (
+    <div className="bg-[#111] border border-[#1e1e1e] rounded-xl px-4 py-3">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-gray-500 font-mono text-[10px]">// MARKET POSITIONS</p>
+        <span className="text-[10px] font-mono text-[#3b82f6]">{totalStaked} 🪲 staked</span>
+      </div>
+      <div className="space-y-1.5">
+        {positions.map((pos, i) => (
+          <Link
+            key={i}
+            href={`/markets/${pos.marketId}`}
+            className="flex items-center justify-between border border-[#1e1e1e] rounded-lg px-2.5 py-1.5 hover:border-[#333] transition-colors"
+          >
+            <div className="min-w-0">
+              <p className="text-white font-mono text-[10px] font-semibold truncate">{pos.projectName}</p>
+              <p className="text-gray-600 font-mono text-[9px] truncate">{pos.marketTitle}</p>
+            </div>
+            <div className="text-right shrink-0 ml-2">
+              <p className="text-white font-mono text-[10px] font-bold">{pos.amount} 🪲</p>
+              <p className={`font-mono text-[9px] ${
+                pos.status === 'resolved' ? (pos.payout && pos.payout > 0 ? 'text-emerald-400' : 'text-red-400') : 'text-gray-500'
+              }`}>
+                {pos.status === 'resolved' 
+                  ? (pos.payout && pos.payout > 0 ? `+${pos.payout} 🪲` : 'Lost')
+                  : pos.status}
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
     </div>
   )
 }

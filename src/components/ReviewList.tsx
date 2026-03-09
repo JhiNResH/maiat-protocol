@@ -44,6 +44,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [votingId, setVotingId] = useState<string | null>(null)
+  const [myVotes, setMyVotes] = useState<Record<string, 'up' | 'down'>>({})
   const { user } = usePrivy()
   const walletAddress = user?.wallet?.address
 
@@ -75,6 +76,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reviewId, voter: walletAddress, direction }),
       })
+      setMyVotes(prev => ({ ...prev, [reviewId]: direction }))
       fetchReviews()
     } catch { /* silent */ }
     finally { setVotingId(null) }
@@ -193,15 +195,17 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
                       <button
                         onClick={(e) => { e.preventDefault(); handleVote(review.id, 'up'); }}
                         disabled={!walletAddress || votingId === review.id}
-                        className="text-[#666] hover:text-emerald-400 transition-colors disabled:opacity-30 p-0.5"
+                        className={`transition-colors disabled:opacity-30 p-0.5 ${myVotes[review.id] === 'up' ? 'text-emerald-400' : 'text-[#666] hover:text-emerald-400'}`}
                       >
                         <ThumbsUp className="w-3.5 h-3.5" />
                       </button>
-                      <span className="text-[9px] font-mono text-[#888]">{(review.upvotes ?? 0) - (review.downvotes ?? 0)}</span>
+                      <span className={`text-[9px] font-mono ${(review.upvotes ?? 0) - (review.downvotes ?? 0) > 0 ? 'text-emerald-400' : (review.upvotes ?? 0) - (review.downvotes ?? 0) < 0 ? 'text-red-400' : 'text-[#888]'}`}>
+                        {(review.upvotes ?? 0) - (review.downvotes ?? 0)}
+                      </span>
                       <button
                         onClick={(e) => { e.preventDefault(); handleVote(review.id, 'down'); }}
                         disabled={!walletAddress || votingId === review.id}
-                        className="text-[#666] hover:text-red-400 transition-colors disabled:opacity-30 p-0.5"
+                        className={`transition-colors disabled:opacity-30 p-0.5 ${myVotes[review.id] === 'down' ? 'text-red-400' : 'text-[#666] hover:text-red-400'}`}
                       >
                         <ThumbsDown className="w-3.5 h-3.5" />
                       </button>
