@@ -187,7 +187,7 @@ export default function SwapPage() {
           </div>
 
           {/* Amount */}
-          <div className="flex flex-col gap-2 bg-[#0a0b14] rounded-[14px] border border-border-subtle p-5">
+          <div className="flex flex-col gap-2 bg-[var(--bg-surface)] rounded-[14px] border border-border-subtle p-5">
             <span className="text-[11px] font-semibold text-txt-muted tracking-[0.5px]">Amount</span>
             <input
               type="text"
@@ -268,7 +268,7 @@ export default function SwapPage() {
 
         {/* Transaction Result */}
         {swapTx && (
-          <div className="flex flex-col w-[480px] bg-[#0d0e1a] rounded-2xl border border-border-subtle overflow-hidden">
+          <div className="flex flex-col w-[480px] bg-[var(--bg-surface)] rounded-2xl border border-border-subtle overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-border-subtle">
               <div className="w-2 h-2 rounded-full bg-gold" />
               <span className="text-[13px] font-semibold text-gold-light">Sign this transaction with your wallet</span>

@@ -58,7 +58,7 @@ export function TopNav() {
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b6b70] group-hover:text-purple-500 transition-colors">
               <Search className="w-4 h-4" />
             </div>
-            <div className="w-full bg-[#111113] border border-[#1f1f23] rounded-lg py-2.5 pl-10 pr-4 text-sm text-left text-[#6b6b70] hover:border-purple-500/50 hover:bg-[#0d0d0e] transition-all">
+            <div className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg py-2.5 pl-10 pr-4 text-sm text-left text-[#6b6b70] hover:border-purple-500/50 hover:bg-[var(--bg-surface)] transition-all">
               Search projects, reviews...
             </div>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -94,7 +94,7 @@ export function TopNav() {
             <div className="flex items-center gap-2">
               <Link
                 href={`/users/${user?.wallet?.address}`}
-                className="hidden sm:block px-3 py-2 bg-[#111113] border border-[#1f1f23] rounded-lg text-sm text-[#adadb0] hover:text-white hover:border-purple-500/50 transition-colors"
+                className="hidden sm:block px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm text-[#adadb0] hover:text-white hover:border-purple-500/50 transition-colors"
               >
                 {user?.wallet?.address?.slice(0, 6)}...{user?.wallet?.address?.slice(-4)}
               </Link>

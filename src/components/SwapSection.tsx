@@ -77,7 +77,7 @@ export default function SwapSection({ address }: { address: string }) {
   }
 
   return (
-    <div className="mt-6 w-full max-w-[600px] border border-gray-700 rounded-xl p-5 bg-gray-900/60">
+    <div className="mt-6 w-full max-w-[600px] border border-gray-700 rounded-xl p-5 bg-[var(--bg-surface)]/60">
       <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">
         Swap This Token
       </h2>

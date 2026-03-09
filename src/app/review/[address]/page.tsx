@@ -219,7 +219,7 @@ export default function ReviewPage() {
 
           {/* Review Section */}
           {reviewed ? (
-            <div className="bg-[#0a1a0a] border border-[#3b82f6]/30 rounded-xl p-6 text-center">
+            <div className="bg-[var(--bg-surface)] border border-[#3b82f6]/30 rounded-xl p-6 text-center">
               <p className="text-[#3b82f6] font-mono font-bold mb-1">Review submitted</p>
               <p className="text-gray-500 font-mono text-xs mb-4">Thank you for contributing to the trust network.</p>
               <div className="flex gap-3 justify-center">

@@ -266,7 +266,7 @@ export function DashboardView() {
         </div>
 
         {/* ── Reviewable Agents ── */}
-        <div className="bg-[#0a0a0b] border border-white/[0.05] rounded-3xl p-6 space-y-6">
+        <div className="bg-[var(--bg-surface)] border border-white/[0.05] rounded-3xl p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Target size={16} className="text-[#3b82f6]" />

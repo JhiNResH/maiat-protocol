@@ -52,7 +52,7 @@ export function ScarabPurchasePanel({ onClose, onSuccess }: ScarabPurchasePanelP
   if (!authenticated) {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-8 max-w-md w-full text-center">
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-8 max-w-md w-full text-center">
           <h2 className="text-2xl font-bold mb-4">Sign In Required</h2>
           <p className="text-zinc-400 mb-6">Sign in to purchase Scarab</p>
           <div className="flex gap-3">
@@ -78,7 +78,7 @@ export function ScarabPurchasePanel({ onClose, onSuccess }: ScarabPurchasePanelP
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-zinc-900 border border-zinc-700 rounded-xl max-w-2xl w-full">
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl max-w-2xl w-full">
         {/* Header */}
         <div className="bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border-b border-zinc-800 p-6 flex items-center justify-between">
           <div>
@@ -106,7 +106,7 @@ export function ScarabPurchasePanel({ onClose, onSuccess }: ScarabPurchasePanelP
                 ${
                   selectedTier === tier.id
                     ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
-                    : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
+                    : 'border-[var(--border-default)] bg-zinc-800/50 hover:border-zinc-600'
                 }
               `}
             >

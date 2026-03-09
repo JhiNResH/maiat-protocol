@@ -51,22 +51,22 @@ export function OnChainStats() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-zinc-900/60 rounded-xl p-4 text-center">
+          <div className="bg-[var(--bg-surface)]/60 rounded-xl p-4 text-center">
             <Shield className="w-5 h-5 text-blue-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-white">{stats.verifiedReviews}</div>
             <div className="text-xs text-zinc-500">Verified On-Chain</div>
           </div>
-          <div className="bg-zinc-900/60 rounded-xl p-4 text-center">
+          <div className="bg-[var(--bg-surface)]/60 rounded-xl p-4 text-center">
             <Activity className="w-5 h-5 text-cyan-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-white">{stats.verificationRate}%</div>
             <div className="text-xs text-zinc-500">Verification Rate</div>
           </div>
-          <div className="bg-zinc-900/60 rounded-xl p-4 text-center">
+          <div className="bg-[var(--bg-surface)]/60 rounded-xl p-4 text-center">
             <div className="text-2xl mb-2">🪲</div>
             <div className="text-2xl font-bold text-white">{stats.totalReviews * 2}</div>
             <div className="text-xs text-zinc-500">Scarab Staked</div>
           </div>
-          <div className="bg-zinc-900/60 rounded-xl p-4 text-center">
+          <div className="bg-[var(--bg-surface)]/60 rounded-xl p-4 text-center">
             <div className="text-2xl mb-2">⛓️</div>
             <div className="text-2xl font-bold text-white">
               {stats.enabled ? 'Live' : 'Pending'}

@@ -245,7 +245,7 @@ function DetailPanel({ step }: { step: Step }) {
 
       {/* Code */}
       {step.code && (
-        <div className="rounded-lg border border-zinc-800 bg-[#0a0a0f] overflow-hidden">
+        <div className="rounded-lg border border-zinc-800 bg-[var(--bg-surface)] overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/80">
             <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Code</span>
           </div>

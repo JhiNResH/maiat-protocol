@@ -116,7 +116,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
 
   if (!authenticated) {
     return (
-      <div className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6 text-center">
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-6 text-center">
         <MessageSquare className="w-8 h-8 text-[#475569] mx-auto mb-3" />
         <h3 className="text-sm font-bold text-white mb-1 uppercase tracking-wider">Connect to Review</h3>
         <p className="text-xs text-[#94a3b8] mb-4 font-mono">Verify your interactions and earn Scarab rewards.</p>
@@ -137,7 +137,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
   // No blocking gate — form always shows. Interaction check runs in background.
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-5 flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-5 flex flex-col gap-5">
       <div className="flex flex-wrap gap-2">
         {interactionStatus === 'verified' && (
           <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981] text-[9px] font-bold font-mono uppercase">
@@ -180,7 +180,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
             <button
               type="button" key={s} onClick={() => setRating(s)}
               className={`flex-1 h-8 rounded border transition-all font-mono text-[10px] font-bold ${
-                s <= rating ? 'bg-[#3b82f6]/20 border-[#3b82f6] text-[#3b82f6]' : 'bg-black/40 border-[#1e2035] text-[#475569] hover:border-[#475569]'
+                s <= rating ? 'bg-[#3b82f6]/20 border-[#3b82f6] text-[#3b82f6]' : 'bg-black/40 border-[var(--border-default)] text-[#475569] hover:border-[#475569]'
               }`}
             >
               {s}
@@ -197,7 +197,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
           placeholder={`Describe your experience with ${projectName}...`}
           rows={3}
           required
-          className="w-full bg-black/40 border border-[#1e2035] focus:border-[#3b82f6]/50 rounded-lg p-3 text-sm text-white placeholder-[#475569] outline-none transition-all resize-none font-mono"
+          className="w-full bg-black/40 border border-[var(--border-default)] focus:border-[#3b82f6]/50 rounded-lg p-3 text-sm text-white placeholder-[#475569] outline-none transition-all resize-none font-mono"
         />
       </div>
 
