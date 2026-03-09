@@ -151,24 +151,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
     )
   }
 
-  if (interactionStatus === 'blocked') {
-    return (
-      <div className="bg-[#0d0e17] border border-red-500/20 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Shield className="w-4 h-4 text-red-500" />
-          <span className="text-xs font-bold text-red-500 uppercase tracking-wider">Proof Required</span>
-        </div>
-        <div className="bg-red-500/5 border border-red-500/10 rounded-lg p-3 mb-4">
-          <p className="text-[10px] text-red-400 font-mono leading-relaxed">
-            NO INTERACTION FOUND: No recorded transactions with this agent on Base.
-          </p>
-        </div>
-        <button onClick={checkInteraction} className="w-full py-2 text-[10px] font-mono text-[#94a3b8] hover:text-white transition-colors uppercase">
-          Retry Scan
-        </button>
-      </div>
-    )
-  }
+  // 'blocked' no longer hard-gates — fall through to form with a weight warning
 
   return (
     <form onSubmit={handleSubmit} className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-5 flex flex-col gap-5">
@@ -189,6 +172,15 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
           </div>
         )}
       </div>
+
+      {interactionStatus === 'blocked' && (
+        <div className="flex items-start gap-2 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
+          <Shield className="w-3 h-3 text-amber-400 mt-0.5 shrink-0" />
+          <p className="text-[9px] text-amber-400 font-mono leading-relaxed">
+            NO ON-CHAIN INTERACTION FOUND — review will be submitted at <span className="font-bold">0.3x weight</span>. Interact with this agent first for full weight.
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-end">
