@@ -12,7 +12,7 @@
 
 **Solution:** Maiat computes behavioral trust scores from on-chain data + community reviews, writes them to an oracle on Base, and makes them queryable by any smart contract, DeFi protocol, or AI framework.
 
-**What's already live:** 4 mainnet contracts (MaiatOracle, MaiatReceiptResolver, TrustGateHook, EAS Schema) · 7 npm SDK packages · 4 ACP offerings collecting fees · 2,292 agents scored · Web app at maiat-protocol.vercel.app · Prediction markets (Scarab-denominated) · Review system with community voting · Automated cron jobs (indexer, attestor, oracle sync, market resolver) · 139 Foundry tests across 2 repos (81 + 58) · EAS data flywheel (attestation → training data → better scores, Phase 1 deploying to Base Sepolia)
+**What's already live:** 4 mainnet contracts (MaiatOracle, MaiatReceiptResolver, TrustGateHook, EAS Schema) · 7 npm SDK packages · 4 ACP offerings collecting fees · 2,292 agents scored · Web app at maiat-protocol.vercel.app · Prediction markets (Scarab-denominated) · Review system with community voting · Automated cron jobs (indexer, attestor, oracle sync, market resolver) · Wadjet real-time indexer (Railway, 5-min ACP polling + Base event listener) · 139 Foundry tests across 2 repos (81 + 58) · EAS data flywheel (attestation → training data → better scores, Phase 1 deploying to Base Sepolia)
 
 **Token:** MAIAT via Virtuals Unicorn. 45% LP, 25% Automated Capital Formation, 25% Team (1yr lock + 6mo vest), 5% Airdrop. Revenue from ACP queries → 30% buyback MAIAT from Day 1.
 
@@ -454,6 +454,75 @@ Trust Score = f(
 | **Phase 3** | Open schema for third-party attestations · "Maiat Verified" badge standard · Migrate to Base mainnet when schema is stable + E2E validated | Day 60-90 |
 
 **Why Sepolia first, not mainnet:** Schema definitions need iteration. Deploying to testnet is free and allows rapid changes. Once the pipeline is validated end-to-end (offering → attestation → oracle reads back → score adjusts), we migrate to mainnet. Base L2 gas is cheap regardless, so mainnet migration cost is minimal.
+
+### Layer 5: Wadjet — Real-Time Data Indexer & Aggregation Pipeline
+
+**What it is:** Wadjet is Maiat's persistent data indexer — a Railway-hosted process that replaces daily cron jobs with near-real-time data ingestion. Named after the Egyptian cobra goddess of protection.
+
+**Architecture (live as of Day 8):**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Wadjet Indexer                         │
+│                  (Railway Worker)                         │
+├──────────────────┬──────────────────────────────────────┤
+│  ACP Poller      │  Base Event Listener                  │
+│  (every 5 min)   │  (WebSocket / HTTP fallback)          │
+│                  │                                        │
+│  Virtuals API    │  • EAS Attested events                │
+│  → 2,292 agents  │  • ERC-8004 Registered events         │
+│  → trust scores  │  • MaiatOracle updateScore events     │
+│  → Supabase      │  → Supabase                          │
+├──────────────────┴──────────────────────────────────────┤
+│  Health endpoint (:3001/health) for Railway monitoring    │
+│  Graceful shutdown · Exponential backoff reconnect        │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Data Source Strategy — Phased:**
+
+| Phase | Source | Signal | Status |
+|-------|--------|--------|--------|
+| **A (Now)** | Virtuals REST API | Agent jobs, success rate, revenue | ✅ Live — 5min polling |
+| **A (Now)** | Base mainnet events | EAS attestations, ERC-8004 registrations | ✅ Live — event listener |
+| **B (Volume trigger)** | GoPlus Security API | Contract risk flags, rug probability | Planned — Layer 6 |
+| **C (Volume trigger)** | ACP Smart Contract events | On-chain job lifecycle (create/accept/complete/dispute) | Planned — true decentralization |
+| **D (Post-launch)** | Dune Analytics | Behavioral patterns, cross-protocol activity | Planned — public dashboard |
+
+**Transition from A → C:**
+- **Phase A** (current): Poll Virtuals REST API. Fast to build, covers all agents, 5-min latency acceptable for trust scoring.
+- **Phase C** (when volume justifies): Index ACP contract events directly on Base. Eliminates dependency on Virtuals API. Enables real-time trust updates within the same block. Trigger: >100 daily ACP jobs or Virtuals API becomes unreliable.
+- **Both phases keep Vercel cron as fallback** — daily full reindex at 02:00 UTC ensures data integrity even if the persistent indexer goes down.
+
+**Repo:** `github.com/JhiNResH/maiat-indexer` (private, lightweight: prisma + viem + tsx only)
+
+**Why separate repo:** maiat-protocol is a Next.js monolith (contracts + web app + SDK). Railway was taking 5+ minutes to build because it installed everything. maiat-indexer builds in 30 seconds.
+
+### Layer 6: Wadjet Data Enrichment — GoPlus + Behavioral Analysis
+
+**Planned for Phase 2 (Day 30-60). Not yet live.**
+
+The aggregation thesis: no single data source is sufficient for trust scoring. GoPlus knows security flags but not behavioral patterns. Dune knows on-chain activity but not off-chain ACP job outcomes. EAS knows verified interactions but can't predict future behavior. Maiat's value is aggregating all sources and generating a forward-looking trust assessment — the "Experian for agents" model.
+
+```
+GoPlus API        → "Is this address flagged?" (security)
+Dune Analytics    → "What has this address done?" (behavior history)
+ERC-8183 outcomes → "Did this address deliver?" (most honest signal)
+Maiat query_logs  → "Who checked this address?" (demand signal)
+                         ↓
+                   Wadjet aggregates + scores
+                         ↓
+                   "What will this address do next?"
+```
+
+**Enhanced Trust Score Formula (Target):**
+```
+trustScore = (
+  metadataScore * 0.40 +      // ACP offerings, profile completeness, verification
+  onchainBehavior * 0.40 +    // Success rate, payment patterns, transaction graphs
+  rugProbability * 0.20        // GoPlus flags, token contract analysis, honeypot detection
+)
+```
 
 ### Validation: Hypothetical Backtest Scenarios
 
