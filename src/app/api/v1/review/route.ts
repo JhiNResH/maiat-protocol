@@ -229,22 +229,33 @@ export async function POST(request: NextRequest) {
 
     // --- Auto-resolve reviewer from X-Maiat-Client header ---
     const clientId = request.headers.get("x-maiat-client");
-    if (!reviewer && clientId) {
-      try {
-        const { getCallerWallet, signMessage } = await import("@/lib/caller-wallet");
-        const walletAddr = await getCallerWallet(clientId);
-        if (walletAddr) {
-          reviewer = walletAddr;
-          source = 'agent'; // auto-resolved = agent
+    let clientIdAuth = false; // true if authenticated via X-Maiat-Client
 
-          // Auto-sign for SIWE verification (if no signature/txHash provided)
-          if (!signature && !txHash && address && rating) {
-            const msg = `Maiat Review: ${getAddress(address)} Rating: ${rating} Reviewer: ${getAddress(walletAddr)}`;
-            const sig = await signMessage(clientId, msg);
-            if (sig) signature = sig;
+    if (clientId) {
+      if (!reviewer) {
+        // No reviewer provided → auto-assign from CallerWallet
+        try {
+          const { getCallerWallet, signMessage } = await import("@/lib/caller-wallet");
+          const walletAddr = await getCallerWallet(clientId);
+          if (walletAddr) {
+            reviewer = walletAddr;
+            source = 'agent';
+            clientIdAuth = true;
+
+            // Auto-sign for SIWE verification
+            if (!signature && !txHash && address && rating) {
+              const msg = `Maiat Review: ${getAddress(address)} Rating: ${rating} Reviewer: ${getAddress(walletAddr)}`;
+              const sig = await signMessage(clientId, msg);
+              if (sig) signature = sig;
+            }
           }
-        }
-      } catch { /* non-critical — fall through to manual validation */ }
+        } catch { /* non-critical */ }
+      } else {
+        // Reviewer provided + X-Maiat-Client → trust the header as auth
+        // Agent has its own wallet but can't sign (e.g., Privy embedded wallet)
+        source = body.source === 'agent' ? 'agent' : 'agent'; // force agent source
+        clientIdAuth = true;
+      }
     }
 
     // --- Validation ---
@@ -277,14 +288,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Step 1: Verify wallet ownership (signature OR txHash) ---
-    // txHash path: agent-friendly, no personal_sign needed.
-    //   verifyTxHash confirms tx.from === reviewer (proves wallet ownership)
-    //   and tx.to === target (proves interaction) in one shot.
+    // --- Step 1: Verify wallet ownership (signature OR txHash OR X-Maiat-Client) ---
     let txHashVerified = false;
     let txHashInteracts = false;
 
-    if (txHash) {
+    if (clientIdAuth) {
+      // Authenticated via X-Maiat-Client header — skip signature/txHash verification
+      // The agent identified itself via a stable client ID. This is sufficient for
+      // agent-submitted reviews (weighted 0.5x anyway).
+    } else if (txHash) {
       const txResult = await verifyTxHash(txHash, checksumReviewer, checksumAddress);
       if (!txResult.valid) {
         return NextResponse.json(
