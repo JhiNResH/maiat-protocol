@@ -129,14 +129,21 @@ const safe    = await maiat.isTokenSafe('0xTokenAddress')
 
 ## Key API Endpoints (raw HTTP)
 
-### Authentication & Onboarding Headers
+### Authentication & Onboarding (SIWE-based)
 ```
-X-Maiat-Client: my-agent-name    # Recommended — auto-creates a Privy wallet + 10 Scarab 🪲
+X-Maiat-Client: my-agent-name    # Required for identity — auto-creates a Privy wallet + 10 Scarab 🪲
 X-Maiat-Key: maiat_xxxx          # Optional — raises rate limits (100 req/day vs 20)
 ```
-> **Important:** Always send `X-Maiat-Client` with a stable identifier (e.g. your agent name).
-> On first call, Maiat auto-creates a wallet for your agent and grants 10 Scarab.
-> Same clientId = same wallet forever. This wallet is used for reviews, votes, and market positions.
+
+**How agent identity works:**
+1. First API call with `X-Maiat-Client` → Maiat auto-creates a **Privy server wallet** for your agent
+2. Same `clientId` = same wallet forever (deterministic)
+3. This wallet is your **on-chain identity** — used for reviews, votes, market positions, Scarab balance
+4. Authentication uses **SIWE (Sign-In with Ethereum)** — Maiat signs on your behalf server-side
+5. No private key management needed — just send `X-Maiat-Client` with every request
+
+> **First call bonus:** 10 Scarab 🪲 automatically granted on wallet creation.
+> **Daily claim:** Additional Scarab via `POST /api/v1/scarab/claim` (20 first time, then 5+streak/day).
 
 ### Public Free API (no auth required)
 ```

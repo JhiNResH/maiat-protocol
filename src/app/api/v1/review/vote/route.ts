@@ -13,7 +13,7 @@ import { isAddress, getAddress } from "viem";
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Maiat-Client",
+  "Access-Control-Allow-Headers": "Content-Type, X-Maiat-Client, X-Maiat-Key",
 };
 
 const UPVOTE_REWARD = 2; // Scarab reward for receiving an upvote
@@ -24,7 +24,7 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { reviewId, voter, vote } = (await req.json()) as {
+    let { reviewId, voter, vote } = (await req.json()) as {
       reviewId?: string;
       voter?: string;
       vote?: string;
@@ -33,8 +33,19 @@ export async function POST(req: NextRequest) {
     if (!reviewId || typeof reviewId !== "string") {
       return NextResponse.json({ error: "reviewId required" }, { status: 400, headers: CORS_HEADERS });
     }
+
+    // Auto-resolve voter from X-Maiat-Client header
+    const clientId = req.headers.get("x-maiat-client");
+    if (!voter && clientId) {
+      try {
+        const { getCallerWallet } = await import("@/lib/caller-wallet");
+        const walletAddr = await getCallerWallet(clientId);
+        if (walletAddr) voter = walletAddr;
+      } catch { /* fall through */ }
+    }
+
     if (!voter || !isAddress(voter)) {
-      return NextResponse.json({ error: "Valid voter address required" }, { status: 400, headers: CORS_HEADERS });
+      return NextResponse.json({ error: "Valid voter address required. Send X-Maiat-Client header for auto-assignment." }, { status: 400, headers: CORS_HEADERS });
     }
     if (!vote || !["up", "down"].includes(vote)) {
       return NextResponse.json({ error: 'vote must be "up" or "down"' }, { status: 400, headers: CORS_HEADERS });
