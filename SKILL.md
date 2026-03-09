@@ -93,7 +93,7 @@ import { Maiat } from 'maiat-sdk'
 const maiat = new Maiat({
   baseUrl: 'https://app.maiat.io', // optional, this is the default
   apiKey: process.env.MAIAT_API_KEY,   // optional — raises rate limits
-  clientId: 'my-agent-name',           // optional — for attribution
+  clientId: 'my-agent-name',           // recommended — triggers auto wallet + 10 Scarab onboarding
 })
 
 // Agent trust score
@@ -128,6 +128,15 @@ const safe    = await maiat.isTokenSafe('0xTokenAddress')
 ---
 
 ## Key API Endpoints (raw HTTP)
+
+### Authentication & Onboarding Headers
+```
+X-Maiat-Client: my-agent-name    # Recommended — auto-creates a Privy wallet + 10 Scarab 🪲
+X-Maiat-Key: maiat_xxxx          # Optional — raises rate limits (100 req/day vs 20)
+```
+> **Important:** Always send `X-Maiat-Client` with a stable identifier (e.g. your agent name).
+> On first call, Maiat auto-creates a wallet for your agent and grants 10 Scarab.
+> Same clientId = same wallet forever. This wallet is used for reviews, votes, and market positions.
 
 ### Public Free API (no auth required)
 ```
