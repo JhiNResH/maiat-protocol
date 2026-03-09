@@ -56,6 +56,9 @@ function MarketDetailContent() {
   const [amount, setAmount] = useState("");
   const [staking, setStaking] = useState(false);
   const [stakeMsg, setStakeMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [agentSearch, setAgentSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Array<{ walletAddress: string; name: string; trustScore: number; profilePic: string | null }>>([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     if (marketId) fetchMarket();
@@ -82,6 +85,21 @@ function MarketDetailContent() {
 
   const { data: scarab } = useSWR(walletAddress ? `/api/v1/scarab?address=${walletAddress}` : null, fetcher);
 
+  // Agent search for staking on new agents
+  useEffect(() => {
+    if (agentSearch.length < 2) { setSearchResults([]); return; }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/v1/agent/search?q=${encodeURIComponent(agentSearch)}&limit=5`);
+        const data = await res.json();
+        setSearchResults(data.results ?? []);
+      } catch { setSearchResults([]); }
+      finally { setSearching(false); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [agentSearch]);
+
   async function handleStake() {
     if (!authenticated) return login();
     if (!selectedProjectId || !amount || staking) return;
@@ -90,17 +108,13 @@ function MarketDetailContent() {
     setStakeMsg(null);
 
     try {
-      const activeWallet = wallets.find((w) => w.address.toLowerCase() === walletAddress?.toLowerCase());
-      if (!activeWallet) throw new Error("Wallet not ready");
-
-      const res = await fetch("/api/v1/markets/stake", {
+      const res = await fetch(`/api/v1/markets/${marketId}/position`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          address: walletAddress,
-          marketId,
           projectId: selectedProjectId,
-          amount: Number(amount)
+          amount: Number(amount),
+          reviewer: walletAddress,
         }),
       });
 
@@ -109,6 +123,8 @@ function MarketDetailContent() {
 
       setStakeMsg({ ok: true, text: `Successfully staked ${amount} 🪲!` });
       setAmount("");
+      setAgentSearch("");
+      setSearchResults([]);
       fetchMarket();
     } catch (err: any) {
       setStakeMsg({ ok: false, text: err.message });
@@ -205,6 +221,40 @@ function MarketDetailContent() {
               </div>
 
               <div className="space-y-6">
+                {/* Agent Search */}
+                <div className="space-y-3">
+                  <div className="text-[10px] font-mono text-[#666666] uppercase">Search Agent to Stake On</div>
+                  <input
+                    type="text"
+                    value={agentSearch}
+                    onChange={(e) => setAgentSearch(e.target.value)}
+                    placeholder="Search by name or address..."
+                    className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl py-2.5 px-4 text-xs font-mono focus:outline-none focus:border-[#3b82f6]/50 transition-all text-white placeholder-[#444]"
+                  />
+                  {searching && <p className="text-[9px] font-mono text-[#666] animate-pulse">Searching...</p>}
+                  {searchResults.length > 0 && (
+                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                      {searchResults.map((agent) => (
+                        <div
+                          key={agent.walletAddress}
+                          onClick={() => {
+                            setSelectedProjectId(agent.walletAddress);
+                            setAgentSearch(agent.name);
+                            setSearchResults([]);
+                          }}
+                          className="flex items-center justify-between p-2.5 rounded-lg border border-[#1F1F1F] hover:border-[#3b82f6]/40 cursor-pointer transition-all bg-[#0A0A0A] hover:bg-[#3b82f6]/5"
+                        >
+                          <div className="flex items-center gap-2">
+                            <img src={agent.profilePic || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.walletAddress}&backgroundColor=transparent`} alt="" className="w-6 h-6 rounded" />
+                            <span className="text-xs font-mono text-white">{agent.name}</span>
+                          </div>
+                          <span className="text-[9px] font-mono text-[#3b82f6]">Trust: {agent.trustScore}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-3">
                   <div className="flex justify-between text-[10px] font-mono text-[#666666] uppercase">
                     <span>Stake Amount</span>
@@ -226,13 +276,15 @@ function MarketDetailContent() {
                   <div className="flex justify-between text-[10px] font-mono">
                     <span className="text-[#666666]">Target Agent</span>
                     <span className="text-white truncate max-w-[150px]">
-                      {market.projectStandings?.find(p => p.projectId === selectedProjectId)?.projectName || 'Select above'}
+                      {market.projectStandings?.find(p => p.projectId === selectedProjectId)?.projectName 
+                        || agentSearch 
+                        || 'Search or select above'}
                     </span>
                   </div>
                   <div className="flex justify-between text-[10px] font-mono">
-                    <span className="text-[#666666]">Trust Score</span>
-                    <span className="text-[#10b981]">
-                      {market.projectStandings?.find(p => p.projectId === selectedProjectId)?.trustScore ?? '—'}/100
+                    <span className="text-[#666666]">Selected ID</span>
+                    <span className="text-[#666] truncate max-w-[150px] text-[8px]">
+                      {selectedProjectId ? `${selectedProjectId.slice(0, 8)}...${selectedProjectId.slice(-6)}` : '—'}
                     </span>
                   </div>
                 </div>
