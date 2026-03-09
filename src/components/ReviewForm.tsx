@@ -130,28 +130,11 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
     )
   }
 
-  if (interactionStatus === 'idle' || interactionStatus === 'loading') {
-    return (
-      <div className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Shield className="w-4 h-4 text-[#3b82f6]" />
-          <span className="text-xs font-bold text-white uppercase tracking-wider">Interaction Proof</span>
-        </div>
-        <p className="text-[10px] text-[#94a3b8] font-mono leading-relaxed mb-4">
-          Verify your on-chain interaction history with this agent before leaving an opinion.
-        </p>
-        <button 
-          onClick={checkInteraction}
-          disabled={interactionStatus === 'loading'}
-          className="w-full py-2.5 bg-[#1e2035] hover:bg-[#2a2d45] disabled:opacity-50 text-white font-mono text-[10px] font-bold rounded-lg transition-all border border-[#3b82f6]/30 uppercase tracking-widest"
-        >
-          {interactionStatus === 'loading' ? 'Scanning Base Mainnet...' : 'Verify My Interactions'}
-        </button>
-      </div>
-    )
-  }
+  // Auto-check interaction on mount (non-blocking)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (interactionStatus === 'idle') checkInteraction?.() }, [])
 
-  // 'blocked' no longer hard-gates — fall through to form with a weight warning
+  // No blocking gate — form always shows. Interaction check runs in background.
 
   return (
     <form onSubmit={handleSubmit} className="bg-[#0d0e17] border border-[#1e2035] rounded-xl p-5 flex flex-col gap-5">
@@ -173,11 +156,16 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
         )}
       </div>
 
+      {interactionStatus === 'loading' && (
+        <div className="flex items-center gap-2 text-[9px] text-[#666] font-mono">
+          <div className="w-2 h-2 rounded-full bg-[#3b82f6] animate-pulse" /> Checking interaction history...
+        </div>
+      )}
       {interactionStatus === 'blocked' && (
-        <div className="flex items-start gap-2 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
-          <Shield className="w-3 h-3 text-amber-400 mt-0.5 shrink-0" />
-          <p className="text-[9px] text-amber-400 font-mono leading-relaxed">
-            NO ON-CHAIN INTERACTION FOUND — review will be submitted at <span className="font-bold">0.3x weight</span>. Interact with this agent first for full weight.
+        <div className="flex items-start gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+          <Shield className="w-3 h-3 text-[#666] mt-0.5 shrink-0" />
+          <p className="text-[9px] text-[#888] font-mono leading-relaxed">
+            No on-chain interaction detected. Your review still counts at reduced weight. <span className="text-[#3b82f6]">Use the agent first for full weight.</span>
           </p>
         </div>
       )}
@@ -213,21 +201,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
         />
       </div>
 
-      {!detectedEasId && (
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between">
-            <label className="text-[10px] font-bold text-[#475569] uppercase tracking-widest font-mono">EAS Receipt ID</label>
-            <span className="text-[9px] text-[#475569] font-mono italic">Optional: 5x Weight</span>
-          </div>
-          <input
-            type="text"
-            value={easReceiptId}
-            onChange={(e) => setEasReceiptId(e.target.value)}
-            placeholder="0x attestation hash..."
-            className="w-full bg-black/40 border border-[#1e2035] focus:border-[#3b82f6]/50 rounded-lg px-3 py-2 text-[10px] text-[#94a3b8] font-mono outline-none"
-          />
-        </div>
-      )}
+      {/* EAS receipt auto-detected — no manual input needed */}
 
       <div className="bg-[#1a1a0a] border border-[#06b6d4]/20 rounded-lg px-3 py-2 text-[9px] font-mono text-[#06b6d4]/80">
         Costs <strong>2 🪲 Scarab</strong> · Quality reviews earn up to <strong>+10 🪲</strong>
