@@ -203,7 +203,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
 
       {/* EAS receipt auto-detected — no manual input needed */}
 
-      <div className="bg-[#1a1a0a] border border-[#06b6d4]/20 rounded-lg px-3 py-2 text-[9px] font-mono text-[#06b6d4]/80">
+      <div className="bg-[var(--bg-surface)] border border-[#06b6d4]/20 rounded-lg px-3 py-2 text-[9px] font-mono text-[#06b6d4]/80">
         Costs <strong>2 🪲 Scarab</strong> · Quality reviews earn up to <strong>+10 🪲</strong>
       </div>
 

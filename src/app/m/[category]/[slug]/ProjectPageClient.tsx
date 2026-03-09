@@ -279,7 +279,7 @@ function ProjectDetailPage() {
         <div className="flex items-center gap-1.5 text-xs font-mono text-[#818384]">
           <Link href="/monitor" className="hover:text-[#d4a017] transition-colors uppercase tracking-widest">Explorer</Link>
           <span>/</span>
-          <Link href={`/explore?cat=${category}`} className="hover:text-[#d4a017] transition-colors uppercase tracking-widest">{category}</Link>
+          <Link href={`/monitor`} className="hover:text-[#d4a017] transition-colors uppercase tracking-widest">{category}</Link>
           <span>/</span>
           <span className="text-[#adadb0] uppercase tracking-widest">{project?.name ?? slug}</span>
         </div>

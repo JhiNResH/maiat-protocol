@@ -72,7 +72,7 @@ export function Feed() {
       {/* Load More */}
       {reviews.length > 0 && (
         <div className="text-center py-4">
-          <button className="px-6 py-2 bg-[#1f1f23] hover:bg-[#2a2a2e] rounded-full text-sm font-medium text-[#adadb0] transition-colors">
+          <button className="px-6 py-2 bg-[var(--bg-elevated)] hover:bg-[var(--border-default)] rounded-full text-sm font-medium text-[#adadb0] transition-colors">
             Load More Reviews
           </button>
         </div>
