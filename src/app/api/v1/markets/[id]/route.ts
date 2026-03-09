@@ -121,9 +121,25 @@ export async function GET(
         const agentData = (project?.address ? agentScoreMap.get(project.address.toLowerCase()) : null)
           ?? (project?.name ? agentScoreMap.get(project.name.toLowerCase()) : null);
         
+        // Resolve name: Project table → AgentScore rawMetrics → truncated address
+        let resolvedName = project?.name;
+        if (!resolvedName && projectId.startsWith('0x')) {
+          // Look up agent name from AgentScore
+          const agentEntry = agentScoreMap.get(projectId.toLowerCase());
+          if (!agentEntry) {
+            // Direct DB lookup for name
+            const agentScore = await prisma.agentScore.findFirst({
+              where: { walletAddress: { equals: projectId, mode: 'insensitive' } },
+              select: { rawMetrics: true },
+            });
+            const raw = agentScore?.rawMetrics as Record<string, unknown> | null;
+            resolvedName = (raw?.name as string) ?? null;
+          }
+        }
+
         return {
           projectId,
-          projectName: project?.name ?? "Unknown",
+          projectName: resolvedName ?? (projectId.startsWith('0x') ? `${projectId.slice(0, 6)}...${projectId.slice(-4)}` : "Unknown"),
           projectSlug: project?.slug ?? projectId,
           trustScore: agentData?.trustScore ?? project?.trustScore ?? 0,
           category: project?.category ?? "unknown",
@@ -152,7 +168,9 @@ export async function GET(
         positions: market.positions.map((p) => ({
           id: p.id,
           projectId: p.projectId,
-          projectName: projectMap.get(p.projectId)?.name ?? "Unknown",
+          projectName: projectMap.get(p.projectId)?.name 
+            ?? projectStandings.find(s => s.projectId === p.projectId)?.projectName
+            ?? (p.projectId.startsWith('0x') ? `${p.projectId.slice(0, 6)}...${p.projectId.slice(-4)}` : "Unknown"),
           voterId: p.voterId,
           amount: p.amount,
           payout: p.payout,
