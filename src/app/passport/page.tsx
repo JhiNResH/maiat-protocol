@@ -28,7 +28,7 @@ export default function PassportIndexPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex flex-col text-[#E5E5E5]">
+    <div className="min-h-screen bg-[var(--bg-page)] flex flex-col text-[#E5E5E5]">
       <Header />
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 pb-16">
@@ -43,7 +43,7 @@ export default function PassportIndexPage() {
           </div>
 
           {/* Connect wallet */}
-          <div className="bg-[#111] border border-[#222] rounded-xl p-6 text-center">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-6 text-center">
             <p className="text-gray-400 font-mono text-sm mb-4">View your passport</p>
             <button
               onClick={login}
@@ -68,7 +68,7 @@ export default function PassportIndexPage() {
                 onChange={e => { setManualAddr(e.target.value); setError('') }}
                 onKeyDown={e => e.key === 'Enter' && handleLookup()}
                 placeholder="0x wallet address…"
-                className="flex-1 bg-[#111] border border-[#333] focus:border-[#3b82f6] text-white font-mono text-sm px-4 py-2.5 rounded-lg outline-none transition-colors placeholder:text-gray-600"
+                className="flex-1 bg-[var(--bg-surface)] border border-[#333] focus:border-[#3b82f6] text-white font-mono text-sm px-4 py-2.5 rounded-lg outline-none transition-colors placeholder:text-gray-600"
               />
               <button
                 onClick={handleLookup}

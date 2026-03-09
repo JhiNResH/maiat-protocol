@@ -36,7 +36,7 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function MarketDetailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center font-mono text-[#3b82f6]">LOADING SECTOR…</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center font-mono text-[#3b82f6]">LOADING SECTOR…</div>}>
       <MarketDetailContent />
     </Suspense>
   )
@@ -145,7 +145,7 @@ function MarketDetailContent() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
       <p className="font-mono text-[#666666] text-xs animate-pulse tracking-[0.3em]">
         // SYNCING MARKET DATA…
       </p>
@@ -153,7 +153,7 @@ function MarketDetailContent() {
   );
 
   if (!market) return (
-    <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4">
+    <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center gap-4">
       <AlertTriangle className="text-red-500 w-10 h-10" />
       <p className="font-mono text-[#E5E5E5] text-sm">MARKET NOT FOUND</p>
       <Link href="/markets" className="text-[#3b82f6] text-xs font-mono hover:underline">← back to markets</Link>
@@ -161,7 +161,7 @@ function MarketDetailContent() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5] font-['JetBrains_Mono',monospace]">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5] font-['JetBrains_Mono',monospace]">
       <main className="max-w-5xl mx-auto px-4 py-8">
         
         {/* Navigation */}
@@ -198,10 +198,10 @@ function MarketDetailContent() {
                     <div 
                       key={standing.projectId}
                       onClick={() => setSelectedProjectId(standing.projectId)}
-                      className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer group ${selectedProjectId === standing.projectId ? 'bg-[#3b82f6]/5 border-[#3b82f6]/40 shadow-[0_0_20px_rgba(59,130,246,0.05)]' : 'bg-[#111111] border-[#1F1F1F] hover:border-[#333]'}`}
+                      className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer group ${selectedProjectId === standing.projectId ? 'bg-[#3b82f6]/5 border-[#3b82f6]/40 shadow-[0_0_20px_rgba(59,130,246,0.05)]' : 'bg-[var(--bg-surface)] border-[var(--border-default)] hover:border-[#333]'}`}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#1F1F1F] bg-[#0A0A0A] p-1">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-[var(--border-default)] bg-[var(--bg-page)] p-1">
                           <img src={standing.image || `https://api.dicebear.com/7.x/bottts/svg?seed=${standing.projectId}&backgroundColor=transparent`} alt="" className="w-full h-full object-cover rounded" />
                         </div>
                         <div>
@@ -225,7 +225,7 @@ function MarketDetailContent() {
 
           {/* Stake Interface */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-[#111111] border border-[#1F1F1F] rounded-2xl p-6 sticky top-8">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 sticky top-8">
               <div className="flex items-center gap-2 mb-6">
                 <TrendingUp size={16} className="text-[#3b82f6]" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[#666666]">Execute Position</h3>
@@ -240,7 +240,7 @@ function MarketDetailContent() {
                     value={agentSearch}
                     onChange={(e) => setAgentSearch(e.target.value)}
                     placeholder="Search by name or address..."
-                    className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl py-2.5 px-4 text-xs font-mono focus:outline-none focus:border-[#3b82f6]/50 transition-all text-white placeholder-[#444]"
+                    className="w-full bg-[var(--bg-page)] border border-[var(--border-default)] rounded-xl py-2.5 px-4 text-xs font-mono focus:outline-none focus:border-[#3b82f6]/50 transition-all text-white placeholder-[#444]"
                   />
                   {searching && <p className="text-[9px] font-mono text-[#666] animate-pulse">Searching...</p>}
                   {searchResults.length > 0 && (
@@ -253,7 +253,7 @@ function MarketDetailContent() {
                             setAgentSearch(agent.name);
                             setSearchResults([]);
                           }}
-                          className="flex items-center justify-between p-2.5 rounded-lg border border-[#1F1F1F] hover:border-[#3b82f6]/40 cursor-pointer transition-all bg-[#0A0A0A] hover:bg-[#3b82f6]/5"
+                          className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--border-default)] hover:border-[#3b82f6]/40 cursor-pointer transition-all bg-[var(--bg-page)] hover:bg-[#3b82f6]/5"
                         >
                           <div className="flex items-center gap-2">
                             <img src={agent.profilePic || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.walletAddress}&backgroundColor=transparent`} alt="" className="w-6 h-6 rounded" />
@@ -277,13 +277,13 @@ function MarketDetailContent() {
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0.00"
-                      className="w-full bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl py-3 pl-4 pr-12 text-sm font-mono focus:outline-none focus:border-[#3b82f6]/50 transition-all"
+                      className="w-full bg-[var(--bg-page)] border border-[var(--border-default)] rounded-xl py-3 pl-4 pr-12 text-sm font-mono focus:outline-none focus:border-[#3b82f6]/50 transition-all"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#666666]">🪲</span>
                   </div>
                 </div>
 
-                <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-xl p-4 space-y-2">
+                <div className="bg-[var(--bg-page)] border border-[var(--border-default)] rounded-xl p-4 space-y-2">
                   <div className="flex justify-between text-[10px] font-mono">
                     <span className="text-[#666666]">Target Agent</span>
                     <span className="text-white truncate max-w-[150px]">
@@ -315,7 +315,7 @@ function MarketDetailContent() {
                 )}
               </div>
 
-              <div className="mt-8 pt-6 border-t border-[#1F1F1F] space-y-4">
+              <div className="mt-8 pt-6 border-t border-[var(--border-default)] space-y-4">
                 <div className="flex items-start gap-3">
                   <Info size={14} className="text-[#3b82f6] shrink-0" />
                   <p className="text-[10px] text-[#666666] leading-relaxed">
@@ -328,7 +328,7 @@ function MarketDetailContent() {
         </div>
 
         {/* Market Rules Footer */}
-        <div className="mt-12 pt-6 border-t border-[#1F1F1F] opacity-50">
+        <div className="mt-12 pt-6 border-t border-[var(--border-default)] opacity-50">
           <div className="text-[9px] font-mono text-[#666666] uppercase tracking-[0.2em] text-center">
             Maiat Market Protocol // Resolution Epoch: 14 Days // Network: Mainnet
           </div>

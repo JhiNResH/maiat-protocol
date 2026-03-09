@@ -172,7 +172,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
   }, [review.reviewer.address, review.project.address])
 
   return (
-    <div className="bg-[#111113] border border-[#1f1f23] rounded-lg p-4 hover:border-purple-500/30 transition-all">
+    <div className="bg-[var(--bg-surface)] border border-[#1f1f23] rounded-lg p-4 hover:border-purple-500/30 transition-all">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">

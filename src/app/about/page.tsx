@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5]">
       <Header />
 
       <main className="max-w-3xl mx-auto px-4 py-12">
@@ -74,14 +74,14 @@ export default function AboutPage() {
         </div>
 
         {/* Links */}
-        <div className="mt-10 pt-8 border-t border-[#1F1F1F]">
+        <div className="mt-10 pt-8 border-t border-[var(--border-default)]">
           <h3 className="text-sm font-mono text-[#666666] uppercase tracking-widest mb-4">// LINKS</h3>
           <div className="flex flex-wrap gap-3">
             <Link
               href="https://twitter.com/0xmaiat"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[#111111] border border-[#1F1F1F] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
             >
               <Twitter className="w-4 h-4" />
               @0xmaiat
@@ -90,7 +90,7 @@ export default function AboutPage() {
               href="https://github.com/maiat-protocol"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[#111111] border border-[#1F1F1F] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
             >
               <Github className="w-4 h-4" />
               GitHub
@@ -99,7 +99,7 @@ export default function AboutPage() {
               href="https://www.x402.org/directory"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[#111111] border border-[#1F1F1F] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
             >
               <ExternalLink className="w-4 h-4" />
               x402 Directory
@@ -108,7 +108,7 @@ export default function AboutPage() {
               href="https://app.virtuals.io/acp"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[#111111] border border-[#1F1F1F] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-sm font-mono text-[#999999] hover:border-[#333] hover:text-white transition-all"
             >
               <ExternalLink className="w-4 h-4" />
               Virtuals ACP

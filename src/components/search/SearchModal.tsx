@@ -143,7 +143,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       
       {/* Modal */}
       <div className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-2xl z-50">
-        <div className="bg-[#111113] border border-[#2a2a2e] rounded-xl shadow-2xl overflow-hidden">
+        <div className="bg-[var(--bg-surface)] border border-[#2a2a2e] rounded-xl shadow-2xl overflow-hidden">
           {/* Search Input */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2a2a2e]">
             {isLoading ? (

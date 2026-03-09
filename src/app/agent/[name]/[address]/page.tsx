@@ -269,7 +269,7 @@ function AgentDetailContent() {
                   { label: 'Revenue', val: agent.breakdown?.revenue ? formatCompact(agent.breakdown.revenue) : '—' },
                   { label: 'Type', val: 'ACP Agent' },
                 ].map((s, i) => (
-                  <div key={i} className="bg-[#111113] rounded-xl p-4 space-y-1">
+                  <div key={i} className="bg-[var(--bg-surface)] rounded-xl p-4 space-y-1">
                     <div className="text-[9px] text-[#818384] font-mono uppercase tracking-wider">{s.label}</div>
                     <div className="text-sm font-bold text-[#d7dadc]">{s.val}</div>
                   </div>

@@ -51,7 +51,7 @@ function TypeBar({ type, count, max }: { type: string; count: number; max: numbe
   return (
     <div className="flex items-center gap-3">
       <span className="text-[11px] font-mono text-[#888] w-28 truncate">{type}</span>
-      <div className="flex-1 h-5 bg-[#111] rounded overflow-hidden">
+      <div className="flex-1 h-5 bg-[var(--bg-surface)] rounded overflow-hidden">
         <div className={`h-full ${colors[type] || "bg-[#666]"} rounded transition-all`} style={{ width: `${pct}%` }} />
       </div>
       <span className="text-xs font-mono text-[#666] w-12 text-right">{count}</span>
@@ -84,7 +84,7 @@ export default function AnalyticsPage() {
 
   if (!stats) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center text-[#555] font-mono text-sm">
+      <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[#555] font-mono text-sm">
         Failed to load analytics
       </div>
     );
@@ -94,7 +94,7 @@ export default function AnalyticsPage() {
   const maxType = Math.max(...Object.values(byType), 1);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5]">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5]">
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-2 mb-1">
@@ -165,7 +165,7 @@ export default function AnalyticsPage() {
               </thead>
               <tbody>
                 {recent.map((q) => (
-                  <tr key={q.id} className="border-b border-[#111] hover:bg-[#111]">
+                  <tr key={q.id} className="border-b border-[#111] hover:bg-[var(--bg-surface)]">
                     <td className="py-2 pr-3 text-[#3b82f6]">{q.type}</td>
                     <td className="py-2 pr-3 text-[#888]">{truncAddr(q.target)}</td>
                     <td className="py-2 pr-3 text-right text-[#E5E5E5]">{q.trustScore ?? "—"}</td>

@@ -101,7 +101,7 @@ export default function ReviewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
+      <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
@@ -115,10 +115,10 @@ export default function ReviewPage() {
 
   if (notFound || !agent) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
+      <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
         <Header />
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4">
-          <div className="w-16 h-16 rounded-xl bg-[#111] border border-[#222] flex items-center justify-center">
+          <div className="w-16 h-16 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center">
             <span className="text-2xl text-gray-600">?</span>
           </div>
           <p className="font-mono text-gray-400 text-sm">Agent not found</p>
@@ -137,14 +137,14 @@ export default function ReviewPage() {
   const bd = agent.breakdown
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
+    <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
       <Header />
 
       <main className="flex-1 flex flex-col items-center pt-6 px-4 pb-16">
         <div className="w-full max-w-lg space-y-4">
 
           {/* Agent Card */}
-          <div className="bg-[#111] border border-[#222] rounded-xl p-5">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-5">
             <div className="flex items-start gap-4">
               {/* Avatar */}
               {agent.profilePic ? (
@@ -169,7 +169,7 @@ export default function ReviewPage() {
                 </div>
 
                 {agent.category && (
-                  <span className="text-[10px] font-mono text-gray-500 bg-[#1a1a1a] border border-[#222] px-2 py-0.5 rounded inline-block mb-2">
+                  <span className="text-[10px] font-mono text-gray-500 bg-[#1a1a1a] border border-[var(--border-default)] px-2 py-0.5 rounded inline-block mb-2">
                     {agent.category}
                   </span>
                 )}
@@ -238,7 +238,7 @@ export default function ReviewPage() {
               </div>
             </div>
           ) : !authenticated ? (
-            <div className="bg-[#111] border border-[#222] rounded-xl p-6 text-center">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-6 text-center">
               <div className="mb-5">
                 <p className="text-white font-mono font-bold text-sm mb-2">
                   Connect wallet to review

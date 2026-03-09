@@ -331,7 +331,7 @@ function ProjectDetailPage() {
             </div>
 
             {/* Score */}
-            <div className="shrink-0 flex flex-col items-center justify-center bg-[#111113] border border-[#2a2a2e] rounded-xl px-6 py-4 min-w-[100px]">
+            <div className="shrink-0 flex flex-col items-center justify-center bg-[var(--bg-surface)] border border-[#2a2a2e] rounded-xl px-6 py-4 min-w-[100px]">
               <span className="text-4xl font-black" style={{ color: scoreColor(score) }}>{score.toFixed(1)}</span>
               <span className="text-[10px] text-[#818384] font-mono uppercase tracking-widest mt-1">Trust Score</span>
               <div className="flex items-center gap-1 mt-2">
@@ -375,7 +375,7 @@ function ProjectDetailPage() {
                   { label: 'Wallet Age', val: scoreResult.details.ageLabel ?? '—' },
                   { label: 'Type', val: scoreResult.type ?? '—' },
                 ].map(({ label, val }) => (
-                  <div key={label} className="bg-[#111113] rounded-lg p-3">
+                  <div key={label} className="bg-[var(--bg-surface)] rounded-lg p-3">
                     <div className="text-[10px] text-[#818384] font-mono uppercase tracking-wider mb-1">{label}</div>
                     <div className="text-sm font-bold text-[#d7dadc]">{val}</div>
                   </div>
@@ -463,7 +463,7 @@ function ProjectDetailPage() {
           ) : (
             <div className="flex flex-col gap-3">
               {reviews.map(r => (
-                <div key={r.id} className="bg-[#111113] border border-[#2a2a2e] rounded-lg p-4">
+                <div key={r.id} className="bg-[var(--bg-surface)] border border-[#2a2a2e] rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-mono text-[#818384]">{truncate(r.reviewer)}</span>

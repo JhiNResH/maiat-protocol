@@ -20,7 +20,7 @@ interface Market {
 
 export default function MarketsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center font-mono text-[#3b82f6]">LOADING…</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center font-mono text-[#3b82f6]">LOADING…</div>}>
       <MarketsContent />
     </Suspense>
   )
@@ -67,7 +67,7 @@ function MarketsContent() {
   const totalPositions = markets.reduce((acc, m) => acc + m.positionCount, 0);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-[#E5E5E5] font-['JetBrains_Mono',monospace]">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5] font-['JetBrains_Mono',monospace]">
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Terminal Header */}
         <div className="mb-6">
@@ -79,7 +79,7 @@ function MarketsContent() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp className="w-4 h-4 text-[#3b82f6]" />
               <span className="text-[10px] font-mono text-[#666666] uppercase">Total Pool</span>
@@ -89,7 +89,7 @@ function MarketsContent() {
             </span>
           </div>
 
-          <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
               <Trophy className="w-4 h-4 text-[#06b6d4]" />
               <span className="text-[10px] font-mono text-[#666666] uppercase">Active Markets</span>
@@ -99,7 +99,7 @@ function MarketsContent() {
             </span>
           </div>
 
-          <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
               <Shield className="w-4 h-4 text-[#3b82f6]" />
               <span className="text-[10px] font-mono text-[#666666] uppercase">Total Positions</span>
@@ -109,7 +109,7 @@ function MarketsContent() {
             </span>
           </div>
 
-          <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
               <Clock className="w-4 h-4 text-[#6366f1]" />
               <span className="text-[10px] font-mono text-[#666666] uppercase">Resolved</span>
@@ -133,7 +133,7 @@ function MarketsContent() {
                   className={`px-3 py-1 text-[10px] font-mono uppercase tracking-wide rounded border transition-all ${
                     filter === f
                       ? "bg-[#3b82f6]/10 border-[#3b82f6]/40 text-[#3b82f6]"
-                      : "border-[#1F1F1F] text-[#666666] hover:border-[#333] hover:text-[#999]"
+                      : "border-[var(--border-default)] text-[#666666] hover:border-[#333] hover:text-[#999]"
                   }`}
                 >
                   [{f.toUpperCase()}]
@@ -153,7 +153,7 @@ function MarketsContent() {
                   className={`px-3 py-1 text-[10px] font-mono uppercase tracking-wide rounded border transition-all ${
                     categoryFilter === cat
                       ? "bg-[#6366f1]/10 border-[#6366f1]/40 text-[#6366f1]"
-                      : "border-[#1F1F1F] text-[#666666] hover:border-[#333] hover:text-[#999]"
+                      : "border-[var(--border-default)] text-[#666666] hover:border-[#333] hover:text-[#999]"
                   }`}
                 >
                   [{cat === "all" ? "ALL" : cat.replace("-", " ").toUpperCase()}]
@@ -176,7 +176,7 @@ function MarketsContent() {
         {/* Empty State */}
         {!loading && filteredMarkets.length === 0 && (
           <div className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="w-14 h-14 rounded-lg bg-[#111111] border border-[#1F1F1F] flex items-center justify-center">
+            <div className="w-14 h-14 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center">
               <Trophy className="w-6 h-6 text-[#666666]" />
             </div>
             <div>
@@ -261,7 +261,7 @@ function MarketsContent() {
         )}
 
         {/* Footer Info */}
-        <div className="mt-12 pt-6 border-t border-[#1F1F1F]">
+        <div className="mt-12 pt-6 border-t border-[var(--border-default)]">
           <div className="text-xs font-mono text-[#666666] space-y-1">
             <p>// Markets resolve every 2 weeks. Top 3 projects by trust score win.</p>
             <p>// Winners split 95% of the loser pool. 5% is burned.</p>
