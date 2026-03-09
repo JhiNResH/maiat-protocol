@@ -23,6 +23,7 @@ type AgentNode = {
   label: string;
   x: number; y: number; // STATIC COORDINATES
   raw?: any;
+  has8004?: boolean; // ERC-8004 registered
 };
 
 type IntelItem = { time: string; msg: string; type: 'info' | 'warning' | 'error'; agentId?: string; targetId?: string };
@@ -227,10 +228,20 @@ React.useEffect(() => {
         ctx.strokeStyle = `rgba(59, 130, 246, ${0.4 + pulse * 0.3})`; ctx.lineWidth = 3; ctx.stroke();
       }
 
+      // ERC-8004 Identity Ring (cyan dotted ring)
+      if (n.has8004 && !curSel) {
+        ctx.beginPath(); ctx.arc(drawX, drawY, drawR + 6, 0, MathPI2);
+        ctx.strokeStyle = 'rgba(6, 182, 212, 0.6)'; // cyan-500
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
       ctx.beginPath(); ctx.arc(drawX, drawY, drawR, 0, MathPI2);
       ctx.fillStyle = bg; ctx.fill();
-      ctx.strokeStyle = isSelected ? '#3b82f6' : (isHero ? '#fbbf24' : statusCol); 
-      ctx.lineWidth = isSelected ? 3 : (isHero ? 2.5 : 1.5); ctx.stroke();
+      ctx.strokeStyle = isSelected ? '#3b82f6' : (n.has8004 ? '#06b6d4' : (isHero ? '#fbbf24' : statusCol));
+      ctx.lineWidth = isSelected ? 3 : (isHero ? 2.5 : (n.has8004 ? 2 : 1.5)); ctx.stroke();
 
       const img = avatars.current[n.id];
       if (!img) {
@@ -328,6 +339,7 @@ return (
     <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#ef4444]" /> <span>TRUST LEVEL: CRITICAL</span></div>
     <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#a855f7]" /> <span>ECOSYSTEM HUB (ETHY)</span></div>
     <div className="flex items-center gap-2 border-t border-white/5 pt-1 mt-1"><div className="w-3 h-3 border border-[#fbbf24] rounded-full" /> <span>TOP PERFORMANCE RANK</span></div>
+    <div className="flex items-center gap-2"><div className="w-3 h-3 border border-dashed border-[#06b6d4] rounded-full" /> <span>ERC-8004 IDENTITY</span></div>
   </div>
 );
 }
@@ -408,7 +420,7 @@ useEffect(() => {
   return () => sse.close();
 }, []);
 
-const { data: agentsData } = useSWR('/api/v1/agents?limit=1000', fetcher, { refreshInterval: 30000 });
+const { data: agentsData } = useSWR('/api/v1/agents?limit=1000&include8004=true', fetcher, { refreshInterval: 30000 });
 const [fallbackAgent, setFallbackAgent] = useState<any>(null);
 
 const radarAgents = useMemo<AgentNode[]>(() => {
@@ -445,7 +457,8 @@ const radarAgents = useMemo<AgentNode[]>(() => {
       y = Math.sin(angle) * dist;
     }
 
-    return { id, label: acc.name || id.slice(0,6), trust, type, r, x, y, raw: acc };
+    const has8004 = acc.erc8004?.registered === true;
+    return { id, label: acc.name || id.slice(0,6), trust, type, r, x, y, raw: acc, has8004 };
   });
 
   // Inject fallback agent into map if not already present
@@ -539,7 +552,7 @@ return (
         <div className="p-6 flex flex-col gap-6">
           {selectedNode ? (
             <>
-              <div className="flex gap-4 items-center"><div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 p-1 bg-white/5"><img src={selectedNode.raw?.logo || `https://api.dicebear.com/7.x/bottts/svg?seed=${selectedNode.id}&backgroundColor=transparent`} className="w-full h-full object-cover rounded-xl" /></div><div className="min-w-0 flex-1"><div className="text-sm font-bold text-white truncate">{selectedNode.label}</div><div className="flex items-center gap-1.5 mt-1 group/addr cursor-pointer" onClick={() => { navigator.clipboard.writeText(selectedNode.id); const el = document.getElementById('copy-check'); if (el) { el.style.opacity = '1'; setTimeout(() => { el.style.opacity = '0'; }, 1500); } }}><span className="text-[9px] font-mono text-slate-500 truncate">{selectedNode.id}</span><Copy size={10} className="shrink-0 text-slate-600 group-hover/addr:text-[#3b82f6] transition-colors" /><Check id="copy-check" size={10} className="shrink-0 text-emerald-400 transition-opacity" style={{ opacity: 0 }} /></div></div></div>
+              <div className="flex gap-4 items-center"><div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 p-1 bg-white/5"><img src={selectedNode.raw?.logo || `https://api.dicebear.com/7.x/bottts/svg?seed=${selectedNode.id}&backgroundColor=transparent`} className="w-full h-full object-cover rounded-xl" /></div><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="text-sm font-bold text-white truncate">{selectedNode.label}</span>{selectedNode.has8004 && (<span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-[#06b6d4]/10 text-[#06b6d4] border border-[#06b6d4]/30">8004</span>)}</div><div className="flex items-center gap-1.5 mt-1 group/addr cursor-pointer" onClick={() => { navigator.clipboard.writeText(selectedNode.id); const el = document.getElementById('copy-check'); if (el) { el.style.opacity = '1'; setTimeout(() => { el.style.opacity = '0'; }, 1500); } }}><span className="text-[9px] font-mono text-slate-500 truncate">{selectedNode.id}</span><Copy size={10} className="shrink-0 text-slate-600 group-hover/addr:text-[#3b82f6] transition-colors" /><Check id="copy-check" size={10} className="shrink-0 text-emerald-400 transition-opacity" style={{ opacity: 0 }} /></div></div></div>
               <div className="relative"><div className="absolute -left-2 top-0 bottom-0 w-0.5 bg-[#3b82f6]/30 rounded-full" /><p className="text-[11px] text-slate-300 leading-relaxed font-mono pl-3 italic">{selectedNode.raw?.description || "Monitoring active behavior..."}</p></div>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getAllRegisteredAgents, type ERC8004Data } from '@/lib/erc8004'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 1000)
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'))
     const search = searchParams.get('search') || ''
+    const include8004 = searchParams.get('include8004') === 'true'
 
     const orderBy =
       sort === 'jobs'
@@ -82,6 +84,17 @@ export async function GET(request: NextRequest) {
       ])
     }
 
+    // Fetch ERC-8004 data if requested (batch scan, cached for 5 minutes)
+    let erc8004Map: Map<string, number> | null = null
+    if (include8004) {
+      try {
+        erc8004Map = await getAllRegisteredAgents()
+      } catch (err) {
+        console.error('[Agents API] ERC-8004 batch scan failed:', err)
+        // Non-blocking: continue without 8004 data
+      }
+    }
+
     return NextResponse.json(
       {
         agents: agents.map((a) => {
@@ -91,6 +104,21 @@ export async function GET(request: NextRequest) {
           const category = typeof raw.category === 'string' ? raw.category : null
           const logo = typeof raw.profilePic === 'string' ? raw.profilePic : null
           const description = typeof raw.description === 'string' ? raw.description : null
+
+          // ERC-8004 data
+          let erc8004: ERC8004Data = null
+          if (erc8004Map) {
+            const agentId = erc8004Map.get(a.walletAddress.toLowerCase())
+            if (agentId !== undefined) {
+              erc8004 = {
+                registered: true,
+                agentId,
+                reputation: { count: 0, value: 0, normalizedScore: 0 }, // Basic info only for list
+              }
+            } else {
+              erc8004 = { registered: false }
+            }
+          }
 
           return {
             id: a.walletAddress,
@@ -112,6 +140,7 @@ export async function GET(request: NextRequest) {
             },
             dataSource: a.dataSource,
             lastUpdated: a.lastUpdated.toISOString(),
+            ...(include8004 && { erc8004 }),
           }
         }),
         pagination: { total, limit, offset, has_more: offset + limit < total },

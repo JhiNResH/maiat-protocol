@@ -8,6 +8,16 @@ import { Search, Shield, Bot, ArrowUpDown, TrendingUp, Zap, Trophy } from "lucid
 // TYPES
 // ============================================================================
 
+interface ERC8004Data {
+  registered: boolean;
+  agentId?: number;
+  reputation?: {
+    count: number;
+    value: number;
+    normalizedScore: number;
+  };
+}
+
 interface Agent {
   id: string;       // wallet address
   name: string;
@@ -24,6 +34,7 @@ interface Agent {
     totalJobs?: number | null;
     agdp?: number | null;
   };
+  erc8004?: ERC8004Data | null;
 }
 
 // ============================================================================
@@ -149,6 +160,7 @@ function LeaderboardPage() {
         const params = new URLSearchParams({
           sort: sortBy,
           limit: "200",
+          include8004: "true",
         });
         if (debouncedSearch) {
           params.set("search", debouncedSearch);
@@ -401,11 +413,11 @@ function LeaderboardView({
     if (!query.trim()) { setServerResults([]); return; }
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/v1/agents?search=${encodeURIComponent(query.trim())}&limit=20&sort=${sortBy}`);
+        const res = await fetch(`/api/v1/agents?search=${encodeURIComponent(query.trim())}&limit=20&sort=${sortBy}&include8004=true`);
         const data = await res.json();
         setServerResults(data.agents?.map((a: any) => ({
           id: a.id, name: a.name, category: a.category, chain: a.chain,
-          logo: a.logo, trust: a.trust, breakdown: a.breakdown,
+          logo: a.logo, trust: a.trust, breakdown: a.breakdown, erc8004: a.erc8004,
         })) || []);
       } catch { setServerResults([]); }
     }, 300);
@@ -513,6 +525,18 @@ function LeaderboardView({
                     <div className="text-xs font-mono text-[#888888]">
                       {formatAgdp(agent.breakdown?.agdp)}
                     </div>
+                  </div>
+
+                  {/* ERC-8004 badge */}
+                  <div className="w-10 flex justify-center">
+                    {agent.erc8004?.registered && (
+                      <span
+                        className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/30 cursor-help"
+                        title={`ERC-8004 Identity #${agent.erc8004.agentId}`}
+                      >
+                        8004
+                      </span>
+                    )}
                   </div>
 
                   {/* Verdict badge */}
