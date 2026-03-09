@@ -157,8 +157,15 @@ export async function GET(
       }
     }
 
-    // ── Hit: return from DB cache ─────────────────────────────────────────────
+    // ── Hit: return from DB cache (stale-while-revalidate pattern) ───────────
+    // If cached data is older than 1 hour, refresh in background from Virtuals
     if (record) {
+      const ageMs = Date.now() - record.lastUpdated.getTime();
+      const ONE_HOUR = 60 * 60 * 1000;
+      if (ageMs > ONE_HOUR) {
+        // Fire-and-forget background refresh — don't block the response
+        fetchAndIndexAgent(checksumAddress).catch(() => {});
+      }
       return await buildResponse(checksumAddress, record, request);
     }
 
