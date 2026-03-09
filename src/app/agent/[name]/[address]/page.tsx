@@ -178,7 +178,7 @@ function AgentDetailContent() {
         </div>
 
         {/* ── Hero Card ── */}
-        <div className="bg-[#1a1a1b] border border-[#343536] rounded-2xl p-8 relative overflow-hidden group">
+        <div className="glass-card rounded-2xl p-8 relative overflow-hidden group">
           <div className="flex flex-col lg:flex-row items-start gap-10 relative z-10">
             {/* Avatar */}
             <div className="relative shrink-0">
@@ -227,7 +227,7 @@ function AgentDetailContent() {
             </div>
 
             {/* Score Display */}
-            <div className="shrink-0 w-full lg:w-auto flex flex-col items-center justify-center bg-[#111113] border border-[#2a2a2e] rounded-2xl px-10 py-8 text-center space-y-2">
+            <div className="shrink-0 w-full lg:w-auto flex flex-col items-center justify-center glass-card rounded-2xl px-10 py-8 text-center space-y-2">
               <span className="text-4xl font-black" style={{ color: scoreColor(score) }}>{(score * 10).toFixed(0)}</span>
               <span className="text-[10px] text-[#818384] font-mono uppercase tracking-widest">Trust Score</span>
               <div className="flex flex-col items-center gap-1 mt-2">
@@ -243,21 +243,21 @@ function AgentDetailContent() {
           {/* Stats Column */}
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Score breakdown */}
-            <div className="bg-[#1a1a1b] border border-[#343536] rounded-2xl p-6 space-y-6">
+            <div className="glass-card rounded-2xl p-6 space-y-6">
               <div className="flex items-center gap-3">
                 <Shield className="w-4 h-4 text-[#d4a017]" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[#adadb0]">Score Breakdown</h3>
               </div>
               <div className="space-y-5">
-                <ScoreBar label="On-Chain History" value={agent.breakdown?.completionRate * 4.0 || estimatedBreakdown.onchainHistory} max={4.0} icon={<Activity size={12} />} />
-                <ScoreBar label="Contract Analysis" value={agent.breakdown?.paymentRate * 3.0 || estimatedBreakdown.contractAnalysis} max={3.0} icon={<Bug size={12} />} />
+                <ScoreBar label="On-Chain History" value={Math.min(4.0, agent.breakdown?.completionRate * 4.0 || estimatedBreakdown.onchainHistory)} max={4.0} icon={<Activity size={12} />} />
+                <ScoreBar label="Contract Analysis" value={Math.min(3.0, agent.breakdown?.paymentRate * 3.0 || estimatedBreakdown.contractAnalysis)} max={3.0} icon={<Bug size={12} />} />
                 <ScoreBar label="Blacklist Check" value={estimatedBreakdown.blacklist} max={2.0} icon={<CheckCircle size={12} />} />
                 <ScoreBar label="Activity" value={estimatedBreakdown.activity} max={1.0} icon={<Zap size={12} />} />
               </div>
             </div>
 
             {/* On-chain Details */}
-            <div className="bg-[#1a1a1b] border border-[#343536] rounded-2xl p-6 space-y-6 flex flex-col">
+            <div className="glass-card rounded-2xl p-6 space-y-6 flex flex-col">
               <div className="flex items-center gap-3">
                 <Activity className="w-4 h-4 text-[#d4a017]" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[#adadb0]">On-Chain Details</h3>
@@ -308,7 +308,7 @@ function AgentDetailContent() {
             </div>
 
             {/* Risk + Sentiment Card */}
-            <div className="bg-[#111113] border border-[#2a2a2e] rounded-2xl p-6 space-y-5">
+            <div className="glass-card rounded-2xl p-6 space-y-5">
               {/* Risk Assessment */}
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -385,7 +385,7 @@ function AgentDetailContent() {
 
           {/* Form */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-[#1a1a1b] border border-[#343536] rounded-2xl p-8 sticky top-24">
+            <div className="glass-card rounded-2xl p-8 sticky top-24">
               <div className="flex items-center gap-2 mb-6">
                 <Trophy className="w-4 h-4 text-[#d4a017]" />
                 <h2 className="text-xs font-bold uppercase tracking-widest text-[#adadb0]">Leave a Review</h2>
