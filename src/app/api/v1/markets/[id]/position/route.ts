@@ -127,6 +127,23 @@ export async function POST(
       );
     }
 
+    // ── Market constraints: "New Agent" markets only accept agents < 60 days old ──
+    if (market.title.toLowerCase().includes('new agent') && isAddress(projectId)) {
+      const agentScore = await prisma.agentScore.findFirst({
+        where: { walletAddress: { equals: getAddress(projectId), mode: 'insensitive' } },
+        select: { createdAt: true },
+      });
+      if (agentScore?.createdAt) {
+        const ageDays = (Date.now() - new Date(agentScore.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+        if (ageDays > 60) {
+          return NextResponse.json(
+            { error: "This market is for new agents only (< 60 days old)", detail: `Agent is ${Math.floor(ageDays)} days old` },
+            { status: 403, headers: CORS_HEADERS }
+          );
+        }
+      }
+    }
+
     // Deduct Scarab from user balance
     const { spendScarabAmount } = await import("@/lib/scarab-markets");
 
