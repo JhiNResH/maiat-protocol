@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "test:e2e": "RUN_E2E=true vitest run tests/e2e",
     "test:coverage": "vitest run --coverage",
-    "audit:probe": "npx tsx scripts/audit-probe.ts"
+    "audit:probe": "npx tsx scripts/audit-probe.ts",
+    "indexer": "tsx scripts/realtime-indexer.ts"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-sdk": "^2.9.0",
