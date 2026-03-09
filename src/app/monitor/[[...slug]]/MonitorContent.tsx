@@ -516,12 +516,12 @@ return (
     </div>
     
     <div className="flex flex-1 overflow-hidden relative">
-      <main ref={containerRef} className="flex-1 relative bg-[var(--bg-page)] overflow-hidden">
+      <main ref={containerRef} className="flex-1 relative bg-[var(--bg-page)] overflow-hidden" style={{background:'radial-gradient(ellipse at 50% 50%, rgba(212,160,23,0.03) 0%, var(--bg-page) 70%)'}}>
         <AgentBubbleMap ref={mapRef} agents={radarAgents} onSelect={handleSelect} selectedId={selectedId} />
         <TacticalLegend /><NavControls onMove={(dx, dy) => mapRef.current?.move(dx, dy)} onZoom={(f) => mapRef.current?.zoom(f)} onReset={() => mapRef.current?.resetView()} containerRef={containerRef} />
       </main>
 
-      <aside className="w-80 shrink-0 border-l border-white/5 bg-black/60 backdrop-blur-xl flex flex-col overflow-y-auto">
+      <aside className="w-80 shrink-0 border-l border-[rgba(212,160,23,0.08)] bg-[rgba(13,14,23,0.75)] backdrop-blur-xl flex flex-col overflow-y-auto">
         <div className="px-4 py-3 border-b border-white/5 bg-black/20 sticky top-0 z-10 flex items-center gap-2">{selectedNode ? (<><Shield className="w-3 h-3 text-[#3b82f6]" /> <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">Agent Profile</span></>) : (<><Trophy className="w-3 h-3 text-[#fbbf24]" /> <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">Protocol Leaderboard</span></>)}</div>
         <div className="p-6 flex flex-col gap-6">
           {selectedNode ? (
