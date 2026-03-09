@@ -10,16 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Patrick (BountyHunter) via OpenClaw
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUM: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          OPENCLAW_HOOK_URL: ${{ secrets.OPENCLAW_HOOK_URL }}
+          OPENCLAW_HOOK_TOKEN: ${{ secrets.OPENCLAW_HOOK_TOKEN }}
         run: |
-          PR_URL="${{ github.event.pull_request.html_url }}"
-          PR_NUM="${{ github.event.pull_request.number }}"
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          FILES=$(echo '${{ toJson(github.event.pull_request) }}' | jq -r '.changed_files // "unknown"')
+          MESSAGE="Security audit requested for PR #${PR_NUM}: ${PR_TITLE}\nURL: ${PR_URL}\n\nPlease run: 1) gh pr checkout ${PR_NUM} in JhiNResH/maiat-protocol, 2) slither on changed Solidity files, 3) review TypeScript for security issues, 4) post findings as PR comment."
 
-          curl -sf -X POST "${{ secrets.OPENCLAW_HOOK_URL }}/hooks/agent" \
-            -H "Authorization: Bearer ${{ secrets.OPENCLAW_HOOK_TOKEN }}" \
+          PAYLOAD=$(jq -n \
+            --arg agentId "bounty-hunter" \
+            --arg message "$MESSAGE" \
+            '{agentId: $agentId, message: $message}')
+
+          curl -sf -X POST "${OPENCLAW_HOOK_URL}/hooks/agent" \
+            -H "Authorization: Bearer ${OPENCLAW_HOOK_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"agentId\": \"bounty-hunter\",
-              \"message\": \"Security audit requested for PR #${PR_NUM}: ${PR_TITLE}\\nURL: ${PR_URL}\\nChanged files: ${FILES}\\n\\nPlease run: 1) gh pr checkout ${PR_NUM} in JhiNResH/maiat-protocol, 2) slither on changed Solidity files, 3) review TypeScript for security issues, 4) post findings as PR comment.\"
-            }" && echo "✅ Patrick triggered" || echo "⚠️ Hook unreachable (local tunnel may be down)"
+            -d "$PAYLOAD" && echo "✅ Patrick triggered" || echo "⚠️ Hook unreachable (local tunnel may be down)"
