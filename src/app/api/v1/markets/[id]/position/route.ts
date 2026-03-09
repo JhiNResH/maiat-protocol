@@ -5,10 +5,10 @@ import { isAddress, getAddress } from "viem";
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, X-Maiat-Client, X-Maiat-Key",
 };
 
-const MIN_STAKE = 50;
+const MIN_STAKE = 5;
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
@@ -23,11 +23,21 @@ export async function POST(
     const { id: marketId } = await params;
     const body = await request.json();
 
-    const { projectId, amount, reviewer } = body as {
+    let { projectId, amount, reviewer } = body as {
       projectId?: string;
       amount?: number;
       reviewer?: string; // wallet address
     };
+
+    // Auto-resolve reviewer from X-Maiat-Client header
+    const clientId = request.headers.get("x-maiat-client");
+    if (!reviewer && clientId) {
+      try {
+        const { getCallerWallet } = await import("@/lib/caller-wallet");
+        const walletAddr = await getCallerWallet(clientId);
+        if (walletAddr) reviewer = walletAddr;
+      } catch { /* fall through */ }
+    }
 
     // Validate required fields
     if (!projectId) {
@@ -87,13 +97,30 @@ export async function POST(
       );
     }
 
-    // Check project exists
+    // Check project exists (Project table OR AgentScore table)
+    let projectName = projectId;
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       select: { id: true, name: true, slug: true },
     });
 
-    if (!project) {
+    if (project) {
+      projectName = project.name ?? projectId;
+    } else if (isAddress(projectId)) {
+      // Also accept agent wallet addresses from AgentScore
+      const agent = await prisma.agentScore.findFirst({
+        where: { walletAddress: { equals: getAddress(projectId), mode: 'insensitive' } },
+        select: { walletAddress: true, trustScore: true },
+      });
+      if (agent) {
+        projectName = agent.walletAddress;
+      } else {
+        return NextResponse.json(
+          { error: "Agent not found in trust oracle", detail: `Address: ${projectId}` },
+          { status: 404, headers: CORS_HEADERS }
+        );
+      }
+    } else {
       return NextResponse.json(
         { error: "Project not found", detail: `Project ID: ${projectId}` },
         { status: 404, headers: CORS_HEADERS }
