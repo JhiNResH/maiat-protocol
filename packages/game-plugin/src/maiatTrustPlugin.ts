@@ -49,16 +49,16 @@ async function fetchTrustScore(
   };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
-  // Try address-based lookup first, fall back to name search
+  // Use canonical /api/v1/agent/{address} for addresses, explore search for names
   const isAddress = /^0x[0-9a-fA-F]{40}$/.test(identifier);
   const url = isAddress
-    ? `${apiUrl}/api/v1/score/${identifier}?chain=${chain}`
-    : `${apiUrl}/api/v1/trust-score`;
+    ? `${apiUrl}/api/v1/agent/${identifier}`
+    : `${apiUrl}/api/v1/explore?search=${encodeURIComponent(identifier)}`;
 
   const res = await fetch(url, {
-    method: isAddress ? "GET" : "POST",
+    method: "GET",
     headers,
-    body: isAddress ? undefined : JSON.stringify({ projectName: identifier }),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!res.ok) {
