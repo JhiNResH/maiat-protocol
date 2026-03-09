@@ -496,9 +496,12 @@ const handleSelect = useCallback(async (query: string | null) => {
           raw: agent,
         };
         setFallbackAgent(fb);
-        // Inject into bubble map so it can be panned to
-        setTimeout(() => mapRef.current?.panToNode(fb.id), 300);
+        // Inject into bubble map and select immediately
         router.replace(`/monitor/agent/${cleanName}/${fb.id}`, { scroll: false });
+        // Give React time to re-render with fallbackAgent before panning
+        requestAnimationFrame(() => {
+          setTimeout(() => mapRef.current?.panToNode(fb.id), 100);
+        });
       }
     } catch {}
   }
