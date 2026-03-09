@@ -130,11 +130,11 @@ export async function GET(request: NextRequest) {
     const reviewIds = reviews.map(r => r.id);
     if (reviewIds.length > 0) {
       const existingVotes = await db.reviewVote.findMany({
-        where: { voterId: checksumVoter, reviewId: { in: reviewIds } },
-        select: { reviewId: true, direction: true },
+        where: { voter: checksumVoter, reviewId: { in: reviewIds } },
+        select: { reviewId: true, vote: true },
       });
       for (const v of existingVotes) {
-        voterVotes[v.reviewId] = v.direction as 'up' | 'down';
+        voterVotes[v.reviewId] = v.vote as 'up' | 'down';
       }
     }
   }
