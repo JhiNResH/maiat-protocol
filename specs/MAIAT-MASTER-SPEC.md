@@ -32,7 +32,7 @@
 
 **Solution:** Maiat computes behavioral trust scores from on-chain data + community reviews, writes them to an oracle on Base, and makes them queryable by any smart contract, DeFi protocol, or AI framework.
 
-**What's already live:** 4 mainnet contracts (MaiatOracle, MaiatReceiptResolver, TrustGateHook, EAS Schema) · 7 npm SDK packages · 4 ACP offerings collecting fees · 2,292 agents scored · Web app at app.maiat.io · Prediction markets (Scarab-denominated) · Review system with community voting · Automated cron jobs (indexer, attestor, oracle sync, market resolver) · Wadjet real-time indexer (Railway, 5-min ACP polling + Base event listener) · 139 Foundry tests across 2 repos (81 + 58) · EAS data flywheel (attestation → training data → better scores, Phase 1 deploying to Base Sepolia) · ERC-8004 Identity/Reputation on Base mainnet · Dune Analytics dashboard
+**What's already live:** 4 mainnet contracts (MaiatOracle, MaiatReceiptResolver, TrustGateHook, EAS Schema) · 7 npm SDK packages · 4 ACP offerings collecting fees · 35K+ agents scored (17K ACP + 20K Virtuals Protocol) · Web app at app.maiat.io · Prediction markets (Scarab-denominated) · Review system with community voting · Automated cron jobs (indexer, attestor, oracle sync, market resolver) · Wadjet real-time indexer (Railway — ACP 5min + DexScreener 15min + Virtuals Protocol 24hr + Base events) · Wadjet rug prediction engine (rule-based, 8 signals, API live) · 139 Foundry tests across 2 repos (81 + 58) · EAS data flywheel (3 schemas on Base Sepolia, auto-attest on offering completion) · ERC-8004 Identity/Reputation on Base mainnet (520 agents matched) · Dune Analytics dashboard
 
 **Token:** MAIAT via Virtuals Unicorn. 45% LP, 25% Automated Capital Formation, 25% Team (1yr lock + 6mo vest), 5% Airdrop. Revenue from ACP queries → 30% buyback MAIAT from Day 1.
 
@@ -272,21 +272,45 @@ Railway-hosted persistent indexer replacing daily cron jobs.
 
 | Phase | Source | Status |
 |---|---|---|
-| A (Now) | Virtuals REST API (5min polling) | ✅ Live |
-| A (Now) | Base mainnet events | ✅ Live |
-| B | GoPlus Security API | Planned |
-| C | ACP Smart Contract events | Planned (>100 daily jobs trigger) |
-| D | Dune Analytics | ✅ Live |
+| A | Virtuals ACP REST API (5min polling, 17K+ agents) | ✅ Live |
+| A | Virtuals Protocol API (24hr sync, 20K+ agents) | ✅ Live |
+| A | Base mainnet events (EAS + ERC-8004) | ✅ Live |
+| B | DexScreener price tracking (15min, 100+ tokens) | ✅ Live |
+| C | Health signals engine (completion trend, LP drain, volatility) | ✅ Live |
+| D | Rug prediction MVP (rule-based, 8 signals) | ✅ Live |
+| D+ | GoPlus Security API | Planned (SSL issue) |
+| E | XGBoost ML model | Planned (needs 3+ months price history) |
+| F | Monte Carlo simulation | Planned (needs sufficient snapshot data) |
 
-### Layer 6: Wadjet Data Enrichment (Phase 2)
+### Layer 6: Wadjet Rug Prediction Engine
 
-**Enhanced Trust Score Formula (Target):**
+**API:** `GET /api/v1/agent/:address/rug-prediction` (accepts wallet or token address)
+
+**8 Weighted Signals:**
 ```
-trustScore = (
-  metadataScore * 0.40 +    // ACP offerings, profile, verification
-  onchainBehavior * 0.40 +  // Success rate, payment patterns, tx graphs
-  rugProbability * 0.20     // GoPlus flags, honeypot detection
+rugScore = (
+  veryLowTrust * 20 +           // trust < 20
+  lowActivity * 8 +             // < 5 total jobs
+  lowCompletion * 15 +          // completion < 30%
+  priceCrash * 20 +             // -50%+ in 24h
+  lowLiquidity * 10 +           // < $5K liquidity
+  lpDrain * 12 +                // > 30% LP drained
+  completionCrashing * 10 +     // declining trend
+  highVolatility * 5            // extreme price swings
 )
+```
+
+**Risk Levels:** 0-25 Low | 26-50 Medium | 51-75 High | 76-100 Critical
+
+**Data Pipeline:**
+```
+Virtuals ACP (behavior) ──┐
+Virtuals Protocol (tokens)┤──▶ AgentScore DB ──▶ DexScreener (prices)
+Base Chain (attestations) ┘         │                    │
+                                    ▼                    ▼
+                             Health Signals ──▶ Rug Prediction API
+                             (trend, LP, vol)    (rule-based → ML)
+```
 ```
 
 ### Feedback Loop
