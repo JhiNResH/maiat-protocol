@@ -130,11 +130,13 @@ contract MaiatTrustConsumer is IReceiver, Ownable2Step {
             uint256[] memory avgRatings
         ) = abi.decode(report, (address[], uint256[], uint256[], uint256[]));
 
-        // Forward to TrustScoreOracle
+        // CEI: mark block BEFORE external call to oracle (prevents same-block replay
+        // if oracle or a downstream hook ever introduces a callback path).
+        lastReportBlock[workflowId] = block.number;
+
+        // Forward to TrustScoreOracle (external call — state already updated above)
         oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings);
 
-        // Update state
-        lastReportBlock[workflowId] = block.number;
         lastWorkflowId = workflowId;
         lastReportTimestamp = block.timestamp;
         reportCount++;

@@ -40,6 +40,15 @@ contract TrustGateHookTest is Test {
     function _setScores(uint256 s0, uint256 s1) internal {
         oracle.updateTokenScore(token0, s0, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateTokenScore(token1, s1, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        // Flash-manipulation guard: scores must age SCORE_MIN_AGE before they gate swaps.
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
+    }
+
+    /// @dev Propose + time-travel + execute a threshold change.
+    function _changeThreshold(uint256 newThreshold) internal {
+        hook.proposeThreshold(newThreshold);
+        vm.warp(block.timestamp + hook.THRESHOLD_UPDATE_DELAY() + 1);
+        hook.executeThresholdUpdate();
     }
 
     function _makeKey() internal view returns (PoolKey memory) {
@@ -86,39 +95,52 @@ contract TrustGateHookTest is Test {
         assertEq(address(hook.poolManager()), mockPoolManager);
     }
 
-    // ─── updateThreshold ───────────────────────────────────────
+    // ─── proposeThreshold / executeThresholdUpdate (timelock) ────
 
     function test_UpdateThreshold_Success() public {
-        hook.updateThreshold(70);
+        _changeThreshold(70);
         assertEq(hook.trustThreshold(), 70);
     }
 
     function test_UpdateThreshold_Zero_Reverts() public {
         // threshold=0 would silently disable the trust gate — now rejected
         vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__ThresholdTooLow.selector, 0));
-        hook.updateThreshold(0);
+        hook.proposeThreshold(0);
     }
 
     function test_UpdateThreshold_Hundred() public {
-        hook.updateThreshold(100);
+        _changeThreshold(100);
         assertEq(hook.trustThreshold(), 100);
     }
 
     function test_UpdateThreshold_InvalidReverts() public {
         vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__InvalidThreshold.selector, 101));
-        hook.updateThreshold(101);
+        hook.proposeThreshold(101);
     }
 
     function test_UpdateThreshold_NotOwnerReverts() public {
         vm.prank(attacker);
         vm.expectRevert();
-        hook.updateThreshold(70);
+        hook.proposeThreshold(70);
+    }
+
+    function test_UpdateThreshold_ExecuteBeforeTimelock_Reverts() public {
+        hook.proposeThreshold(70);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TrustGateHook.TrustGateHook__ThresholdTimelockNotExpired.selector,
+                block.timestamp + hook.THRESHOLD_UPDATE_DELAY()
+            )
+        );
+        hook.executeThresholdUpdate();
     }
 
     function test_UpdateThreshold_EmitsEvent() public {
+        hook.proposeThreshold(80);
+        vm.warp(block.timestamp + hook.THRESHOLD_UPDATE_DELAY() + 1);
         vm.expectEmit(false, false, false, true);
         emit ThresholdUpdated(DEFAULT_THRESHOLD, 80);
-        hook.updateThreshold(80);
+        hook.executeThresholdUpdate();
     }
 
     // ─── beforeSwap: access control ────────────────────────────
@@ -179,7 +201,7 @@ contract TrustGateHookTest is Test {
         vm.expectRevert();
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
 
-        hook.updateThreshold(5); // now passes
+        _changeThreshold(5); // now passes
         vm.prank(mockPoolManager);
         (bytes4 sel,,) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
         assertEq(sel, IHooks.beforeSwap.selector);
@@ -235,6 +257,7 @@ contract TrustGateHookTest is Test {
 
     function test_BeforeSwap_NativeETH_Skipped() public {
         oracle.updateTokenScore(token1, 80, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
         PoolKey memory ethKey = PoolKey({
             currency0: Currency.wrap(address(0)), // native ETH — skipped
             currency1: Currency.wrap(token1),
@@ -250,9 +273,13 @@ contract TrustGateHookTest is Test {
     // ─── Seed data source protection ─────────────────────────────
 
     function test_BeforeSwap_SeedDataSource_Reverts() public {
-        // High score but from seed data → should be rejected
+        // High score but from seed data → should be rejected.
+        // SEED scores are caught by getDataSource check BEFORE SCORE_MIN_AGE matters —
+        // the hook calls getScore() first (which reverts ScoreTooFresh if not aged),
+        // so we must age the score before the hook can reach the SEED check.
         oracle.updateTokenScore(token0, 90, 10, 400, TrustScoreOracle.DataSource.SEED);
         oracle.updateTokenScore(token1, 90, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
         vm.prank(mockPoolManager);
         vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__SeedScoreRejected.selector, token0));
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
@@ -261,6 +288,7 @@ contract TrustGateHookTest is Test {
     function test_BeforeSwap_APIDataSource_Passes() public {
         oracle.updateTokenScore(token0, 80, 10, 400, TrustScoreOracle.DataSource.API);
         oracle.updateTokenScore(token1, 80, 10, 400, TrustScoreOracle.DataSource.COMMUNITY);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
         vm.prank(mockPoolManager);
         (bytes4 sel,,) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
         assertEq(sel, IHooks.beforeSwap.selector);
@@ -277,8 +305,11 @@ contract TrustGateHookTest is Test {
         address highRepUser = address(0xBEEF);
         oracle.updateUserReputation(highRepUser, 200, 50, 1000);
 
-        // Swapper (router) has base fee by default
-        // Encode highRepUser in hookData
+        // Register the swapper (sender in beforeSwap) as an allowed router so its hookData is trusted.
+        // In V4, `sender` passed to beforeSwap is the swap initiator, not msg.sender (poolManager).
+        hook.setRouterAllowance(swapper, true);
+
+        // Encode highRepUser in hookData — now the router is trusted so feeTarget = highRepUser
         bytes memory hookData = abi.encode(highRepUser);
 
         vm.prank(mockPoolManager);
@@ -334,7 +365,8 @@ contract TrustGateHookTest is Test {
 
         oracle.updateTokenScore(token0, score, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateTokenScore(token1, score, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
-        hook.updateThreshold(threshold);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
+        _changeThreshold(threshold);
 
         vm.prank(mockPoolManager);
         if (score >= threshold) {
@@ -352,6 +384,8 @@ contract TrustGateHookTest is Test {
             oracle.updateTokenScore(token0, score, 0, 0, TrustScoreOracle.DataSource.API);
         } else {
             oracle.updateTokenScore(token0, score, 0, 0, TrustScoreOracle.DataSource.API);
+            // Score must age past SCORE_MIN_AGE before getScore() returns it.
+            vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
             assertEq(oracle.getScore(token0), score);
         }
     }

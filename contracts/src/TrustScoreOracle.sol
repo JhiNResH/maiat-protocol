@@ -63,6 +63,10 @@ contract TrustScoreOracle is AccessControl, Pausable {
     uint256 public constant MAX_AVG_RATING = 500;
     /// @notice Score staleness window — scores older than this are considered stale
     uint256 public constant SCORE_MAX_AGE = 7 days;
+    /// @notice Minimum age a score must have before the hook accepts it.
+    ///         Prevents a compromised UPDATER_ROLE from flash-inflating a score
+    ///         in the same block as a swap, then deflating it back.
+    uint256 public constant SCORE_MIN_AGE = 1 hours;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -82,6 +86,8 @@ contract TrustScoreOracle is AccessControl, Pausable {
     error TrustScoreOracle__BatchTooLarge(uint256 size);
     /// @notice Reverts when a score has not been updated within SCORE_MAX_AGE
     error TrustScoreOracle__StaleScore(address token, uint256 lastUpdated, uint256 maxAge);
+    /// @notice Reverts when a score was updated too recently (flash-manipulation guard)
+    error TrustScoreOracle__ScoreTooFresh(address token, uint256 lastUpdated, uint256 minAge);
 
     /*//////////////////////////////////////////////////////////////
                               FUNCTIONS
@@ -106,6 +112,11 @@ contract TrustScoreOracle is AccessControl, Pausable {
         if (ts.lastUpdated == 0) return 0;
         if (block.timestamp - ts.lastUpdated > SCORE_MAX_AGE) {
             revert TrustScoreOracle__StaleScore(token, ts.lastUpdated, SCORE_MAX_AGE);
+        }
+        // Flash-manipulation guard: score must have settled for at least SCORE_MIN_AGE
+        // before it can gate a swap. Prevents same-block inflate → swap → deflate.
+        if (block.timestamp - ts.lastUpdated < SCORE_MIN_AGE) {
+            revert TrustScoreOracle__ScoreTooFresh(token, ts.lastUpdated, SCORE_MIN_AGE);
         }
         return ts.trustScore;
     }
