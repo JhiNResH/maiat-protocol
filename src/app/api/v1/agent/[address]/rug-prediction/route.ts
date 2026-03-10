@@ -22,7 +22,8 @@ export async function GET(
   }
 
   try {
-    const agent = await prisma.agentScore.findFirst({
+    // Try wallet address first, then fall back to token address lookup
+    let agent = await prisma.agentScore.findFirst({
       where: {
         walletAddress: { equals: address.toLowerCase(), mode: 'insensitive' },
       },
@@ -36,6 +37,24 @@ export async function GET(
         rawMetrics: true,
       },
     })
+
+    // Reverse lookup: if not found by wallet, try by token address
+    if (!agent) {
+      agent = await prisma.agentScore.findFirst({
+        where: {
+          tokenAddress: { equals: address.toLowerCase(), mode: 'insensitive' },
+        },
+        select: {
+          walletAddress: true,
+          trustScore: true,
+          completionRate: true,
+          totalJobs: true,
+          tokenAddress: true,
+          tokenSymbol: true,
+          rawMetrics: true,
+        },
+      })
+    }
 
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404, headers: CORS })
