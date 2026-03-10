@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
             id: true,
             projectId: true,
             amount: true,
+            voterId: true,
           },
         },
       },
