@@ -1,0 +1,95 @@
+{
+  "model_version": "1.1.0",
+  "training_date": "2026-03-10T16:04:32.162140Z",
+  "algorithm": "XGBoost",
+  "n_features": 20,
+  "features": [
+    "holder_concentration",
+    "liquidity_lock_ratio",
+    "creator_tx_pattern",
+    "buy_sell_ratio",
+    "contract_similarity_score",
+    "fund_flow_pattern",
+    "price_change_24h",
+    "liquidity_usd",
+    "volume_24h",
+    "total_jobs",
+    "completion_rate",
+    "trust_score",
+    "age_days",
+    "lp_drain_rate",
+    "deployer_age_days",
+    "token_supply_concentration",
+    "renounced_ownership",
+    "verified_contract",
+    "social_presence_score",
+    "audit_score"
+  ],
+  "metrics": {
+    "accuracy": 0.9785876993166287,
+    "precision": 0.9707200478040036,
+    "recall": 0.9869380315917375,
+    "f1_score": 0.9787618617261635,
+    "roc_auc": 0.9970850664855199,
+    "false_negative_rate": 0.013061968408262455,
+    "false_positive_rate": 0.02976009717582751,
+    "confusion_matrix": [
+      [
+        3195,
+        98
+      ],
+      [
+        43,
+        3249
+      ]
+    ],
+    "cv_accuracy_mean": 0.9786627356562738,
+    "cv_accuracy_std": 0.0015227416946236927,
+    "cv_recall_mean": 0.976993166287016,
+    "cv_recall_std": 0.0014526291928404758,
+    "cv_f1_mean": 0.9786280819791461,
+    "cv_f1_std": 0.0015214053516319462,
+    "prediction_threshold": 0.35,
+    "feature_importance": {
+      "holder_concentration": 0.4863607883453369,
+      "lp_drain_rate": 0.15020817518234253,
+      "trust_score": 0.13073745369911194,
+      "creator_tx_pattern": 0.045641038566827774,
+      "liquidity_lock_ratio": 0.03661210834980011,
+      "buy_sell_ratio": 0.030976010486483574,
+      "liquidity_usd": 0.026553479954600334,
+      "deployer_age_days": 0.01686563529074192,
+      "contract_similarity_score": 0.016715984791517258,
+      "token_supply_concentration": 0.016290122643113136,
+      "price_change_24h": 0.015094244852662086,
+      "age_days": 0.011467047967016697,
+      "volume_24h": 0.008334525860846043,
+      "fund_flow_pattern": 0.008143460378050804,
+      "total_jobs": 0.0,
+      "completion_rate": 0.0,
+      "renounced_ownership": 0.0,
+      "verified_contract": 0.0,
+      "social_presence_score": 0.0,
+      "audit_score": 0.0
+    },
+    "n_train": 26339,
+    "n_test": 6585
+  },
+  "dataset": {
+    "source": "REAL",
+    "source_path": "/Users/jhinresh/maiat-protocol/packages/wadjet/data/rug_pull_dataset_real.csv",
+    "primary_source": "kangmyoungseok/RugPull-Prediction-AI \u2014 18,296 Uniswap V2 tokens (2021, ETH), labeled by LP removal detection",
+    "secondary_sources": [
+      "dianxiang-sun/rug_pull_dataset \u2014 2,391 ETH/BSC incidents (2020-2023)",
+      "TM-RugPull arxiv:2602.21529 \u2014 feature distribution reference"
+    ],
+    "n_samples_before_smote": 32924,
+    "n_samples_after_smote": 32924,
+    "smote_applied": true,
+    "class_ratio": "1:1 after SMOTE"
+  },
+  "deployment": {
+    "prediction_threshold": 0.35,
+    "note": "Use threshold=0.35 to minimize false negatives (missed rugs)"
+  }
+}
