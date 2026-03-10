@@ -134,9 +134,10 @@ contract UpdateUserRep is Script {
     }
 }
 
-// ─── Update trust threshold ─────────────────────────────────────────────────
+// ─── Update trust threshold (MAIAT-005: timelocked) ────────────────────────
+// Usage: First call ProposeThreshold, wait 24h, then call ExecuteThreshold.
 
-contract UpdateThreshold is Script {
+contract ProposeThreshold is Script {
     function run() external {
         address hookAddr = vm.envAddress("HOOK_ADDRESS");
         uint256 newThreshold = vm.envUint("NEW_THRESHOLD");
@@ -145,10 +146,30 @@ contract UpdateThreshold is Script {
         TrustGateHook hook = TrustGateHook(hookAddr);
 
         console2.log("Hook:", hookAddr);
-        console2.log("Old threshold:", hook.trustThreshold());
+        console2.log("Current threshold:", hook.trustThreshold());
+        console2.log("Proposing threshold:", newThreshold);
 
         vm.startBroadcast(callerKey);
-        hook.updateThreshold(newThreshold);
+        hook.proposeThreshold(newThreshold);
+        vm.stopBroadcast();
+
+        console2.log("Proposed. Execute after:", block.timestamp + hook.THRESHOLD_TIMELOCK_DELAY());
+        console2.log("Run ExecuteThreshold script in 24h to apply.");
+    }
+}
+
+contract ExecuteThreshold is Script {
+    function run() external {
+        address hookAddr = vm.envAddress("HOOK_ADDRESS");
+        uint256 callerKey = vm.envUint("PRIVATE_KEY");
+
+        TrustGateHook hook = TrustGateHook(hookAddr);
+
+        console2.log("Hook:", hookAddr);
+        console2.log("Pending threshold:", hook.pendingThreshold());
+
+        vm.startBroadcast(callerKey);
+        hook.executeThreshold();
         vm.stopBroadcast();
 
         console2.log("New threshold:", hook.trustThreshold());
