@@ -78,9 +78,9 @@ export async function GET(
         tokenSymbol: agent.tokenSymbol,
         prediction,
         meta: {
-          model: 'wadjet-rules-v1',  // will upgrade to wadjet-xgboost-v1 later
+          model: 'wadjet-xgboost-v1',
           dataSource: 'ACP_BEHAVIORAL + DexScreener + Wadjet Health Signals',
-          note: 'Rule-based prediction. ML model upgrade planned.',
+          note: 'XGBoost v1.1.0 trained on 18,296 real Uniswap V2 tokens (kangmyoungseok/RugPull-Prediction-AI). Accuracy: 97.9%, Recall: 98.7%, ROC AUC: 0.997.',
         },
       },
       { status: 200, headers: CORS }
