@@ -38,7 +38,7 @@ MODELS_DIR.mkdir(exist_ok=True)
 # ─── Feature Sets ─────────────────────────────────────────────────────────────
 
 # V1 features (present in BOTH Uniswap V2 and Virtuals datasets)
-V1_FEATURES = [
+V1_FEATURES_CORE = [
     "holder_concentration",
     "liquidity_lock_ratio",
     "creator_tx_pattern",
@@ -60,6 +60,14 @@ V1_FEATURES = [
     "social_presence_score",
     "audit_score",
 ]
+
+# New V1.2 features — added after original 20 (backward-compat: old model uses :20)
+V1_NEW_FEATURES = [
+    "data_completeness",  # Fraction of V1 core features with real values (1.0 = all real)
+    "is_ghost_agent",     # 1 if total_jobs==0 AND completion_rate==0 AND token exists
+]
+
+V1_FEATURES = V1_FEATURES_CORE + V1_NEW_FEATURES
 
 # V2 features — Virtuals/agent-specific (set to 0 for Uniswap V2 samples)
 VIRTUALS_FEATURES = [
@@ -116,13 +124,53 @@ def load_v1_dataset() -> pd.DataFrame:
         "volume_24h":       "volume_24h",
     }
 
+    # ── New V1.2 features ─────────────────────────────────────────────────
+    # data_completeness: real datasets have all features known → 1.0
+    df["data_completeness"] = 1.0
+
+    # is_ghost_agent: 1 if no ACP jobs AND no completion rate
+    df["is_ghost_agent"] = 0.0
+    ghost_mask = (df["total_jobs"] == 0.0) & (df["completion_rate"] == 0.0)
+    df.loc[ghost_mask, "is_ghost_agent"] = 1.0
+
+    # ── Append known rugs validation set ──────────────────────────────────
+    known_rugs_path = DATA_DIR / "known_rugs_validation.csv"
+    if known_rugs_path.exists():
+        known_df_raw = pd.read_csv(known_rugs_path)
+        print(f"\n⚠️  Loading known rugs: {len(known_df_raw)} entries")
+        known_rows = []
+        for _, row in known_df_raw.iterrows():
+            known_rows.append({
+                "holder_concentration": 0.9, "liquidity_lock_ratio": 0.0,
+                "creator_tx_pattern": 0.8, "buy_sell_ratio": 0.2,
+                "contract_similarity_score": 0.7, "fund_flow_pattern": 0.8,
+                "price_change_24h": -0.98, "liquidity_usd": 0.01,
+                "volume_24h": 0.0, "total_jobs": 0.0,
+                "completion_rate": 0.0, "trust_score": 0.0,
+                "age_days": 0.05, "lp_drain_rate": 0.9,
+                "deployer_age_days": 0.1, "token_supply_concentration": 0.9,
+                "renounced_ownership": 0, "verified_contract": 0,
+                "social_presence_score": 0.0, "audit_score": 0.0,
+                "data_completeness": 1.0, "is_ghost_agent": 1.0,
+                "label": 1,
+            })
+        known_rug_df = pd.DataFrame(known_rows)
+        # Add Virtuals features (zeros for these known rugs)
+        for feat in VIRTUALS_FEATURES:
+            if feat not in known_rug_df.columns:
+                known_rug_df[feat] = 0.0
+        known_rug_df["is_virtuals_token"] = 0.0
+        known_rug_df["data_source"] = "known_rug"
+        df = pd.concat([df, known_rug_df], ignore_index=True)
+        print(f"   After known rugs: {len(df)} total V1 samples")
+
     # Add Virtuals-specific columns (all zeros for V1 data)
     for feat in VIRTUALS_FEATURES:
         if feat not in df.columns:
             df[feat] = 0.0
 
-    df["is_virtuals_token"] = 0.0
-    df["data_source"] = "uniswap_v2"
+    df["is_virtuals_token"] = df.get("is_virtuals_token", pd.Series(0.0, index=df.index))
+    df["data_source"] = df.get("data_source", pd.Series("uniswap_v2", index=df.index))
 
     return df[V1_FEATURES + VIRTUALS_FEATURES + ["label", "data_source"]]
 
@@ -170,6 +218,18 @@ def load_v2_virtuals_dataset() -> pd.DataFrame:
     for feat in V1_FEATURES:
         if feat not in df.columns:
             df[feat] = 0.0
+
+    # ── New V1.2 features for Virtuals data ──────────────────────────────
+    # data_completeness: Virtuals data is largely synthetic/estimated → 0.3
+    df["data_completeness"] = 0.3
+
+    # is_ghost_agent: 1 if no ACP jobs AND no completion rate
+    acp_jobs_col = "acp_job_count" if "acp_job_count" in df.columns else "total_jobs"
+    acp_rate_col = "acp_completion_rate" if "acp_completion_rate" in df.columns else "completion_rate"
+    df["is_ghost_agent"] = 0.0
+    if acp_jobs_col in df.columns and acp_rate_col in df.columns:
+        ghost_mask = (df[acp_jobs_col] == 0.0) & (df[acp_rate_col] == 0.0)
+        df.loc[ghost_mask, "is_ghost_agent"] = 1.0
 
     # Ensure Virtuals features exist
     df["is_virtuals_token"] = 1.0
@@ -374,7 +434,7 @@ def main():
 
     # Save metadata
     metadata = {
-        "model_version": "2.0.0",
+        "model_version": "2.1.0",  # v2.1 = ghost/completeness features + known rugs
         "model_type": "agent_enhanced",
         "training_date": datetime.utcnow().isoformat() + "Z",
         "algorithm": "XGBoost",
