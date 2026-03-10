@@ -179,6 +179,25 @@ CREATE TABLE IF NOT EXISTS wadjet_watchlist (
     status         TEXT DEFAULT 'active',
     notes          TEXT
 );
+
+-- Sentinel alerts: sell signals, dump patterns, confirmed rugs
+CREATE TABLE IF NOT EXISTS wadjet_alerts (
+    id             BIGSERIAL PRIMARY KEY,
+    token_address  TEXT NOT NULL,
+    wallet_address TEXT,
+    agent_name     TEXT,
+    alert_type     TEXT NOT NULL,  -- 'watchlist_added', 'sell_signal', 'dump_pattern', 'confirmed_rug'
+    severity       TEXT NOT NULL,  -- 'info', 'warning', 'critical'
+    details        JSONB,
+    created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_alerts_token
+    ON wadjet_alerts(token_address, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_alerts_severity
+    ON wadjet_alerts(severity, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_alerts_type
+    ON wadjet_alerts(alert_type, created_at DESC);
 """
 
 
@@ -508,6 +527,103 @@ def get_watchlist_item(token_address: str) -> Optional[dict]:
         )
         row = cur.fetchone()
         return dict(row) if row else None
+
+
+# ─── Sentinel Alerts ──────────────────────────────────────────────────────────
+
+def get_alerts(
+    severity: Optional[str] = None,
+    alert_type: Optional[str] = None,
+    token_address: Optional[str] = None,
+    limit: int = 100,
+) -> list[dict]:
+    """
+    Fetch recent alerts, optionally filtered by severity, type, or token.
+    Always returns newest-first.
+    """
+    conditions = []
+    params: list = []
+
+    if severity:
+        conditions.append("severity = %s")
+        params.append(severity)
+    if alert_type:
+        conditions.append("alert_type = %s")
+        params.append(alert_type)
+    if token_address:
+        conditions.append("token_address = %s")
+        params.append(token_address.lower())
+
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    sql = f"""
+        SELECT * FROM wadjet_alerts
+        {where}
+        ORDER BY created_at DESC
+        LIMIT %s
+    """
+    params.append(min(limit, 500))
+
+    with get_cursor() as cur:
+        cur.execute(sql, params)
+        return [dict(r) for r in cur.fetchall()]
+
+
+def get_alert_counts() -> dict:
+    """Return count of alerts grouped by severity and alert_type."""
+    with get_cursor() as cur:
+        cur.execute("""
+            SELECT
+                COUNT(*) AS total,
+                COUNT(CASE WHEN severity = 'critical' THEN 1 END) AS critical,
+                COUNT(CASE WHEN severity = 'warning'  THEN 1 END) AS warning,
+                COUNT(CASE WHEN severity = 'info'     THEN 1 END) AS info,
+                COUNT(CASE WHEN alert_type = 'confirmed_rug'  THEN 1 END) AS confirmed_rugs,
+                COUNT(CASE WHEN alert_type = 'dump_pattern'   THEN 1 END) AS dump_patterns,
+                COUNT(CASE WHEN alert_type = 'sell_signal'    THEN 1 END) AS sell_signals,
+                COUNT(CASE WHEN alert_type = 'watchlist_added' THEN 1 END) AS watchlist_added,
+                MAX(created_at) AS last_alert_at
+            FROM wadjet_alerts
+        """)
+        row = cur.fetchone()
+        if not row:
+            return {}
+        d = dict(row)
+        # Convert to ints/floats for JSON serialisation
+        for k, v in d.items():
+            if k == "last_alert_at":
+                d[k] = str(v) if v else None
+            elif v is not None:
+                try:
+                    d[k] = int(v)
+                except (TypeError, ValueError):
+                    pass
+        return d
+
+
+def get_last_stage1_scan() -> Optional[str]:
+    """Return the timestamp of the last successful sentinel stage1 run."""
+    with get_cursor() as cur:
+        cur.execute("""
+            SELECT ran_at FROM cron_logs
+            WHERE run_id LIKE 'sentinel-stage1-%' AND status = 'ok'
+            ORDER BY ran_at DESC
+            LIMIT 1
+        """)
+        row = cur.fetchone()
+        return str(row["ran_at"]) if row else None
+
+
+def get_last_stage2_check() -> Optional[str]:
+    """Return the timestamp of the last successful sentinel stage2 run."""
+    with get_cursor() as cur:
+        cur.execute("""
+            SELECT ran_at FROM cron_logs
+            WHERE run_id LIKE 'sentinel-stage2-%' AND status = 'ok'
+            ORDER BY ran_at DESC
+            LIMIT 1
+        """)
+        row = cur.fetchone()
+        return str(row["ran_at"]) if row else None
 
 
 def fetch_top_agents_for_cron(limit: int = 500) -> list[dict]:
