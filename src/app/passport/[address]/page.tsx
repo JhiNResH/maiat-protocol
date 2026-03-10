@@ -599,7 +599,7 @@ function ScarabClaim({ walletAddress }: { walletAddress: string }) {
           )}
         </div>
         {hasClaimed ? (
-          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+          <span className="text-[10px] font-bold px-3 py-1.5 rounded-lg" style={{ color: '#34d399', backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
             ✓ Claimed Today
           </span>
         ) : (
