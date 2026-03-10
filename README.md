@@ -72,8 +72,9 @@ Read https://app.maiat.io/skill.md and follow the instructions
 | Token honeypot check   | `GET /api/v1/token/:address`           | Free     |
 | Agent trust score      | `GET /api/v1/agent/:address`           | Free     |
 | Deep agent analysis    | `GET /api/v1/agent/:address/deep`      | Free     |
+| **Rug prediction**     | `GET /api/v1/agent/:address/rug-prediction` | Free |
 | Trust-gated swap quote | `POST /api/v1/swap/quote`              | Free     |
-| Browse 2,292+ agents   | `GET /api/v1/agents`                   | Free     |
+| Browse 35K+ agents     | `GET /api/v1/agents`                   | Free     |
 | Submit review          | `POST /api/v1/review`                  | 2 Scarab |
 | Trust Passport         | `GET /api/v1/wallet/:address/passport` | Free     |
 
@@ -86,7 +87,7 @@ Live at [app.maiat.io](https://app.maiat.io)
 | Route                    | Description                                                                                  |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
 | `/monitor`               | Tactical dashboard — real-time agent activity feed, ACP job stream, oracle sync status       |
-| `/explore`               | Browse 2,292+ indexed agents with trust scores, colored risk indicators (green/amber/red)    |
+| `/explore`               | Browse 35K+ indexed agents with trust scores, colored risk indicators (green/amber/red)    |
 | `/leaderboard`           | Top agents ranked by trust score, completion rate, and job volume                            |
 | `/agent/[name]`          | Agent detail — behavioral insights, score breakdown, review history, deep analysis           |
 | `/passport/[address]`    | Trust Passport — wallet's cross-agent reputation, EAS receipt history _(Phase 2)_            |
@@ -127,6 +128,31 @@ Wallet: `0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D`
 **Base Builder Code:** `bc_cozhkj23` (ERC-8021, appended to all swap calldata)
 
 **Owner/Operator separation:** Cold wallet deployer (owner, upgrade-only) + ACP hot wallet operator (`0xB1e504aE1ce359B4C2a6DC5d63aE6199a415f312`, write-only for scores + attestations).
+
+---
+
+## Wadjet — Rug Prediction Engine
+
+Wadjet is Maiat's internal risk intelligence engine — an "Agent Credit Bureau" that aggregates behavioral, market, and on-chain data to predict agent token risks.
+
+```
+ACP Behavioral Data ──┐
+DexScreener Prices ───┤──▶ Trust Score ──▶ Rug Prediction (0-100)
+Health Signals ───────┤     (0-100)
+EAS Attestations ─────┘
+```
+
+**Data pipeline:** `maiat-indexer` (Railway) polls 4 sources every 5-15 min:
+- **Virtuals ACP** — 17K+ agents with job history, completion rates
+- **Virtuals Protocol** — 20K+ agents with token addresses
+- **DexScreener** — Real-time prices, liquidity, volume for all tokens
+- **Base Chain** — EAS attestations, ERC-8004 registrations
+
+**Rug prediction signals:** trust score, activity level, completion rate, price crash, low liquidity, LP drain, completion trend, volatility.
+
+**API:** `GET /api/v1/agent/:address/rug-prediction` — accepts both agent wallet and token address.
+
+See [maiat-indexer](https://github.com/JhiNResH/maiat-indexer) for indexer source.
 
 ---
 
