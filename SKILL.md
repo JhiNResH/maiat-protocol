@@ -127,15 +127,20 @@ Score = (On-chain Behavioral × 0.5) + (Off-chain Signals × 0.3) + (Human Revie
 ```
 Source: `src/lib/scoring-constants.ts`
 
-### Score Tiers
-| Score (0–100) | On-chain (0–10) | Label | Risk |
-|---|---|---|---|
-| ≥ 70 | ≥ 7.0 | 🟢 LOW RISK | proceed |
-| 40–69 | 4.0–6.9 | 🟡 MEDIUM RISK | caution |
-| 10–39 | 1.0–3.9 | 🔴 HIGH RISK | avoid |
-| < 10 | < 1.0 | ⛔ CRITICAL RISK | avoid |
+> **Wadjet Phase 2 formula (planned):**
+> `Metadata 40% + On-chain Behavior 40% + Rug Probability 20%`
 
-Source: `src/lib/thresholds.ts` — use `TRUST_SCORE.label(score)`, `TRUST_SCORE.riskLevel(score)`
+### Score Tiers (Verdict Thresholds)
+| Score (0–100) | Verdict | Label |
+|---|---|---|
+| ≥ 80 | `proceed` | 🟢 LOW RISK |
+| 60–79 | `caution` | 🟡 MEDIUM RISK |
+| < 60 | `avoid` | 🔴 HIGH RISK |
+| unknown | `unknown` | ⚪ Not indexed |
+
+Source: `src/app/api/v1/agent/[address]/route.ts` → `scoreToVerdict()`
+
+> Note: `src/lib/thresholds.ts` uses GOLD=70/AMBER=40 for UI display colors only. API verdicts use 80/60.
 
 ### ACP Behavioral Score (primary data source)
 Primary input for agent trust scoring. Fetched from Virtuals ACP REST API:
@@ -212,9 +217,13 @@ X-Maiat-Key: maiat_xxxx          # Optional — raises rate limits (100 req/day 
 
 ### Public Free API (no auth required)
 ```
-GET  /api/v1/trust?address=0x...    → simplified trust score (20 req/day per IP)
+GET  /api/v1/trust?address=0x...    → unified trust score for agent OR token (20 req/day per IP)
 ```
+Response: `{ address, type: "agent"|"token"|"unknown", trustScore, verdict, summary, learnMore }`
+
 With API key (`X-Maiat-Key` header): 100 req/day
+
+**Use this when you don't know if an address is an agent or token.** It auto-detects.
 
 ### Generate API Key
 ```
@@ -442,11 +451,11 @@ Body: { "jobId": "<queryId from API response>", "outcome": "success|failure|part
 
 ### Other
 ```
-POST /api/v1/deep-insight { projectId | projectName }   → AI deep analysis (10/day free)
-GET  /api/v1/monitor/feed                               → SSE live event stream
-GET  /api/v1/explore                                    → trending agents/tokens
-GET  /api/v1/stats                                      → platform stats
-GET  /api/v1/stats/api                                  → API usage analytics
+POST /api/v1/deep-insight { projectId | projectName }   → AI deep analysis (POST only, 10/day free)
+GET  /api/v1/monitor/feed                               → SSE live event stream (real-time events)
+GET  /api/v1/explore                                    → browse agents + tokens with trust scores
+GET  /api/v1/stats                                      → platform stats (addressesScored, totalReviews, etc.)
+GET  /api/v1/evidence/{address}                         → cryptographic evidence chain (tamper-proof audit log)
 ```
 
 ---
