@@ -132,6 +132,9 @@ function AgentDetailContent() {
   // 4. Fetch Scarab Balance
   const { data: scarab } = useSWR(walletAddress ? `/api/v1/scarab?address=${walletAddress}` : null, fetcher);
 
+  // 5. Fetch Wadjet Rug Prediction
+  const { data: rugData } = useSWR(agent ? `/api/v1/agent/${address}/rug-prediction` : null, fetcher);
+
   function copy() {
     navigator.clipboard.writeText(address)
     setCopied(true)
@@ -368,6 +371,46 @@ function AgentDetailContent() {
                    'High risk. Insufficient data or significant red flags.'}
                 </p>
               </div>
+
+              <div className="h-px bg-[#2a2a2e]" />
+
+              {/* Wadjet Rug Prediction */}
+              {rugData?.prediction && (() => {
+                const p = rugData.prediction;
+                const col = p.riskLevel === 'critical' ? '#ef4444' : p.riskLevel === 'high' ? '#f97316' : p.riskLevel === 'medium' ? '#f59e0b' : '#10b981';
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-[10px] font-bold text-[#adadb0] uppercase tracking-widest">Wadjet Risk Intel</div>
+                      <div style={{ color: col, background: `${col}15`, border: `1px solid ${col}30` }} className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                        {p.riskLevel}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                        <div style={{ width: `${p.rugScore}%`, background: `linear-gradient(90deg, ${col}80, ${col})` }} className="h-full rounded-full" />
+                      </div>
+                      <span style={{ color: col }} className="text-lg font-black font-mono">{p.rugScore}</span>
+                      <span className="text-[10px] text-[#818384]">/100</span>
+                    </div>
+                    <p className="text-[10px] text-[#818384] leading-relaxed mb-3">{p.summary}</p>
+                    {p.signals.filter((s: any) => s.severity !== 'info').slice(0, 4).length > 0 && (
+                      <div className="space-y-1.5">
+                        {p.signals.filter((s: any) => s.severity !== 'info').slice(0, 4).map((s: any) => (
+                          <div key={s.name} className="flex items-center gap-2 text-[10px]">
+                            <span style={{ color: s.severity === 'danger' ? '#ef4444' : '#f59e0b' }}>
+                              {s.severity === 'danger' ? '⚠' : '◆'}
+                            </span>
+                            <span className="text-[#818384] flex-1">{s.name}</span>
+                            <span className="text-[#4a4a4e] font-mono">{s.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-2 text-[8px] text-[#4a4a4e] font-mono">Powered by Wadjet · {rugData.meta?.model}</div>
+                  </div>
+                );
+              })()}
 
               <div className="h-px bg-[#2a2a2e]" />
 
