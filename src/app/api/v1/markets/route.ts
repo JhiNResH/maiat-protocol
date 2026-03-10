@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
         totalPool: market.totalPool,
         winnerIds: market.winnerIds,
         positionCount: market.positions.length,
+        voterCount: new Set(market.positions.map(p => p.voterId)).size,
         topProjects,
         createdAt: market.createdAt.toISOString(),
       };

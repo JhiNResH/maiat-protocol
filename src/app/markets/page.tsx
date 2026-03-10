@@ -220,6 +220,7 @@ function MarketsContent() {
                       status={market.status}
                       totalPool={market.totalPool}
                       positionCount={market.positionCount}
+                      voterCount={market.voterCount}
                       closesAt={market.closesAt}
                       topProjects={market.topProjects}
                       agentParam={agentParam || undefined}
@@ -250,6 +251,7 @@ function MarketsContent() {
                       status={market.status}
                       totalPool={market.totalPool}
                       positionCount={market.positionCount}
+                      voterCount={market.voterCount}
                       closesAt={market.closesAt}
                       topProjects={market.topProjects}
                     />
