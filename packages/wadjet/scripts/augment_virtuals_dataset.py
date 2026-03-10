@@ -25,7 +25,7 @@ DATA_DIR   = SCRIPT_DIR.parent / "data"
 INPUT_CSV  = DATA_DIR / "virtuals_agent_dataset.csv"
 OUTPUT_CSV = DATA_DIR / "virtuals_agent_dataset.csv"
 
-DB_URL = "postgresql://postgres.gfsnypfotobxmldlywet:Ibuildmaiat49@aws-0-us-west-2.pooler.supabase.com:6543/postgres"
+DB_URL = os.environ["DATABASE_URL"]
 
 random.seed(42)
 
