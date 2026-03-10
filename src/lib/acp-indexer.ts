@@ -42,6 +42,7 @@ export interface AcpAgent {
   revenue?: number | null;
   transactionCount?: number | null;
   rating?: number | null;
+  tokenAddress?: string | null;
 }
 
 export interface AgentScore {
@@ -155,6 +156,7 @@ export function computeTrustScore(agent: AcpAgent, existingRawMetrics?: Record<s
       revenue: agent.revenue,
       transactionCount: agent.transactionCount,
       rating: agent.rating,
+      tokenAddress: agent.tokenAddress,
       indexedAt: new Date().toISOString(),
     },
   };
@@ -380,6 +382,9 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
         priceData: (existing as any)?.priceData ?? undefined,
       };
 
+      // Extract tokenAddress from rawMetrics (comes from ACP API)
+      const tokenAddr = (s.rawMetrics as any)?.tokenAddress as string | null | undefined;
+
       await prisma.agentScore.upsert({
         where: { walletAddress: s.walletAddress },
         update: {
@@ -390,6 +395,7 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
           totalJobs: s.totalJobs,
           dataSource: "ACP_BEHAVIORAL",
           rawMetrics: mergedRaw,
+          ...(tokenAddr ? { tokenAddress: tokenAddr } : {}),
         },
         create: {
           walletAddress: s.walletAddress,
@@ -400,6 +406,7 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
           totalJobs: s.totalJobs,
           dataSource: "ACP_BEHAVIORAL",
           rawMetrics: mergedRaw,
+          ...(tokenAddr ? { tokenAddress: tokenAddr } : {}),
         },
       });
       written++;
