@@ -38,7 +38,7 @@ DATA_DIR    = SCRIPT_DIR.parent / "data"
 MODELS_DIR  = SCRIPT_DIR.parent / "models"
 CACHE_FILE  = DATA_DIR / "dex_cache.json"
 
-DB_URL = "postgresql://postgres.gfsnypfotobxmldlywet:Ibuildmaiat49@aws-0-us-west-2.pooler.supabase.com:6543/postgres"
+DB_URL = os.environ["DATABASE_URL"]
 ALCHEMY_KEY  = "okgmVpKT-5iqER0g5yjyn"
 ALCHEMY_BASE = f"https://base-mainnet.g.alchemy.com/v2/{ALCHEMY_KEY}"
 DEXSCREENER_URL = "https://api.dexscreener.com/latest/dex/tokens/{}"
