@@ -423,6 +423,7 @@ useEffect(() => {
 
 const { data: agentsData } = useSWR('/api/v1/agents?limit=1000&include8004=true', fetcher, { refreshInterval: 30000 });
 const [fallbackAgent, setFallbackAgent] = useState<any>(null);
+const [directSelectedId, setDirectSelectedId] = useState<string | null>(null);
 
 const radarAgents = useMemo<AgentNode[]>(() => {
   if (!agentsData?.agents) return [];
