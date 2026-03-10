@@ -94,35 +94,42 @@ export function computeTrustScore(agent: AcpAgent, existingRawMetrics?: Record<s
   // Diversity factor: multiple unique buyers = more trustworthy
   const diversityFactor = Math.min(buyerCount / 5, 1);
 
-  // ─── Wadjet Price Health Signal ─────────────────────────────────────────
-  // Reads priceData from existing DB rawMetrics (indexed by Wadjet/DexScreener)
-  // Score modifier: -15 to +10 points
+  // ─── Wadjet Health Signals ───────────────────────────────────────────────
+  // Reads priceData + healthSignals from existing DB rawMetrics (indexed by Wadjet)
+  
+  // 1. Price modifier: -15 to +10 points
   let priceModifier = 0;
   const priceData = existingRawMetrics?.priceData as Record<string, number> | undefined;
   if (priceData && typeof priceData.priceChange24h === 'number') {
     const change24h = priceData.priceChange24h;
     const liquidity = priceData.liquidity ?? 0;
 
-    // Crash penalty: -30% or worse → up to -15 points
     if (change24h <= -50) priceModifier = -15;
     else if (change24h <= -30) priceModifier = -10;
     else if (change24h <= -15) priceModifier = -5;
-    // Stability bonus: positive or flat + decent liquidity → up to +10
     else if (change24h >= 0 && liquidity >= 50000) priceModifier = 10;
     else if (change24h >= -5 && liquidity >= 10000) priceModifier = 5;
 
-    // Low liquidity penalty (easy to manipulate)
     if (liquidity > 0 && liquidity < 1000) priceModifier = Math.min(priceModifier, -5);
   }
 
-  // ACP Score (0-100) + Wadjet price modifier
+  // 2. Health signals modifier: completion trend + LP drain + volatility
+  let healthModifier = 0;
+  const healthSignals = existingRawMetrics?.healthSignals as Record<string, unknown> | undefined;
+  if (healthSignals && typeof healthSignals.totalModifier === 'number') {
+    healthModifier = healthSignals.totalModifier;
+  }
+
+  // ACP Score (0-100) + Wadjet modifiers (price + health)
   const rawScore =
     completionRate * 40 + // did they finish jobs?
     volumeFactor * 25 +   // how many jobs?
     diversityFactor * 20 + // diverse buyers?
     paymentRate * 15;      // payment proxy
 
-  const score = Math.round(Math.min(Math.max(rawScore + priceModifier, 0), 100));
+  // Cap total Wadjet modifier to ±20 to prevent overwhelming ACP behavioral data
+  const wadjetModifier = Math.max(-20, Math.min(20, priceModifier + healthModifier));
+  const score = Math.round(Math.min(Math.max(rawScore + wadjetModifier, 0), 100));
 
   return {
     walletAddress: agent.walletAddress,
