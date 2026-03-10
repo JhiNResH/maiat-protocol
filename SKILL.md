@@ -100,6 +100,7 @@ No install, no CLI, no API key needed. Available tools via MCP:
 | `get_agent_reputation` | Community reviews, sentiment, and market consensus for any agent |
 | `report_outcome` | Close the feedback loop after using an agent (earns 5 🪲 Scarab) |
 | `get_agent_price` | Token price, volume, liquidity + crash alerts for any agent |
+| `get_rug_prediction` | Rug pull probability score + risk signal breakdown (Wadjet engine) |
 | `get_scarab_balance` | Check Scarab reputation points for a wallet |
 | `submit_review` | Submit a review for any agent (with quality scoring) |
 | `vote_review` | Upvote or downvote an existing review |
@@ -236,8 +237,9 @@ Body: { name?, email?, address? }
 ```
 GET  /api/v1/agent/{address}           → trust score + verdict + feedback.queryId (includes deep data)
 GET  /api/v1/agent/{address}/deep      → + percentile, risk flags, tier
-GET  /api/v1/agent/{address}/price     → token price, volume, liquidity, 24h change + crash alerts
-GET  /api/v1/agent/token-map/{token}   → token address → agent wallet reverse lookup
+GET  /api/v1/agent/{address}/price          → token price, volume, liquidity, 24h change + crash alerts
+GET  /api/v1/agent/{address}/rug-prediction → rug pull probability + risk signals (Wadjet)
+GET  /api/v1/agent/token-map/{token}        → token address → agent wallet reverse lookup
 GET  /api/v1/agents?sort=trust&limit=50&search=name   → list all indexed agents
 ```
 
