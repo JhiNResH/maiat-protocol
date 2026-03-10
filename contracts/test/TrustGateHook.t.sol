@@ -11,6 +11,7 @@ import {IHooks} from "v4-core/interfaces/IHooks.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {SwapParams} from "v4-core/types/PoolOperation.sol";
 import {LPFeeLibrary} from "v4-core/libraries/LPFeeLibrary.sol";
+import {Hooks} from "v4-core/libraries/Hooks.sol";
 
 contract TrustGateHookTest is Test {
     TrustGateHook public hook;
@@ -22,13 +23,17 @@ contract TrustGateHookTest is Test {
     address public token0 = address(0x2);
     address public token1 = address(0x3);
     address public mockPoolManager = address(0xBEEF);
+    address public trustedRouter = address(0x1234);
 
     uint256 constant DEFAULT_THRESHOLD = 30;
+    uint256 constant TIMELOCK_DELAY = 24 hours;
 
-    event DynamicFeeApplied(address indexed swapper, uint256 feeBps);
+    event DynamicFeeApplied(address indexed feeTarget, uint256 feeBps);
     event TrustGateChecked(address indexed token, uint256 score, bool passed);
-    event SwapBlocked(address indexed token, uint256 score, uint256 threshold);
     event ThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
+    event ThresholdProposed(uint256 newThreshold, uint256 executeAfter);
+    event ThresholdCancelled(uint256 proposedThreshold);
+    event TrustedRouterUpdated(address indexed router, bool trusted);
 
     function setUp() public {
         oracle = new TrustScoreOracle(owner);
@@ -56,6 +61,13 @@ contract TrustGateHookTest is Test {
         return SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: 0});
     }
 
+    /// @dev Helper: propose + warp + execute threshold change
+    function _executeThreshold(uint256 newThreshold) internal {
+        hook.proposeThreshold(newThreshold);
+        vm.warp(block.timestamp + TIMELOCK_DELAY + 1);
+        hook.executeThreshold();
+    }
+
     // ─── Constructor ───────────────────────────────────────────
 
     function test_Constructor_ZeroOracleReverts() public {
@@ -69,7 +81,6 @@ contract TrustGateHookTest is Test {
     }
 
     function test_Constructor_ZeroOwnerReverts() public {
-        // Ownable base constructor reverts before our custom check runs
         vm.expectRevert();
         new TrustGateHook(oracle, IPoolManager(mockPoolManager), address(0));
     }
@@ -86,39 +97,196 @@ contract TrustGateHookTest is Test {
         assertEq(address(hook.poolManager()), mockPoolManager);
     }
 
-    // ─── updateThreshold ───────────────────────────────────────
+    function test_Constructor_NoThresholdPending() public view {
+        assertFalse(hook.hasThresholdPending());
+    }
 
-    function test_UpdateThreshold_Success() public {
-        hook.updateThreshold(70);
+    // ─── proposeThreshold (MAIAT-005) ──────────────────────────
+
+    function test_ProposeThreshold_Success() public {
+        vm.expectEmit(false, false, false, true);
+        emit ThresholdProposed(70, block.timestamp + TIMELOCK_DELAY);
+        hook.proposeThreshold(70);
+
+        assertTrue(hook.hasThresholdPending());
+        assertEq(hook.pendingThreshold(), 70);
+        assertEq(hook.pendingThresholdTimestamp(), block.timestamp);
+    }
+
+    function test_ProposeThreshold_Zero_Reverts() public {
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__ThresholdTooLow.selector, 0));
+        hook.proposeThreshold(0);
+    }
+
+    function test_ProposeThreshold_Hundred_Accepted() public {
+        hook.proposeThreshold(100);
+        assertTrue(hook.hasThresholdPending());
+        assertEq(hook.pendingThreshold(), 100);
+    }
+
+    function test_ProposeThreshold_InvalidReverts() public {
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__InvalidThreshold.selector, 101));
+        hook.proposeThreshold(101);
+    }
+
+    function test_ProposeThreshold_NotOwnerReverts() public {
+        vm.prank(attacker);
+        vm.expectRevert();
+        hook.proposeThreshold(70);
+    }
+
+    function test_ProposeThreshold_OverridesPendingChange() public {
+        hook.proposeThreshold(70);
+        // New proposal overrides the existing one (resets timer)
+        vm.warp(block.timestamp + 1 hours);
+        hook.proposeThreshold(80);
+        assertEq(hook.pendingThreshold(), 80);
+        assertEq(hook.pendingThresholdTimestamp(), block.timestamp);
+    }
+
+    // ─── executeThreshold (MAIAT-005) ──────────────────────────
+
+    function test_ExecuteThreshold_Success() public {
+        hook.proposeThreshold(70);
+        vm.warp(block.timestamp + TIMELOCK_DELAY + 1);
+
+        vm.expectEmit(false, false, false, true);
+        emit ThresholdUpdated(DEFAULT_THRESHOLD, 70);
+        hook.executeThreshold();
+
+        assertEq(hook.trustThreshold(), 70);
+        assertFalse(hook.hasThresholdPending());
+        assertEq(hook.pendingThreshold(), 0);
+        assertEq(hook.pendingThresholdTimestamp(), 0);
+    }
+
+    function test_ExecuteThreshold_BeforeDelay_Reverts() public {
+        hook.proposeThreshold(70);
+        uint256 executeAfter = block.timestamp + TIMELOCK_DELAY;
+
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__TimelockNotExpired.selector, executeAfter));
+        hook.executeThreshold();
+    }
+
+    function test_ExecuteThreshold_ExactDelay_Reverts() public {
+        hook.proposeThreshold(70);
+        uint256 executeAfter = block.timestamp + TIMELOCK_DELAY;
+        vm.warp(executeAfter); // exactly at boundary — not past
+
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__TimelockNotExpired.selector, executeAfter));
+        hook.executeThreshold();
+    }
+
+    function test_ExecuteThreshold_AfterExactDelay_Passes() public {
+        hook.proposeThreshold(70);
+        vm.warp(block.timestamp + TIMELOCK_DELAY + 1);
+        hook.executeThreshold();
         assertEq(hook.trustThreshold(), 70);
     }
 
-    function test_UpdateThreshold_Zero_Reverts() public {
-        // threshold=0 would silently disable the trust gate — now rejected
-        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__ThresholdTooLow.selector, 0));
-        hook.updateThreshold(0);
+    function test_ExecuteThreshold_NoPending_Reverts() public {
+        vm.expectRevert(TrustGateHook.TrustGateHook__NoPendingThreshold.selector);
+        hook.executeThreshold();
     }
 
-    function test_UpdateThreshold_Hundred() public {
-        hook.updateThreshold(100);
-        assertEq(hook.trustThreshold(), 100);
-    }
-
-    function test_UpdateThreshold_InvalidReverts() public {
-        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__InvalidThreshold.selector, 101));
-        hook.updateThreshold(101);
-    }
-
-    function test_UpdateThreshold_NotOwnerReverts() public {
+    function test_ExecuteThreshold_NotOwnerReverts() public {
+        hook.proposeThreshold(70);
+        vm.warp(block.timestamp + TIMELOCK_DELAY + 1);
         vm.prank(attacker);
         vm.expectRevert();
-        hook.updateThreshold(70);
+        hook.executeThreshold();
     }
 
-    function test_UpdateThreshold_EmitsEvent() public {
+    // ─── cancelThreshold (MAIAT-005) ───────────────────────────
+
+    function test_CancelThreshold_Success() public {
+        hook.proposeThreshold(70);
+        assertTrue(hook.hasThresholdPending());
+
         vm.expectEmit(false, false, false, true);
-        emit ThresholdUpdated(DEFAULT_THRESHOLD, 80);
-        hook.updateThreshold(80);
+        emit ThresholdCancelled(70);
+        hook.cancelThreshold();
+
+        assertFalse(hook.hasThresholdPending());
+        assertEq(hook.pendingThreshold(), 0);
+        assertEq(hook.pendingThresholdTimestamp(), 0);
+        // Original threshold unchanged
+        assertEq(hook.trustThreshold(), DEFAULT_THRESHOLD);
+    }
+
+    function test_CancelThreshold_NoPending_Reverts() public {
+        vm.expectRevert(TrustGateHook.TrustGateHook__NoPendingThreshold.selector);
+        hook.cancelThreshold();
+    }
+
+    function test_CancelThreshold_NotOwnerReverts() public {
+        hook.proposeThreshold(70);
+        vm.prank(attacker);
+        vm.expectRevert();
+        hook.cancelThreshold();
+    }
+
+    function test_CancelThreshold_CanRepropose() public {
+        hook.proposeThreshold(70);
+        hook.cancelThreshold();
+        // Should be able to propose again after cancel
+        hook.proposeThreshold(80);
+        assertTrue(hook.hasThresholdPending());
+        assertEq(hook.pendingThreshold(), 80);
+    }
+
+    // ─── Threshold timelock prevents instant manipulation ───────
+
+    function test_Timelock_PreventsAtomicThresholdManipulation() public {
+        // Set scam token score to 10
+        oracle.updateTokenScore(token0, 10, 5, 200, TrustScoreOracle.DataSource.API);
+        oracle.updateTokenScore(token1, 80, 50, 400, TrustScoreOracle.DataSource.VERIFIED);
+
+        // Try to atomically lower threshold to 1 (in same block)
+        hook.proposeThreshold(1);
+        uint256 timelockExpiry = block.timestamp + TIMELOCK_DELAY;
+
+        // Cannot execute immediately — timelock not expired
+        vm.prank(mockPoolManager);
+        vm.expectRevert(); // TrustScoreTooLow: token0 score=10 < threshold=30
+        hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
+
+        // Still blocked even after proposing — cannot execute before 24h
+        vm.expectRevert(
+            abi.encodeWithSelector(TrustGateHook.TrustGateHook__TimelockNotExpired.selector, timelockExpiry)
+        );
+        hook.executeThreshold();
+    }
+
+    // ─── setTrustedRouter (MAIAT-004) ──────────────────────────
+
+    function test_SetTrustedRouter_Success() public {
+        assertFalse(hook.trustedRouters(trustedRouter));
+
+        vm.expectEmit(true, false, false, true);
+        emit TrustedRouterUpdated(trustedRouter, true);
+        hook.setTrustedRouter(trustedRouter, true);
+
+        assertTrue(hook.trustedRouters(trustedRouter));
+    }
+
+    function test_SetTrustedRouter_Revoke() public {
+        hook.setTrustedRouter(trustedRouter, true);
+        assertTrue(hook.trustedRouters(trustedRouter));
+
+        hook.setTrustedRouter(trustedRouter, false);
+        assertFalse(hook.trustedRouters(trustedRouter));
+    }
+
+    function test_SetTrustedRouter_ZeroAddress_Reverts() public {
+        vm.expectRevert(TrustGateHook.TrustGateHook__ZeroAddress.selector);
+        hook.setTrustedRouter(address(0), true);
+    }
+
+    function test_SetTrustedRouter_NotOwnerReverts() public {
+        vm.prank(attacker);
+        vm.expectRevert();
+        hook.setTrustedRouter(trustedRouter, true);
     }
 
     // ─── beforeSwap: access control ────────────────────────────
@@ -153,21 +321,20 @@ contract TrustGateHookTest is Test {
     }
 
     function test_BeforeSwap_Token0LowScore_Reverts() public {
-        _setScores(10, 90); // token0 score 10 < threshold 30
+        _setScores(10, 90);
         vm.prank(mockPoolManager);
         vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token0, 10, DEFAULT_THRESHOLD));
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
     }
 
     function test_BeforeSwap_Token1LowScore_Reverts() public {
-        _setScores(80, 10); // token1 score 10 < threshold 30
+        _setScores(80, 10);
         vm.prank(mockPoolManager);
         vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token1, 10, DEFAULT_THRESHOLD));
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
     }
 
     function test_BeforeSwap_UnregisteredToken_Reverts() public {
-        // Score 0 < threshold 30 → denied
         vm.prank(mockPoolManager);
         vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token0, 0, DEFAULT_THRESHOLD));
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
@@ -179,7 +346,9 @@ contract TrustGateHookTest is Test {
         vm.expectRevert();
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
 
-        hook.updateThreshold(5); // now passes
+        // MAIAT-005: threshold change requires timelock
+        _executeThreshold(5); // now passes
+
         vm.prank(mockPoolManager);
         (bytes4 sel,,) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
         assertEq(sel, IHooks.beforeSwap.selector);
@@ -189,7 +358,6 @@ contract TrustGateHookTest is Test {
 
     function test_BeforeSwap_NewUserGetsBaseFee() public {
         _setScores(80, 80);
-        // swapper has no reputation → BASE_FEE = 50 bps → lpFeeOverride = 5000
         vm.prank(mockPoolManager);
         (,, uint24 fee) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
         assertEq(fee, uint24(50 * 100) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
@@ -197,7 +365,7 @@ contract TrustGateHookTest is Test {
 
     function test_BeforeSwap_TrustedUserGetsTrustedFee() public {
         _setScores(80, 80);
-        oracle.updateUserReputation(swapper, 25, 5, 100); // 10 <= 25 < 50 → TRUSTED_FEE = 30 bps
+        oracle.updateUserReputation(swapper, 25, 5, 100);
 
         vm.prank(mockPoolManager);
         (,, uint24 fee) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
@@ -206,7 +374,7 @@ contract TrustGateHookTest is Test {
 
     function test_BeforeSwap_VerifiedUserGetsVerifiedFee() public {
         _setScores(80, 80);
-        oracle.updateUserReputation(swapper, 100, 20, 500); // 50 <= 100 < 200 → VERIFIED_FEE = 10 bps
+        oracle.updateUserReputation(swapper, 100, 20, 500);
 
         vm.prank(mockPoolManager);
         (,, uint24 fee) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
@@ -215,7 +383,7 @@ contract TrustGateHookTest is Test {
 
     function test_BeforeSwap_GuardianUserGetsZeroFee() public {
         _setScores(80, 80);
-        oracle.updateUserReputation(swapper, 250, 50, 10000); // >= 200 → GUARDIAN_FEE = 0 bps
+        oracle.updateUserReputation(swapper, 250, 50, 10000);
 
         vm.prank(mockPoolManager);
         (,, uint24 fee) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
@@ -250,7 +418,6 @@ contract TrustGateHookTest is Test {
     // ─── Seed data source protection ─────────────────────────────
 
     function test_BeforeSwap_SeedDataSource_Reverts() public {
-        // High score but from seed data → should be rejected
         oracle.updateTokenScore(token0, 90, 10, 400, TrustScoreOracle.DataSource.SEED);
         oracle.updateTokenScore(token1, 90, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
         vm.prank(mockPoolManager);
@@ -266,33 +433,73 @@ contract TrustGateHookTest is Test {
         assertEq(sel, IHooks.beforeSwap.selector);
     }
 
-    // ─── Fuzz ──────────────────────────────────────────────────
+    // ─── MAIAT-004: Trusted Router + hookData ──────────────────
 
-    // ─── beforeSwap: hookData per-user fee ─────────────────────
-
-    function test_BeforeSwap_HookData_PerUserFee() public {
+    /// @dev After MAIAT-004 fix: untrusted router hookData is IGNORED.
+    ///      The fee is applied based on sender (router) directly.
+    function test_BeforeSwap_UntrustedRouter_HookDataIgnored() public {
         _setScores(80, 80);
 
-        // Give a high-rep user guardian-level fee
         address highRepUser = address(0xBEEF);
-        oracle.updateUserReputation(highRepUser, 200, 50, 1000);
+        oracle.updateUserReputation(highRepUser, 200, 50, 1000); // Guardian tier
 
-        // Swapper (router) has base fee by default
-        // Encode highRepUser in hookData
+        // swapper (router) has base fee by default
+        // Encode highRepUser in hookData — but swapper is NOT trusted → should be ignored
         bytes memory hookData = abi.encode(highRepUser);
 
         vm.prank(mockPoolManager);
         (,, uint24 fee) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
 
-        // Fee should reflect highRepUser's tier (GUARDIAN = 0%), not swapper's (BASE = 0.5%)
-        uint256 expectedFee = oracle.GUARDIAN_FEE(); // 0
+        // Fee should be swapper's fee (BASE_FEE = 50 bps), NOT highRepUser's (0%)
+        uint256 expectedFee = oracle.BASE_FEE(); // 50
         assertEq(fee, uint24(expectedFee * 100) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
+    }
+
+    /// @dev MAIAT-004: Trusted router hookData IS respected — per-user fee applied correctly.
+    function test_BeforeSwap_TrustedRouter_HookDataRespected() public {
+        _setScores(80, 80);
+
+        address highRepUser = address(0xBEEF);
+        oracle.updateUserReputation(highRepUser, 200, 50, 1000); // Guardian tier
+
+        // Register swapper as trusted router
+        hook.setTrustedRouter(swapper, true);
+
+        bytes memory hookData = abi.encode(highRepUser);
+
+        vm.prank(mockPoolManager);
+        (,, uint24 fee) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+
+        // Fee should reflect highRepUser's Guardian tier (0%)
+        assertEq(fee, uint24(0) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
+    }
+
+    /// @dev MAIAT-004: After revoking trust, hookData is ignored again.
+    function test_BeforeSwap_RevokedRouter_HookDataIgnored() public {
+        _setScores(80, 80);
+
+        address highRepUser = address(0xBEEF);
+        oracle.updateUserReputation(highRepUser, 200, 50, 1000);
+
+        hook.setTrustedRouter(swapper, true);
+        bytes memory hookData = abi.encode(highRepUser);
+
+        // Works while trusted
+        vm.prank(mockPoolManager);
+        (,, uint24 fee1) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+        assertEq(fee1, uint24(0) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
+
+        // Revoke trust
+        hook.setTrustedRouter(swapper, false);
+
+        // Now hookData is ignored — fee falls back to swapper (BASE_FEE)
+        vm.prank(mockPoolManager);
+        (,, uint24 fee2) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+        assertEq(fee2, uint24(50 * 100) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
     }
 
     function test_BeforeSwap_EmptyHookData_FallsBackToSender() public {
         _setScores(80, 80);
-
-        // Set router (swapper) to verified tier
         oracle.updateUserReputation(swapper, 50, 10, 0);
 
         vm.prank(mockPoolManager);
@@ -302,15 +509,25 @@ contract TrustGateHookTest is Test {
         assertEq(fee, uint24(expectedFee * 100) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
     }
 
+    function test_BeforeSwap_TrustedRouter_EmptyHookData_FallsBackToSender() public {
+        _setScores(80, 80);
+        hook.setTrustedRouter(swapper, true);
+        oracle.updateUserReputation(swapper, 50, 10, 0); // VERIFIED tier
+
+        vm.prank(mockPoolManager);
+        (,, uint24 fee) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
+
+        // Empty hookData → fallback to swapper (trusted router itself)
+        uint256 expectedFee = oracle.getUserFee(swapper); // VERIFIED = 10 bps
+        assertEq(fee, uint24(expectedFee * 100) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
+    }
+
     // ─── beforeSwap: stale oracle score ────────────────────────
 
     function test_BeforeSwap_StaleScore_BlocksSwap() public {
         _setScores(80, 80);
-
-        // Warp past SCORE_MAX_AGE
         vm.warp(block.timestamp + 7 days + 1);
 
-        // Should revert due to stale oracle score
         vm.prank(mockPoolManager);
         vm.expectRevert();
         hook.beforeSwap(swapper, _makeKey(), _makeParams(), "");
@@ -320,7 +537,7 @@ contract TrustGateHookTest is Test {
         _setScores(80, 80);
         vm.warp(block.timestamp + 7 days + 1);
 
-        // Refresh scores
+        // Refresh scores — warp already > MIN_UPDATE_INTERVAL, delta 0 ≤ 20
         _setScores(80, 80);
 
         vm.prank(mockPoolManager);
@@ -328,13 +545,39 @@ contract TrustGateHookTest is Test {
         assertEq(sel, IHooks.beforeSwap.selector);
     }
 
+    // ─── getHookPermissions ────────────────────────────────────
+
+    function test_GetHookPermissions_OnlyBeforeSwapEnabled() public view {
+        // MAIAT-013: Verify exact permissions bitmap — only beforeSwap should be true
+        // Incorrect permissions could silently disable the trust gate
+        Hooks.Permissions memory perms = hook.getHookPermissions();
+        assertFalse(perms.beforeInitialize);
+        assertFalse(perms.afterInitialize);
+        assertFalse(perms.beforeAddLiquidity);
+        assertFalse(perms.afterAddLiquidity);
+        assertFalse(perms.beforeRemoveLiquidity);
+        assertFalse(perms.afterRemoveLiquidity);
+        assertTrue(perms.beforeSwap); // ← Only this should be true
+        assertFalse(perms.afterSwap);
+        assertFalse(perms.beforeDonate);
+        assertFalse(perms.afterDonate);
+        assertFalse(perms.beforeSwapReturnDelta);
+        assertFalse(perms.afterSwapReturnDelta);
+        assertFalse(perms.afterAddLiquidityReturnDelta);
+        assertFalse(perms.afterRemoveLiquidityReturnDelta);
+    }
+
+    // ─── Fuzz ──────────────────────────────────────────────────
+
     function testFuzz_ScoreThreshold(uint256 score, uint256 threshold) public {
         score = bound(score, 0, 100);
-        threshold = bound(threshold, hook.MIN_THRESHOLD(), 100); // 0 is now rejected
+        threshold = bound(threshold, hook.MIN_THRESHOLD(), 100);
 
         oracle.updateTokenScore(token0, score, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateTokenScore(token1, score, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
-        hook.updateThreshold(threshold);
+
+        // MAIAT-005: use timelock pattern
+        _executeThreshold(threshold);
 
         vm.prank(mockPoolManager);
         if (score >= threshold) {
@@ -368,3 +611,5 @@ contract TrustGateHookTest is Test {
         assertEq(fee, uint24(expectedBps * 100) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
     }
 }
+
+
