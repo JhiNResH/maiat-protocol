@@ -16,6 +16,7 @@ interface MarketCardProps {
   status: 'open' | 'closed' | 'resolved'
   totalPool: number
   positionCount: number
+  voterCount?: number
   closesAt: string
   topProjects?: TopProject[]
   agentParam?: string
@@ -79,6 +80,7 @@ export function MarketCard({
   status,
   totalPool,
   positionCount,
+  voterCount,
   closesAt,
   topProjects = [],
   projectNames = {},
@@ -130,7 +132,7 @@ export function MarketCard({
         <div className="flex items-center gap-1.5">
           <Users className="w-3 h-3 text-[#666666]" />
           <span className="text-xs font-mono text-[#666666]">
-            {positionCount}
+            {voterCount ?? positionCount}
           </span>
         </div>
 
