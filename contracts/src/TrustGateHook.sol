@@ -34,12 +34,7 @@ import {Ownable2Step, Ownable} from "openzeppelin-contracts/contracts/access/Own
 /// @dev SENDER NOTE: In Uniswap V4, the `sender` parameter in hook callbacks is
 ///      the ROUTER (e.g. UniversalRouter), NOT the end user. Fee discounts based on
 ///      `sender` apply per-router, not per-user. To apply per-user discounts, encode
-///      the user address in `hookData` via a TRUSTED router (MAIAT-004).
-///
-/// @dev MAIAT-004: hookData user address is only decoded if `msg.sender` (the router)
-///      is registered in `trustedRouters`. Untrusted routers have hookData ignored.
-///
-/// @dev MAIAT-005: trustThreshold changes are timelocked (24h delay via propose → execute).
+///      the user address in `hookData` via a trusted router.
 contract TrustGateHook is BaseHook, Ownable2Step {
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
     using LPFeeLibrary for uint24;
@@ -53,20 +48,18 @@ contract TrustGateHook is BaseHook, Ownable2Step {
 
     /// @notice Minimum allowed trust threshold — prevents silently disabling the gate
     uint256 public constant MIN_THRESHOLD = 1;
+    /// @notice Delay required between proposing and executing a threshold change.
+    ///         Prevents flash-lowering the gate to let a malicious token through.
+    uint256 public constant THRESHOLD_UPDATE_DELAY = 1 days;
 
-    // MAIAT-004: Trusted router registry
-    /// @notice Routers registered here may pass user addresses via hookData for per-user fees.
-    ///         Untrusted routers: hookData is ignored, fee applied based on sender directly.
-    mapping(address => bool) public trustedRouters;
+    /// @notice Routers authorized to supply a per-user address in hookData.
+    ///         Prevents arbitrary callers from spoofing a high-reputation feeTarget.
+    mapping(address => bool) public allowedRouters;
 
-    // MAIAT-005: Threshold change timelock (24h delay)
-    uint256 public constant THRESHOLD_TIMELOCK_DELAY = 24 hours;
-    /// @notice Pending new threshold value (0 if no pending change)
+    /// @notice Pending threshold value (0 = no pending update)
     uint256 public pendingThreshold;
-    /// @notice Timestamp when the threshold was proposed (0 if no pending change)
-    uint256 public pendingThresholdTimestamp;
-    /// @notice True if a threshold change is pending and awaiting execution
-    bool public hasThresholdPending;
+    /// @notice Timestamp after which pendingThreshold can be executed
+    uint256 public pendingThresholdTime;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -74,16 +67,13 @@ contract TrustGateHook is BaseHook, Ownable2Step {
 
     /// @notice Emitted when a token passes the trust gate (swap allowed)
     event TrustGateChecked(address indexed token, uint256 score, bool passed);
-    /// @notice Emitted when a threshold change is applied (MAIAT-005)
+    /// @notice Emitted when a threshold update is applied
     event ThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
-    /// @notice Emitted when a threshold change is proposed (MAIAT-005)
     event ThresholdProposed(uint256 newThreshold, uint256 executeAfter);
-    /// @notice Emitted when a pending threshold change is cancelled (MAIAT-005)
-    event ThresholdCancelled(uint256 proposedThreshold);
     /// @notice Emitted when a dynamic fee is applied to a swap
-    event DynamicFeeApplied(address indexed feeTarget, uint256 feeBps);
-    /// @notice Emitted when a trusted router is added or removed (MAIAT-004)
-    event TrustedRouterUpdated(address indexed router, bool trusted);
+    event DynamicFeeApplied(address indexed router, uint256 feeBps);
+    /// @notice Emitted when a router's hookData allowance is changed
+    event RouterAllowanceUpdated(address indexed router, bool allowed);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -95,10 +85,9 @@ contract TrustGateHook is BaseHook, Ownable2Step {
     error TrustGateHook__ThresholdTooLow(uint256 threshold);
     /// @notice Reverts when a token's score originates from unverified seed/baseline data
     error TrustGateHook__SeedScoreRejected(address token);
-    /// @notice MAIAT-005: Reverts when executeThreshold is called before the 24h delay expires
-    error TrustGateHook__TimelockNotExpired(uint256 executeAfter);
-    /// @notice MAIAT-005: Reverts when executeThreshold/cancelThreshold is called with no pending change
-    error TrustGateHook__NoPendingThreshold();
+    error TrustGateHook__ZeroAddressRouter();
+    error TrustGateHook__NoThresholdPending();
+    error TrustGateHook__ThresholdTimelockNotExpired(uint256 executeAfter);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -147,62 +136,37 @@ contract TrustGateHook is BaseHook, Ownable2Step {
                         USER-FACING STATE-CHANGING FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Register or remove a trusted router (MAIAT-004)
-    /// @dev Only trusted routers may pass a user address in hookData for per-user fee discounts.
-    ///      When a router is removed (trusted = false), its hookData will be ignored in future swaps.
-    /// @param router The router contract address to register or deregister
-    /// @param trusted True to trust the router, false to revoke
-    function setTrustedRouter(address router, bool trusted) external onlyOwner {
-        if (router == address(0)) revert TrustGateHook__ZeroAddress();
-        trustedRouters[router] = trusted;
-        emit TrustedRouterUpdated(router, trusted);
+    /// @notice Allow or revoke a router's ability to supply per-user addresses in hookData.
+    ///         Only routers on this list can override the fee target via hookData.
+    function setRouterAllowance(address router, bool allowed) external onlyOwner {
+        if (router == address(0)) revert TrustGateHook__ZeroAddressRouter();
+        allowedRouters[router] = allowed;
+        emit RouterAllowanceUpdated(router, allowed);
     }
 
-    /// @notice Propose a new minimum trust threshold (MAIAT-005)
-    /// @dev Initiates a 24-hour timelock. Validation happens at proposal time.
-    ///      A new proposal overrides any existing pending change (resets the timer).
-    ///      Call executeThreshold() after 24h to apply, or cancelThreshold() to abort.
+    /// @notice Propose a new trust threshold. Executes after THRESHOLD_UPDATE_DELAY (1 day).
+    ///         Prevents flash-lowering the gate: an attacker cannot drop the threshold
+    ///         in the same block as a malicious swap.
     /// @param newThreshold Must be between MIN_THRESHOLD (1) and 100 inclusive
     function proposeThreshold(uint256 newThreshold) external onlyOwner {
         if (newThreshold > 100) revert TrustGateHook__InvalidThreshold(newThreshold);
         if (newThreshold < MIN_THRESHOLD) revert TrustGateHook__ThresholdTooLow(newThreshold);
-
         pendingThreshold = newThreshold;
-        pendingThresholdTimestamp = block.timestamp;
-        hasThresholdPending = true;
-
-        emit ThresholdProposed(newThreshold, block.timestamp + THRESHOLD_TIMELOCK_DELAY);
+        pendingThresholdTime = block.timestamp + THRESHOLD_UPDATE_DELAY;
+        emit ThresholdProposed(newThreshold, pendingThresholdTime);
     }
 
-    /// @notice Apply the proposed threshold change after the 24-hour timelock (MAIAT-005)
-    /// @dev Reverts if no change is pending or the delay has not elapsed.
-    function executeThreshold() external onlyOwner {
-        if (!hasThresholdPending) revert TrustGateHook__NoPendingThreshold();
-        uint256 executeAfter = pendingThresholdTimestamp + THRESHOLD_TIMELOCK_DELAY;
-        if (block.timestamp <= executeAfter) revert TrustGateHook__TimelockNotExpired(executeAfter);
-
+    /// @notice Execute a previously proposed threshold change after the timelock expires.
+    function executeThresholdUpdate() external onlyOwner {
+        if (pendingThreshold == 0) revert TrustGateHook__NoThresholdPending();
+        if (block.timestamp < pendingThresholdTime) {
+            revert TrustGateHook__ThresholdTimelockNotExpired(pendingThresholdTime);
+        }
         uint256 old = trustThreshold;
         trustThreshold = pendingThreshold;
-
-        // Clear pending state
-        hasThresholdPending = false;
         pendingThreshold = 0;
-        pendingThresholdTimestamp = 0;
-
+        pendingThresholdTime = 0;
         emit ThresholdUpdated(old, trustThreshold);
-    }
-
-    /// @notice Cancel a pending threshold change (MAIAT-005)
-    /// @dev Can be called at any time before execution to abort a proposed change.
-    function cancelThreshold() external onlyOwner {
-        if (!hasThresholdPending) revert TrustGateHook__NoPendingThreshold();
-        uint256 cancelled = pendingThreshold;
-
-        hasThresholdPending = false;
-        pendingThreshold = 0;
-        pendingThresholdTimestamp = 0;
-
-        emit ThresholdCancelled(cancelled);
     }
 
     /// @notice beforeSwap: trust-gate tokens + apply reputation-based dynamic fee
@@ -211,15 +175,19 @@ contract TrustGateHook is BaseHook, Ownable2Step {
     ///      so V4 actually applies the returned fee value.
     ///
     ///      `sender` is the router address, not the end user.
-    ///      For per-user fees, the TRUSTED router must abi.encode(userAddress) in hookData.
-    ///      If the sender is not a trusted router, hookData is ignored and fee uses sender.
-    ///      If hookData is empty or <32 bytes, fee falls back to sender regardless of trust.
+    ///      For per-user fees, encode the user address in hookData as abi.encode(userAddress).
+    ///      If hookData is empty or <32 bytes, fee is based on the router (`sender`).
     ///
     /// @dev SEED SCORES: Tokens with DataSource.SEED (unverified baseline) are rejected.
     ///      The updater must submit a verified score before the token can be swapped.
     ///
     /// @dev STALE SCORES: If oracle.getScore() reverts with StaleScore, the swap is BLOCKED.
-    ///      This is conservative by design — a stale score cannot be trusted.
+    ///      This is conservative by design — a stale score cannot be trusted. The updater
+    ///      service should refresh scores within SCORE_MAX_AGE (7 days).
+    ///
+    /// @dev NOTE on events + revert: SwapBlocked is NOT emitted on blocked swaps because
+    ///      EVM reverts roll back all event logs. TrustScoreTooLow / StaleScore / SeedScoreRejected
+    ///      errors carry full context for off-chain monitoring via revert data.
     function beforeSwap(
         address sender,
         PoolKey calldata key,
@@ -254,11 +222,11 @@ contract TrustGateHook is BaseHook, Ownable2Step {
             emit TrustGateChecked(token1, score1, true);
         }
 
-        // MAIAT-004: Per-user fee via hookData — only if sender is a trusted router.
-        // Untrusted routers: hookData is ignored, fee based on sender directly.
-        // This prevents any router from spoofing a high-rep user's address to claim their fee discount.
+        // Per-user fee: decode user address from hookData ONLY if the calling router
+        // is on the allowedRouters whitelist. Unallowed routers always pay their own
+        // router-level fee — they cannot spoof a high-reputation feeTarget.
         address feeTarget = sender;
-        if (hookData.length >= 32 && trustedRouters[sender]) {
+        if (hookData.length >= 32 && allowedRouters[sender]) {
             feeTarget = abi.decode(hookData, (address));
         }
 
