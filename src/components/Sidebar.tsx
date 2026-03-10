@@ -175,7 +175,8 @@ export function Sidebar() {
                 {scarabStatus?.claimedToday ? (
                   <Link 
                     href="/passport"
-                    className="flex items-center justify-center gap-1.5 w-full py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-[9px] font-bold uppercase transition-all"
+                    className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg text-[9px] font-bold uppercase transition-all"
+                    style={{ color: '#34d399', backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}
                   >
                     <span>✓ Claimed Today</span>
                   </Link>
