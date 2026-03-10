@@ -13,6 +13,13 @@ Phase 2 Endpoints (Agent Profiling + Monte Carlo):
   GET  /wadjet/portfolio              — Portfolio risk assessment (?agents=0x...,0x...)
   GET  /wadjet/cascade/{address}      — Cascade map for specific agent
   GET  /wadjet/clusters               — All detected hidden clusters
+
+Phase 4 Endpoints (Sentinel — Real-time On-chain Monitoring):
+  POST /sentinel/scan                 — Trigger Stage 1 hourly GoPlus scan (X-Cron-Api-Key)
+  POST /sentinel/check-watchlist      — Trigger Stage 2 watchlist check (X-Cron-Api-Key)
+  GET  /sentinel/alerts               — List recent alerts (?severity=&alert_type=&limit=)
+  GET  /sentinel/alerts/{token}       — Alerts for specific token
+  GET  /sentinel/status               — Scan times, watchlist count, alert counts
 """
 
 import asyncio
@@ -1879,6 +1886,211 @@ async def get_watchlist_item_endpoint(token_address: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query failed: {e}")
+
+
+# ─── Sentinel Endpoints ──────────────────────────────────────────────────────
+
+# In-memory sentinel scan state (mirrors _cron_state pattern)
+_sentinel_state: dict = {
+    "stage1_running": False,
+    "stage2_running": False,
+    "last_stage1": None,
+    "last_stage2": None,
+}
+
+
+def _run_sentinel_stage1_background():
+    """Blocking wrapper for Stage 1 — runs in a thread."""
+    import sys as _sys
+    _sys.path.insert(0, str(BASE_DIR))
+    try:
+        import asyncio as _asyncio
+        from scripts.sentinel import run_stage1_scan
+        result = _asyncio.run(run_stage1_scan())
+        _sentinel_state["stage1_running"] = False
+        _sentinel_state["last_stage1"] = result
+    except Exception as e:
+        logger.error(f"Sentinel Stage 1 background failed: {e}", exc_info=True)
+        _sentinel_state["stage1_running"] = False
+        _sentinel_state["last_stage1"] = {
+            "status": "failed",
+            "error": str(e),
+            "completed_at": datetime.utcnow().isoformat() + "Z",
+        }
+
+
+def _run_sentinel_stage2_background():
+    """Blocking wrapper for Stage 2 — runs in a thread."""
+    import sys as _sys
+    _sys.path.insert(0, str(BASE_DIR))
+    try:
+        import asyncio as _asyncio
+        from scripts.sentinel import run_stage2_check
+        result = _asyncio.run(run_stage2_check())
+        _sentinel_state["stage2_running"] = False
+        _sentinel_state["last_stage2"] = result
+    except Exception as e:
+        logger.error(f"Sentinel Stage 2 background failed: {e}", exc_info=True)
+        _sentinel_state["stage2_running"] = False
+        _sentinel_state["last_stage2"] = {
+            "status": "failed",
+            "error": str(e),
+            "completed_at": datetime.utcnow().isoformat() + "Z",
+        }
+
+
+@app.post("/sentinel/scan", tags=["Sentinel"])
+async def sentinel_scan(
+    background_tasks: BackgroundTasks,
+    x_cron_api_key: Optional[str] = Header(None, alias="X-Cron-Api-Key"),
+):
+    """
+    Trigger Stage 1 sentinel scan (all indexed tokens via GoPlus).
+
+    Protected by X-Cron-Api-Key header.
+    Recommended: schedule hourly via Railway cron.
+
+    Returns immediately; scan runs in background.
+    """
+    _assert_cron_key(x_cron_api_key)
+
+    if _sentinel_state["stage1_running"]:
+        return {
+            "status": "already_running",
+            "message": "Stage 1 scan is already in progress.",
+            "triggered_at": datetime.utcnow().isoformat() + "Z",
+        }
+
+    _sentinel_state["stage1_running"] = True
+    background_tasks.add_task(_run_sentinel_stage1_background)
+
+    return {
+        "status": "triggered",
+        "message": "Sentinel Stage 1 scan started (GoPlus hourly scan).",
+        "triggered_at": datetime.utcnow().isoformat() + "Z",
+        "poll_url": "/sentinel/status",
+    }
+
+
+@app.post("/sentinel/check-watchlist", tags=["Sentinel"])
+async def sentinel_check_watchlist(
+    background_tasks: BackgroundTasks,
+    x_cron_api_key: Optional[str] = Header(None, alias="X-Cron-Api-Key"),
+):
+    """
+    Trigger Stage 2 watchlist monitoring (Alchemy transfer tracking).
+
+    Protected by X-Cron-Api-Key header.
+    Recommended: schedule every 10 minutes via Railway cron.
+
+    Returns immediately; check runs in background.
+    """
+    _assert_cron_key(x_cron_api_key)
+
+    if _sentinel_state["stage2_running"]:
+        return {
+            "status": "already_running",
+            "message": "Stage 2 watchlist check is already in progress.",
+            "triggered_at": datetime.utcnow().isoformat() + "Z",
+        }
+
+    _sentinel_state["stage2_running"] = True
+    background_tasks.add_task(_run_sentinel_stage2_background)
+
+    return {
+        "status": "triggered",
+        "message": "Sentinel Stage 2 check started (watchlist monitoring).",
+        "triggered_at": datetime.utcnow().isoformat() + "Z",
+        "poll_url": "/sentinel/status",
+    }
+
+
+@app.get("/sentinel/alerts", tags=["Sentinel"])
+async def get_sentinel_alerts(
+    severity: Optional[str] = None,
+    alert_type: Optional[str] = None,
+    limit: int = 100,
+):
+    """
+    List recent Sentinel alerts.
+
+    Optional filters:
+      - severity: 'info' | 'warning' | 'critical'
+      - alert_type: 'watchlist_added' | 'sell_signal' | 'dump_pattern' | 'confirmed_rug'
+      - limit: max results (default 100, max 500)
+    """
+    try:
+        from db.supabase_client import get_alerts
+        alerts = get_alerts(
+            severity=severity,
+            alert_type=alert_type,
+            limit=min(limit, 500),
+        )
+        return {
+            "total": len(alerts),
+            "severity_filter": severity,
+            "type_filter": alert_type,
+            "alerts": alerts,
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DB query failed: {e}")
+
+
+@app.get("/sentinel/alerts/{token_address}", tags=["Sentinel"])
+async def get_token_alerts(token_address: str, limit: int = 50):
+    """
+    List all Sentinel alerts for a specific token address.
+    """
+    try:
+        from db.supabase_client import get_alerts, get_watchlist_item
+        alerts = get_alerts(
+            token_address=token_address,
+            limit=min(limit, 200),
+        )
+        watchlist_entry = get_watchlist_item(token_address)
+        return {
+            "token_address": token_address.lower(),
+            "watchlist_entry": watchlist_entry,
+            "total_alerts": len(alerts),
+            "alerts": alerts,
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DB query failed: {e}")
+
+
+@app.get("/sentinel/status", tags=["Sentinel"])
+async def sentinel_status():
+    """
+    Sentinel status overview:
+    - Last scan/check times
+    - Watchlist active count
+    - Alert counts by type/severity
+    """
+    try:
+        from db.supabase_client import (
+            get_alert_counts, get_last_stage1_scan, get_last_stage2_check,
+            get_watchlist,
+        )
+        alert_counts = get_alert_counts()
+        watchlist_active = get_watchlist(status="active", limit=500)
+        watchlist_confirmed = get_watchlist(status="confirmed_rug", limit=500)
+
+        return {
+            "stage1_running": _sentinel_state["stage1_running"],
+            "stage2_running": _sentinel_state["stage2_running"],
+            "last_stage1_scan": get_last_stage1_scan(),
+            "last_stage2_check": get_last_stage2_check(),
+            "watchlist": {
+                "active_count": len(watchlist_active),
+                "confirmed_rug_count": len(watchlist_confirmed),
+            },
+            "alerts": alert_counts,
+            "checked_at": datetime.utcnow().isoformat() + "Z",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Status query failed: {e}")
 
 
 # ─── Cron Endpoints ───────────────────────────────────────────────────────────
