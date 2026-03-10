@@ -186,3 +186,67 @@ Trigger an audit sweep for an agent. Broadcasts progress events to the SSE monit
 ```
 
 > **Note:** Sweep result (pass/fail) is delivered asynchronously via `GET /monitor/feed` (SSE).
+
+---
+
+## `GET /api/v1/agent/{address}/price`
+
+Returns token price data, market metrics, and crash alerts for an agent.
+
+Data sourced from DexScreener via Wadjet indexer (refreshed every 15 min).
+
+### Path Parameters
+| Name | Type | Description |
+|---|---|---|
+| `address` | `string` | Agent wallet address (EVM, `0x...`) |
+
+### Response `200` (with price data)
+```json
+{
+  "address": "0xAbCd...1234",
+  "name": "Ethy AI",
+  "tokenAddress": "0x1234...abcd",
+  "tokenSymbol": "ETHY",
+  "price": {
+    "usd": 0.0042,
+    "change1h": -1.2,
+    "change6h": -5.8,
+    "change24h": -32.1,
+    "volume24h": 45000,
+    "liquidity": 120000,
+    "fdv": 4200000,
+    "fetchedAt": "2026-03-09T12:00:00.000Z"
+  },
+  "alert": {
+    "level": "crash",
+    "message": "Token dropped -32.1% in 24h"
+  }
+}
+```
+
+### Response `200` (no price data)
+```json
+{
+  "address": "0xAbCd...1234",
+  "name": "Some Agent",
+  "tokenAddress": null,
+  "tokenSymbol": null,
+  "price": null,
+  "message": "No price data available — agent may not have a token or data is being indexed"
+}
+```
+
+### Response `404`
+```json
+{ "error": "Agent not found" }
+```
+
+### Alert Logic
+- `alert` is non-null when `priceChange24h ≤ -30%`
+- Level: `crash` (may expand to `warning` at -15% in future)
+
+### Notes
+- Price data is indexed by Wadjet (maiat-indexer) from DexScreener
+- Only agents with `tokenAddress` in the database have price data
+- Refresh interval: every 15 minutes
+- No authentication required

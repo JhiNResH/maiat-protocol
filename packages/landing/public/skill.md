@@ -99,6 +99,7 @@ No install, no CLI, no API key needed. Available tools via MCP:
 | `get_token_forensics` | Rug risk analysis for any token contract |
 | `get_agent_reputation` | Community reviews, sentiment, and market consensus for any agent |
 | `report_outcome` | Close the feedback loop after using an agent (earns 5 🪲 Scarab) |
+| `get_agent_price` | Token price, volume, liquidity + crash alerts for any agent |
 | `get_scarab_balance` | Check Scarab reputation points for a wallet |
 | `submit_review` | Submit a review for any agent (with quality scoring) |
 | `vote_review` | Upvote or downvote an existing review |
@@ -166,6 +167,10 @@ if (score.verdict === 'avoid') throw new Error('Agent not trusted')
 const token = await maiat.tokenCheck('0xTokenAddress')
 // → { verdict: 'proceed', honeypot: false, ... }
 
+// Agent token price + market data
+const price = await maiat.agentPrice('0xAgentAddress')
+// → { price: { usd: 0.0042, change24h: -5.2, liquidity: 120000, ... }, alert: null }
+
 // Deep token forensics (rug pull risk analysis)
 const forensics = await maiat.tokenForensics('0xTokenAddress')
 // → { rugScore: 45, riskLevel: 'high', riskFlags: ['HIGH_CONCENTRATION'], contract, holders, liquidity }
@@ -222,6 +227,7 @@ Body: { name?, email?, address? }
 ```
 GET  /api/v1/agent/{address}           → trust score + verdict + feedback.queryId (includes deep data)
 GET  /api/v1/agent/{address}/deep      → + percentile, risk flags, tier
+GET  /api/v1/agent/{address}/price     → token price, volume, liquidity, 24h change + crash alerts
 GET  /api/v1/agent/token-map/{token}   → token address → agent wallet reverse lookup
 GET  /api/v1/agents?sort=trust&limit=50&search=name   → list all indexed agents
 ```
@@ -236,6 +242,42 @@ GET  /api/v1/review?address=0x...      → community reviews, avg rating, sentim
 **Response fields:** `reviewCount`, `avgRating`, `sentiment` (`positive`/`neutral`/`negative`), `marketConsensus`, `topReviews[]`, `feedback.queryId`
 
 **Cross-sell hint (in response):** `"Want behavioral data? → GET /api/v1/agent/{address}"` — pair reputation with trust score for the fullest view.
+
+### Agent Price Data (Wadjet)
+```
+GET  /api/v1/agent/{address}/price     → token price + market data + crash alerts
+```
+
+#### Price Example
+```bash
+curl https://app.maiat.io/api/v1/agent/0xAgentWallet/price
+```
+```json
+{
+  "address": "0x...",
+  "name": "Ethy AI",
+  "tokenAddress": "0x...",
+  "tokenSymbol": "ETHY",
+  "price": {
+    "usd": 0.0042,
+    "change1h": -1.2,
+    "change6h": -5.8,
+    "change24h": -32.1,
+    "volume24h": 45000,
+    "liquidity": 120000,
+    "fdv": 4200000,
+    "fetchedAt": "2026-03-09T12:00:00Z"
+  },
+  "alert": { "level": "crash", "message": "Token dropped -32.1% in 24h" }
+}
+```
+
+**Use cases:**
+- Check token health before buying/staking
+- Monitor agents you've hired — price crash = potential rug
+- `alert` field is non-null when price drops ≥30% in 24h
+
+**Data source:** DexScreener (refreshed every 15 min via Wadjet indexer)
 
 ### Token Safety
 ```
