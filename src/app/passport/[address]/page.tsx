@@ -254,6 +254,9 @@ export default function PassportPage() {
             </div>
           </div>
 
+          {/* ── Daily Scarab Claim ─────────────────────────────────────── */}
+          {isOwn && <ScarabClaim walletAddress={address} />}
+
           {/* ── Row 2: Agents | Market Positions ────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
@@ -523,6 +526,91 @@ function MarketPositions({ address }: { address: string }) {
             </div>
           </Link>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Scarab Claim component ──────────────────────────────────────────────────
+function ScarabClaim({ walletAddress }: { walletAddress: string }) {
+  const { wallets } = useWallets()
+  const [claiming, setClaiming] = useState(false)
+  const [claimResult, setClaimResult] = useState<{ ok: boolean; text: string } | null>(null)
+  const [hasClaimed, setHasClaimed] = useState(false)
+
+  // Check if already claimed today
+  useEffect(() => {
+    fetch(`/api/v1/scarab/status?address=${walletAddress}`)
+      .then(r => r.json())
+      .then(d => { if (d.claimedToday) setHasClaimed(true) })
+      .catch(() => {})
+  }, [walletAddress])
+
+  const handleClaim = async () => {
+    if (claiming || hasClaimed) return
+    setClaiming(true)
+    setClaimResult(null)
+    try {
+      // 1. Get nonce
+      const nonceRes = await fetch(`/api/v1/scarab/nonce?address=${walletAddress}`)
+      const { nonce, expiresAt } = await nonceRes.json()
+
+      // 2. Find wallet and sign
+      const activeWallet = wallets.find(w => w.address.toLowerCase() === walletAddress.toLowerCase())
+        || wallets.find(w => w.walletClientType !== 'privy')
+      if (!activeWallet) throw new Error('Wallet not connected')
+
+      const { getAddress } = await import('viem')
+      const checksumAddress = getAddress(activeWallet.address)
+      const message = [`Claim daily Scarab for ${checksumAddress}`, `Nonce: ${nonce}`, `Expiration: ${expiresAt}`].join('\n')
+      const signature = await activeWallet.sign(message)
+
+      // 3. Claim
+      const res = await fetch('/api/v1/scarab/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: checksumAddress, signature, nonce, expiresAt }),
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Claim failed')
+
+      setHasClaimed(true)
+      if (result.alreadyClaimed) {
+        setClaimResult({ ok: false, text: 'Already claimed today!' })
+      } else {
+        setClaimResult({ ok: true, text: `+${result.amount ?? 5} 🪲 claimed! Streak: ${result.streak ?? 1} day(s)` })
+      }
+    } catch (err: any) {
+      setClaimResult({ ok: false, text: err.message || 'Failed' })
+    } finally {
+      setClaiming(false)
+    }
+  }
+
+  return (
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500">🪲 DAILY SCARAB</p>
+          {claimResult && (
+            <p className={`text-[10px] font-mono mt-1 ${claimResult.ok ? 'text-emerald-400' : 'text-red-400'}`}>
+              {claimResult.text}
+            </p>
+          )}
+        </div>
+        {hasClaimed ? (
+          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+            ✓ Claimed Today
+          </span>
+        ) : (
+          <button
+            onClick={handleClaim}
+            disabled={claiming}
+            className="text-[10px] font-bold text-[#3b82f6] bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
+          >
+            {claiming ? 'Signing...' : 'Claim Scarab'}
+          </button>
+        )}
       </div>
     </div>
   )
