@@ -22,7 +22,7 @@ DATA_DIR   = SCRIPT_DIR.parent / "data"
 CACHE_FILE = DATA_DIR / "dex_cache.json"
 OUTPUT_CSV = DATA_DIR / "virtuals_agent_dataset.csv"
 
-DB_URL = "postgresql://postgres.gfsnypfotobxmldlywet:Ibuildmaiat49@aws-0-us-west-2.pooler.supabase.com:6543/postgres"
+DB_URL = os.environ["DATABASE_URL"]
 
 
 def load_cache():
