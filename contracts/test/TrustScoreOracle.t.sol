@@ -24,6 +24,12 @@ contract TrustScoreOracleTest is Test {
         oracle.grantRole(oracle.UPDATER_ROLE(), updater);
     }
 
+    /// @dev Update a token score and immediately age it past SCORE_MIN_AGE so getScore() works.
+    function _updateAndAge(address t, uint256 score, uint256 reviews, uint256 avg, TrustScoreOracle.DataSource ds) internal {
+        oracle.updateTokenScore(t, score, reviews, avg, ds);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
+    }
+
     // ─── Constructor & Roles ───────────────────────────────────
 
     function test_Constructor_SetsAdmin() public view {
@@ -37,6 +43,7 @@ contract TrustScoreOracleTest is Test {
     function test_SeparateUpdaterCanUpdate() public {
         vm.prank(updater);
         oracle.updateTokenScore(token, 80, 10, 400, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
         assertEq(oracle.getScore(token), 80);
     }
 
@@ -60,6 +67,7 @@ contract TrustScoreOracleTest is Test {
         emit TokenScoreUpdated(token, 85, 42);
 
         oracle.updateTokenScore(token, 85, 42, 450, TrustScoreOracle.DataSource.COMMUNITY);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         assertEq(oracle.getScore(token), 85);
 
@@ -73,11 +81,13 @@ contract TrustScoreOracleTest is Test {
 
     function test_UpdateTokenScore_Zero() public {
         oracle.updateTokenScore(token, 0, 0, 0, TrustScoreOracle.DataSource.NONE);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
         assertEq(oracle.getScore(token), 0);
     }
 
     function test_UpdateTokenScore_MaxScore() public {
         oracle.updateTokenScore(token, 100, 1000, 500, TrustScoreOracle.DataSource.VERIFIED);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
         assertEq(oracle.getScore(token), 100);
     }
 
@@ -95,6 +105,7 @@ contract TrustScoreOracleTest is Test {
     function test_UpdateTokenScore_Overwrite() public {
         oracle.updateTokenScore(token, 50, 5, 300, TrustScoreOracle.DataSource.SEED);
         oracle.updateTokenScore(token, 90, 20, 480, TrustScoreOracle.DataSource.VERIFIED);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
         assertEq(oracle.getScore(token), 90);
         assertEq(uint8(oracle.getDataSource(token)), uint8(TrustScoreOracle.DataSource.VERIFIED));
     }
@@ -121,6 +132,7 @@ contract TrustScoreOracleTest is Test {
         avgRatings[2] = 490;
 
         oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         assertEq(oracle.getScore(tokens[0]), 70);
         assertEq(oracle.getScore(tokens[1]), 85);
@@ -241,6 +253,7 @@ contract TrustScoreOracleTest is Test {
         oracle.pause();
         oracle.unpause();
         oracle.updateTokenScore(token, 80, 10, 400, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
         assertEq(oracle.getScore(token), 80);
     }
 
@@ -252,6 +265,7 @@ contract TrustScoreOracleTest is Test {
 
     function test_Pause_ReadsStillWork() public {
         oracle.updateTokenScore(token, 80, 10, 400, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
         oracle.pause();
         // Reads should still work when paused
         assertEq(oracle.getScore(token), 80);
@@ -263,7 +277,8 @@ contract TrustScoreOracleTest is Test {
 
     function test_GetScore_FreshScore_Passes() public {
         oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
-        // Should not revert — score is fresh
+        // Must be past SCORE_MIN_AGE but before SCORE_MAX_AGE
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
         assertEq(oracle.getScore(token), 70);
     }
 
@@ -282,7 +297,7 @@ contract TrustScoreOracleTest is Test {
 
     function test_GetScore_ExactBoundary_Passes() public {
         oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
-        // Exactly at max age — should still pass (not strictly greater)
+        // Exactly at max age — should still pass (MIN_AGE < 7 days ≤ MAX_AGE)
         vm.warp(block.timestamp + 7 days);
         assertEq(oracle.getScore(token), 70);
     }
@@ -301,8 +316,9 @@ contract TrustScoreOracleTest is Test {
         oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
         vm.warp(block.timestamp + 7 days + 100);
 
-        // Refresh score
+        // Refresh score — then age past SCORE_MIN_AGE before reading
         oracle.updateTokenScore(token, 75, 15, 420, TrustScoreOracle.DataSource.VERIFIED);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         // Should no longer revert
         assertEq(oracle.getScore(token), 75);
@@ -312,6 +328,7 @@ contract TrustScoreOracleTest is Test {
         score = bound(score, 0, 100);
         avgRating = bound(avgRating, 0, oracle.MAX_AVG_RATING()); // 0–500
         oracle.updateTokenScore(token, score, reviews, avgRating, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
         assertEq(oracle.getScore(token), score);
     }
 
@@ -352,6 +369,7 @@ contract TrustScoreOracleTest is Test {
         ds = uint8(bound(ds, 0, 4));
 
         oracle.updateTokenScore(fuzzToken, score, reviewCount, avgRating, TrustScoreOracle.DataSource(ds));
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         TrustScoreOracle.TokenScore memory data = oracle.getTokenData(fuzzToken);
         assertEq(data.trustScore, score);
@@ -535,6 +553,7 @@ contract TrustScoreOracleTest is Test {
             assertEq(data.reviewCount, reviewCounts[i]);
             assertEq(data.avgRating, avgRatings[i]);
             assertEq(uint8(data.dataSource), uint8(dataSource));
+            vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
             assertEq(oracle.getScore(tokens[i]), scores[i]);
         }
     }

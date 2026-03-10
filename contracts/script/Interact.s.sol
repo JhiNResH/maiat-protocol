@@ -148,7 +148,7 @@ contract UpdateThreshold is Script {
         console2.log("Old threshold:", hook.trustThreshold());
 
         vm.startBroadcast(callerKey);
-        hook.updateThreshold(newThreshold);
+        hook.proposeThreshold(newThreshold);
         vm.stopBroadcast();
 
         console2.log("New threshold:", hook.trustThreshold());
