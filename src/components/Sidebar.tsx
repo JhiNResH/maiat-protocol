@@ -22,7 +22,7 @@ import {
   User,
   BarChart3
 } from "lucide-react";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import useSWR from "swr";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -46,10 +46,29 @@ export function Sidebar() {
   const [mounted, setMounted] = useState(false);
 
   const { authenticated, user, login, logout } = usePrivy();
-  const walletAddress = user?.wallet?.address;
+  const { wallets } = useWallets();
+  const externalWallet = wallets.find(w => w.walletClientType !== 'privy');
+  const walletAddress = externalWallet?.address ?? user?.wallet?.address;
 
   // Fetch Scarab for Sidebar Widget
-  const { data: scarab } = useSWR(walletAddress ? `/api/v1/scarab?address=${walletAddress}` : null, fetcher);
+  const { data: scarab, mutate: mutateScarab } = useSWR(walletAddress ? `/api/v1/scarab?address=${walletAddress}` : null, fetcher);
+  const { data: scarabStatus, mutate: mutateStatus } = useSWR(walletAddress ? `/api/v1/scarab/status?address=${walletAddress}` : null, fetcher);
+  const [claiming, setClaiming] = useState(false);
+
+  const handleClaim = async () => {
+    if (!walletAddress || claiming || scarabStatus?.claimedToday) return;
+    setClaiming(true);
+    try {
+      await fetch('/api/v1/scarab/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: walletAddress }),
+      });
+      mutateScarab();
+      mutateStatus();
+    } catch {}
+    setClaiming(false);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -169,13 +188,23 @@ export function Sidebar() {
                   <span className="text-xs font-black text-white">{scarab?.balance ?? '0'}</span>
                 </div>
                 
-                <Link 
-                  href="/passport"
-                  className="flex items-center justify-center gap-1.5 w-full py-2 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 text-[#3b82f6] rounded-lg text-[9px] font-bold uppercase transition-all"
-                >
-                  <Flame size={10} />
-                  <span>Claim Rewards</span>
-                </Link>
+                {scarabStatus?.claimedToday ? (
+                  <Link 
+                    href="/passport"
+                    className="flex items-center justify-center gap-1.5 w-full py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-[9px] font-bold uppercase transition-all"
+                  >
+                    <span>✓ Claimed Today</span>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleClaim}
+                    disabled={claiming}
+                    className="flex items-center justify-center gap-1.5 w-full py-2 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 text-[#3b82f6] rounded-lg text-[9px] font-bold uppercase transition-all disabled:opacity-50"
+                  >
+                    <Flame size={10} />
+                    <span>{claiming ? 'Claiming...' : 'Claim Scarab'}</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
