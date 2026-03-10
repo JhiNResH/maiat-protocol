@@ -229,12 +229,18 @@ React.useEffect(() => {
         ctx.strokeStyle = `rgba(59, 130, 246, ${0.4 + pulse * 0.3})`; ctx.lineWidth = 3; ctx.stroke();
       }
 
-      // ERC-8004 Identity Ring (cyan dotted ring)
-      if (n.has8004 && !curSel) {
-        ctx.beginPath(); ctx.arc(drawX, drawY, drawR + 6, 0, MathPI2);
-        ctx.strokeStyle = 'rgba(6, 182, 212, 0.6)'; // cyan-500
+      // ERC-8004 Identity Ring (cyan glow ring — always visible)
+      if (n.has8004) {
+        // Outer glow
+        ctx.beginPath(); ctx.arc(drawX, drawY, drawR + 8, 0, MathPI2);
+        ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        // Inner ring
+        ctx.beginPath(); ctx.arc(drawX, drawY, drawR + 8, 0, MathPI2);
+        ctx.strokeStyle = '#06b6d4';
         ctx.lineWidth = 1.5;
-        ctx.setLineDash([3, 3]);
+        ctx.setLineDash([4, 4]);
         ctx.stroke();
         ctx.setLineDash([]);
       }
