@@ -495,6 +495,12 @@ V2_VIRTUALS_FEATURES = [
     "owner_percent",
     "has_dex_data",
     "is_virtuals_token",
+    # Dynamic delta features (computed from daily snapshots)
+    "holder_concentration_delta_1d",
+    "liquidity_delta_1d",
+    "volume_delta_1d",
+    "price_delta_1d",
+    "creator_percent_delta_1d",
 ]
 ALL_V2_FEATURES = FEATURES + V2_VIRTUALS_FEATURES
 
@@ -660,6 +666,55 @@ def _fetch_acp_data(wallet_address: str) -> dict:
     return {}
 
 
+def _fetch_delta_features(token_address: str) -> dict:
+    """
+    Query wadjet_daily_snapshots for the last 2 days and compute deltas.
+    Returns a dict with 5 delta features (all 0.0 if no history available).
+    """
+    defaults = {
+        "holder_concentration_delta_1d": 0.0,
+        "liquidity_delta_1d":            0.0,
+        "volume_delta_1d":               0.0,
+        "price_delta_1d":                0.0,
+        "creator_percent_delta_1d":      0.0,
+    }
+    try:
+        from db.supabase_client import get_last_two_snapshots
+        rows = get_last_two_snapshots(token_address.lower())
+        if len(rows) < 2:
+            return defaults
+
+        today = rows[0]   # most recent
+        yest  = rows[1]   # previous
+
+        def _rel(t, y):
+            if y and y != 0:
+                return (t - y) / abs(y)
+            return 0.0
+
+        today_top10  = today.get("top10_holder_pct") or 0.0
+        yest_top10   = yest.get("top10_holder_pct") or 0.0
+        today_liq    = today.get("liquidity_usd") or 0.0
+        yest_liq     = yest.get("liquidity_usd") or 0.0
+        today_vol    = today.get("volume_24h") or 0.0
+        yest_vol     = yest.get("volume_24h") or 0.0
+        today_price  = today.get("price_usd") or 0.0
+        yest_price   = yest.get("price_usd") or 0.0
+        today_creat  = today.get("creator_percent") or 0.0
+        yest_creat   = yest.get("creator_percent") or 0.0
+
+        return {
+            "holder_concentration_delta_1d": float(today_top10 - yest_top10),
+            "liquidity_delta_1d":            float(_rel(today_liq, yest_liq)),
+            "volume_delta_1d":               float(_rel(today_vol, yest_vol)),
+            "price_delta_1d":                float(_rel(today_price, yest_price)),
+            "creator_percent_delta_1d":      float(today_creat - yest_creat),
+        }
+    except Exception as e:
+        logger.debug(f"Delta fetch failed (non-fatal): {e}")
+        return defaults
+
+
 def _build_v2_feature_vector(dex: dict, gp: dict, acp: dict, req: AgentPredictRequest) -> np.ndarray:
     """Build complete V2 feature vector for agent token prediction."""
     import math
@@ -772,7 +827,17 @@ def _build_v2_feature_vector(dex: dict, gp: dict, acp: dict, req: AgentPredictRe
         1.0,                                 # is_virtuals_token
     ]
 
-    return np.array(v1 + v2, dtype=np.float32)
+    # ── Delta features from daily snapshots ────────────────────────────────
+    deltas = _fetch_delta_features(req.token_address)
+    v_delta = [
+        deltas["holder_concentration_delta_1d"],
+        deltas["liquidity_delta_1d"],
+        deltas["volume_delta_1d"],
+        deltas["price_delta_1d"],
+        deltas["creator_percent_delta_1d"],
+    ]
+
+    return np.array(v1 + v2 + v_delta, dtype=np.float32)
 
 
 def _compute_agent_risk_signals(dex: dict, gp: dict, acp: dict, age_days: float) -> list[AgentRiskSignal]:
@@ -1714,6 +1779,106 @@ async def get_cascade_map(address: str):
         "dependencies": deps,
         "generated_at": datetime.utcnow().isoformat() + "Z",
     }
+
+
+# ─── Watchlist Endpoints ──────────────────────────────────────────────────────
+
+@app.get("/watchlist", tags=["Watchlist"])
+async def get_watchlist_endpoint(status: str = "active", limit: int = 200):
+    """
+    List all watchlist items sorted by severity (critical → high → medium → low).
+    Use ?status=active (default) or ?status=resolved to filter.
+    """
+    try:
+        from db.supabase_client import get_watchlist
+        items = get_watchlist(status=status, limit=min(limit, 500))
+        return {
+            "total": len(items),
+            "status_filter": status,
+            "items": items,
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DB query failed: {e}")
+
+
+@app.get("/watchlist/{token_address}", tags=["Watchlist"])
+async def get_watchlist_item_endpoint(token_address: str):
+    """
+    Fetch a specific token's watchlist entry + its last 7 days of delta history.
+    Returns 404 if the token is not on the watchlist.
+    """
+    addr = token_address.lower()
+    try:
+        from db.supabase_client import get_watchlist_item, get_last_two_snapshots
+        import psycopg2
+        import psycopg2.extras
+
+        item = get_watchlist_item(addr)
+        if not item:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Token {addr} is not on the watchlist."
+            )
+
+        # Fetch last 7 days of snapshots for delta history
+        db_url = os.environ.get(
+            "DATABASE_URL",
+            "postgresql://postgres.gfsnypfotobxmldlywet:Ibuildmaiat49@aws-0-us-west-2.pooler.supabase.com:6543/postgres"
+        )
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""
+            SELECT snapshot_date,
+                   top10_holder_pct, holder_count, lp_locked_pct,
+                   creator_percent, owner_percent,
+                   price_usd, liquidity_usd, volume_24h, market_cap,
+                   trust_score, total_jobs, completion_rate
+            FROM wadjet_daily_snapshots
+            WHERE token_address = %s
+            ORDER BY snapshot_date DESC
+            LIMIT 7
+        """, (addr,))
+        snapshots = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+
+        # Compute rolling deltas between consecutive days
+        delta_history = []
+        for i in range(len(snapshots) - 1):
+            today = snapshots[i]
+            yest  = snapshots[i + 1]
+
+            def _rel(t, y):
+                if y and y != 0:
+                    return round((t - y) / abs(y), 4)
+                return None
+
+            delta_history.append({
+                "date": str(today.get("snapshot_date")),
+                "holder_concentration_delta": round(
+                    (today.get("top10_holder_pct") or 0) - (yest.get("top10_holder_pct") or 0), 4
+                ),
+                "liquidity_delta":   _rel(today.get("liquidity_usd") or 0, yest.get("liquidity_usd") or 0),
+                "volume_delta":      _rel(today.get("volume_24h") or 0, yest.get("volume_24h") or 0),
+                "price_delta":       _rel(today.get("price_usd") or 0, yest.get("price_usd") or 0),
+                "creator_pct_delta": round(
+                    (today.get("creator_percent") or 0) - (yest.get("creator_percent") or 0), 6
+                ),
+                "holder_count_delta": (today.get("holder_count") or 0) - (yest.get("holder_count") or 0),
+            })
+
+        return {
+            "token_address": addr,
+            "watchlist_entry": item,
+            "snapshot_history": snapshots,
+            "delta_history": delta_history,
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Query failed: {e}")
 
 
 # ─── Cron Endpoints ───────────────────────────────────────────────────────────
