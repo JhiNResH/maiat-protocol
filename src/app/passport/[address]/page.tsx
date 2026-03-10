@@ -491,6 +491,17 @@ function MarketPositions({ address }: { address: string }) {
 
   const totalStaked = positions.reduce((s, p) => s + p.amount, 0)
 
+  // Merge positions by project+market
+  const merged = Object.values(
+    positions.reduce<Record<string, typeof positions[0] & { totalAmount: number; count: number }>>((acc, pos) => {
+      const key = `${pos.projectId}__${pos.marketId}`
+      if (!acc[key]) acc[key] = { ...pos, totalAmount: 0, count: 0 }
+      acc[key].totalAmount += pos.amount
+      acc[key].count += 1
+      return acc
+    }, {})
+  )
+
   return (
     <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-4">
       <div className="flex items-center justify-between mb-3">
@@ -502,7 +513,7 @@ function MarketPositions({ address }: { address: string }) {
         </span>
       </div>
       <div className="space-y-1.5">
-        {positions.map((pos, i) => (
+        {merged.map((pos, i) => (
           <Link
             key={i}
             href={`/markets/${pos.marketId}`}
@@ -513,7 +524,7 @@ function MarketPositions({ address }: { address: string }) {
               <p className="text-gray-600 font-mono text-[9px] truncate">{pos.marketTitle}</p>
             </div>
             <div className="text-right shrink-0 ml-2">
-              <p className="text-white font-mono text-[10px] font-bold">{pos.amount} 🪲</p>
+              <p className="text-white font-mono text-[10px] font-bold">{pos.totalAmount} 🪲</p>
               <p className={`font-mono text-[9px] ${
                 pos.status === 'resolved'
                   ? (pos.payout && pos.payout > 0 ? 'text-emerald-400' : 'text-red-400')
