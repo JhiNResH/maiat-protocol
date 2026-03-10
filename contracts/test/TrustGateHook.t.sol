@@ -143,6 +143,24 @@ contract TrustGateHookTest is Test {
         hook.executeThresholdUpdate();
     }
 
+    function test_ExecuteThreshold_NoPending_Reverts() public {
+        vm.expectRevert(TrustGateHook.TrustGateHook__NoThresholdPending.selector);
+        hook.executeThresholdUpdate();
+    }
+
+    function test_SetRouterAllowance_ZeroAddress_Reverts() public {
+        vm.expectRevert(TrustGateHook.TrustGateHook__ZeroAddressRouter.selector);
+        hook.setRouterAllowance(address(0), true);
+    }
+
+    function test_SetRouterAllowance_Success() public {
+        assertFalse(hook.allowedRouters(swapper));
+        hook.setRouterAllowance(swapper, true);
+        assertTrue(hook.allowedRouters(swapper));
+        hook.setRouterAllowance(swapper, false);
+        assertFalse(hook.allowedRouters(swapper));
+    }
+
     // ─── beforeSwap: access control ────────────────────────────
 
     function test_BeforeSwap_NotPoolManager_Reverts() public {

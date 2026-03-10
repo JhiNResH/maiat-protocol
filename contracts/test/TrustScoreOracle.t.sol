@@ -282,6 +282,21 @@ contract TrustScoreOracleTest is Test {
         assertEq(oracle.getScore(token), 70);
     }
 
+    function test_GetScore_TooFresh_Reverts() public {
+        uint256 updatedAt = block.timestamp;
+        oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+        // Not yet past SCORE_MIN_AGE — should revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TrustScoreOracle.TrustScoreOracle__ScoreTooFresh.selector,
+                token,
+                updatedAt,
+                oracle.SCORE_MIN_AGE()
+            )
+        );
+        oracle.getScore(token);
+    }
+
     function test_GetScore_StaleScore_Reverts() public {
         oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
         uint256 updatedAt = block.timestamp;
