@@ -81,8 +81,6 @@ export async function GET(request: NextRequest) {
             dataSource: true,
             lastUpdated: true,
             rawMetrics: true,
-            has8004: true,
-            erc8004Id: true,
           },
         }),
         prisma.agentScore.count({ where }),
@@ -99,11 +97,9 @@ export async function GET(request: NextRequest) {
           const logo = typeof raw.profilePic === 'string' ? raw.profilePic : null
           const description = typeof raw.description === 'string' ? raw.description : null
 
-          // ERC-8004 data — read from DB (synced by sync-8004-v2 script)
+          // ERC-8004 data — not stored in AgentScore (schema doesn't have has8004/erc8004Id)
           const erc8004: ERC8004Data = include8004
-            ? a.has8004
-              ? { registered: true, agentId: a.erc8004Id ?? 0, reputation: { count: 0, value: 0, normalizedScore: 0 } }
-              : { registered: false }
+            ? { registered: false }
             : null
 
           return {
