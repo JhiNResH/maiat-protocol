@@ -47,6 +47,16 @@ contract TrustScoreOracleTest is Test {
         assertEq(oracle.GUARDIAN_FEE(), 0);
     }
 
+    // ─── Rate Limiting Constants ──────────────────────────────
+
+    function test_Constants_ScoreMaxDelta() public view {
+        assertEq(oracle.SCORE_MAX_DELTA(), 20);
+    }
+
+    function test_Constants_MinUpdateInterval() public view {
+        assertEq(oracle.MIN_UPDATE_INTERVAL(), 1 hours);
+    }
+
     // ─── getScore ──────────────────────────────────────────────
 
     function test_GetScore_UnregisteredReturnsZero() public view {
@@ -92,11 +102,156 @@ contract TrustScoreOracleTest is Test {
         oracle.updateTokenScore(token, 80, 10, 400, TrustScoreOracle.DataSource.API);
     }
 
+    /// @dev MAIAT-002: Overwrite now requires warp + small delta
     function test_UpdateTokenScore_Overwrite() public {
         oracle.updateTokenScore(token, 50, 5, 300, TrustScoreOracle.DataSource.SEED);
-        oracle.updateTokenScore(token, 90, 20, 480, TrustScoreOracle.DataSource.VERIFIED);
-        assertEq(oracle.getScore(token), 90);
+        // Must wait MIN_UPDATE_INTERVAL and change within ±SCORE_MAX_DELTA
+        vm.warp(block.timestamp + 1 hours);
+        oracle.updateTokenScore(token, 65, 20, 480, TrustScoreOracle.DataSource.VERIFIED); // delta = 15 ≤ 20
+        assertEq(oracle.getScore(token), 65);
         assertEq(uint8(oracle.getDataSource(token)), uint8(TrustScoreOracle.DataSource.VERIFIED));
+    }
+
+    // ─── MAIAT-002: Rate Limiting Tests ───────────────────────
+
+    function test_RateLimit_FirstUpdateAlwaysAllowed() public {
+        // First update: lastUpdated == 0 → no rate limit
+        oracle.updateTokenScore(token, 80, 10, 400, TrustScoreOracle.DataSource.API);
+        assertEq(oracle.getScore(token), 80);
+    }
+
+    function test_RateLimit_UpdateTooSoon_Reverts() public {
+        oracle.updateTokenScore(token, 50, 10, 400, TrustScoreOracle.DataSource.API);
+        // Immediately try to update again — should fail
+        TrustScoreOracle.TokenScore memory ts = oracle.getTokenData(token);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TrustScoreOracle.TrustScoreOracle__UpdateTooSoon.selector,
+                token,
+                ts.lastUpdated,
+                oracle.MIN_UPDATE_INTERVAL()
+            )
+        );
+        oracle.updateTokenScore(token, 55, 10, 400, TrustScoreOracle.DataSource.API);
+    }
+
+    function test_RateLimit_DeltaTooLarge_Reverts() public {
+        oracle.updateTokenScore(token, 10, 5, 200, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + 1 hours);
+        // Delta 10 → 80 = 70 > SCORE_MAX_DELTA (20)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TrustScoreOracle.TrustScoreOracle__ScoreChangeTooLarge.selector,
+                token,
+                10,
+                80,
+                oracle.SCORE_MAX_DELTA()
+            )
+        );
+        oracle.updateTokenScore(token, 80, 10, 400, TrustScoreOracle.DataSource.API);
+    }
+
+    function test_RateLimit_ExactMaxDelta_Passes() public {
+        oracle.updateTokenScore(token, 50, 10, 400, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + 1 hours);
+        // Delta exactly 20 → should pass
+        oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.API);
+        assertEq(oracle.getScore(token), 70);
+    }
+
+    function test_RateLimit_OneBeyondMaxDelta_Reverts() public {
+        oracle.updateTokenScore(token, 50, 10, 400, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + 1 hours);
+        // Delta 21 → should fail
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TrustScoreOracle.TrustScoreOracle__ScoreChangeTooLarge.selector,
+                token,
+                50,
+                71,
+                oracle.SCORE_MAX_DELTA()
+            )
+        );
+        oracle.updateTokenScore(token, 71, 10, 400, TrustScoreOracle.DataSource.API);
+    }
+
+    function test_RateLimit_ExactIntervalBoundary_Passes() public {
+        oracle.updateTokenScore(token, 50, 10, 400, TrustScoreOracle.DataSource.API);
+        // Exactly 1 hour later — should pass (not strictly greater)
+        vm.warp(block.timestamp + 1 hours);
+        oracle.updateTokenScore(token, 60, 10, 400, TrustScoreOracle.DataSource.API);
+        assertEq(oracle.getScore(token), 60);
+    }
+
+    function test_RateLimit_OneBelowInterval_Reverts() public {
+        oracle.updateTokenScore(token, 50, 10, 400, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + 1 hours - 1); // 1 second short
+        vm.expectRevert();
+        oracle.updateTokenScore(token, 60, 10, 400, TrustScoreOracle.DataSource.API);
+    }
+
+    function test_RateLimit_DecreaseScore_Passes() public {
+        oracle.updateTokenScore(token, 80, 10, 400, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + 1 hours);
+        // Decrease by 15 ≤ 20 — should pass
+        oracle.updateTokenScore(token, 65, 10, 400, TrustScoreOracle.DataSource.API);
+        assertEq(oracle.getScore(token), 65);
+    }
+
+    function test_RateLimit_FlashManipulationBlocked() public {
+        // Simulate MAIAT-002 attack vector:
+        // 1. Set scam token initial low score
+        oracle.updateTokenScore(token, 5, 2, 100, TrustScoreOracle.DataSource.API);
+
+        // 2. Try to flash-whitelist to 99 in same block → UpdateTooSoon
+        vm.expectRevert();
+        oracle.updateTokenScore(token, 99, 100, 450, TrustScoreOracle.DataSource.VERIFIED);
+
+        // 3. Even after 1 hour, delta too large (5 → 99 = 94 > 20) → ScoreChangeTooLarge
+        vm.warp(block.timestamp + 1 hours);
+        vm.expectRevert();
+        oracle.updateTokenScore(token, 99, 100, 450, TrustScoreOracle.DataSource.VERIFIED);
+
+        // Score remains at 5 — gate still blocks this token
+        assertEq(oracle.getScore(token), 5);
+    }
+
+    function test_RateLimit_GradualIncrease_Allowed() public {
+        // A legitimate large score change requires multiple updates over time
+        oracle.updateTokenScore(token, 10, 5, 200, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + 1 hours);
+        oracle.updateTokenScore(token, 30, 10, 300, TrustScoreOracle.DataSource.API); // +20
+        vm.warp(block.timestamp + 1 hours);
+        oracle.updateTokenScore(token, 50, 20, 400, TrustScoreOracle.DataSource.API); // +20
+        vm.warp(block.timestamp + 1 hours);
+        oracle.updateTokenScore(token, 70, 30, 430, TrustScoreOracle.DataSource.VERIFIED); // +20
+        assertEq(oracle.getScore(token), 70);
+    }
+
+    // ─── Emergency Update (admin bypass) ──────────────────────
+
+    function test_EmergencyUpdate_BypassesRateLimit() public {
+        oracle.updateTokenScore(token, 50, 10, 400, TrustScoreOracle.DataSource.API);
+        // No warp, large delta — emergency path bypasses both checks
+        oracle.emergencyUpdateTokenScore(token, 5, 0, 0, TrustScoreOracle.DataSource.NONE);
+        assertEq(oracle.getScore(token), 5);
+    }
+
+    function test_EmergencyUpdate_RequiresAdminRole() public {
+        vm.prank(updater); // updater has UPDATER_ROLE but not DEFAULT_ADMIN_ROLE
+        vm.expectRevert();
+        oracle.emergencyUpdateTokenScore(token, 80, 10, 400, TrustScoreOracle.DataSource.API);
+    }
+
+    function test_EmergencyUpdate_AttackerReverts() public {
+        vm.prank(attacker);
+        vm.expectRevert();
+        oracle.emergencyUpdateTokenScore(token, 80, 10, 400, TrustScoreOracle.DataSource.API);
+    }
+
+    function test_EmergencyUpdate_ValidatesScore() public {
+        vm.expectRevert(abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__ScoreOutOfRange.selector, 101));
+        oracle.emergencyUpdateTokenScore(token, 101, 0, 0, TrustScoreOracle.DataSource.API);
     }
 
     // ─── batchUpdateTokenScores ────────────────────────────────
@@ -191,6 +346,66 @@ contract TrustScoreOracleTest is Test {
         oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
     }
 
+    function test_BatchUpdate_RateLimit_DuplicateTokenReverts() public {
+        // MAIAT-002: duplicate token in batch triggers UpdateTooSoon on second occurrence
+        address[] memory tokens = new address[](2);
+        uint256[] memory scores = new uint256[](2);
+        uint256[] memory reviewCounts = new uint256[](2);
+        uint256[] memory avgRatings = new uint256[](2);
+
+        tokens[0] = token;
+        scores[0] = 50;
+        reviewCounts[0] = 5;
+        avgRatings[0] = 300;
+        tokens[1] = token; // duplicate
+        scores[1] = 55;
+        reviewCounts[1] = 6;
+        avgRatings[1] = 310;
+
+        vm.expectRevert(); // UpdateTooSoon on second occurrence
+        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
+    }
+
+    // ─── Emergency Batch Update ────────────────────────────────
+
+    function test_EmergencyBatch_BypassesRateLimit() public {
+        address[] memory tokens = new address[](2);
+        uint256[] memory scores = new uint256[](2);
+        uint256[] memory reviewCounts = new uint256[](2);
+        uint256[] memory avgRatings = new uint256[](2);
+
+        tokens[0] = token;
+        scores[0] = 80;
+        reviewCounts[0] = 10;
+        avgRatings[0] = 400;
+        tokens[1] = token2;
+        scores[1] = 70;
+        reviewCounts[1] = 5;
+        avgRatings[1] = 350;
+
+        // First set via normal path
+        oracle.updateTokenScore(token, 50, 5, 300, TrustScoreOracle.DataSource.API);
+
+        // Emergency batch: no interval wait, large delta on token, fresh token2
+        oracle.emergencyBatchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.VERIFIED);
+
+        assertEq(oracle.getScore(token), 80);
+        assertEq(oracle.getScore(token2), 70);
+    }
+
+    function test_EmergencyBatch_RequiresAdminRole() public {
+        address[] memory tokens = new address[](1);
+        uint256[] memory scores = new uint256[](1);
+        uint256[] memory reviewCounts = new uint256[](1);
+        uint256[] memory avgRatings = new uint256[](1);
+        tokens[0] = token;
+        scores[0] = 80;
+
+        vm.prank(updater);
+        vm.expectRevert();
+        oracle.emergencyBatchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
+    }
+
     // ─── updateUserReputation + fee tiers ─────────────────────
 
     function test_UserRep_NewUserGetsBaseFee() public view {
@@ -257,8 +472,6 @@ contract TrustScoreOracleTest is Test {
         assertEq(oracle.getScore(token), 80);
     }
 
-    // ─── Fuzz ──────────────────────────────────────────────────
-
     // ─── getScore: staleness ───────────────────────────────────
 
     function test_GetScore_FreshScore_Passes() public {
@@ -299,14 +512,16 @@ contract TrustScoreOracleTest is Test {
 
     function test_GetScore_RefreshResetsStale() public {
         oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
-        vm.warp(block.timestamp + 7 days + 100);
+        vm.warp(block.timestamp + 7 days + 100); // well past MIN_UPDATE_INTERVAL
 
-        // Refresh score
+        // delta 70→75 = 5 ≤ 20, interval satisfied → passes rate limit
         oracle.updateTokenScore(token, 75, 15, 420, TrustScoreOracle.DataSource.VERIFIED);
 
         // Should no longer revert
         assertEq(oracle.getScore(token), 75);
     }
+
+    // ─── Fuzz ──────────────────────────────────────────────────
 
     function testFuzz_TokenScore_ValidRange(uint256 score, uint256 reviews, uint256 avgRating) public {
         score = bound(score, 0, 100);
@@ -337,8 +552,6 @@ contract TrustScoreOracleTest is Test {
         }
     }
 
-    // ─── Fuzz Tests ─────────────────────────────────────────────
-
     function testFuzz_UpdateTokenScore(
         address fuzzToken,
         uint256 score,
@@ -351,6 +564,7 @@ contract TrustScoreOracleTest is Test {
         avgRating = bound(avgRating, 0, 500);
         ds = uint8(bound(ds, 0, 4));
 
+        // First update for any fuzz token → no rate limiting (lastUpdated == 0)
         oracle.updateTokenScore(fuzzToken, score, reviewCount, avgRating, TrustScoreOracle.DataSource(ds));
 
         TrustScoreOracle.TokenScore memory data = oracle.getTokenData(fuzzToken);
@@ -382,20 +596,17 @@ contract TrustScoreOracleTest is Test {
     // ─── resetUserReputation ────────────────────────────────────
 
     function test_ResetUserReputation_Success() public {
-        // First set up a user with non-default reputation
         oracle.updateUserReputation(user, 100, 20, 500);
         assertEq(oracle.getUserFee(user), oracle.VERIFIED_FEE());
 
         TrustScoreOracle.UserReputation memory repBefore = oracle.getUserData(user);
         assertTrue(repBefore.initialized);
 
-        // Reset
         vm.expectEmit(true, false, false, false);
         emit UserReputationReset(user);
 
         oracle.resetUserReputation(user);
 
-        // After reset, user should have BASE_FEE (uninitialized)
         assertEq(oracle.getUserFee(user), oracle.BASE_FEE());
 
         TrustScoreOracle.UserReputation memory repAfter = oracle.getUserData(user);
@@ -430,15 +641,15 @@ contract TrustScoreOracleTest is Test {
         uint256[] memory reviewCounts = new uint256[](2);
         uint256[] memory avgRatings = new uint256[](2);
 
-        tokens[0]      = address(0x100);
-        scores[0]      = 70;
+        tokens[0] = address(0x100);
+        scores[0] = 70;
         reviewCounts[0] = 10;
-        avgRatings[0]  = 400; // valid
+        avgRatings[0] = 400; // valid
 
-        tokens[1]      = address(0x200);
-        scores[1]      = 80;
+        tokens[1] = address(0x200);
+        scores[1] = 80;
         reviewCounts[1] = 5;
-        avgRatings[1]  = 501; // OVER MAX_AVG_RATING (500) → should revert
+        avgRatings[1] = 501; // OVER MAX_AVG_RATING (500) → should revert
 
         vm.expectRevert(
             abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__AvgRatingOutOfRange.selector, 501)
@@ -449,42 +660,36 @@ contract TrustScoreOracleTest is Test {
     // ─── Fee tier exact boundaries ──────────────────────────────
 
     function test_UserRep_ExactBoundaryAt10() public {
-        // rep=10 → TRUSTED tier (>= 10, < 50)
         oracle.updateUserReputation(user, 10, 1, 0);
-        assertEq(oracle.getUserFee(user), oracle.TRUSTED_FEE()); // 30 bps
+        assertEq(oracle.getUserFee(user), oracle.TRUSTED_FEE());
     }
 
     function test_UserRep_ExactBoundaryAt50() public {
-        // rep=50 → VERIFIED tier (>= 50, < 200)
         oracle.updateUserReputation(user, 50, 1, 0);
-        assertEq(oracle.getUserFee(user), oracle.VERIFIED_FEE()); // 10 bps
+        assertEq(oracle.getUserFee(user), oracle.VERIFIED_FEE());
     }
 
     function test_UserRep_ExactBoundaryAt200() public {
-        // rep=200 → GUARDIAN tier (>= 200)
         oracle.updateUserReputation(user, 200, 1, 0);
-        assertEq(oracle.getUserFee(user), oracle.GUARDIAN_FEE()); // 0 bps
+        assertEq(oracle.getUserFee(user), oracle.GUARDIAN_FEE());
     }
 
     function test_UserRep_OneBelowTrusted() public {
-        // rep=9 → BASE tier (< 10)
         oracle.updateUserReputation(user, 9, 1, 0);
-        assertEq(oracle.getUserFee(user), oracle.BASE_FEE()); // 50 bps
+        assertEq(oracle.getUserFee(user), oracle.BASE_FEE());
     }
 
     function test_UserRep_OneBelowVerified() public {
-        // rep=49 → TRUSTED tier (>= 10, < 50)
         oracle.updateUserReputation(user, 49, 1, 0);
-        assertEq(oracle.getUserFee(user), oracle.TRUSTED_FEE()); // 30 bps
+        assertEq(oracle.getUserFee(user), oracle.TRUSTED_FEE());
     }
 
     function test_UserRep_OneBelowGuardian() public {
-        // rep=199 → VERIFIED tier (>= 50, < 200)
         oracle.updateUserReputation(user, 199, 1, 0);
-        assertEq(oracle.getUserFee(user), oracle.VERIFIED_FEE()); // 10 bps
+        assertEq(oracle.getUserFee(user), oracle.VERIFIED_FEE());
     }
 
-    // ─── Existing fuzz tests ────────────────────────────────────
+    // ─── Batch Fuzz (deduplicated tokens) ──────────────────────
 
     function testFuzz_BatchUpdateTokenScores(
         address[] memory tokens,
@@ -497,10 +702,10 @@ contract TrustScoreOracleTest is Test {
         if (scores.length < len) len = scores.length;
         if (reviewCounts.length < len) len = reviewCounts.length;
         if (avgRatings.length < len) len = avgRatings.length;
-        if (len == 0) return; // Ignore runs with length 0
-        if (len > 50) len = 50; // Bound maximum size to prevent OutOfGas
+        if (len == 0) return;
+        if (len > 10) len = 10; // Reduced from 50: avoids O(n^2) vm.assume overhead
 
-        // Truncate memory arrays to the shortest length
+        // Truncate to shortest
         assembly {
             mstore(tokens, len)
             mstore(scores, len)
@@ -510,26 +715,21 @@ contract TrustScoreOracleTest is Test {
 
         TrustScoreOracle.DataSource dataSource = TrustScoreOracle.DataSource(uint8(bound(ds, 0, 4)));
 
+        // MAIAT-002: Deduplicate tokens — duplicates in a batch would trigger UpdateTooSoon
         for (uint256 i = 0; i < len; i++) {
             vm.assume(tokens[i] != address(0));
+            // Ensure uniqueness vs all prior tokens in this batch
+            for (uint256 j = 0; j < i; j++) {
+                vm.assume(tokens[i] != tokens[j]);
+            }
             scores[i] = bound(scores[i], 0, 100);
             avgRatings[i] = bound(avgRatings[i], 0, 500);
         }
 
+        // All tokens are first-time updates (fresh oracle from setUp) → no rate limiting
         oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, dataSource);
 
         for (uint256 i = 0; i < len; i++) {
-            // If the token appears again later in the array, its score gets overwritten.
-            // Only check the final overwritten value.
-            bool overridden = false;
-            for (uint256 j = i + 1; j < len; j++) {
-                if (tokens[i] == tokens[j]) {
-                    overridden = true;
-                    break;
-                }
-            }
-            if (overridden) continue;
-
             TrustScoreOracle.TokenScore memory data = oracle.getTokenData(tokens[i]);
             assertEq(data.trustScore, scores[i]);
             assertEq(data.reviewCount, reviewCounts[i]);
