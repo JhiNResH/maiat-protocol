@@ -290,6 +290,8 @@ model AgentScore {
   rawMetrics     Json     @map("raw_metrics")
   tokenAddress   String?  @map("token_address")    // Agent's token contract on Base (if any)
   tokenSymbol    String?  @map("token_symbol")
+  has8004        Boolean  @default(false) @map("has_8004")  // ERC-8004 Identity registered
+  erc8004Id      Int?     @map("erc_8004_id")               // ERC-8004 agent token ID
 
   @@map("agent_scores")
   @@index([walletAddress])

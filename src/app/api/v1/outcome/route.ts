@@ -1,14 +1,14 @@
 /**
  * POST /api/v1/outcome
  *
- * Phase 1B: Trust Swap Outcome Feedback (Spec: 2026-03-06-maiat-v2-trust-foundation)
+ * Query Outcome Feedback Loop
  *
- * Records the actual result of a trust_swap execution on-chain, enabling:
+ * Records the actual result of an ACP query execution, enabling:
  * - Evidence chain feedback loop (jobId → QueryLog.outcome update)
- * - Dynamic trust score recomputation (on-chain 40% + outcomes 60%)
+ * - Dynamic trust score recomputation
  * - Anti-spam optional signature verification (Phase 2 enforces)
  *
- * Flow: trust_swap job → execute on-chain → POST /api/v1/outcome → newTrustScore
+ * Flow: ACP query → execute → POST /api/v1/outcome → newTrustScore
  */
 
 import { NextRequest, NextResponse } from "next/server";
