@@ -72,6 +72,7 @@ const mouseWorld = React.useRef({ x: -9999, y: -9999 });
 const nodeOffsets = React.useRef<Record<string, { dx: number, dy: number, s: number }>>({});
 
 const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+const [directSelectedId, setDirectSelectedId] = useState<string | null>(null);
 const selectedIdRef = React.useRef(selectedId);
 React.useEffect(() => { selectedIdRef.current = selectedId; if (selectedId && directSelectedId) setDirectSelectedId(null); }, [selectedId]);
 
@@ -422,7 +423,6 @@ useEffect(() => {
 
 const { data: agentsData } = useSWR('/api/v1/agents?limit=1000&include8004=true', fetcher, { refreshInterval: 30000 });
 const [fallbackAgent, setFallbackAgent] = useState<any>(null);
-const [directSelectedId, setDirectSelectedId] = useState<string | null>(null);
 
 const radarAgents = useMemo<AgentNode[]>(() => {
   if (!agentsData?.agents) return [];
