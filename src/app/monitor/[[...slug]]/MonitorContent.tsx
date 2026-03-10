@@ -405,8 +405,20 @@ const [searchQuery, setSearchQuery] = useState('');
 const [filter, setFilter] = useState('ALL');
 const [intelFeed, setIntelFeed] = useState<typeof initialIntelFeed>(initialIntelFeed);
 const [showReviewForm, setShowReviewForm] = useState(false);
+const [rugPrediction, setRugPrediction] = useState<any>(null);
+const [rugLoading, setRugLoading] = useState(false);
 
 useEffect(() => { setShowReviewForm(false); }, [selectedId]);
+
+// Fetch rug prediction when agent is selected
+useEffect(() => {
+  if (!selectedId) { setRugPrediction(null); return; }
+  setRugLoading(true);
+  fetch(`/api/v1/agent/${selectedId}/rug-prediction`)
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { setRugPrediction(d); setRugLoading(false); })
+    .catch(() => setRugLoading(false));
+}, [selectedId]);
 
 useEffect(() => {
   if (typeof window === 'undefined') return;
@@ -587,6 +599,38 @@ return (
                   )}
                 </div>
               </div>
+              {/* Wadjet Rug Prediction */}
+              {rugLoading && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-[10px] text-slate-500 text-center animate-pulse">Scanning risk signals...</div>
+              )}
+              {!rugLoading && rugPrediction?.prediction && (() => {
+                const p = rugPrediction.prediction;
+                const col = p.riskLevel === 'critical' ? '#ef4444' : p.riskLevel === 'high' ? '#f97316' : p.riskLevel === 'medium' ? '#f59e0b' : '#10b981';
+                const bg = p.riskLevel === 'critical' ? 'rgba(239,68,68,0.08)' : p.riskLevel === 'high' ? 'rgba(249,115,22,0.08)' : p.riskLevel === 'medium' ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.05)';
+                return (
+                  <div style={{ background: bg, border: `1px solid ${col}30` }} className="rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Wadjet Risk</span>
+                      <span style={{ color: col, background: `${col}20`, border: `1px solid ${col}40` }} className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase">{p.riskLevel}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                        <div style={{ width: `${p.rugScore}%`, background: col }} className="h-full rounded-full transition-all" />
+                      </div>
+                      <span style={{ color: col }} className="text-[11px] font-black font-mono">{p.rugScore}</span>
+                    </div>
+                    {p.signals.slice(0, 3).map((s: any) => (
+                      <div key={s.name} className="flex items-center gap-1.5 text-[9px]">
+                        <span style={{ color: s.severity === 'danger' ? '#ef4444' : s.severity === 'warning' ? '#f59e0b' : '#64748b' }}>
+                          {s.severity === 'danger' ? '⚠' : s.severity === 'warning' ? '◆' : '·'}
+                        </span>
+                        <span className="text-slate-400 truncate">{s.name}</span>
+                        <span className="ml-auto text-slate-500 shrink-0">{s.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
               <div className="space-y-2 pt-2">
                 <button onClick={() => { const cleanName = (selectedNode.label || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase(); router.push(`/agent/${cleanName}/${selectedNode.id}`); }} className="w-full py-2.5 rounded-xl text-[9px] font-bold tracking-widest border border-[#3b82f6]/30 text-white bg-[#3b82f6]/20 hover:bg-[#3b82f6]/40 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.2)] uppercase"><FileText size={12} /> Deep Behavioral Report</button>
                 <div className="flex gap-2">
