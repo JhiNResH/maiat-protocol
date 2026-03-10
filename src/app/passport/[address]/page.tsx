@@ -73,7 +73,7 @@ function RepBar({ score }: { score: number }) {
   const pct = Math.min(100, score)
   const color = pct >= 70 ? '#A78BFA' : pct >= 40 ? '#FBBF24' : pct >= 15 ? '#34D399' : '#9CA3AF'
   return (
-    <div className="w-full bg-white/[0.06] rounded-full h-1.5 overflow-hidden">
+    <div className="w-full bg-[var(--bg-elevated)] rounded-full h-1.5 overflow-hidden">
       <div
         className="h-full rounded-full transition-all duration-700"
         style={{ width: `${pct}%`, backgroundColor: color, boxShadow: `0 0 8px ${color}88` }}
@@ -134,7 +134,7 @@ export default function PassportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0b0d14] flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center">
         <Header />
         <p className="font-mono text-gray-500 text-xs animate-pulse m-auto">// LOADING PASSPORT…</p>
       </div>
@@ -143,7 +143,7 @@ export default function PassportPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#0b0d14] flex flex-col items-center justify-center gap-3">
+      <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center gap-3">
         <Header />
         <div className="m-auto flex flex-col items-center gap-3">
           <p className="font-mono text-slate-400 text-sm">// INVALID ADDRESS</p>
@@ -159,7 +159,7 @@ export default function PassportPage() {
   const visibleAgents = showAllAgents ? unreviewedAgents : unreviewedAgents.slice(0, 10)
 
   return (
-    <div className="min-h-screen bg-[#0b0d14] flex flex-col">
+    <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
       <Header />
 
       <main className="flex-1 pt-6 px-4 pb-16">
@@ -174,7 +174,7 @@ export default function PassportPage() {
             )}
             <button
               onClick={handleCopy}
-              className="text-[10px] font-mono text-gray-500 hover:text-gray-300 border border-white/10 hover:border-white/20 px-2 py-1 rounded transition-colors"
+              className="text-[10px] font-mono text-gray-500 hover:text-gray-300 border border-[var(--border-default)] hover:border-white/20 px-2 py-1 rounded transition-colors"
             >
               {copied ? '✓ Copied' : '⎘ Share'}
             </button>
@@ -182,7 +182,7 @@ export default function PassportPage() {
 
           {/* ── Row 1: Hero Trust Passport Card ────────────────────────── */}
           <div
-            className="relative rounded-2xl overflow-hidden backdrop-blur-xl border bg-gradient-to-br from-white/[0.05] to-white/[0.02]"
+            className="relative rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)]"
             style={{ borderColor: trust.border }}
           >
             {/* Ambient glow */}
@@ -223,19 +223,19 @@ export default function PassportPage() {
 
               {/* Stat pills */}
               <div className="grid grid-cols-3 gap-3 mb-5">
-                <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3 text-center border border-white/[0.06]">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-3 text-center">
                   <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500 mb-1">REP</p>
                   <p className="text-2xl font-bold font-mono" style={{ color: trust.color }}>
                     {data.passport.reputationScore}
                   </p>
                 </div>
-                <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3 text-center border border-white/[0.06]">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-3 text-center">
                   <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500 mb-1">REVIEWS</p>
                   <p className="text-2xl font-bold font-mono text-white">
                     {data.passport.totalReviews}
                   </p>
                 </div>
-                <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3 text-center border border-white/[0.06]">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-3 text-center">
                   <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500 mb-1">🪲 SCARAB</p>
                   <p className="text-2xl font-bold font-mono text-white">
                     {data.scarab.balance}
@@ -258,7 +258,7 @@ export default function PassportPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Agents You Can Review */}
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-4">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500">
                   // AGENTS YOU CAN REVIEW
@@ -292,7 +292,7 @@ export default function PassportPage() {
                         <Link
                           key={agent.address}
                           href={`/review/${agent.address}`}
-                          className="flex items-center gap-2 bg-white/[0.02] border border-white/10 rounded-lg px-2 py-1.5 hover:border-white/20 hover:bg-white/[0.04] transition-all"
+                          className="flex items-center gap-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg px-2 py-1.5 hover:border-white/20 hover:bg-white/[0.04] transition-all"
                         >
                           {agent.logo ? (
                             <img src={agent.logo} alt={agent.name} className="w-6 h-6 rounded object-cover shrink-0" />
@@ -332,7 +332,7 @@ export default function PassportPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Level Perks */}
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-4">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-4">
               <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500 mb-3">
                 // LEVEL PERKS
               </p>
@@ -361,7 +361,7 @@ export default function PassportPage() {
             </div>
 
             {/* Review History */}
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-4">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500">
                   // REVIEW HISTORY
@@ -385,7 +385,7 @@ export default function PassportPage() {
               ) : (
                 <div className="space-y-1.5">
                   {data.reviews.recent.map(r => (
-                    <div key={r.id} className="bg-white/[0.02] border border-white/10 rounded-lg px-2.5 py-2 hover:border-white/20 transition-colors">
+                    <div key={r.id} className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg px-2.5 py-2 hover:border-white/20 transition-colors">
                       <div className="flex items-center justify-between">
                         <Link
                           href={`/review/${r.address}`}
@@ -414,7 +414,7 @@ export default function PassportPage() {
 
           {/* ── CTA (if not own wallet) ──────────────────────────────────── */}
           {!isOwn && (
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-5 text-center">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-5 text-center">
               <p className="text-gray-500 font-mono text-[10px] mb-3">View your own trust passport</p>
               <Link
                 href="/passport"
@@ -465,7 +465,7 @@ function MarketPositions({ address }: { address: string }) {
   }, [address])
 
   if (loading) return (
-    <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-4">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-4">
       <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500 animate-pulse">
         // LOADING POSITIONS…
       </p>
@@ -473,7 +473,7 @@ function MarketPositions({ address }: { address: string }) {
   )
 
   if (positions.length === 0) return (
-    <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-4">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-4">
       <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500 mb-3">
         // MARKET POSITIONS
       </p>
@@ -489,7 +489,7 @@ function MarketPositions({ address }: { address: string }) {
   const totalStaked = positions.reduce((s, p) => s + p.amount, 0)
 
   return (
-    <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-4">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-4">
       <div className="flex items-center justify-between mb-3">
         <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500">
           // MARKET POSITIONS
@@ -503,7 +503,7 @@ function MarketPositions({ address }: { address: string }) {
           <Link
             key={i}
             href={`/markets/${pos.marketId}`}
-            className="flex items-center justify-between bg-white/[0.02] border border-white/10 rounded-lg px-2.5 py-2 hover:border-white/20 hover:bg-white/[0.04] transition-all"
+            className="flex items-center justify-between bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg px-2.5 py-2 hover:border-white/20 hover:bg-white/[0.04] transition-all"
           >
             <div className="min-w-0">
               <p className="text-white font-mono text-[10px] font-semibold truncate">{pos.projectName}</p>
