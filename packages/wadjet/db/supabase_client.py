@@ -20,7 +20,7 @@ logger = logging.getLogger("wadjet.db")
 
 _RAW_DB_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql://postgres.gfsnypfotobxmldlywet:Ibuildmaiat49@aws-0-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true",
+    os.environ["DATABASE_URL"],
 )
 # psycopg2 doesn't understand pgbouncer=true — strip it
 DATABASE_URL = _RAW_DB_URL.split("?")[0]

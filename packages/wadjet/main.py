@@ -649,7 +649,7 @@ def _fetch_acp_data(wallet_address: str) -> dict:
         import psycopg2
         db_url = os.environ.get(
             "DATABASE_URL",
-            "postgresql://postgres.gfsnypfotobxmldlywet:Ibuildmaiat49@aws-0-us-west-2.pooler.supabase.com:6543/postgres"
+            os.environ["DATABASE_URL"]
         )
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
@@ -1358,7 +1358,7 @@ async def get_top_risks(limit: int = 50, min_score: float = 0.5):
         import psycopg2.extras
         db_url = os.environ.get(
             "DATABASE_URL",
-            "postgresql://postgres.gfsnypfotobxmldlywet:Ibuildmaiat49@aws-0-us-west-2.pooler.supabase.com:6543/postgres"
+            os.environ["DATABASE_URL"]
         )
         conn = psycopg2.connect(db_url)
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -1396,7 +1396,7 @@ async def get_risks_summary():
         import psycopg2
         db_url = os.environ.get(
             "DATABASE_URL",
-            "postgresql://postgres.gfsnypfotobxmldlywet:Ibuildmaiat49@aws-0-us-west-2.pooler.supabase.com:6543/postgres"
+            os.environ["DATABASE_URL"]
         )
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
@@ -1831,7 +1831,7 @@ async def get_watchlist_item_endpoint(token_address: str):
         # Fetch last 7 days of snapshots for delta history
         db_url = os.environ.get(
             "DATABASE_URL",
-            "postgresql://postgres.gfsnypfotobxmldlywet:Ibuildmaiat49@aws-0-us-west-2.pooler.supabase.com:6543/postgres"
+            os.environ["DATABASE_URL"]
         )
         conn = psycopg2.connect(db_url)
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
