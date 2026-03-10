@@ -94,6 +94,12 @@ VIRTUALS_FEATURES = [
     "owner_percent",
     "has_dex_data",
     "is_virtuals_token",       # 1 for Virtuals tokens, 0 for Uniswap V2
+    # Dynamic delta features (0.0 for all existing training data — no history)
+    "holder_concentration_delta_1d",
+    "liquidity_delta_1d",
+    "volume_delta_1d",
+    "price_delta_1d",
+    "creator_percent_delta_1d",
 ]
 
 ALL_FEATURES = V1_FEATURES + VIRTUALS_FEATURES
@@ -164,7 +170,7 @@ def load_v1_dataset() -> pd.DataFrame:
         df = pd.concat([df, known_rug_df], ignore_index=True)
         print(f"   After known rugs: {len(df)} total V1 samples")
 
-    # Add Virtuals-specific columns (all zeros for V1 data)
+    # Add Virtuals-specific columns (all zeros for V1 data, including new delta features)
     for feat in VIRTUALS_FEATURES:
         if feat not in df.columns:
             df[feat] = 0.0
@@ -231,7 +237,11 @@ def load_v2_virtuals_dataset() -> pd.DataFrame:
         ghost_mask = (df[acp_jobs_col] == 0.0) & (df[acp_rate_col] == 0.0)
         df.loc[ghost_mask, "is_ghost_agent"] = 1.0
 
-    # Ensure Virtuals features exist
+    # Ensure all Virtuals features exist (fills missing columns with 0.0)
+    for feat in VIRTUALS_FEATURES:
+        if feat not in df.columns:
+            df[feat] = 0.0
+
     df["is_virtuals_token"] = 1.0
     df["data_source"] = "virtuals_agent"
 
@@ -434,7 +444,7 @@ def main():
 
     # Save metadata
     metadata = {
-        "model_version": "2.1.0",  # v2.1 = ghost/completeness features + known rugs
+        "model_version": "2.2.0",  # v2.2 = delta features (holder_conc, liquidity, volume, price, creator)
         "model_type": "agent_enhanced",
         "training_date": datetime.utcnow().isoformat() + "Z",
         "algorithm": "XGBoost",
