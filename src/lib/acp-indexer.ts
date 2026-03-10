@@ -77,7 +77,7 @@ export interface IndexerOptions {
 
 // ─── Trust Score Formula ──────────────────────────────────────────────────────
 
-export function computeTrustScore(agent: AcpAgent): AgentScore {
+export function computeTrustScore(agent: AcpAgent, existingRawMetrics?: Record<string, unknown>): AgentScore {
   // Raw signals (0-1 scale) — fields are flat on agent object (new API format)
   const totalJobs = agent.successfulJobCount ?? 0;
   const successRate = agent.successRate != null ? agent.successRate / 100 : 0; // API gives 0-100
@@ -94,13 +94,35 @@ export function computeTrustScore(agent: AcpAgent): AgentScore {
   // Diversity factor: multiple unique buyers = more trustworthy
   const diversityFactor = Math.min(buyerCount / 5, 1);
 
-  // ACP Score (0-100)
-  const score = Math.round(
+  // ─── Wadjet Price Health Signal ─────────────────────────────────────────
+  // Reads priceData from existing DB rawMetrics (indexed by Wadjet/DexScreener)
+  // Score modifier: -15 to +10 points
+  let priceModifier = 0;
+  const priceData = existingRawMetrics?.priceData as Record<string, number> | undefined;
+  if (priceData && typeof priceData.priceChange24h === 'number') {
+    const change24h = priceData.priceChange24h;
+    const liquidity = priceData.liquidity ?? 0;
+
+    // Crash penalty: -30% or worse → up to -15 points
+    if (change24h <= -50) priceModifier = -15;
+    else if (change24h <= -30) priceModifier = -10;
+    else if (change24h <= -15) priceModifier = -5;
+    // Stability bonus: positive or flat + decent liquidity → up to +10
+    else if (change24h >= 0 && liquidity >= 50000) priceModifier = 10;
+    else if (change24h >= -5 && liquidity >= 10000) priceModifier = 5;
+
+    // Low liquidity penalty (easy to manipulate)
+    if (liquidity > 0 && liquidity < 1000) priceModifier = Math.min(priceModifier, -5);
+  }
+
+  // ACP Score (0-100) + Wadjet price modifier
+  const rawScore =
     completionRate * 40 + // did they finish jobs?
-      volumeFactor * 25 + // how many jobs?
-      diversityFactor * 20 + // diverse buyers?
-      paymentRate * 15 // payment proxy
-  );
+    volumeFactor * 25 +   // how many jobs?
+    diversityFactor * 20 + // diverse buyers?
+    paymentRate * 15;      // payment proxy
+
+  const score = Math.round(Math.min(Math.max(rawScore + priceModifier, 0), 100));
 
   return {
     walletAddress: agent.walletAddress,
@@ -284,8 +306,20 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
   const allAgents = await fetchAllAgents(verbose);
   log(`\n📦 Total unique agents: ${allAgents.length}`);
 
-  // 2. Compute trust scores
-  const scores: AgentScore[] = allAgents.map(computeTrustScore);
+  // 2. Fetch existing rawMetrics (contains Wadjet priceData) for scoring
+  const prisma = externalPrisma ?? new PrismaClient();
+  const shouldDisconnect = !externalPrisma;
+  const existingAgents = await prisma.agentScore.findMany({
+    where: { walletAddress: { in: allAgents.map(a => a.walletAddress) } },
+    select: { walletAddress: true, rawMetrics: true },
+  });
+  const existingMap = new Map(existingAgents.map(a => [a.walletAddress.toLowerCase(), a.rawMetrics as Record<string, unknown> | null]));
+
+  // 3. Compute trust scores (with Wadjet price signals)
+  const scores: AgentScore[] = allAgents.map(agent => {
+    const existing = existingMap.get(agent.walletAddress.toLowerCase());
+    return computeTrustScore(agent, existing ?? undefined);
+  });
 
   // Stats
   const withJobs = scores.filter((s) => s.totalJobs > 0);
@@ -321,9 +355,7 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
     };
   }
 
-  // 3. Upsert to Supabase via Prisma
-  const prisma = externalPrisma ?? new PrismaClient();
-  const shouldDisconnect = !externalPrisma; // Only disconnect if we created the client
+  // 4. Upsert to Supabase via Prisma (reuse prisma from step 2)
 
   log(`\n💾 Writing ${scores.length} agent scores to Supabase...`);
 
@@ -332,6 +364,15 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
 
   for (const s of scores) {
     try {
+      // Merge rawMetrics: preserve Wadjet data (priceData, goplusFlags) from existing record
+      const existing = existingMap.get(s.walletAddress.toLowerCase()) ?? {};
+      const mergedRaw = {
+        ...existing,           // keep Wadjet priceData, has8004, etc.
+        ...(s.rawMetrics as object), // overwrite with fresh ACP data
+        // Re-apply Wadjet fields that ACP indexer doesn't produce
+        priceData: (existing as any)?.priceData ?? undefined,
+      };
+
       await prisma.agentScore.upsert({
         where: { walletAddress: s.walletAddress },
         update: {
@@ -341,7 +382,7 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
           expireRate: s.expireRate,
           totalJobs: s.totalJobs,
           dataSource: "ACP_BEHAVIORAL",
-          rawMetrics: s.rawMetrics,
+          rawMetrics: mergedRaw,
         },
         create: {
           walletAddress: s.walletAddress,
@@ -351,7 +392,7 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
           expireRate: s.expireRate,
           totalJobs: s.totalJobs,
           dataSource: "ACP_BEHAVIORAL",
-          rawMetrics: s.rawMetrics,
+          rawMetrics: mergedRaw,
         },
       });
       written++;
