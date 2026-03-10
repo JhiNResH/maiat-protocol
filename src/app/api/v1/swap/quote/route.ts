@@ -109,8 +109,8 @@ export async function POST(request: NextRequest) {
       target: tokenOut,
       buyer: swapper !== "0x0000000000000000000000000000000000000000" ? swapper : undefined,
       jobId,
-      trustScore: tokenOutScore?.score ?? null,
-      verdict: tokenOutScore ? (tokenOutScore.score >= 70 ? "proceed" : tokenOutScore.score >= 40 ? "caution" : "avoid") : null,
+      trustScore: tokenOutScore ? Math.round(tokenOutScore.score * 10) : null,
+      verdict: tokenOutScore ? (tokenOutScore.score >= 7 ? "proceed" : tokenOutScore.score >= 4 ? "caution" : "avoid") : null,
       amountIn: amount,
       amountOut: amountOut || undefined,
       clientId: _clientId,
@@ -128,10 +128,10 @@ export async function POST(request: NextRequest) {
         value: swapValue,
         trust: {
           tokenIn: tokenInScore
-            ? { score: tokenInScore.score, risk: tokenInScore.risk }
+            ? { score: Math.round(tokenInScore.score * 10), risk: tokenInScore.risk }
             : null,
           tokenOut: tokenOutScore
-            ? { score: tokenOutScore.score, risk: tokenOutScore.risk }
+            ? { score: Math.round(tokenOutScore.score * 10), risk: tokenOutScore.risk }
             : null,
         },
         timestamp: new Date().toISOString(),
