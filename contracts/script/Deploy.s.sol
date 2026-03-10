@@ -5,12 +5,16 @@ import {Script, console2} from "forge-std/Script.sol";
 import {TrustScoreOracle} from "../src/TrustScoreOracle.sol";
 import {TrustGateHook} from "../src/TrustGateHook.sol";
 import {MaiatPassport} from "../src/MaiatPassport.sol";
-import {MaiatTrustConsumer} from "../src/MaiatTrustConsumer.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 
 /// @title Deploy
 /// @notice Deploys all Maiat Protocol contracts:
-///         TrustScoreOracle, TrustGateHook, MaiatPassport, MaiatTrustConsumer
+///         TrustScoreOracle, TrustGateHook, MaiatPassport
+///
+/// @dev MaiatTrustConsumer was removed (MAIAT-001): the Chainlink CRE integration had a
+///      broken ITrustScoreOracle interface (function selector mismatch — DataSource param missing).
+///      Since we are not using Chainlink CRE in the current architecture, the contract was deleted.
+///      Trust scores are updated directly via TrustScoreOracle.updateTokenScore (UPDATER_ROLE).
 ///
 /// Usage:
 ///   # Dry run (no broadcast):
@@ -28,81 +32,58 @@ import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 ///   PRIVATE_KEY          — deployer private key (uint256)
 ///
 /// Optional env vars:
-///   POOL_MANAGER_ADDRESS         — Uniswap V4 PoolManager (defaults to Base Sepolia)
-///   FORWARDER_ADDRESS            — Chainlink KeystoneForwarder address
-///   EXPECTED_WORKFLOW_OWNER      — CRE workflow owner for MaiatTrustConsumer (default: deployer)
+///   POOL_MANAGER_ADDRESS — Uniswap V4 PoolManager (defaults to Base Sepolia)
+///   TRUSTED_ROUTER       — Known trusted router to register in TrustGateHook (optional)
 contract Deploy is Script {
     // Uniswap V4 PoolManager on Base Sepolia
     // https://docs.uniswap.org/contracts/v4/deployments
     address constant BASE_SEPOLIA_POOL_MANAGER = 0x7Da1D65F8B249183667cdE74C5CBD46dD38AA829;
 
-    // Placeholder forwarder — replace with actual Chainlink KeystoneForwarder on target chain
-    address constant PLACEHOLDER_FORWARDER = address(0x1);
-
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
-        address deployer    = vm.addr(deployerKey);
+        address deployer = vm.addr(deployerKey);
 
         address poolManagerAddr = vm.envOr("POOL_MANAGER_ADDRESS", BASE_SEPOLIA_POOL_MANAGER);
-        address forwarderAddr   = vm.envOr("FORWARDER_ADDRESS",    PLACEHOLDER_FORWARDER);
-        address workflowOwner   = vm.envOr("EXPECTED_WORKFLOW_OWNER", deployer);
+        address trustedRouter = vm.envOr("TRUSTED_ROUTER", address(0));
 
         console2.log("=== MAIAT Protocol Deployment ===");
-        console2.log("Deployer:              ", deployer);
-        console2.log("PoolManager:           ", poolManagerAddr);
-        console2.log("Forwarder:             ", forwarderAddr);
-        console2.log("ExpectedWorkflowOwner: ", workflowOwner);
-        console2.log("Chain ID:              ", block.chainid);
+        console2.log("Deployer:    ", deployer);
+        console2.log("PoolManager: ", poolManagerAddr);
+        console2.log("Chain ID:    ", block.chainid);
 
         vm.startBroadcast(deployerKey);
 
         // 1. Deploy TrustScoreOracle
-        //    deployer = admin + updater (can update scores directly)
+        //    deployer = DEFAULT_ADMIN_ROLE + UPDATER_ROLE
+        //    SECURITY: Transfer UPDATER_ROLE to a Gnosis Safe multisig after deployment.
         TrustScoreOracle oracle = new TrustScoreOracle(deployer);
         console2.log("TrustScoreOracle deployed:    ", address(oracle));
 
         // 2. Deploy TrustGateHook (Uniswap V4 hook)
-        TrustGateHook hook = new TrustGateHook(
-            oracle,
-            IPoolManager(poolManagerAddr),
-            deployer
-        );
+        TrustGateHook hook = new TrustGateHook(oracle, IPoolManager(poolManagerAddr), deployer);
         console2.log("TrustGateHook deployed:       ", address(hook));
         console2.log("  Default trust threshold:    ", hook.trustThreshold());
 
-        // 3. Deploy MaiatPassport (soulbound ERC-721)
+        // 3. Register trusted router if provided (MAIAT-004)
+        if (trustedRouter != address(0)) {
+            hook.setTrustedRouter(trustedRouter, true);
+            console2.log("  Trusted router registered:  ", trustedRouter);
+        }
+
+        // 4. Deploy MaiatPassport (soulbound ERC-721)
         MaiatPassport passport = new MaiatPassport(deployer);
         console2.log("MaiatPassport deployed:       ", address(passport));
-
-        // 4. Deploy MaiatTrustConsumer (Chainlink CRE receiver)
-        //    oracle is passed — the consumer will call oracle.batchUpdateTokenScores
-        //    NOTE: consumer's internal interface omits DataSource param
-        MaiatTrustConsumer consumer = new MaiatTrustConsumer(
-            forwarderAddr,
-            address(oracle),
-            deployer,
-            workflowOwner
-        );
-        console2.log("MaiatTrustConsumer deployed:  ", address(consumer));
-
-        // 5. Grant UPDATER_ROLE on TrustScoreOracle to MaiatTrustConsumer
-        //    so it can batch-update scores when a Chainlink report arrives.
-        //    NOTE: This will revert at runtime because TrustScoreOracle.batchUpdateTokenScores
-        //    takes a DataSource param but the consumer's interface does not.
-        //    This grant is included for completeness; adapt the interface before production use.
-        oracle.grantRole(oracle.UPDATER_ROLE(), address(consumer));
-        console2.log("  Granted UPDATER_ROLE -> MaiatTrustConsumer");
 
         vm.stopBroadcast();
 
         console2.log("\n=== Deployment Summary ===");
-        console2.log("TrustScoreOracle:   ", address(oracle));
-        console2.log("TrustGateHook:      ", address(hook));
-        console2.log("MaiatPassport:      ", address(passport));
-        console2.log("MaiatTrustConsumer: ", address(consumer));
-        console2.log("\nNext steps:");
-        console2.log("1. Export ORACLE_ADDRESS=", address(oracle));
-        console2.log("2. Run SeedScores script to populate token trust scores");
-        console2.log("3. Configure real Chainlink KeystoneForwarder in MaiatTrustConsumer");
+        console2.log("TrustScoreOracle: ", address(oracle));
+        console2.log("TrustGateHook:    ", address(hook));
+        console2.log("MaiatPassport:    ", address(passport));
+        console2.log("\nPost-deployment checklist:");
+        console2.log("1. Transfer UPDATER_ROLE to a Gnosis Safe multisig (MAIAT-006)");
+        console2.log("2. Register trusted routers via hook.setTrustedRouter() (MAIAT-004)");
+        console2.log("3. To change threshold: proposeThreshold() -> wait 24h -> executeThreshold() (MAIAT-005)");
+        console2.log("4. Seed initial token scores via oracle.updateTokenScore() or emergencyUpdateTokenScore()");
     }
 }
