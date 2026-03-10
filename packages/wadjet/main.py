@@ -46,7 +46,8 @@ METADATA_PATH = MODELS_DIR / "model_metadata.json"
 METADATA_V2_PATH = MODELS_DIR / "model_v2_metadata.json"
 
 # ─── Feature ordering (MUST match training) ──────────────────────────────────
-FEATURES = [
+# Original 20 features (V1)
+FEATURES_V1 = [
     "holder_concentration",
     "liquidity_lock_ratio",
     "creator_tx_pattern",
@@ -67,6 +68,12 @@ FEATURES = [
     "verified_contract",
     "social_presence_score",
     "audit_score",
+]
+
+# Extended features for retrained models (V1 + 2 new)
+FEATURES = FEATURES_V1 + [
+    "data_completeness",   # Fraction of V1 features with real (non-default) values (0–1)
+    "is_ghost_agent",      # 1 if total_jobs==0 AND completion_rate==0 AND token exists
 ]
 
 # Default values for optional features (conservative — assume risky)
@@ -91,6 +98,9 @@ FEATURE_DEFAULTS = {
     "verified_contract": 0,
     "social_presence_score": 0.3,
     "audit_score": 0.0,
+    # New features — computed, not supplied by caller
+    "data_completeness": 0.0,
+    "is_ghost_agent": 0.0,
 }
 
 # ─── Risk factor thresholds ────────────────────────────────────────────────
@@ -267,17 +277,68 @@ def normalize_price_change(raw: float) -> float:
     return float(np.clip(raw, -1.0, 5.0))
 
 
-def extract_features(req: PredictRequest) -> np.ndarray:
-    """Extract feature vector from request, applying defaults for missing values."""
+def extract_features(req: PredictRequest) -> tuple:
+    """
+    Extract feature vector from request, applying defaults for missing values.
+
+    Returns:
+        feature_vec      — np.ndarray shape (1, 22) — full feature vector incl. new features
+        real_count       — int: how many of the 20 original features had real (non-default) values
+        low_data_confidence — bool: True if < 10 of 20 core features were provided
+    """
     row = {}
-    for feat in FEATURES:
+    real_count = 0
+
+    for feat in FEATURES_V1:
         val = getattr(req, feat, None)
-        row[feat] = val if val is not None else FEATURE_DEFAULTS[feat]
+        if val is not None:
+            real_count += 1
+            row[feat] = val
+        else:
+            row[feat] = FEATURE_DEFAULTS[feat]
 
     if req.price_change_24h is not None:
         row["price_change_24h"] = normalize_price_change(req.price_change_24h)
 
-    return np.array([[row[f] for f in FEATURES]], dtype=np.float32)
+    # ── Computed new features ──────────────────────────────────────────────
+    data_completeness = real_count / len(FEATURES_V1)  # 0.0 – 1.0
+    is_ghost_agent = 1.0 if (
+        row["total_jobs"] == 0.0
+        and row["completion_rate"] == 0.0
+        and (req.agent_id is not None or req.token_address is not None)
+    ) else 0.0
+
+    row["data_completeness"] = data_completeness
+    row["is_ghost_agent"] = is_ghost_agent
+
+    low_data_confidence = real_count < (len(FEATURES_V1) // 2)  # < 10 of 20
+
+    feature_vec = np.array([[row[f] for f in FEATURES]], dtype=np.float32)
+    return feature_vec, real_count, low_data_confidence
+
+
+def compute_rule_based_score(
+    trust_score_norm: float,        # 0–1 (0.0 = no trust)
+    total_jobs_norm: float,         # 0–1 (0.0 = no jobs)
+    completion_rate: float,         # 0–1
+    holder_concentration: float,    # 0–1
+    liquidity_norm: float,          # 0–1 log-normalised
+    verified_contract: int,         # 0 or 1
+    social_presence: float,         # 0–1
+) -> int:
+    """
+    Rule-based rug risk score (0-100).  Mirrors the Vercel endpoint heuristics.
+    Higher = riskier.
+    """
+    score = 0
+    if trust_score_norm == 0.0:         score += 20
+    if total_jobs_norm == 0.0:          score += 15
+    if completion_rate == 0.0:          score += 15
+    if holder_concentration > 0.7:      score += 15
+    if liquidity_norm < 0.1:            score += 10
+    if verified_contract == 0:          score += 5
+    if social_presence == 0.0:          score += 5
+    return min(score, 100)
 
 
 def detect_risk_factors(req: PredictRequest) -> list[RiskFactor]:
@@ -393,12 +454,12 @@ def detect_risk_factors(req: PredictRequest) -> list[RiskFactor]:
 
 
 def compute_confidence(req: PredictRequest) -> float:
-    """Compute prediction confidence based on data completeness."""
+    """Compute prediction confidence based on data completeness (V1 features only)."""
     provided = sum(
-        1 for f in FEATURES
+        1 for f in FEATURES_V1
         if getattr(req, f, None) is not None
     )
-    return round(provided / len(FEATURES), 2)
+    return round(provided / len(FEATURES_V1), 2)
 
 
 def classify_behavior(prob: float) -> str:
@@ -407,7 +468,7 @@ def classify_behavior(prob: float) -> str:
     return "clean"
 
 
-PREDICTION_THRESHOLD = 0.35  # Low threshold to minimize false negatives
+PREDICTION_THRESHOLD = 0.25  # Lowered from 0.35 to minimize false negatives (v1.2)
 
 # ─── Phase 3: Agent-specific feature lists ────────────────────────────────────
 V2_VIRTUALS_FEATURES = [
@@ -831,8 +892,31 @@ async def predict(req: PredictRequest):
         )
 
     try:
-        features = extract_features(req)
-        prob = float(model.predict_proba(features)[0][1])
+        feature_vec, real_count, low_data_confidence = extract_features(req)
+
+        # ── Backward-compat: truncate to model's expected n_features ─────────
+        n_expected = model.n_features_in_ if hasattr(model, "n_features_in_") else len(FEATURES_V1)
+        features_for_model = feature_vec[:, :n_expected]
+        prob = float(model.predict_proba(features_for_model)[0][1])
+
+        # ─── Rule-based score (always computed) ──────────────────────────────
+        eff_trust      = (req.trust_score if req.trust_score is not None else FEATURE_DEFAULTS["trust_score"])
+        eff_jobs       = (req.total_jobs if req.total_jobs is not None else FEATURE_DEFAULTS["total_jobs"])
+        eff_completion = (req.completion_rate if req.completion_rate is not None else FEATURE_DEFAULTS["completion_rate"])
+        eff_holder     = (req.holder_concentration if req.holder_concentration is not None else FEATURE_DEFAULTS["holder_concentration"])
+        eff_liquidity  = (req.liquidity_usd if req.liquidity_usd is not None else FEATURE_DEFAULTS["liquidity_usd"])
+        eff_verified   = (req.verified_contract if req.verified_contract is not None else FEATURE_DEFAULTS["verified_contract"])
+        eff_social     = (req.social_presence_score if req.social_presence_score is not None else FEATURE_DEFAULTS["social_presence_score"])
+
+        rule_based_score = compute_rule_based_score(
+            trust_score_norm=eff_trust,
+            total_jobs_norm=eff_jobs,
+            completion_rate=eff_completion,
+            holder_concentration=eff_holder,
+            liquidity_norm=eff_liquidity,
+            verified_contract=int(eff_verified),
+            social_presence=eff_social,
+        )
 
         # ─── GoPlus enrichment ───────────────────────────────────────────────
         goplus_signals: Optional[GoPlusSignals] = None
@@ -883,8 +967,20 @@ async def predict(req: PredictRequest):
 
         # ─── Compute final score ─────────────────────────────────────────────
         is_rug = prob >= PREDICTION_THRESHOLD
-        base_rug_score = int(round(prob * 100))
-        rug_score = min(100, base_rug_score + goplus_score_delta)
+        ml_rug_score = int(round(prob * 100))
+
+        # Ensemble: take max(ML, rule-based) — rule-based guards against low-data failures
+        rug_score = max(ml_rug_score, rule_based_score)
+
+        # GoPlus delta on top of ensemble score
+        rug_score = min(100, rug_score + goplus_score_delta)
+
+        # ─── Zero-activity penalty (post-processing floor) ───────────────────
+        # If no evidence of activity (both omitted/zero), enforce floor of 40
+        zero_jobs  = req.total_jobs is None or req.total_jobs == 0
+        zero_trust = req.trust_score is None or req.trust_score == 0
+        if zero_jobs and zero_trust:
+            rug_score = max(rug_score, 40)
 
         # Re-derive risk level from augmented score
         aug_prob = rug_score / 100.0
@@ -943,7 +1039,9 @@ async def predict(req: PredictRequest):
         if req.agent_id:
             logger.info(
                 f"Prediction: agent={req.agent_id} prob={prob:.4f} "
-                f"rug_score={rug_score} (base={base_rug_score} goplus_delta={goplus_score_delta}) "
+                f"ml_score={ml_rug_score} rule_based={rule_based_score} "
+                f"rug_score={rug_score} (goplus_delta={goplus_score_delta}) "
+                f"real_features={real_count}/20 low_data={low_data_confidence} "
                 f"risk={risk_level} behavior={behavior_class}"
             )
 
@@ -1038,14 +1136,51 @@ async def predict_agent(req: AgentPredictRequest):
         logger.error(f"Prediction failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
 
-    rug_score = int(round(rug_prob * 100))
+    ml_rug_score = int(round(rug_prob * 100))
+
+    # ─── Rule-based score for agent endpoint ────────────────────────────────
+    import math as _math_rb
+    acp_trust_raw   = acp_data.get("trust_score", 0) or 0
+    acp_total_jobs  = acp_data.get("total_jobs", 0) or 0
+    acp_comp_rate   = acp_data.get("completion_rate", 0) or 0
+    agent_liq_usd   = req.liquidity_usd or dex_data.get("liquidity_usd", 0) or 0
+    agent_liq_norm  = _math_rb.log1p(agent_liq_usd) / _math_rb.log1p(1_000_000)
+    agent_top10     = gp_data.get("top10_holder_pct", 0.5) or 0.5
+    agent_verified  = 1 if gp_data.get("is_open_source") else 0
+    agent_social    = float(len(dex_data.get("websites", [])) + len(dex_data.get("socials", []))) / 3.0
+    agent_social    = min(agent_social, 1.0)
+
+    # Normalize trust (0-100 → 0-1) and jobs (log-norm)
+    acp_trust_norm = min(acp_trust_raw / 100.0, 1.0)
+    acp_jobs_norm  = _math_rb.log1p(acp_total_jobs) / _math_rb.log1p(100_000)
+
+    rule_based_score = compute_rule_based_score(
+        trust_score_norm=acp_trust_norm,
+        total_jobs_norm=acp_jobs_norm,
+        completion_rate=float(acp_comp_rate),
+        holder_concentration=float(agent_top10),
+        liquidity_norm=agent_liq_norm,
+        verified_contract=agent_verified,
+        social_presence=agent_social,
+    )
+
+    # Ensemble: max(ML, rule-based)
+    rug_score = max(ml_rug_score, rule_based_score)
+
+    # ─── Zero-activity penalty ───────────────────────────────────────────────
+    zero_agent_jobs  = (req.acp_total_jobs is None or req.acp_total_jobs == 0) and acp_total_jobs == 0
+    zero_agent_trust = (req.acp_trust_score is None or req.acp_trust_score == 0) and acp_trust_raw == 0
+    if zero_agent_jobs and zero_agent_trust:
+        rug_score = max(rug_score, 40)
+
+    rug_prob_final = rug_score / 100.0
     risk_level = (
-        "critical" if rug_prob >= 0.7 else
-        "high"     if rug_prob >= 0.5 else
-        "medium"   if rug_prob >= PREDICTION_THRESHOLD else
+        "critical" if rug_prob_final >= 0.7 else
+        "high"     if rug_prob_final >= 0.5 else
+        "medium"   if rug_prob_final >= PREDICTION_THRESHOLD else
         "low"
     )
-    behavior_class = classify_behavior(rug_prob)
+    behavior_class = classify_behavior(rug_prob_final)
 
     # ─── Token age for signals ──────────────────────────────────────────────
     import time as _time
@@ -1074,26 +1209,27 @@ async def predict_agent(req: AgentPredictRequest):
     critical_count = sum(1 for s in risk_signals if s.severity == "critical")
     high_count = sum(1 for s in risk_signals if s.severity == "high")
 
-    if rug_prob >= 0.7 or critical_count > 0:
+    if rug_prob_final >= 0.7 or critical_count > 0:
         summary = (
-            f"🔴 HIGH RUG RISK ({rug_prob*100:.0f}%). "
+            f"🔴 HIGH RUG RISK ({rug_prob_final*100:.0f}%). "
             f"{critical_count} critical + {high_count} high signals. "
             f"Do NOT interact with this token."
         )
-    elif rug_prob >= PREDICTION_THRESHOLD:
+    elif rug_prob_final >= PREDICTION_THRESHOLD:
         summary = (
-            f"🟠 ELEVATED RISK ({rug_prob*100:.0f}%). "
+            f"🟠 ELEVATED RISK ({rug_prob_final*100:.0f}%). "
             f"{high_count} high-risk signals detected. Exercise caution."
         )
     else:
         summary = (
-            f"🟢 LOW RISK ({rug_prob*100:.0f}%). "
+            f"🟢 LOW RISK ({rug_prob_final*100:.0f}%). "
             f"No major red flags. Standard due diligence applies."
         )
 
     logger.info(
         f"Agent prediction: token={token_address[:12]}... "
-        f"prob={rug_prob:.3f} score={rug_score} risk={risk_level} "
+        f"ml_prob={rug_prob:.3f} ml_score={ml_rug_score} rule_based={rule_based_score} "
+        f"rug_score={rug_score} risk={risk_level} "
         f"model={model_tag} signals={len(risk_signals)}"
     )
 
@@ -1120,7 +1256,7 @@ async def predict_agent(req: AgentPredictRequest):
     return AgentPredictResponse(
         token_address=token_address,
         wallet_address=req.wallet_address,
-        rug_probability=round(rug_prob, 4),
+        rug_probability=round(rug_prob_final, 4),
         rug_score=rug_score,
         risk_level=risk_level,
         behavior_class=behavior_class,
