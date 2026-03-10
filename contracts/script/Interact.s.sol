@@ -151,6 +151,7 @@ contract ProposeThreshold is Script {
 
         vm.startBroadcast(callerKey);
         hook.proposeThreshold(newThreshold);
+<<<<<<< HEAD
         vm.stopBroadcast();
 
         console2.log("Proposed. Execute after:", block.timestamp + hook.THRESHOLD_TIMELOCK_DELAY());
@@ -170,6 +171,8 @@ contract ExecuteThreshold is Script {
 
         vm.startBroadcast(callerKey);
         hook.executeThreshold();
+=======
+>>>>>>> origin/master
         vm.stopBroadcast();
 
         console2.log("New threshold:", hook.trustThreshold());
