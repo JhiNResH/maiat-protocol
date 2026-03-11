@@ -76,8 +76,8 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     fetch("/api/v1/stats/api")
-      .then((r) => r.json())
-      .then(setStats)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setStats(d) })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
