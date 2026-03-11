@@ -137,6 +137,74 @@ export async function triggerScan(tokenAddress: string): Promise<unknown> {
   })
 }
 
+// ─── Feedback Loop (Protocol → Wadjet) ──────────────────────────────────────
+
+export interface OutcomeFeedbackItem {
+  agent_address: string
+  outcome: string // success | failure | partial | expired
+  trust_score_at_check?: number
+  new_trust_score?: number
+  job_id?: string
+  token_address?: string
+  actual_amount_out?: string
+  recorded_at?: string
+}
+
+export interface FeedbackResult {
+  stored: number
+  errors: number
+  source: string
+  message: string
+}
+
+/**
+ * Push a single outcome to Wadjet for retraining pipeline.
+ * Called after POST /api/v1/outcome records a result.
+ * Fire-and-forget — failure here should not block the outcome API.
+ */
+export async function pushOutcome(item: OutcomeFeedbackItem): Promise<FeedbackResult | null> {
+  try {
+    return await wadjetFetch<FeedbackResult>('/feedback/outcomes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Cron-Api-Key': process.env.WADJET_CRON_KEY ?? '',
+      },
+      body: JSON.stringify({
+        outcomes: [item],
+        source: 'maiat-protocol',
+      }),
+    })
+  } catch (err) {
+    console.warn('[wadjet-client] pushOutcome failed (non-blocking):', err)
+    return null
+  }
+}
+
+/**
+ * Push a batch of outcomes to Wadjet.
+ * Used by cron to flush accumulated outcomes.
+ */
+export async function pushOutcomeBatch(items: OutcomeFeedbackItem[]): Promise<FeedbackResult | null> {
+  if (items.length === 0) return null
+  try {
+    return await wadjetFetch<FeedbackResult>('/feedback/outcomes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Cron-Api-Key': process.env.WADJET_CRON_KEY ?? '',
+      },
+      body: JSON.stringify({
+        outcomes: items,
+        source: 'maiat-protocol',
+      }),
+    })
+  } catch (err) {
+    console.warn('[wadjet-client] pushOutcomeBatch failed (non-blocking):', err)
+    return null
+  }
+}
+
 // ─── Health ─────────────────────────────────────────────────────────────────
 
 export async function healthCheck(): Promise<{ status: string }> {

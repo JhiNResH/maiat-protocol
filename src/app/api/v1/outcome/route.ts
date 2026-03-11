@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
 import { prisma } from "@/lib/prisma";
 import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
+import { pushOutcome } from "@/lib/wadjet-client";
 
 const rateLimiter = createRateLimiter("outcome", 50, 60);
 
@@ -175,6 +176,18 @@ export async function POST(request: NextRequest) {
         rawMetrics: {},
       },
     });
+
+    // ── Push to Wadjet for retraining (fire-and-forget) ──
+    pushOutcome({
+      agent_address: normalizedAgent,
+      outcome,
+      trust_score_at_check: onchainScore,
+      new_trust_score: newTrustScore,
+      job_id: jobId,
+      token_address: (queryLog.metadata as Record<string, unknown>)?.tokenAddress as string | undefined,
+      actual_amount_out: actualAmountOut ?? undefined,
+      recorded_at: new Date().toISOString(),
+    }).catch(() => {}); // non-blocking
 
     // Reward Scarab to reporter (unified ledger — works for both users and agents)
     let scarabReward: { balance: number; earned: number } | null = null;
