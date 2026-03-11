@@ -30,9 +30,14 @@ contract TrustGateHookTest is Test {
     event SwapBlocked(address indexed token, uint256 score, uint256 threshold);
     event ThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
 
+    // Trusted signer for EIP-712 tests
+    uint256 internal signerPk = 0xA11CE;
+    address internal signerAddr;
+
     function setUp() public {
+        signerAddr = vm.addr(signerPk);
         oracle = new TrustScoreOracle(owner);
-        hook = new TrustGateHook(oracle, IPoolManager(mockPoolManager), owner);
+        hook = new TrustGateHook(oracle, IPoolManager(mockPoolManager), owner, signerAddr);
     }
 
     // ─── Helpers ───────────────────────────────────────────────
@@ -69,18 +74,23 @@ contract TrustGateHookTest is Test {
 
     function test_Constructor_ZeroOracleReverts() public {
         vm.expectRevert(TrustGateHook.TrustGateHook__ZeroAddress.selector);
-        new TrustGateHook(TrustScoreOracle(address(0)), IPoolManager(mockPoolManager), owner);
+        new TrustGateHook(TrustScoreOracle(address(0)), IPoolManager(mockPoolManager), owner, signerAddr);
     }
 
     function test_Constructor_ZeroPoolManagerReverts() public {
         vm.expectRevert(TrustGateHook.TrustGateHook__ZeroAddress.selector);
-        new TrustGateHook(oracle, IPoolManager(address(0)), owner);
+        new TrustGateHook(oracle, IPoolManager(address(0)), owner, signerAddr);
     }
 
     function test_Constructor_ZeroOwnerReverts() public {
-        // Ownable base constructor reverts before our custom check runs
         vm.expectRevert();
-        new TrustGateHook(oracle, IPoolManager(mockPoolManager), address(0));
+        new TrustGateHook(oracle, IPoolManager(mockPoolManager), address(0), signerAddr);
+    }
+
+    function test_Constructor_ZeroSignerAllowed() public {
+        // Zero signer disables signed score mode — should not revert
+        TrustGateHook h = new TrustGateHook(oracle, IPoolManager(mockPoolManager), owner, address(0));
+        assertEq(h.trustedSigner(), address(0));
     }
 
     function test_Constructor_DefaultThreshold() public view {
@@ -418,5 +428,145 @@ contract TrustGateHookTest is Test {
 
         uint256 expectedBps = oracle.getUserFee(swapper);
         assertEq(fee, uint24(expectedBps * 100) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
+    }
+
+    // ─── EIP-712 Signed Scores (MODE 1) ────────────────────────
+
+    function _signScore(address token, uint256 score, uint256 ts, uint256 nonce)
+        internal
+        view
+        returns (bytes memory)
+    {
+        bytes32 structHash = keccak256(
+            abi.encode(hook.SCORE_TYPEHASH(), token, score, ts, nonce)
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", hook.DOMAIN_SEPARATOR(), structHash)
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, digest);
+        return abi.encodePacked(r, s, v);
+    }
+
+    function _makeSignedHookData(
+        address feeTarget,
+        uint256 score0, uint256 ts0, uint256 nonce0,
+        uint256 score1, uint256 ts1, uint256 nonce1
+    ) internal view returns (bytes memory) {
+        bytes memory sig0 = _signScore(token0, score0, ts0, nonce0);
+        bytes memory sig1 = _signScore(token1, score1, ts1, nonce1);
+        return abi.encode(feeTarget, score0, ts0, nonce0, sig0, score1, ts1, nonce1, sig1);
+    }
+
+    function test_SignedScore_HighScore_Passes() public {
+        uint256 ts = block.timestamp;
+        bytes memory hookData = _makeSignedHookData(address(0), 80, ts, 1, 90, ts, 2);
+
+        vm.prank(mockPoolManager);
+        (bytes4 sel,,) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+        assertEq(sel, IHooks.beforeSwap.selector);
+    }
+
+    function test_SignedScore_LowScore_Reverts() public {
+        uint256 ts = block.timestamp;
+        bytes memory hookData = _makeSignedHookData(address(0), 10, ts, 1, 90, ts, 2);
+
+        vm.prank(mockPoolManager);
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token0, 10, DEFAULT_THRESHOLD));
+        hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+    }
+
+    function test_SignedScore_ExpiredTimestamp_Reverts() public {
+        vm.warp(10000); // ensure block.timestamp is large enough
+        uint256 ts = block.timestamp - 6 minutes; // > SIGNED_SCORE_MAX_AGE (5 min)
+        bytes memory hookData = _makeSignedHookData(address(0), 80, ts, 1, 80, ts, 2);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TrustGateHook.TrustGateHook__SignatureExpired.selector,
+                token0, ts, hook.SIGNED_SCORE_MAX_AGE()
+            )
+        );
+        vm.prank(mockPoolManager);
+        hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+    }
+
+    function test_SignedScore_ReplayNonce_Reverts() public {
+        uint256 ts = block.timestamp;
+        bytes memory hookData = _makeSignedHookData(address(0), 80, ts, 1, 80, ts, 2);
+
+        // First swap passes
+        vm.prank(mockPoolManager);
+        hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+
+        // Same hookData (same nonces) → replay → revert
+        vm.prank(mockPoolManager);
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__NonceAlreadyUsed.selector, token0, 1));
+        hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+    }
+
+    function test_SignedScore_WrongSigner_Reverts() public {
+        // Sign with a different key
+        uint256 fakePk = 0xDEAD;
+        uint256 ts = block.timestamp;
+
+        bytes32 structHash = keccak256(
+            abi.encode(hook.SCORE_TYPEHASH(), token0, uint256(80), ts, uint256(1))
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", hook.DOMAIN_SEPARATOR(), structHash)
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(fakePk, digest);
+        bytes memory fakeSig0 = abi.encodePacked(r, s, v);
+
+        bytes memory goodSig1 = _signScore(token1, 80, ts, 2);
+        bytes memory hookData = abi.encode(address(0), uint256(80), ts, uint256(1), fakeSig0, uint256(80), ts, uint256(2), goodSig1);
+
+        vm.prank(mockPoolManager);
+        vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__InvalidSignature.selector, token0));
+        hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+    }
+
+    function test_SignedScore_WithFeeTarget() public {
+        uint256 ts = block.timestamp;
+        address highRepUser = address(0xBEEF);
+        oracle.updateUserReputation(highRepUser, 200, 50, 1000);
+
+        bytes memory hookData = _makeSignedHookData(highRepUser, 80, ts, 1, 80, ts, 2);
+
+        vm.prank(mockPoolManager);
+        (,, uint24 fee) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+
+        // Fee should use highRepUser's guardian tier (0%)
+        assertEq(fee, uint24(0) | LPFeeLibrary.OVERRIDE_FEE_FLAG);
+    }
+
+    function test_SignedScore_DisabledSigner_FallsBackToOracle() public {
+        // Disable signed scores
+        hook.setTrustedSigner(address(0));
+
+        _setScores(80, 80);
+
+        // Even with long hookData, should fall back to oracle mode
+        uint256 ts = block.timestamp;
+        bytes memory hookData = _makeSignedHookData(address(0), 80, ts, 1, 80, ts, 2);
+
+        // hookData > 32 bytes but trustedSigner is 0 → falls to oracle mode
+        // However, the hookData won't decode as a legacy address either (too long)
+        // Oracle mode will work since scores are set
+        vm.prank(mockPoolManager);
+        (bytes4 sel,,) = hook.beforeSwap(swapper, _makeKey(), _makeParams(), hookData);
+        assertEq(sel, IHooks.beforeSwap.selector);
+    }
+
+    function test_SetTrustedSigner() public {
+        address newSigner = address(0xCAFE);
+        hook.setTrustedSigner(newSigner);
+        assertEq(hook.trustedSigner(), newSigner);
+    }
+
+    function test_SetTrustedSigner_NotOwner_Reverts() public {
+        vm.prank(attacker);
+        vm.expectRevert();
+        hook.setTrustedSigner(address(0xCAFE));
     }
 }
