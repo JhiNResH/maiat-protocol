@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { predictAgent } from '@/lib/wadjet-client'
+import { prisma } from '@/lib/prisma'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -21,7 +22,19 @@ export async function GET(
   }
 
   try {
-    const result = await predictAgent(address)
+    // Look up token address from DB — Wadjet v2 requires it for DexScreener enrichment
+    let tokenAddress: string | null = null
+    try {
+      const record = await prisma.agentScore.findFirst({
+        where: { OR: [{ id: address.toLowerCase() }, { id: address }] },
+        select: { tokenAddress: true },
+      })
+      tokenAddress = record?.tokenAddress ?? null
+    } catch {
+      // DB unavailable — proceed without tokenAddress (Wadjet will use address as fallback)
+    }
+
+    const result = await predictAgent(address, tokenAddress)
 
     return NextResponse.json(
       {
