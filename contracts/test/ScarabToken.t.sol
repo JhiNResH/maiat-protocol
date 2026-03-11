@@ -58,6 +58,8 @@ contract ScarabTokenTest is Test {
 
     function test_burnFrom() public {
         token.mint(alice, 1000e18);
+        vm.prank(alice);
+        token.approve(address(this), 400e18);
         token.adminBurn(alice, 400e18);
         assertEq(token.balanceOf(alice), 600e18);
         assertEq(token.totalSupply(), 600e18);
@@ -66,12 +68,16 @@ contract ScarabTokenTest is Test {
     function test_burnFrom_onlyOwner() public {
         token.mint(alice, 1000e18);
         vm.prank(alice);
+        token.approve(address(this), 100e18);
+        vm.prank(alice);
         vm.expectRevert();
         token.adminBurn(alice, 100e18);
     }
 
     function test_burnFrom_exceedsBalance() public {
         token.mint(alice, 100e18);
+        vm.prank(alice);
+        token.approve(address(this), 200e18);
         vm.expectRevert();
         token.adminBurn(alice, 200e18);
     }
@@ -303,6 +309,9 @@ contract ScarabTokenTest is Test {
         burnAmt = bound(burnAmt, 0, type(uint128).max);
 
         token.mint(alice, mintAmt);
+
+        vm.prank(alice);
+        token.approve(address(this), burnAmt);
 
         if (burnAmt > mintAmt) {
             vm.expectRevert();
