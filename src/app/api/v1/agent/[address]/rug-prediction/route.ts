@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { predictRug } from '@/lib/rug-prediction'
+import { predictAgent } from '@/lib/wadjet-client'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -22,74 +21,38 @@ export async function GET(
   }
 
   try {
-    // Try wallet address first, then fall back to token address lookup
-    let agent = await prisma.agentScore.findFirst({
-      where: {
-        walletAddress: { equals: address.toLowerCase(), mode: 'insensitive' },
-      },
-      select: {
-        walletAddress: true,
-        trustScore: true,
-        completionRate: true,
-        totalJobs: true,
-        tokenAddress: true,
-        tokenSymbol: true,
-        rawMetrics: true,
-      },
-    })
-
-    // Reverse lookup: if not found by wallet, try by token address
-    if (!agent) {
-      agent = await prisma.agentScore.findFirst({
-        where: {
-          tokenAddress: { equals: address.toLowerCase(), mode: 'insensitive' },
-        },
-        select: {
-          walletAddress: true,
-          trustScore: true,
-          completionRate: true,
-          totalJobs: true,
-          tokenAddress: true,
-          tokenSymbol: true,
-          rawMetrics: true,
-        },
-      })
-    }
-
-    if (!agent) {
-      return NextResponse.json({ error: 'Agent not found' }, { status: 404, headers: CORS })
-    }
-
-    const raw = (agent.rawMetrics ?? {}) as Record<string, unknown>
-    const name = typeof raw.name === 'string' ? raw.name : null
-
-    const prediction = predictRug({
-      trustScore: agent.trustScore,
-      completionRate: agent.completionRate,
-      totalJobs: agent.totalJobs,
-      rawMetrics: raw,
-    })
+    const result = await predictAgent(address)
 
     return NextResponse.json(
       {
-        address: agent.walletAddress,
-        name,
-        tokenAddress: agent.tokenAddress,
-        tokenSymbol: agent.tokenSymbol,
-        prediction,
+        address: result.address,
+        name: result.name ?? null,
+        prediction: {
+          rugScore: Math.round(result.rug_probability * 100),
+          riskLevel: result.risk_level,
+          confidence: result.confidence,
+          signals: result.features ? Object.entries(result.features).map(([k, v]) => ({
+            name: k,
+            weight: 0,
+            value: String(v),
+            severity: 'info' as const,
+          })) : [],
+          summary: `Risk level: ${result.risk_level}. Rug probability: ${(result.rug_probability * 100).toFixed(1)}%.`,
+          predictedAt: new Date().toISOString(),
+        },
         meta: {
-          model: 'wadjet-xgboost-v1',
-          dataSource: 'ACP_BEHAVIORAL + DexScreener + Wadjet Health Signals',
-          note: 'XGBoost v1.1.0 trained on 18,296 real Uniswap V2 tokens (kangmyoungseok/RugPull-Prediction-AI). Accuracy: 97.9%, Recall: 98.7%, ROC AUC: 0.997.',
+          model: 'wadjet-xgboost-v2',
+          dataSource: 'Wadjet Service (ACP_BEHAVIORAL + DexScreener + Chain Data)',
+          serviceUrl: 'wadjet-production.up.railway.app',
         },
       },
       { status: 200, headers: CORS }
     )
   } catch (err) {
-    console.error('[Rug Prediction API]', err)
+    console.error('[Agent Rug Prediction API → Wadjet]', err)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500, headers: CORS }
+      { error: 'Wadjet service unavailable', detail: (err as Error).message },
+      { status: 502, headers: CORS }
     )
   }
 }

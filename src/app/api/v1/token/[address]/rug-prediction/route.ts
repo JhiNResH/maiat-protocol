@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { fetchDexScreenerData, predictTokenRug } from '@/lib/rug-prediction'
+import { predictToken } from '@/lib/wadjet-client'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -24,38 +24,34 @@ export async function GET(
   }
 
   try {
-    const pairs = await fetchDexScreenerData(address)
-    const prediction = predictTokenRug(pairs)
-
-    // Extract token info from primary pair
-    const primary = pairs.length > 0
-      ? pairs.reduce((best, p) => (p.liquidity?.usd ?? 0) > (best.liquidity?.usd ?? 0) ? p : best, pairs[0])
-      : null
+    const result = await predictToken(address)
 
     return NextResponse.json(
       {
-        address,
-        name: primary?.baseToken?.name ?? null,
-        symbol: primary?.baseToken?.symbol ?? null,
-        priceUsd: primary?.priceUsd ?? null,
-        marketCap: primary?.marketCap ?? primary?.fdv ?? null,
-        liquidity: pairs.reduce((sum, p) => sum + (p.liquidity?.usd ?? 0), 0),
-        volume24h: pairs.reduce((sum, p) => sum + (p.volume?.h24 ?? 0), 0),
-        pairsFound: pairs.length,
-        prediction,
+        address: result.token_address,
+        name: result.name ?? null,
+        symbol: result.symbol ?? null,
+        prediction: {
+          rugScore: Math.round(result.rug_probability * 100),
+          riskLevel: result.risk_level,
+          confidence: result.confidence,
+          signals: result.signals ?? [],
+          summary: `Risk level: ${result.risk_level}. Rug probability: ${(result.rug_probability * 100).toFixed(1)}%.`,
+          predictedAt: new Date().toISOString(),
+        },
         meta: {
-          model: 'wadjet-dex-v1',
-          dataSource: 'DexScreener Real-Time (Base)',
-          note: 'Real-time token analysis using DEX trading data. No DB dependency — works for any token on Base.',
+          model: 'wadjet-xgboost-v2',
+          dataSource: 'Wadjet Service (DexScreener + Chain Data + XGBoost)',
+          serviceUrl: 'wadjet-production.up.railway.app',
         },
       },
       { status: 200, headers: CORS }
     )
   } catch (err) {
-    console.error('[Token Rug Prediction API]', err)
+    console.error('[Token Rug Prediction API → Wadjet]', err)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500, headers: CORS }
+      { error: 'Wadjet service unavailable', detail: (err as Error).message },
+      { status: 502, headers: CORS }
     )
   }
 }

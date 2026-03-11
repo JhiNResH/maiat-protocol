@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getRecentAlerts, getAlertStats } from '@/lib/wadjet-scan'
+import { NextResponse } from 'next/server'
+import { getAlerts, getRiskSummary } from '@/lib/wadjet-client'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,23 +13,19 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS })
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const url = new URL(req.url)
-    const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '20'), 100)
-    const all = url.searchParams.get('all') === 'true'
-
-    const [alerts, stats] = await Promise.all([
-      getRecentAlerts(limit, !all),
-      getAlertStats(),
+    const [alerts, summary] = await Promise.all([
+      getAlerts(),
+      getRiskSummary(),
     ])
 
-    return NextResponse.json({ alerts, stats }, { headers: CORS })
+    return NextResponse.json({ alerts, stats: summary }, { headers: CORS })
   } catch (err) {
-    console.error('[Wadjet Alerts API]', err)
+    console.error('[Alerts API → Wadjet]', err)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500, headers: CORS }
+      { error: 'Wadjet service unavailable', alerts: [], stats: {} },
+      { status: 502, headers: CORS }
     )
   }
 }

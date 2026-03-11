@@ -17,10 +17,6 @@
     {
       "path": "/api/v1/cron/oracle-sync",
       "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/v1/cron/wadjet-scan",
-      "schedule": "0 5 * * *"
     }
   ]
 }
