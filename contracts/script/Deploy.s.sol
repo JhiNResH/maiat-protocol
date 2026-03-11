@@ -60,13 +60,13 @@ contract Deploy is Script {
         console2.log("TrustScoreOracle deployed:    ", address(oracle));
 
         // 2. Deploy TrustGateHook (Uniswap V4 hook)
-        TrustGateHook hook = new TrustGateHook(oracle, IPoolManager(poolManagerAddr), deployer);
+        TrustGateHook hook = new TrustGateHook(oracle, IPoolManager(poolManagerAddr), deployer, deployer);
         console2.log("TrustGateHook deployed:       ", address(hook));
         console2.log("  Default trust threshold:    ", hook.trustThreshold());
 
         // 3. Register trusted router if provided (MAIAT-004)
         if (trustedRouter != address(0)) {
-            hook.setTrustedRouter(trustedRouter, true);
+            hook.setRouterAllowance(trustedRouter, true);
             console2.log("  Trusted router registered:  ", trustedRouter);
         }
 
@@ -82,7 +82,7 @@ contract Deploy is Script {
         console2.log("MaiatPassport:    ", address(passport));
         console2.log("\nPost-deployment checklist:");
         console2.log("1. Transfer UPDATER_ROLE to a Gnosis Safe multisig (MAIAT-006)");
-        console2.log("2. Register trusted routers via hook.setTrustedRouter() (MAIAT-004)");
+        console2.log("2. Register trusted routers via hook.setRouterAllowance() (MAIAT-004)");
         console2.log("3. To change threshold: proposeThreshold() -> wait 24h -> executeThreshold() (MAIAT-005)");
         console2.log("4. Seed initial token scores via oracle.updateTokenScore() or emergencyUpdateTokenScore()");
     }
