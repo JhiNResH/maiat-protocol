@@ -46,8 +46,11 @@ function TypeBar({ type, count, max }: { type: string; count: number; max: numbe
   const colors: Record<string, string> = {
     agent_trust: "bg-[#3b82f6]",
     token_check: "bg-[#10b981]",
-    trust_swap: "bg-[#f59e0b]",
+    agent_reputation: "bg-[#8b5cf6]",
   };
+  // Hide deprecated offerings from display
+  const HIDDEN_TYPES = ["agent_deep_check", "token_forensics", "trust_swap", "submit_review"];
+  if (HIDDEN_TYPES.includes(type)) return null;
   return (
     <div className="flex items-center gap-3">
       <span className="text-[11px] font-mono text-[#888] w-28 truncate">{type}</span>
