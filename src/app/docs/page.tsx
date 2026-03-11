@@ -20,7 +20,6 @@ const SIDEBAR: SidebarItem[] = [
   { type: 'label', label: 'Protocol' },
   { type: 'link', id: 'overview', label: 'Overview' },
   { type: 'link', id: 'trust-score', label: 'Trust Score', badge: 'v2.0' },
-  { type: 'link', id: 'passport', label: 'Trust Passport' },
   { type: 'label', label: 'Wadjet' },
   { type: 'link', id: 'wadjet', label: 'Risk Intelligence' },
   { type: 'link', id: 'sentinel', label: 'Sentinel Alerts' },
@@ -172,7 +171,7 @@ export default function DocsPage() {
             </div>
             
             <p className="text-slate-400 text-sm leading-relaxed">
-              Maiat's oracle synthesizes four distinct behavioral layers to compute a real-time trust score (0-100).
+              Maiat synthesizes three data layers to compute a real-time trust score (0-100).
             </p>
 
             <div className="space-y-4">
@@ -301,6 +300,79 @@ export default function DocsPage() {
             <p className="text-[10px] text-slate-600 italic">
               Every ACP query feeds Wadjet&apos;s training data. More queries → better predictions → more trustworthy scores.
             </p>
+          </section>
+
+          {/* ── Installation ── */}
+          <section id="installation" className="space-y-8">
+            <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+              <Terminal className="w-5 h-5 text-blue-500" />
+              <h3 className="text-xl font-black text-white uppercase tracking-tight">Installation</h3>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-slate-400 text-sm leading-relaxed">Install the Maiat SDK via npm:</p>
+              <CodeBlock lang="bash" code="npm install maiat-sdk" />
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-slate-400 text-sm leading-relaxed">Or use the REST API directly — no SDK required:</p>
+              <CodeBlock lang="bash" code={`curl https://app.maiat.io/api/v1/agents?limit=10`} />
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-slate-400 text-sm leading-relaxed">For MCP integration (AI agents):</p>
+              <CodeBlock lang="json" code={`{
+  "mcpServers": {
+    "maiat": {
+      "url": "https://app.maiat.io/api/mcp"
+    }
+  }
+}`} />
+            </div>
+          </section>
+
+          {/* ── Quick Start ── */}
+          <section id="usage" className="space-y-8">
+            <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+              <Code className="w-5 h-5 text-blue-500" />
+              <h3 className="text-xl font-black text-white uppercase tracking-tight">Quick Start</h3>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-slate-400 text-sm leading-relaxed">Check if an agent is trustworthy in 3 lines:</p>
+              <CodeBlock lang="typescript" code={`import { Maiat } from 'maiat-sdk'
+
+const maiat = new Maiat({ baseUrl: 'https://app.maiat.io' })
+
+// 1. Check trust score
+const trust = await maiat.agentTrust('0xAgentAddress')
+// → { trustScore: 73, verdict: 'proceed', riskOutlook: 'stable' }
+
+// 2. Check token safety
+const token = await maiat.tokenCheck('0xTokenAddress')
+// → { verdict: 'proceed', honeypot: false }
+
+// 3. Report outcome (feeds Wadjet)
+await maiat.reportOutcome({
+  jobId: trust.feedback.queryId,
+  outcome: 'success',
+  reporter: '0xYourWallet'
+})`} />
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-slate-400 text-sm leading-relaxed">Or with plain REST:</p>
+              <CodeBlock lang="bash" code={`# Agent trust score
+curl https://app.maiat.io/api/v1/agent/0xAgentAddress
+
+# Token safety check
+curl https://app.maiat.io/api/v1/token/0xTokenAddress
+
+# Report outcome
+curl -X POST https://app.maiat.io/api/v1/outcome \\
+  -H "Content-Type: application/json" \\
+  -d '{"jobId":"<queryId>","outcome":"success","reporter":"0xYou"}'`} />
+            </div>
           </section>
 
           {/* ── Footer ── */}
