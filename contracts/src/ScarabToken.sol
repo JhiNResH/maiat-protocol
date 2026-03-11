@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import {Ownable2Step, Ownable} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
 /**
  * @title ScarabToken
@@ -15,7 +15,7 @@ import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
  * - Tax-exempt list for approved contracts (DEX pools, staking, etc.)
  * - NOT soulbound — free to transfer, but tax creates friction against speculation
  */
-contract ScarabToken is ERC20, Ownable {
+contract ScarabToken is ERC20, Ownable2Step {
     /// @notice Transfer tax in basis points (100 = 1%, 500 = 5%)
     uint256 public transferTaxBps = 500; // 5% default
 
@@ -40,9 +40,10 @@ contract ScarabToken is ERC20, Ownable {
         _mint(to, amount);
     }
 
-    /// @notice Burn tokens from an address — admin only (NOT ERC-20 standard burnFrom)
-    /// @dev Use adminBurn to avoid confusion with ERC-20 allowance-based burnFrom convention
+    /// @notice Burn tokens from an address (requires allowance to the owner)
+    /// @dev Used by batch-settle cron. Users must approve the owner address.
     function adminBurn(address from, uint256 amount) external onlyOwner {
+        _spendAllowance(from, msg.sender, amount);
         _burn(from, amount);
     }
 

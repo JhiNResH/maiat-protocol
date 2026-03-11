@@ -71,7 +71,9 @@ contract SeedScores is Script {
         console2.log("Caller:", vm.addr(callerKey));
 
         vm.startBroadcast(callerKey);
-        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.SEED);
+        TrustScoreOracle.DataSource[] memory dsList = new TrustScoreOracle.DataSource[](tokens.length);
+        for (uint256 i = 0; i < tokens.length; i++) dsList[i] = TrustScoreOracle.DataSource.SEED;
+        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, dsList);
         vm.stopBroadcast();
 
         console2.log("Scores seeded:");

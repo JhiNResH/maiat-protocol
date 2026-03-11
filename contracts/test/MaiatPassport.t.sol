@@ -222,6 +222,8 @@ contract MaiatPassportTest is Test {
     function testFuzz_Mint_UniqueUsers(address user) public {
         // Skip addresses that conflict with test setup
         vm.assume(user != address(0));
+        vm.assume(user != address(this));
+        vm.assume(user.code.length == 0);
         vm.assume(user != admin);
         vm.assume(user != user1);
         vm.assume(user != user2);

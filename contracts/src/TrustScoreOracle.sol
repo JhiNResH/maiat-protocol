@@ -205,10 +205,10 @@ contract TrustScoreOracle is AccessControl, Pausable {
         uint256[] calldata scores,
         uint256[] calldata reviewCounts,
         uint256[] calldata avgRatings,
-        DataSource dataSource
+        DataSource[] calldata dataSources
     ) external onlyRole(UPDATER_ROLE) whenNotPaused {
         uint256 len = tokens.length;
-        if (len != scores.length || len != reviewCounts.length || len != avgRatings.length) {
+        if (len != scores.length || len != reviewCounts.length || len != avgRatings.length || len != dataSources.length) {
             revert TrustScoreOracle__LengthMismatch();
         }
         if (len > MAX_BATCH_SIZE) revert TrustScoreOracle__BatchTooLarge(len);
@@ -221,9 +221,41 @@ contract TrustScoreOracle is AccessControl, Pausable {
                 reviewCount: reviewCounts[i],
                 avgRating: avgRatings[i],
                 lastUpdated: block.timestamp,
-                dataSource: dataSource
+                dataSource: dataSources[i]
             });
             emit TokenScoreUpdated(tokens[i], scores[i], reviewCounts[i]);
+        }
+    }
+
+    /// @notice Batch update user reputations
+    function batchUpdateUserReputations(
+        address[] calldata users,
+        uint256[] calldata reputationScores,
+        uint256[] calldata totalReviewsList,
+        uint256[] calldata scarabPointsList
+    ) external onlyRole(UPDATER_ROLE) whenNotPaused {
+        uint256 len = users.length;
+        if (len != reputationScores.length || len != totalReviewsList.length || len != scarabPointsList.length) {
+            revert TrustScoreOracle__LengthMismatch();
+        }
+        if (len > MAX_BATCH_SIZE) revert TrustScoreOracle__BatchTooLarge(len);
+
+        for (uint256 i = 0; i < len; i++) {
+            uint256 feeBps;
+            if (reputationScores[i] >= 200) feeBps = GUARDIAN_FEE;
+            else if (reputationScores[i] >= 50) feeBps = VERIFIED_FEE;
+            else if (reputationScores[i] >= 10) feeBps = TRUSTED_FEE;
+            else feeBps = BASE_FEE;
+
+            userReputations[users[i]] = UserReputation({
+                reputationScore: reputationScores[i],
+                totalReviews: totalReviewsList[i],
+                scarabPoints: scarabPointsList[i],
+                feeBps: feeBps,
+                initialized: true,
+                lastUpdated: block.timestamp
+            });
+            emit UserReputationUpdated(users[i], reputationScores[i], feeBps);
         }
     }
 
