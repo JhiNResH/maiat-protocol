@@ -5,6 +5,14 @@ description: >
   Use this skill when: writing code that queries Maiat trust scores, integrating
   trust-gated swaps, submitting reviews, staking in markets, or building on top
   of the Maiat API. Covers API usage, SDK, contract addresses, and coding conventions.
+license: MIT
+metadata:
+  author: JhiNResH
+  version: "1.2.0"
+  privacy: >
+    MCP mode sends query context to app.maiat.io. Do not use MCP if your
+    conversation contains sensitive data. REST API mode only sends explicit
+    request payloads.
 ---
 
 # Maiat Protocol — Agent Skill
@@ -83,13 +91,13 @@ token_check ($0.01)
 
 ---
 
-## MCP Integration (Fastest Way to Connect)
+## Connection Methods
 
-If you support **Model Context Protocol (MCP)**, point directly to:
+### Option 1: MCP (Model Context Protocol)
 
-```
-https://app.maiat.io/api/mcp
-```
+> ⚠️ **Privacy notice:** MCP mode sends your query context to `app.maiat.io`. Avoid using MCP in conversations containing sensitive data. Use REST API (Option 2/3) for privacy-sensitive integrations.
+
+MCP endpoint: `https://app.maiat.io/api/mcp`
 
 No install, no CLI, no API key needed. Available tools via MCP:
 
@@ -99,24 +107,31 @@ No install, no CLI, no API key needed. Available tools via MCP:
 | `get_token_forensics` | Rug risk analysis for any token contract |
 | `get_agent_reputation` | Community reviews, sentiment, and market consensus for any agent |
 | `report_outcome` | Close the feedback loop after using an agent (earns 5 🪲 Scarab) |
-| `get_agent_price` | Token price, volume, liquidity + crash alerts for any agent |
-| `get_rug_prediction` | Rug pull probability score + risk signal breakdown (Wadjet engine) |
 | `get_scarab_balance` | Check Scarab reputation points for a wallet |
 | `submit_review` | Submit a review for any agent (with quality scoring) |
 | `vote_review` | Upvote or downvote an existing review |
 
-**Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
-```json
-{
-  "mcpServers": {
-    "maiat": {
-      "url": "https://app.maiat.io/api/mcp"
-    }
-  }
-}
+For MCP client setup instructions, see [SETUP.md](https://github.com/JhiNResH/maiat-protocol/blob/master/docs/SETUP.md).
+
+### Option 2: SDK (Recommended for code)
+
+```ts
+import { Maiat } from 'maiat-sdk'
+
+const maiat = new Maiat({
+  baseUrl: 'https://app.maiat.io', // optional, this is the default
+  apiKey: process.env.MAIAT_API_KEY,   // optional — raises rate limits
+  clientId: 'my-agent-name',           // recommended — triggers auto wallet + 10 Scarab onboarding
+})
 ```
 
-**OpenClaw / skill.md users:** use the REST API below (works for any LLM).
+### Option 3: REST API (works with any LLM or HTTP client)
+
+```
+Base URL: https://app.maiat.io/api/v1
+Auth: X-Maiat-Client header (required for identity)
+Optional: X-Maiat-Key header (raises rate limits 20→100 req/day)
+```
 
 ---
 
@@ -128,20 +143,15 @@ Score = (On-chain Behavioral × 0.5) + (Off-chain Signals × 0.3) + (Human Revie
 ```
 Source: `src/lib/scoring-constants.ts`
 
-> **Wadjet Phase 2 formula (planned):**
-> `Metadata 40% + On-chain Behavior 40% + Rug Probability 20%`
+### Score Tiers
+| Score (0–100) | On-chain (0–10) | Label | Risk |
+|---|---|---|---|
+| ≥ 70 | ≥ 7.0 | 🟢 LOW RISK | proceed |
+| 40–69 | 4.0–6.9 | 🟡 MEDIUM RISK | caution |
+| 10–39 | 1.0–3.9 | 🔴 HIGH RISK | avoid |
+| < 10 | < 1.0 | ⛔ CRITICAL RISK | avoid |
 
-### Score Tiers (Verdict Thresholds)
-| Score (0–100) | Verdict | Label |
-|---|---|---|
-| ≥ 80 | `proceed` | 🟢 LOW RISK |
-| 60–79 | `caution` | 🟡 MEDIUM RISK |
-| < 60 | `avoid` | 🔴 HIGH RISK |
-| unknown | `unknown` | ⚪ Not indexed |
-
-Source: `src/app/api/v1/agent/[address]/route.ts` → `scoreToVerdict()`
-
-> Note: `src/lib/thresholds.ts` uses GOLD=70/AMBER=40 for UI display colors only. API verdicts use 80/60.
+Source: `src/lib/thresholds.ts` — use `TRUST_SCORE.label(score)`, `TRUST_SCORE.riskLevel(score)`
 
 ### ACP Behavioral Score (primary data source)
 Primary input for agent trust scoring. Fetched from Virtuals ACP REST API:
@@ -152,15 +162,15 @@ Primary input for agent trust scoring. Fetched from Virtuals ACP REST API:
 
 ---
 
-## SDK Usage (`maiat-sdk`) ← Preferred
+## SDK Usage (`maiat-sdk`) — Preferred
 
 ```ts
 import { Maiat } from 'maiat-sdk'
 
 const maiat = new Maiat({
-  baseUrl: 'https://app.maiat.io', // optional, this is the default
-  apiKey: process.env.MAIAT_API_KEY,   // optional — raises rate limits
-  clientId: 'my-agent-name',           // recommended — triggers auto wallet + 10 Scarab onboarding
+  baseUrl: 'https://app.maiat.io',
+  apiKey: process.env.MAIAT_API_KEY,
+  clientId: 'my-agent-name',
 })
 
 // Agent trust score
@@ -173,10 +183,6 @@ if (score.verdict === 'avoid') throw new Error('Agent not trusted')
 const token = await maiat.tokenCheck('0xTokenAddress')
 // → { verdict: 'proceed', honeypot: false, ... }
 
-// Agent token price + market data
-const price = await maiat.agentPrice('0xAgentAddress')
-// → { price: { usd: 0.0042, change24h: -5.2, liquidity: 120000, ... }, alert: null }
-
 // Deep token forensics (rug pull risk analysis)
 const forensics = await maiat.tokenForensics('0xTokenAddress')
 // → { rugScore: 45, riskLevel: 'high', riskFlags: ['HIGH_CONCENTRATION'], contract, holders, liquidity }
@@ -186,7 +192,6 @@ const reputation = await maiat.agentReputation('0xAgentAddress')
 // → { reviewCount, avgRating, sentiment, marketConsensus, topReviews }
 
 // Report outcome (IMPORTANT — improves oracle accuracy + earns 5 🪲 Scarab)
-// Use feedback.queryId from the trust check response
 await maiat.reportOutcome({ jobId: score.feedback.queryId, outcome: 'success', reporter: '0xYourWallet' })
 
 // Convenience helpers (fail-closed: unknown = untrusted)
@@ -218,13 +223,9 @@ X-Maiat-Key: maiat_xxxx          # Optional — raises rate limits (100 req/day 
 
 ### Public Free API (no auth required)
 ```
-GET  /api/v1/trust?address=0x...    → unified trust score for agent OR token (20 req/day per IP)
+GET  /api/v1/trust?address=0x...    → simplified trust score (20 req/day per IP)
 ```
-Response: `{ address, type: "agent"|"token"|"unknown", trustScore, verdict, summary, learnMore }`
-
 With API key (`X-Maiat-Key` header): 100 req/day
-
-**Use this when you don't know if an address is an agent or token.** It auto-detects.
 
 ### Generate API Key
 ```
@@ -237,9 +238,7 @@ Body: { name?, email?, address? }
 ```
 GET  /api/v1/agent/{address}           → trust score + verdict + feedback.queryId (includes deep data)
 GET  /api/v1/agent/{address}/deep      → + percentile, risk flags, tier
-GET  /api/v1/agent/{address}/price          → token price, volume, liquidity, 24h change + crash alerts
-GET  /api/v1/agent/{address}/rug-prediction → rug pull probability + risk signals (Wadjet)
-GET  /api/v1/agent/token-map/{token}        → token address → agent wallet reverse lookup
+GET  /api/v1/agent/token-map/{token}   → token address → agent wallet reverse lookup
 GET  /api/v1/agents?sort=trust&limit=50&search=name   → list all indexed agents
 ```
 
@@ -248,52 +247,46 @@ GET  /api/v1/agents?sort=trust&limit=50&search=name   → list all indexed agent
 GET  /api/v1/review?address=0x...      → community reviews, avg rating, sentiment, market consensus
 ```
 
-**Use case:** Check community sentiment before hiring an agent. Combine with `agent_trust` for a complete picture — behavioral data + community reviews.
-
-**Response fields:** `reviewCount`, `avgRating`, `sentiment` (`positive`/`neutral`/`negative`), `marketConsensus`, `topReviews[]`, `feedback.queryId`
-
-**Cross-sell hint (in response):** `"Want behavioral data? → GET /api/v1/agent/{address}"` — pair reputation with trust score for the fullest view.
-
-### Agent Price Data (Wadjet)
-```
-GET  /api/v1/agent/{address}/price     → token price + market data + crash alerts
-```
-
-#### Price Example
-```bash
-curl https://app.maiat.io/api/v1/agent/0xAgentWallet/price
-```
-```json
-{
-  "address": "0x...",
-  "name": "Ethy AI",
-  "tokenAddress": "0x...",
-  "tokenSymbol": "ETHY",
-  "price": {
-    "usd": 0.0042,
-    "change1h": -1.2,
-    "change6h": -5.8,
-    "change24h": -32.1,
-    "volume24h": 45000,
-    "liquidity": 120000,
-    "fdv": 4200000,
-    "fetchedAt": "2026-03-09T12:00:00Z"
-  },
-  "alert": { "level": "crash", "message": "Token dropped -32.1% in 24h" }
-}
-```
-
-**Use cases:**
-- Check token health before buying/staking
-- Monitor agents you've hired — price crash = potential rug
-- `alert` field is non-null when price drops ≥30% in 24h
-
-**Data source:** DexScreener (refreshed every 15 min via Wadjet indexer)
-
 ### Token Safety
 ```
 GET  /api/v1/token/{address}           → honeypot check, liquidity, trust verdict
 GET  /api/v1/token/{address}/forensics → deep rug pull risk analysis (contract, holders, liquidity, rug score)
+```
+
+### Wadjet Risk Intelligence (Direct API)
+
+Wadjet is Maiat's ML-powered risk engine. Use it for deep rug prediction beyond what `/token/forensics` provides.
+
+**Base URL:** `https://wadjet-production.up.railway.app`  
+**Docs:** `https://wadjet-production.up.railway.app/docs`
+
+```
+POST /predict/agent
+Body: { "token_address": "0x..." }
+→ { rug_score, risk_level, dex_signals, goplus_signals, acp_signals, risk_signals, summary }
+
+POST /predict
+Body: { trust_score, total_jobs, completion_rate, token_address?, chain_id? }
+→ { rug_score, risk_level, risk_factors, goplus, summary }
+
+GET  /wadjet/{address}          → full risk profile + Monte Carlo simulation
+GET  /wadjet/clusters           → behavioral clusters (wash trading, ghost, rug deployer)
+GET  /sentinel/alerts           → real-time monitoring alerts (?severity=critical&limit=10)
+GET  /sentinel/alerts/{token}   → alerts for specific token
+GET  /watchlist                 → tokens flagged by Sentinel
+GET  /indexer/status            → data pipeline status
+GET  /health                    → service health + model status
+```
+
+**Scoring:** `rug_score` 0-100. `low` (<25), `medium` (25-49), `high` (50-69), `critical` (≥70).
+
+**Model:** XGBoost V2.2.0, 50 features, 98% accuracy, trained on 18K+ real tokens. Ensemble: `max(ML, rule_based) + goplus_delta`.
+
+**Example — check any token:**
+```bash
+curl -X POST https://wadjet-production.up.railway.app/predict/agent \
+  -H "Content-Type: application/json" \
+  -d '{"token_address": "0xA4A2E2ca3fBfE21aed83471D28b6f65A233C6e00"}'
 ```
 
 #### Token Forensics Example
@@ -337,8 +330,6 @@ curl https://app.maiat.io/api/v1/token/0xYourToken/forensics
 
 **rugScore:** 0 = safe, 100 = definite rug. Risk levels: `low` (<20), `medium` (20-44), `high` (45-69), `critical` (≥70)
 
-**Use case:** Before swapping into any token, call forensics to check for rug indicators. Report outcome after — if the token rugs, report `"outcome": "scam"` so the oracle learns.
-
 ### Trust-Gated Swap
 ```
 POST /api/v1/swap/quote
@@ -364,29 +355,14 @@ GET  /api/v1/scarab/nonce?address=0x...     → SIWE nonce for signing
 POST /api/v1/review
 Headers: X-Maiat-Client: my-agent    # required for auth (no signature needed)
 Body: {
-  address: "0xTargetAddress",     // entity being reviewed
+  address: "0xTargetAddress",
   rating: 4,                      // 1-10
-  comment: "Detailed review...",   // min 10 chars for AI scoring
-  reviewer: "0xYourWallet",        // your wallet address (optional if X-Maiat-Client auto-assigns)
-  tags: ["reliable", "fast"],      // optional
+  comment: "Detailed review...",
+  reviewer: "0xYourWallet",
+  tags: ["reliable", "fast"],
   source: "agent"                  // "human" | "agent" (agents get 0.5x weight)
 }
 → { id, qualityScore, weight, meta: { interactionTier, ... } }
-
-# Soft Gate — Interaction Verification (affects weight, never blocks):
-#   "acp"     → completed ACP job with target → 1.0x (full weight)
-#   "onchain" → on-chain tx between reviewer↔target → 0.7x
-#   "none"    → no verifiable interaction → 0.3x (heavily discounted)
-#
-# Quality scoring (automatic via Gemini):
-#   relevance + evidence + helpfulness → qualityScore (0-10 avg)
-#   ≥ 7 → full display, 1.0x quality weight
-#   4-6 → collapsed, 0.5x quality weight
-#   < 4 → hidden, 0x quality weight
-#
-# Final weight = quality × interactionTier × agentPenalty × easBoost
-#   EAS attestation → 1.5x boost
-#   Agent reviews → 0.5x multiplier (anti-spam)
 ```
 
 ### Review Votes
@@ -394,15 +370,6 @@ Body: {
 POST /api/v1/review/vote
 Body: { reviewId: "cuid", voter: "0xYourWallet", vote: "up" | "down" }
 → { success, action, voteWeight, scarab?: { reviewerEarned: 2 } }
-
-# Vote weight also uses soft gate:
-#   ACP verified voter → 3x vote weight
-#   On-chain interaction → 2x vote weight
-#   Unverified → 1x vote weight
-#
-# One vote per review per wallet. Can flip vote.
-# Can't vote on own review.
-# Upvote → reviewer earns +2 Scarab 🪲
 ```
 
 ### Markets (Opinion / Prediction)
@@ -411,21 +378,6 @@ GET  /api/v1/markets?status=open             → list markets
 GET  /api/v1/markets/{id}                    → market + positions
 POST /api/v1/markets/{id}/position
 Body: { address, projectId, amount }         → stake Scarab on outcome
-
-# Payout formula (on market resolution):
-#   Winners = top 3 projects by trust score at resolution time
-#   Loser pool → 5% burned, 95% redistributed to winners
-#   Each winner gets: original stake + (their stake / total winning stakes) × redistributable pool
-#   Losers get nothing (stake already deducted)
-#
-# Example: You stake 10 on winner, total winning pool = 50, loser pool = 100
-#   Your share = 10/50 = 20%
-#   Redistributable = 100 × 0.95 = 95
-#   Your payout = 10 (stake back) + 19 (20% of 95) = 29 Scarab 🪲
-#
-# Markets auto-resolve via cron. New market seeded immediately after.
-#
-# First-mover bonus: first 10 stakers get 2x Scarab back if they win.
 ```
 
 ### Wallet / Passport
@@ -443,21 +395,15 @@ Body: { "jobId": "<queryId from API response>", "outcome": "success|failure|part
 → { newTrustScore, message }
 ```
 
-**How it works:**
-1. Call any Maiat API (agent_trust, agent_reputation, token_check, token_forensics) → response includes `feedback.queryId`
-2. After acting on the trust score (e.g., interacted with the agent, checked a token), report the outcome
-3. Maiat oracle recomputes trust: `40% on-chain behavioral + 60% outcome history` (when ≥5 outcomes exist)
-4. **You earn +5 🪲 Scarab** for every outcome you report
-
-> ⚠️ **Always report outcomes** — this is what makes the oracle smarter over time, and it earns you Scarab. Every `feedback.queryId` in an API response is an invitation to close the loop.
+> ⚠️ **Always report outcomes** — this is what makes the oracle smarter over time, and it earns you Scarab.
 
 ### Other
 ```
-POST /api/v1/deep-insight { projectId | projectName }   → AI deep analysis (POST only, 10/day free)
-GET  /api/v1/monitor/feed                               → SSE live event stream (real-time events)
-GET  /api/v1/explore                                    → browse agents + tokens with trust scores
-GET  /api/v1/stats                                      → platform stats (addressesScored, totalReviews, etc.)
-GET  /api/v1/evidence/{address}                         → cryptographic evidence chain (tamper-proof audit log)
+POST /api/v1/deep-insight { projectId | projectName }   → AI deep analysis (10/day free)
+GET  /api/v1/monitor/feed                               → SSE live event stream
+GET  /api/v1/explore                                    → trending agents/tokens
+GET  /api/v1/stats                                      → platform stats
+GET  /api/v1/stats/api                                  → API usage analytics
 ```
 
 ---
@@ -479,41 +425,25 @@ GET  /api/v1/evidence/{address}                         → cryptographic eviden
 
 Maiat integrates [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) — a standard for on-chain agent identity and reputation. Agents with ERC-8004 registration have verified, non-forgeable identity on Base.
 
-**Check 8004 status via API:**
 ```
 GET /api/v1/agent/{address}
 # Response includes erc8004 field:
 # { "erc8004": { "registered": true, "agentId": 42, "uri": "...", "owner": "0x..." } }
 ```
 
-**In monitor:** Agents with 8004 show a diamond badge + cyan `8004` tag.
-
-**Trust score impact:** 8004 registration is a positive signal — registered agents have verifiable on-chain identity, which contributes to higher trust scores.
-
-Source: `src/lib/erc8004.ts` — `lookupAgentId()`, `buildOwnerMap()`
-
 ### EAS (Ethereum Attestation Service)
 
 Every ACP offering completion, review submission, and trust query creates an on-chain attestation via EAS on Base Sepolia.
 
-**3 schemas:**
-- `MaiatServiceAttestation` — service completion records
-- `MaiatReviewAttestation` — review submissions
-- `MaiatTrustQuery` — trust score lookups
+**3 schemas:** MaiatServiceAttestation, MaiatReviewAttestation, MaiatTrustQuery
 
-**Check EAS receipts:**
 ```
 GET /api/v1/wallet/{address}/eas-receipts
 ```
 
-Source: `src/lib/eas.ts` — `createServiceAttestation()`
-
 ### Dune Analytics Dashboard
 
-Public dashboard tracking ERC-8004 on-chain activity:
 **https://dune.com/jhinresh/maiat-trust-infrastructure-base**
-
-Includes: Identity Registry events, Reputation Feedback, Daily Activity, Unique Wallets, Top Wallets, Contract Split.
 
 ---
 
@@ -539,54 +469,30 @@ Includes: Identity Registry events, Reputation Feedback, Daily Activity, Unique 
 - `src/lib/scoring-constants.ts` — weights (ON_CHAIN 0.5, OFF_CHAIN 0.3, HUMAN_REVIEWS 0.2)
 - `src/lib/thresholds.ts` — tier labels, colors, risk levels (`TRUST_SCORE.*`)
 - `src/lib/acp-indexer.ts` — Virtuals ACP behavioral indexer
-- `src/lib/ratelimit.ts` — Upstash Redis rate limiting (`createRateLimiter`, `checkIpRateLimit`)
-- `src/lib/query-logger.ts` — log all API queries (`logQuery`)
+- `src/lib/ratelimit.ts` — Upstash Redis rate limiting
+- `src/lib/query-logger.ts` — log all API queries
 - `src/lib/prisma.ts` — Prisma client singleton
-- `src/lib/eas.ts` — EAS attestation (schema UID hardcoded here)
-
-### Scarab Economy
-| Action | Δ Scarab |
-|---|---|
-| First claim | +20 |
-| Daily claim | +5 + streak |
-| Outcome report | +5 |
-| Receive upvote | +2 |
-| Submit review | −2 |
-| Project vote | −5 |
-| Market stake | −amount |
-
-> **Critical:** Scarab spend logic must be inside `prisma.$transaction`. Never check balance outside the transaction (TOCTOU).
-
-### API Route Rules
-- Every new `route.ts` → update matching `docs/api/*.md` **same commit**
-- Always add CORS headers: `Access-Control-Allow-Origin: *`
-- Rate-limit via `src/lib/ratelimit.ts`
-- Cron endpoints: verify `Authorization: Bearer <CRON_SECRET>`
-- Log queries via `logQuery` from `src/lib/query-logger.ts`
+- `src/lib/eas.ts` — EAS attestation
 
 ### Required Env Vars
 ```env
 DATABASE_URL                   # Postgres (Supabase) — required
 DIRECT_URL                     # Supabase direct connection (for migrations)
 CRON_SECRET                    # Protects /api/v1/cron/* endpoints
-MAIAT_ADMIN_PRIVATE_KEY        # Oracle sync: writes trust scores to MaiatOracle on-chain
-BASE_RELAYER_PRIVATE_KEY       # EAS attestation: signs Maiat Receipt attestations on Base
+MAIAT_ADMIN_PRIVATE_KEY        # Oracle sync: writes trust scores on-chain
+BASE_RELAYER_PRIVATE_KEY       # EAS attestation signing
 ALCHEMY_BASE_RPC               # Base mainnet RPC
-ALCHEMY_API_KEY                # Alchemy API key (token analysis)
+ALCHEMY_API_KEY                # Alchemy API key
 NEXT_PUBLIC_PRIVY_APP_ID       # Privy wallet auth (client-side)
 PRIVY_APP_ID                   # Privy server-side
 PRIVY_APP_SECRET               # Privy server-side secret
-UPSTASH_REDIS_REST_URL         # Rate limiter (graceful fallback if missing)
+UPSTASH_REDIS_REST_URL         # Rate limiter
 UPSTASH_REDIS_REST_TOKEN       # Rate limiter token
 GEMINI_API_KEY                 # AI deep insights + review quality scoring
 BASE_BUILDER_CODE              # bc_cozhkj23 — appended to swap calldata
 ```
 
-> Note: `EAS_TRUST_SCORE_SCHEMA_UID` is hardcoded in `src/lib/eas.ts` — not an env var.
-
----
-
-## Common Patterns
+### Common Patterns
 
 ```ts
 // Trust-gate before any action
@@ -595,17 +501,10 @@ if (verdict === 'avoid') return { blocked: true, trustScore }
 
 // Use tier labels from thresholds
 import { TRUST_SCORE } from '@/lib/thresholds'
-const label = TRUST_SCORE.label(score)      // "LOW RISK"
-const color = TRUST_SCORE.hexColor(score)   // "#10b981"
-const risk  = TRUST_SCORE.riskLevel(score)  // "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+const label = TRUST_SCORE.label(score)
+const risk  = TRUST_SCORE.riskLevel(score)
 
 // SSE live monitor
 const es = new EventSource('https://app.maiat.io/api/v1/monitor/feed')
 es.onmessage = ({ data }) => console.log(JSON.parse(data))
-
-// Rate limit an endpoint
-import { createRateLimiter, checkIpRateLimit } from '@/lib/ratelimit'
-const limiter = createRateLimiter('my-endpoint', 20, 86400) // 20 req/day
-const { success, remaining } = await checkIpRateLimit(req, limiter)
-if (!success) return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
 ```
