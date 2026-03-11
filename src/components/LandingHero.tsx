@@ -189,32 +189,31 @@ export function LandingHero() {
               className="w-full max-w-lg"
             >
               <div className="glass-card rounded-2xl p-6 space-y-5">
-                <h2 className="text-base font-black text-white flex items-center gap-2">
-                  <Shield size={16} className="text-[var(--primary-gold)]" />
-                  Check Any Agent&apos;s Trust Score
+                <h2 className="text-base font-black text-white text-center">
+                  Verify Trust Before You Transact.
                 </h2>
-                <p className="text-sm text-slate-400 leading-relaxed">
-                  Paste any wallet address to get a behavioral trust score (0–100) based on real ACP job history.
-                  See completion rate, payment reliability, and a proceed / caution / avoid verdict.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[
-                    { icon: Zap, label: 'Real-time Scores', desc: '17,000+ agents indexed' },
-                    { icon: Shield, label: 'On-chain Verified', desc: 'Built on Base' },
-                    { icon: Terminal, label: 'Free API', desc: 'No key required' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex flex-col gap-1.5 p-3 rounded-xl bg-white/[0.03] border border-[rgba(212,160,23,0.05)]">
-                      <item.icon size={14} className="text-[var(--primary-gold)]" />
-                      <span className="text-[11px] font-bold text-white">{item.label}</span>
-                      <span className="text-[10px] text-slate-500">{item.desc}</span>
-                    </div>
-                  ))}
+                <div className="bg-white/[0.04] rounded-xl p-4 text-sm text-slate-400 text-center leading-relaxed">
+                  Check any AI agent&apos;s behavioral trust score — powered by real Virtuals ACP job history on Base.
+                </div>
+                <div className="space-y-3 text-sm text-slate-300">
+                  <div className="flex gap-3 items-start">
+                    <span className="text-[var(--primary-gold)] font-bold">1.</span>
+                    <span>Enter any EVM wallet address</span>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="text-[var(--primary-gold)] font-bold">2.</span>
+                    <span>Get a trust score (0–100) and verdict</span>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="text-[var(--primary-gold)] font-bold">3.</span>
+                    <span>Decide whether to proceed, caution, or avoid</span>
+                  </div>
                 </div>
                 <Link
                   href="/monitor"
-                  className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-[var(--primary-gold-dim)] to-[var(--primary-gold)] hover:from-[var(--primary-gold)] hover:to-[var(--primary-gold-light)] rounded-xl text-sm font-bold text-white transition-all duration-500 group shadow-lg shadow-[rgba(212,160,23,0.15)]"
+                  className="flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-gradient-to-r from-[var(--primary-gold-dim)] to-[var(--primary-gold)] hover:from-[var(--primary-gold)] hover:to-[var(--primary-gold-light)] rounded-xl text-sm font-bold text-white transition-all duration-500 group shadow-lg shadow-[rgba(212,160,23,0.15)]"
                 >
-                  Open Trust Monitor
+                  Launch App
                   <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
@@ -229,32 +228,39 @@ export function LandingHero() {
               className="w-full max-w-lg"
             >
               <div className="glass-card rounded-2xl p-6 space-y-5 border-[rgba(212,160,23,0.15)] shadow-lg shadow-[rgba(212,160,23,0.05)]">
-                <h2 className="text-base font-black text-white flex items-center gap-2">
+                <div className="flex items-center justify-center gap-2">
                   <Bot size={16} className="text-[var(--primary-gold)]" />
-                  Integrate Maiat Trust ⚖️
-                </h2>
-
-                <CopyBlock text={`Read ${SKILL_URL} and follow the instructions`} />
-
-                <div className="space-y-3 text-sm">
-                  {[
-                    { n: 1, text: 'Read the skill file above to get started' },
-                    { n: 2, text: 'Query the API before any transaction' },
-                    { n: 3, text: 'Use the verdict to gate your agent\'s actions' },
-                  ].map((step) => (
-                    <div key={step.n} className="flex items-start gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-lg bg-[rgba(212,160,23,0.15)] border border-[rgba(212,160,23,0.25)] flex items-center justify-center text-[11px] font-black text-[var(--primary-gold)]">
-                        {step.n}
-                      </span>
-                      <span className="text-slate-300 pt-0.5">{step.text}</span>
-                    </div>
-                  ))}
+                  <h2 className="text-base font-black text-white">
+                    Integrate Maiat Trust ⚖️
+                  </h2>
                 </div>
 
                 <div className="bg-black/30 border border-[rgba(212,160,23,0.08)] rounded-xl p-4 space-y-2">
-                  <span className="text-[10px] font-bold text-[var(--primary-gold-dim)] uppercase tracking-widest">Quick API Example</span>
-                  <pre className="text-[11px] font-mono text-[rgba(232,184,74,0.7)] leading-relaxed overflow-x-auto">
-{`GET /api/v1/agent/0x...
+                  <span className="text-[10px] font-bold text-[var(--primary-gold-dim)] uppercase tracking-[0.2em] block text-center">ADD TO YOUR AGENT</span>
+                  <div className="font-mono text-sm text-[var(--primary-gold)] text-center leading-relaxed break-all">
+                    Read {SKILL_URL} and follow the instructions
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-sm text-slate-300">
+                  <div className="flex gap-3 items-start">
+                    <span className="text-[var(--primary-gold)] font-bold">1</span>
+                    <span>Read the skill file above — it teaches your agent the Maiat API</span>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="text-[var(--primary-gold)] font-bold">2</span>
+                    <span>Query trust scores before any transaction or interaction</span>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="text-[var(--primary-gold)] font-bold">3</span>
+                    <span>Use the verdict to gate your agent&apos;s on-chain actions</span>
+                  </div>
+                </div>
+
+                <div className="bg-black/30 border border-[rgba(212,160,23,0.08)] rounded-xl p-4 space-y-2 text-center">
+                  <span className="text-[10px] font-bold text-[var(--primary-gold-dim)] uppercase tracking-[0.2em]">QUICK API EXAMPLE</span>
+                  <pre className="text-[12px] font-mono text-[var(--primary-gold)] leading-relaxed overflow-x-auto">
+{`GET /api/v1/agent/0x742d35Cc...
 → { trustScore: 85, verdict: "proceed" }`}
                   </pre>
                 </div>
@@ -262,14 +268,14 @@ export function LandingHero() {
                 <div className="flex gap-2">
                   <Link
                     href="/docs"
-                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-[var(--primary-gold-dim)] to-[var(--primary-gold)] hover:from-[var(--primary-gold)] hover:to-[var(--primary-gold-light)] rounded-xl text-sm font-bold text-white transition-all duration-500 group shadow-lg shadow-[rgba(212,160,23,0.15)]"
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 bg-gradient-to-r from-[var(--primary-gold-dim)] to-[var(--primary-gold)] hover:from-[var(--primary-gold)] hover:to-[var(--primary-gold-light)] rounded-xl text-sm font-bold text-white transition-all duration-500 group shadow-lg shadow-[rgba(212,160,23,0.15)]"
                   >
-                    Read Docs
+                    Read Full Docs
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
                   <Link
                     href="/monitor"
-                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold text-slate-300 transition-all duration-500"
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold text-slate-300 transition-all duration-500"
                   >
                     Explore Agents
                   </Link>
