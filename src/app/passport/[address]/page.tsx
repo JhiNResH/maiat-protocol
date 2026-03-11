@@ -55,7 +55,8 @@ const TRUST_PERKS: Record<string, string[]> = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmt(addr: string) {
+function fmt(addr?: string) {
+  if (!addr) return '0x???…????'
   return addr.slice(0, 6) + '…' + addr.slice(-4)
 }
 
@@ -105,8 +106,8 @@ export default function PassportPage() {
     if (!address || !/^0x[a-f0-9]{40}$/.test(address)) return
     setLoading(true)
     fetch(`/api/v1/wallet/${address}/passport`)
-      .then(r => r.json())
-      .then(setData)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.passport) setData(d) })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [address])
@@ -153,8 +154,22 @@ export default function PassportPage() {
     )
   }
 
-  const trust = TRUST_CONFIG[data.passport.trustLevel] ?? TRUST_CONFIG.new
-  const perks = TRUST_PERKS[data.passport.trustLevel] ?? TRUST_PERKS.new
+  // Fallback if passport data is missing
+  const passport = data.passport ?? {
+    trustLevel: 'new',
+    reputationScore: 0,
+    jobsCompleted: 0,
+    jobsFailed: 0,
+    completionRate: 0,
+    avgRating: 0,
+    totalEarned: 0,
+    totalSpent: 0,
+    firstSeen: null,
+    lastActive: null,
+    badges: [],
+  }
+  const trust = TRUST_CONFIG[passport.trustLevel] ?? TRUST_CONFIG.new
+  const perks = TRUST_PERKS[passport.trustLevel] ?? TRUST_PERKS.new
   const unreviewedAgents = reviewableAgents.filter(a => !a.reviewed)
   const visibleAgents = showAllAgents ? unreviewedAgents : unreviewedAgents.slice(0, 10)
 
@@ -205,8 +220,8 @@ export default function PassportPage() {
                   <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500 font-mono mb-1">
                     // TRUST PASSPORT
                   </p>
-                  <p className="text-white font-mono text-lg font-bold tracking-wide">{fmt(data.address)}</p>
-                  <p className="text-gray-600 font-mono text-[10px] mt-0.5">{data.address}</p>
+                  <p className="text-white font-mono text-lg font-bold tracking-wide">{fmt(data?.address)}</p>
+                  <p className="text-gray-600 font-mono text-[10px] mt-0.5">{data?.address}</p>
                 </div>
                 <span
                   className="text-xs font-bold font-mono px-3 py-1.5 rounded-lg border backdrop-blur-sm"
@@ -226,19 +241,19 @@ export default function PassportPage() {
                 <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-3 text-center">
                   <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500 mb-1">REP</p>
                   <p className="text-2xl font-bold font-mono" style={{ color: trust.color }}>
-                    {data.passport.reputationScore}
+                    {passport.reputationScore}
                   </p>
                 </div>
                 <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-3 text-center">
                   <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500 mb-1">REVIEWS</p>
                   <p className="text-2xl font-bold font-mono text-white">
-                    {data.passport.totalReviews}
+                    {passport.totalReviews}
                   </p>
                 </div>
                 <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-3 text-center">
                   <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500 mb-1">🪲 SCARAB</p>
                   <p className="text-2xl font-bold font-mono text-white">
-                    {data.scarab.balance}
+                    {data?.scarab?.balance ?? 0}
                   </p>
                 </div>
               </div>
@@ -247,9 +262,9 @@ export default function PassportPage() {
               <div>
                 <div className="flex justify-between mb-2">
                   <span className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500">Reputation</span>
-                  <span className="text-[10px] font-mono" style={{ color: trust.color }}>{data.passport.reputationScore} pts</span>
+                  <span className="text-[10px] font-mono" style={{ color: trust.color }}>{passport.reputationScore} pts</span>
                 </div>
-                <RepBar score={data.passport.reputationScore} />
+                <RepBar score={passport.reputationScore} />
               </div>
             </div>
           </div>
@@ -355,7 +370,7 @@ export default function PassportPage() {
                   </div>
                 ))}
               </div>
-              {data.passport.trustLevel !== 'guardian' && (
+              {passport.trustLevel !== 'guardian' && (
                 <p className="mt-3 text-[10px] font-mono text-gray-600">
                   Review more to level up →{' '}
                   <Link href="/monitor" className="text-[#3b82f6] hover:underline">browse</Link>
@@ -369,14 +384,14 @@ export default function PassportPage() {
                 <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-500">
                   // REVIEW HISTORY
                 </p>
-                {data.reviews.count > 0 && (
+                {data?.reviews?.count > 0 && (
                   <span className="text-[10px] font-mono text-gray-600 border border-white/[0.06] px-1.5 py-0.5 rounded">
-                    {data.reviews.count} total
+                    {data?.reviews?.count} total
                   </span>
                 )}
               </div>
 
-              {data.reviews.recent.length === 0 ? (
+              {data?.reviews?.recent?.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-6 gap-2">
                   <p className="text-gray-600 font-mono text-[10px]">No reviews yet.</p>
                   {isOwn && (
@@ -387,7 +402,7 @@ export default function PassportPage() {
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  {data.reviews.recent.map(r => (
+                  {data?.reviews?.recent?.map(r => (
                     <div key={r.id} className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg px-2.5 py-2 hover:border-white/20 transition-colors">
                       <div className="flex items-center justify-between">
                         <Link
