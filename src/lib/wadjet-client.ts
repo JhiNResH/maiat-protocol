@@ -66,10 +66,10 @@ export interface WadjetAgentResult {
   features?: Record<string, unknown>
 }
 
-export async function predictAgent(address: string): Promise<WadjetAgentResult> {
+export async function predictAgent(address: string, tokenAddress?: string | null): Promise<WadjetAgentResult> {
   return wadjetFetch<WadjetAgentResult>('/predict/agent', {
     method: 'POST',
-    body: JSON.stringify({ address }),
+    body: JSON.stringify({ address, token_address: tokenAddress ?? address }),
   })
 }
 
