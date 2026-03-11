@@ -19,8 +19,27 @@ import { PrismaClient } from "@prisma/client";
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const LIST_URL = "https://acpx.virtuals.io/api/agents";
+const SEARCH_URL = "https://acpx.virtuals.io/api/agents/v5/search";
 const PAGE_SIZE = 25;   // API max per page
-const MAX_PAGES = 800;  // safety cap — covers ~20,000 agents
+const MAX_PAGES = 900;  // safety cap — covers ~22,500 agents
+
+// ─── Known Titan Agents (seed list) ───────────────────────────────────────────
+// These are Virtuals Protocol "Titan" type agents that may not appear in standard listing
+// Format: { name, walletAddress, tokenAddress }
+const TITAN_SEED_LIST: Array<{ name: string; walletAddress: string; tokenAddress: string | null }> = [
+  // ROBO / Fabric Protocol (Titan launch on Virtuals, 2026-02-27)
+  { name: "Fabric Protocol (ROBO)", walletAddress: "0x65dB04a529925A80e19b2389cc9554Bee048563a", tokenAddress: "0x407A5fb66CB1b3d50004f7091c08A27B42ba6d6F" },
+  // GAME by Virtuals (core platform token)
+  { name: "GAME by Virtuals", walletAddress: "0xca226bd9c754F1283123d32B2a7cF62a722f8ADa", tokenAddress: "0x1C4CcA7C5DB003824208aDDA61Bd749e55F463a3" },
+  // Add more known Titan agents here as discovered
+];
+
+// ─── Search keywords for v5 endpoint ──────────────────────────────────────────
+// Used to discover agents that might be missed by pagination
+const SEARCH_KEYWORDS = [
+  "ROBO", "Titan", "Fabric", "Protocol", "AI", "Agent", "Bot", "Trading",
+  "DeFi", "NFT", "Crypto", "Hedge", "Fund", "Swap", "Bridge", "Oracle",
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -269,9 +288,119 @@ export async function fetchAgentsPage(page: number): Promise<AcpAgent[]> {
   return json.data ?? [];
 }
 
+// ─── V5 Search Response Types ────────────────────────────────────────────────
+
+interface V5SearchAgent {
+  id: number;
+  name: string;
+  walletAddress: string;
+  contractAddress?: string;
+  description?: string | null;
+  twitterHandle?: string | null;
+  profilePic?: string | null;
+  tokenAddress?: string | null;
+  cluster?: string | null;
+  category?: string | null;
+  symbol?: string | null;
+  virtualAgentId?: string | null;
+  isVirtualAgent?: boolean;
+  metrics?: {
+    successfulJobCount?: number;
+    successRate?: number;
+    uniqueBuyerCount?: number;
+    minsFromLastOnlineTime?: number;
+    isOnline?: boolean;
+  };
+  jobs?: Array<{ name: string; price: number }>;
+  resources?: unknown[];
+}
+
+/**
+ * Convert V5 search agent format to standard AcpAgent format
+ */
+function v5AgentToAcpAgent(v5: V5SearchAgent): AcpAgent {
+  return {
+    id: v5.id,
+    name: v5.name,
+    walletAddress: v5.walletAddress,
+    category: v5.category,
+    description: v5.description,
+    successfulJobCount: v5.metrics?.successfulJobCount ?? null,
+    successRate: v5.metrics?.successRate ?? null,
+    uniqueBuyerCount: v5.metrics?.uniqueBuyerCount ?? null,
+    profilePic: v5.profilePic,
+    twitterHandle: v5.twitterHandle,
+    cluster: v5.cluster,
+    offerings: v5.jobs?.map(j => ({ name: j.name, price: j.price })) ?? null,
+    tokenAddress: v5.tokenAddress,
+  };
+}
+
+/**
+ * Fetch agents via v5 search endpoint for a given query
+ */
+export async function fetchV5SearchAgents(query: string): Promise<AcpAgent[]> {
+  const url = `${SEARCH_URL}?query=${encodeURIComponent(query)}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) {
+    // v5 search returns 400 for empty queries, treat as empty
+    if (res.status === 400) return [];
+    throw new Error(`V5 Search API ${res.status}: ${await res.text()}`);
+  }
+  const json = (await res.json()) as { data: V5SearchAgent[] | null };
+  const agents = json.data ?? [];
+  return agents.map(v5AgentToAcpAgent);
+}
+
+/**
+ * Fetch agents from v5 search using multiple keywords
+ */
+async function fetchV5SearchAllKeywords(verbose = false): Promise<AcpAgent[]> {
+  const seen = new Map<string, AcpAgent>();
+
+  for (const keyword of SEARCH_KEYWORDS) {
+    if (verbose) process.stdout?.write?.(`   V5 search: "${keyword}"... `);
+    try {
+      const agents = await fetchV5SearchAgents(keyword);
+      let newCount = 0;
+      for (const a of agents) {
+        if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
+          seen.set(a.walletAddress.toLowerCase(), a);
+          newCount++;
+        }
+      }
+      if (verbose) console.log(`${agents.length} results (${newCount} new)`);
+    } catch (e) {
+      if (verbose) console.log(`⚠️  failed: ${(e as Error).message}`);
+    }
+    await new Promise((r) => setTimeout(r, 150)); // rate limit
+  }
+
+  return [...seen.values()];
+}
+
+/**
+ * Create AcpAgent entries from the Titan seed list
+ */
+function getTitanSeedAgents(): AcpAgent[] {
+  return TITAN_SEED_LIST.map((titan, idx) => ({
+    id: -1000 - idx, // Negative IDs to distinguish from API-sourced
+    name: titan.name,
+    walletAddress: titan.walletAddress,
+    category: "TITAN",
+    description: "Titan agent (seed list)",
+    successfulJobCount: null,
+    successRate: null,
+    uniqueBuyerCount: null,
+    tokenAddress: titan.tokenAddress,
+  }));
+}
+
 export async function fetchAllAgents(verbose = false): Promise<AcpAgent[]> {
   const seen = new Map<string, AcpAgent>();
 
+  // ─── Phase 1: Standard pagination ─────────────────────────────────────────
+  if (verbose) console.log("\n📋 Phase 1: Standard pagination scan");
   for (let page = 0; page < MAX_PAGES; page++) {
     if (verbose) process.stdout?.write?.(`   Fetching page ${page}... `);
     try {
@@ -295,6 +424,33 @@ export async function fetchAllAgents(verbose = false): Promise<AcpAgent[]> {
     }
     await new Promise((r) => setTimeout(r, 200)); // rate limit
   }
+
+  const paginationCount = seen.size;
+  if (verbose) console.log(`   Pagination total: ${paginationCount}`);
+
+  // ─── Phase 2: V5 Search for additional agents (Titans, etc) ───────────────
+  if (verbose) console.log("\n🔍 Phase 2: V5 search for Titan/Virtual agents");
+  const v5Agents = await fetchV5SearchAllKeywords(verbose);
+  let v5NewCount = 0;
+  for (const a of v5Agents) {
+    if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
+      seen.set(a.walletAddress.toLowerCase(), a);
+      v5NewCount++;
+    }
+  }
+  if (verbose) console.log(`   V5 search added: ${v5NewCount} new agents`);
+
+  // ─── Phase 3: Titan seed list (known agents that might be missed) ─────────
+  if (verbose) console.log("\n🏛️  Phase 3: Adding Titan seed list");
+  const titanAgents = getTitanSeedAgents();
+  let titanNewCount = 0;
+  for (const a of titanAgents) {
+    if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
+      seen.set(a.walletAddress.toLowerCase(), a);
+      titanNewCount++;
+    }
+  }
+  if (verbose) console.log(`   Titan seed added: ${titanNewCount} new agents`);
 
   return [...seen.values()];
 }
