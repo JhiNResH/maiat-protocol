@@ -9,13 +9,14 @@
  *   4. Trading pattern flags (wash trading signals, coordinated buys)
  *   5. Rug risk score (0-100, weighted composite)
  *
- * Data sources: Alchemy, Honeypot.is, BaseScan, on-chain reads
+ * Data sources: Alchemy, Honeypot.is, BaseScan, on-chain reads, Wadjet ML engine
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress, createPublicClient, http, parseAbi } from "viem";
 import { base } from "viem/chains";
 import { logQueryAsync } from "@/lib/query-logger";
+import { predictToken, type WadjetTokenResult } from "@/lib/wadjet-client";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -345,11 +346,15 @@ export async function GET(
   const address = getAddress(rawAddress) as `0x${string}`;
 
   try {
-    // Run all analyses in parallel
-    const [contract, holders, liquidity] = await Promise.all([
+    // Run all analyses in parallel (including Wadjet ML)
+    const [contract, holders, liquidity, wadjetResult] = await Promise.all([
       analyzeContract(address),
       analyzeHolders(address),
       analyzeLiquidity(address),
+      predictToken(address).catch((err) => {
+        console.warn("[token-forensics] Wadjet ML unavailable:", err);
+        return null as WadjetTokenResult | null;
+      }),
     ]);
 
     // Also fetch basic honeypot score for composite
@@ -371,6 +376,24 @@ export async function GET(
 
     const rugRisk = calculateRugRisk(contract, holders, liquidity, honeypotScore);
 
+    // ── Blend Wadjet ML score with on-chain heuristic ────────────────────────
+    // Wadjet provides ML-based rug_probability (0-1), we blend 60/40 with our heuristic
+    let blendedRugScore = rugRisk.rugScore;
+    let wadjetConfidence: number | null = null;
+    if (wadjetResult) {
+      const wadjetScore = Math.round(wadjetResult.rug_probability * 100);
+      wadjetConfidence = wadjetResult.confidence;
+      // 60% Wadjet ML + 40% on-chain heuristic (ML has more signal)
+      blendedRugScore = Math.round(wadjetScore * 0.6 + rugRisk.rugScore * 0.4);
+      blendedRugScore = Math.min(100, Math.max(0, blendedRugScore));
+    }
+
+    // Recalculate risk level from blended score
+    const blendedRiskLevel: RugRiskResult["riskLevel"] =
+      blendedRugScore >= 70 ? "critical" :
+      blendedRugScore >= 45 ? "high" :
+      blendedRugScore >= 20 ? "medium" : "low";
+
     // Log query + get queryId for feedback
     const queryId = await logQueryAsync({
       type: "token_forensics",
@@ -378,18 +401,24 @@ export async function GET(
       clientId,
       callerIp,
       userAgent,
-      trustScore: 100 - rugRisk.rugScore, // invert: high rug = low trust
-      verdict: rugRisk.riskLevel === "low" ? "proceed" : rugRisk.riskLevel === "medium" ? "caution" : "avoid",
-      metadata: { rugScore: rugRisk.rugScore, riskLevel: rugRisk.riskLevel },
+      trustScore: 100 - blendedRugScore, // invert: high rug = low trust
+      verdict: blendedRiskLevel === "low" ? "proceed" : blendedRiskLevel === "medium" ? "caution" : "avoid",
+      metadata: {
+        rugScore: blendedRugScore,
+        riskLevel: blendedRiskLevel,
+        heuristicRugScore: rugRisk.rugScore,
+        wadjetRugScore: wadjetResult ? Math.round(wadjetResult.rug_probability * 100) : null,
+        wadjetConfidence,
+      },
     });
 
     return NextResponse.json(
       {
         address,
-        rugScore: rugRisk.rugScore,
-        riskLevel: rugRisk.riskLevel,
+        rugScore: blendedRugScore,
+        riskLevel: blendedRiskLevel,
         riskFlags: rugRisk.riskFlags,
-        summary: rugRisk.summary,
+        summary: rugRisk.summary + (wadjetResult ? ` ML confidence: ${(wadjetConfidence! * 100).toFixed(0)}%.` : ""),
         contract: {
           hasOwner: contract.hasOwner,
           owner: contract.owner,
@@ -407,6 +436,21 @@ export async function GET(
           poolCount: liquidity.poolCount,
           estimatedUsd: liquidity.estimatedLiquidityUsd,
           isLocked: liquidity.isLocked,
+        },
+        wadjetML: wadjetResult
+          ? {
+              rugProbability: wadjetResult.rug_probability,
+              riskLevel: wadjetResult.risk_level,
+              confidence: wadjetResult.confidence,
+              signals: wadjetResult.signals ?? [],
+              note: "Powered by Wadjet ML engine — XGBoost model trained on 9500+ agents",
+            }
+          : { available: false, note: "Wadjet ML service unavailable — using on-chain heuristics only" },
+        scoring: {
+          blendedRugScore: blendedRugScore,
+          heuristicRugScore: rugRisk.rugScore,
+          wadjetRugScore: wadjetResult ? Math.round(wadjetResult.rug_probability * 100) : null,
+          method: wadjetResult ? "60% Wadjet ML + 40% on-chain heuristic" : "100% on-chain heuristic",
         },
         feedback: queryId
           ? {
