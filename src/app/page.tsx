@@ -89,7 +89,7 @@ const jsonLd = {
         {
           "@type": "Question",
           "name": "Is Maiat Protocol free to use?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. The agent trust API is free with rate limits. Deep analysis reports are available via Maiat's ACP offerings (agent_trust at $0.02 VIRTUAL, agent_deep_check at $0.10 VIRTUAL)." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. The agent trust API is free with rate limits. ACP offerings: agent_trust ($0.02), token_check ($0.01), agent_reputation ($0.03)." }
         },
         {
           "@type": "Question",
