@@ -22,6 +22,7 @@ contract MaiatPassport is ERC721, AccessControl {
         uint256 lastUpdated;
     }
 
+    /// @notice Internal counter for token IDs. Starts at 0, first minted ID is 1.
     uint256 private _nextTokenId;
 
     /// @notice token ID for a given holder
@@ -101,10 +102,18 @@ contract MaiatPassport is ERC721, AccessControl {
         return string(abi.encodePacked(part1, part2));
     }
 
-    /// @dev Prevent all transfers except minting (from = address(0))
+    /// @dev Prevent all transfers except minting (from = address(0)) and burning (to = address(0))
     function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
         address from = _ownerOf(tokenId);
         if (from != address(0) && to != address(0)) revert SoulboundTransfer();
+        
+        // If burning, clear the passport state so the user can mint a new one in the future if needed
+        if (to == address(0) && from != address(0)) {
+            hasPassport[from] = false;
+            delete passportOf[from];
+            delete passportData[tokenId];
+        }
+        
         return super._update(to, tokenId, auth);
     }
 

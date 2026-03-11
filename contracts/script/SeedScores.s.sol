@@ -94,12 +94,15 @@ contract SeedScores is Script {
 
         vm.startBroadcast(updaterKey);
 
+        TrustScoreOracle.DataSource[] memory dsList = new TrustScoreOracle.DataSource[](tokens.length);
+        for (uint256 i = 0; i < tokens.length; i++) dsList[i] = TrustScoreOracle.DataSource.COMMUNITY;
+
         oracle.batchUpdateTokenScores(
             tokens,
             scores,
             reviewCounts,
             avgRatings,
-            TrustScoreOracle.DataSource.COMMUNITY
+            dsList
         );
 
         vm.stopBroadcast();
