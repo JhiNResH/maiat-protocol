@@ -167,7 +167,7 @@ export default function AnalyticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {recent.map((q) => (
+                {recent.filter((q) => !["agent_deep_check", "token_forensics", "trust_swap", "submit_review"].includes(q.type)).map((q) => (
                   <tr key={q.id} className="border-b border-[#111] hover:bg-[var(--bg-surface)]">
                     <td className="py-2 pr-3 text-[#3b82f6]">{q.type}</td>
                     <td className="py-2 pr-3 text-[#888]">{truncAddr(q.target)}</td>
