@@ -68,6 +68,9 @@ contract TrustGateHook is BaseHook, Ownable2Step {
     ///         Set to the Protocol's ORACLE_UPDATER wallet.
     address public trustedSigner;
 
+    address public pendingTrustedSigner;
+    uint256 public pendingTrustedSignerTime;
+
     /// @notice Maximum age of a signed score before it's rejected (5 minutes).
     uint256 public constant SIGNED_SCORE_MAX_AGE = 5 minutes;
 
@@ -84,7 +87,7 @@ contract TrustGateHook is BaseHook, Ownable2Step {
     //////////////////////////////////////////////////////////////*/
 
     bytes32 public constant SCORE_TYPEHASH =
-        keccak256("TrustScore(address token,uint256 score,uint256 timestamp,uint256 nonce)");
+        keccak256("TrustScore(address user,address token,uint256 score,uint256 timestamp,uint256 nonce)");
 
     bytes32 public immutable DOMAIN_SEPARATOR;
 
@@ -120,9 +123,12 @@ contract TrustGateHook is BaseHook, Ownable2Step {
 
     error TrustScoreTooLow(address token, uint256 score, uint256 threshold);
     error TrustGateHook__ZeroAddress();
+    error TrustGateHook__EthPoolNotSupported();
+    error TrustGateHook__NoSignerPending();
     error TrustGateHook__InvalidThreshold(uint256 threshold);
     error TrustGateHook__ThresholdTooLow(uint256 threshold);
     error TrustGateHook__SeedScoreRejected(address token);
+    error TrustGateHook__PendingThresholdExists();
     error TrustGateHook__ZeroAddressRouter();
     error TrustGateHook__NoThresholdPending();
     error TrustGateHook__ThresholdTimelockNotExpired(uint256 executeAfter);
@@ -170,7 +176,7 @@ contract TrustGateHook is BaseHook, Ownable2Step {
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
-            beforeInitialize: false,
+            beforeInitialize: true,
             afterInitialize: false,
             beforeAddLiquidity: false,
             afterAddLiquidity: false,
@@ -187,6 +193,17 @@ contract TrustGateHook is BaseHook, Ownable2Step {
         });
     }
 
+    function beforeInitialize(
+        address,
+        PoolKey calldata key,
+        uint160
+    ) external pure override returns (bytes4) {
+        if (Currency.unwrap(key.currency0) == address(0) || Currency.unwrap(key.currency1) == address(0)) {
+            revert TrustGateHook__EthPoolNotSupported();
+        }
+        return IHooks.beforeInitialize.selector;
+    }
+
     /*//////////////////////////////////////////////////////////////
                         ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -197,15 +214,26 @@ contract TrustGateHook is BaseHook, Ownable2Step {
         emit RouterAllowanceUpdated(router, allowed);
     }
 
-    /// @notice Update the trusted signer for EIP-712 signed scores.
-    ///         Set to address(0) to disable signed score mode entirely.
-    function setTrustedSigner(address newSigner) external onlyOwner {
+    /// @notice Propose a new trusted signer for EIP-712 signed scores.
+    function proposeTrustedSigner(address newSigner) external onlyOwner {
+        pendingTrustedSigner = newSigner;
+        pendingTrustedSignerTime = block.timestamp + THRESHOLD_UPDATE_DELAY;
+    }
+
+    /// @notice Execute the trusted signer update after timelock.
+    function executeTrustedSignerUpdate() external onlyOwner {
+        if (pendingTrustedSignerTime == 0) revert TrustGateHook__NoSignerPending();
+        if (block.timestamp < pendingTrustedSignerTime) {
+            revert TrustGateHook__ThresholdTimelockNotExpired(pendingTrustedSignerTime);
+        }
         address old = trustedSigner;
-        trustedSigner = newSigner;
-        emit TrustedSignerUpdated(old, newSigner);
+        trustedSigner = pendingTrustedSigner;
+        pendingTrustedSignerTime = 0;
+        emit TrustedSignerUpdated(old, trustedSigner);
     }
 
     function proposeThreshold(uint256 newThreshold) external onlyOwner {
+        if (pendingThreshold != 0) revert TrustGateHook__PendingThresholdExists();
         if (newThreshold > 100) revert TrustGateHook__InvalidThreshold(newThreshold);
         if (newThreshold < MIN_THRESHOLD) revert TrustGateHook__ThresholdTooLow(newThreshold);
         pendingThreshold = newThreshold;
@@ -225,6 +253,12 @@ contract TrustGateHook is BaseHook, Ownable2Step {
         emit ThresholdUpdated(old, trustThreshold);
     }
 
+    function cancelThresholdProposal() external onlyOwner {
+        if (pendingThreshold == 0) revert TrustGateHook__NoThresholdPending();
+        pendingThreshold = 0;
+        pendingThresholdTime = 0;
+    }
+
     /*//////////////////////////////////////////////////////////////
                            EIP-712 VERIFICATION
     //////////////////////////////////////////////////////////////*/
@@ -237,6 +271,7 @@ contract TrustGateHook is BaseHook, Ownable2Step {
     /// @param signature 65-byte ECDSA signature
     /// @return True if signature is valid and from trustedSigner
     function _verifySignedScore(
+        address user,
         address token,
         uint256 score,
         uint256 timestamp,
@@ -247,19 +282,22 @@ contract TrustGateHook is BaseHook, Ownable2Step {
         if (score > 100) revert TrustGateHook__ScoreOutOfRange(score);
 
         // Check freshness
+        if (timestamp > block.timestamp) {
+            revert TrustGateHook__SignatureExpired(token, timestamp, 0); // Future timestamp
+        }
         if (block.timestamp > timestamp + SIGNED_SCORE_MAX_AGE) {
             revert TrustGateHook__SignatureExpired(token, timestamp, SIGNED_SCORE_MAX_AGE);
         }
 
         // Check nonce not reused
-        bytes32 nonceKey = keccak256(abi.encodePacked(token, nonce));
+        bytes32 nonceKey = keccak256(abi.encodePacked(user, token, nonce));
         if (usedNonces[nonceKey]) {
             revert TrustGateHook__NonceAlreadyUsed(token, nonce);
         }
 
         // Build EIP-712 digest
         bytes32 structHash = keccak256(
-            abi.encode(SCORE_TYPEHASH, token, score, timestamp, nonce)
+            abi.encode(SCORE_TYPEHASH, user, token, score, timestamp, nonce)
         );
         bytes32 digest = MessageHashUtils.toTypedDataHash(DOMAIN_SEPARATOR, structHash);
 
@@ -343,14 +381,14 @@ contract TrustGateHook is BaseHook, Ownable2Step {
         if (hookData.length > LEGACY_HOOKDATA_LEN && trustedSigner != address(0)) {
             SignedScoreData memory sd = _decodeSignedHookData(hookData);
 
-            if (sd.feeTarget != address(0)) {
+            if (sd.feeTarget != address(0) && allowedRouters[sender]) {
                 feeTarget = sd.feeTarget;
             }
 
             // Verify + gate currency0
             address token0 = Currency.unwrap(key.currency0);
             if (token0 != address(0)) {
-                _verifySignedScore(token0, sd.score0, sd.timestamp0, sd.nonce0, sd.signature0);
+                _verifySignedScore(feeTarget, token0, sd.score0, sd.timestamp0, sd.nonce0, sd.signature0);
                 if (sd.score0 < trustThreshold) {
                     revert TrustScoreTooLow(token0, sd.score0, trustThreshold);
                 }
@@ -360,7 +398,7 @@ contract TrustGateHook is BaseHook, Ownable2Step {
             // Verify + gate currency1
             address token1 = Currency.unwrap(key.currency1);
             if (token1 != address(0)) {
-                _verifySignedScore(token1, sd.score1, sd.timestamp1, sd.nonce1, sd.signature1);
+                _verifySignedScore(feeTarget, token1, sd.score1, sd.timestamp1, sd.nonce1, sd.signature1);
                 if (sd.score1 < trustThreshold) {
                     revert TrustScoreTooLow(token1, sd.score1, trustThreshold);
                 }
@@ -372,7 +410,21 @@ contract TrustGateHook is BaseHook, Ownable2Step {
             // Check currency0
             address token0 = Currency.unwrap(key.currency0);
             if (token0 != address(0)) {
-                uint256 score0 = oracle.getScore(token0);
+                uint256 score0;
+                try oracle.getScore(token0) returns (uint256 s) {
+                    score0 = s;
+                } catch (bytes memory reason) {
+                    // Only fallback to last known score if the error is StaleScore (0xf28dceb3)
+                    if (reason.length >= 4 && bytes4(reason) == TrustScoreOracle.TrustScoreOracle__StaleScore.selector) {
+                        score0 = oracle.getTokenData(token0).trustScore;
+                        if (score0 == 0) revert TrustScoreTooLow(token0, 0, trustThreshold);
+                    } else {
+                        assembly {
+                            revert(add(reason, 32), mload(reason))
+                        }
+                    }
+                }
+                
                 if (score0 < trustThreshold) {
                     revert TrustScoreTooLow(token0, score0, trustThreshold);
                 }
@@ -385,7 +437,21 @@ contract TrustGateHook is BaseHook, Ownable2Step {
             // Check currency1
             address token1 = Currency.unwrap(key.currency1);
             if (token1 != address(0)) {
-                uint256 score1 = oracle.getScore(token1);
+                uint256 score1;
+                try oracle.getScore(token1) returns (uint256 s) {
+                    score1 = s;
+                } catch (bytes memory reason) {
+                    // Fallback to stale score to prevent DoS during oracle downtime
+                    if (reason.length >= 4 && bytes4(reason) == TrustScoreOracle.TrustScoreOracle__StaleScore.selector) {
+                        score1 = oracle.getTokenData(token1).trustScore;
+                        if (score1 == 0) revert TrustScoreTooLow(token1, 0, trustThreshold);
+                    } else {
+                        assembly {
+                            revert(add(reason, 32), mload(reason))
+                        }
+                    }
+                }
+
                 if (score1 < trustThreshold) {
                     revert TrustScoreTooLow(token1, score1, trustThreshold);
                 }
@@ -402,6 +468,7 @@ contract TrustGateHook is BaseHook, Ownable2Step {
         }
 
         // ── Dynamic Fee ──────────────────────────────────────────────────────
+        // NOTE: Dynamic fee always reads from the oracle even in MODE 1
         uint256 feeBps = oracle.getUserFee(feeTarget);
         emit DynamicFeeApplied(feeTarget, feeBps);
 

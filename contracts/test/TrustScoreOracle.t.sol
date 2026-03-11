@@ -112,6 +112,18 @@ contract TrustScoreOracleTest is Test {
 
     // ─── batchUpdateTokenScores ────────────────────────────────
 
+    function _batchUpdateTokenScores(
+        address[] memory tokens,
+        uint256[] memory scores,
+        uint256[] memory reviewCounts,
+        uint256[] memory avgRatings,
+        TrustScoreOracle.DataSource dataSource
+    ) internal {
+        TrustScoreOracle.DataSource[] memory dsList = new TrustScoreOracle.DataSource[](tokens.length);
+        for (uint256 i = 0; i < tokens.length; i++) dsList[i] = dataSource;
+        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, dsList);
+    }
+
     function test_BatchUpdate_Success() public {
         address[] memory tokens = new address[](3);
         uint256[] memory scores = new uint256[](3);
@@ -131,7 +143,7 @@ contract TrustScoreOracleTest is Test {
         reviewCounts[2] = 80;
         avgRatings[2] = 490;
 
-        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
+        _batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
         vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         assertEq(oracle.getScore(tokens[0]), 70);
@@ -148,7 +160,7 @@ contract TrustScoreOracleTest is Test {
         tokens[1] = token2;
 
         vm.expectRevert(TrustScoreOracle.TrustScoreOracle__LengthMismatch.selector);
-        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
+        _batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
     }
 
     function test_BatchUpdate_ReviewCountsLengthMismatchReverts() public {
@@ -162,7 +174,7 @@ contract TrustScoreOracleTest is Test {
         scores[1] = 60;
 
         vm.expectRevert(TrustScoreOracle.TrustScoreOracle__LengthMismatch.selector);
-        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
+        _batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
     }
 
     function test_BatchUpdate_AvgRatingsLengthMismatchReverts() public {
@@ -176,7 +188,7 @@ contract TrustScoreOracleTest is Test {
         scores[1] = 60;
 
         vm.expectRevert(TrustScoreOracle.TrustScoreOracle__LengthMismatch.selector);
-        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
+        _batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
     }
 
     function test_BatchUpdate_TooLargeReverts() public {
@@ -187,7 +199,7 @@ contract TrustScoreOracleTest is Test {
         uint256[] memory avgRatings = new uint256[](size);
 
         vm.expectRevert(abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__BatchTooLarge.selector, size));
-        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
+        _batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
     }
 
     function test_BatchUpdate_NotUpdaterReverts() public {
@@ -200,7 +212,7 @@ contract TrustScoreOracleTest is Test {
 
         vm.prank(attacker);
         vm.expectRevert();
-        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
+        _batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
     }
 
     // ─── updateUserReputation + fee tiers ─────────────────────
@@ -299,13 +311,12 @@ contract TrustScoreOracleTest is Test {
 
     function test_GetScore_StaleScore_Reverts() public {
         oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
-        uint256 updatedAt = block.timestamp;
 
         // Warp past staleness window
         vm.warp(block.timestamp + 7 days + 1);
 
         vm.expectRevert(
-            abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__StaleScore.selector, token, updatedAt, 7 days)
+            abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__StaleScore.selector, token, 1, 7 days)
         );
         oracle.getScore(token);
     }
@@ -319,10 +330,9 @@ contract TrustScoreOracleTest is Test {
 
     function test_GetScore_OneBeyondBoundary_Reverts() public {
         oracle.updateTokenScore(token, 70, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
-        uint256 updatedAt = block.timestamp;
         vm.warp(block.timestamp + 7 days + 1);
         vm.expectRevert(
-            abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__StaleScore.selector, token, updatedAt, 7 days)
+            abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__StaleScore.selector, token, 1, 7 days)
         );
         oracle.getScore(token);
     }
@@ -476,7 +486,7 @@ contract TrustScoreOracleTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__AvgRatingOutOfRange.selector, 501)
         );
-        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
+        _batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, TrustScoreOracle.DataSource.API);
     }
 
     // ─── Fee tier exact boundaries ──────────────────────────────
@@ -549,7 +559,7 @@ contract TrustScoreOracleTest is Test {
             avgRatings[i] = bound(avgRatings[i], 0, 500);
         }
 
-        oracle.batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, dataSource);
+        _batchUpdateTokenScores(tokens, scores, reviewCounts, avgRatings, dataSource);
 
         for (uint256 i = 0; i < len; i++) {
             // If the token appears again later in the array, its score gets overwritten.

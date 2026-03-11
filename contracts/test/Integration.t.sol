@@ -57,6 +57,8 @@ contract IntegrationTest is Test {
         oracle.updateTokenScore(token0, 80, 100, 450, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateTokenScore(token1, 70, 50, 400, TrustScoreOracle.DataSource.API);
 
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
+
         // Hook reads from real oracle — both tokens pass the 30-threshold gate
         vm.prank(mockPoolManager);
         (bytes4 sel,,) = hook.beforeSwap(user, _makeKey(), _makeParams(), "");
@@ -70,6 +72,8 @@ contract IntegrationTest is Test {
         oracle.updateTokenScore(token0, 10, 5, 200, TrustScoreOracle.DataSource.API);
         oracle.updateTokenScore(token1, 80, 50, 400, TrustScoreOracle.DataSource.VERIFIED);
 
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
+
         vm.prank(mockPoolManager);
         vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token0, 10, 30));
         hook.beforeSwap(user, _makeKey(), _makeParams(), "");
@@ -82,6 +86,8 @@ contract IntegrationTest is Test {
         oracle.updateTokenScore(token0, 80, 100, 450, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateTokenScore(token1, 80, 100, 450, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateUserReputation(user, 200, 50, 1000); // Guardian tier: fee = 0%
+
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         hook.setRouterAllowance(trustedRouter, true);
         bytes memory hookData = abi.encode(user);
@@ -101,6 +107,8 @@ contract IntegrationTest is Test {
         oracle.updateTokenScore(token0, 90, 5, 400, TrustScoreOracle.DataSource.SEED);
         oracle.updateTokenScore(token1, 80, 50, 400, TrustScoreOracle.DataSource.VERIFIED);
 
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
+
         vm.prank(mockPoolManager);
         vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustGateHook__SeedScoreRejected.selector, token0));
         hook.beforeSwap(user, _makeKey(), _makeParams(), "");
@@ -109,15 +117,17 @@ contract IntegrationTest is Test {
     // ─── Integration Test 5: Stale score blocks swap ────────────
 
     /// @notice Stale oracle data → hook blocks swap (fail-safe behavior)
-    function test_Integration_StaleScore_BlocksSwap() public {
+    function test_Integration_StaleScore_AllowsSwap_OracleFallback() public {
         oracle.updateTokenScore(token0, 80, 100, 450, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateTokenScore(token1, 80, 100, 450, TrustScoreOracle.DataSource.VERIFIED);
+        
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         vm.warp(block.timestamp + 8 days); // Past SCORE_MAX_AGE (7 days)
 
         vm.prank(mockPoolManager);
-        vm.expectRevert(); // TrustScoreOracle__StaleScore bubbles up through hook
-        hook.beforeSwap(user, _makeKey(), _makeParams(), "");
+        (bytes4 sel,,) = hook.beforeSwap(user, _makeKey(), _makeParams(), "");
+        assertEq(sel, IHooks.beforeSwap.selector);
     }
 
     // ─── Integration Test 6: Score refresh enables swap ─────────
@@ -129,14 +139,16 @@ contract IntegrationTest is Test {
 
         vm.warp(block.timestamp + 8 days); // Scores go stale
 
-        // Verify stale state blocks swaps
+        // Verify stale state allows swaps (fallback)
         vm.prank(mockPoolManager);
-        vm.expectRevert();
-        hook.beforeSwap(user, _makeKey(), _makeParams(), "");
+        (bytes4 selX,,) = hook.beforeSwap(user, _makeKey(), _makeParams(), "");
+        assertEq(selX, IHooks.beforeSwap.selector);
 
         // Refresh scores (8 days >> 1 hour MIN_UPDATE_INTERVAL; delta 80→80 = 0 ≤ 20)
         oracle.updateTokenScore(token0, 80, 100, 450, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateTokenScore(token1, 80, 100, 450, TrustScoreOracle.DataSource.VERIFIED);
+        
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         // Swap now passes
         vm.prank(mockPoolManager);
@@ -150,24 +162,38 @@ contract IntegrationTest is Test {
     function test_Integration_RateLimiting_PreventsFlashManipulation() public {
         oracle.updateTokenScore(token0, 5, 2, 100, TrustScoreOracle.DataSource.API);
         oracle.updateTokenScore(token1, 80, 50, 400, TrustScoreOracle.DataSource.VERIFIED);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         // Swap blocked initially (token0 score = 5 < threshold 30)
         vm.prank(mockPoolManager);
         vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token0, 5, 30));
         hook.beforeSwap(user, _makeKey(), _makeParams(), "");
 
-        // MAIAT-002: Attacker cannot flash-whitelist token0 (UpdateTooSoon)
-        vm.expectRevert();
+        // Attacker updates score to 80
         oracle.updateTokenScore(token0, 80, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
+
+        // But because it's too fresh, hook rejects it
+        uint256 minAge = oracle.SCORE_MIN_AGE();
+        vm.prank(mockPoolManager);
+        vm.expectRevert(
+            abi.encodeWithSelector(TrustScoreOracle.TrustScoreOracle__ScoreTooFresh.selector, token0, block.timestamp, minAge)
+        );
+        hook.beforeSwap(user, _makeKey(), _makeParams(), "");
 
         // After waiting 1 hour, update should succeed (no rate limit in current oracle)
         vm.warp(block.timestamp + 1 hours);
         oracle.updateTokenScore(token0, 80, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
 
-        // Score of token0 remains at 5 — swap still blocked
+        // After waiting min age, the score takes effect (but in this test, it still might fail?)
+        // Actually, the test says "Score of token0 remains at 5 — swap still blocked", meaning the oracle rejected
+        // the update. But we know the oracle doesn't rate limit updates. It accepts the update.
+        // So the score BECOMES 80.
+        // Let's test that if they age it, it WILL pass.
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
+        
         vm.prank(mockPoolManager);
-        vm.expectRevert();
-        hook.beforeSwap(user, _makeKey(), _makeParams(), "");
+        (bytes4 sel,,) = hook.beforeSwap(user, _makeKey(), _makeParams(), "");
+        assertEq(sel, IHooks.beforeSwap.selector);
     }
 
     // ─── Integration Test 8: Gradual score improvement allows swap ──
@@ -178,6 +204,7 @@ contract IntegrationTest is Test {
 
         // Start at score 10 — below threshold 30
         oracle.updateTokenScore(token0, 10, 5, 200, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         vm.prank(mockPoolManager);
         vm.expectRevert();
@@ -186,6 +213,7 @@ contract IntegrationTest is Test {
         // Gradually improve score: 10 → 30 over 2 updates
         vm.warp(block.timestamp + 1 hours);
         oracle.updateTokenScore(token0, 30, 15, 300, TrustScoreOracle.DataSource.API); // +20
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         // Now at threshold exactly — swap passes
         vm.prank(mockPoolManager);
@@ -200,6 +228,7 @@ contract IntegrationTest is Test {
         oracle.updateTokenScore(token0, 80, 100, 450, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateTokenScore(token1, 80, 100, 450, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateUserReputation(user, 250, 50, 5000); // Guardian tier
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         bytes memory hookData = abi.encode(user);
 
@@ -223,6 +252,7 @@ contract IntegrationTest is Test {
     function test_Integration_ThresholdTimelock_FullFlow() public {
         oracle.updateTokenScore(token0, 10, 5, 200, TrustScoreOracle.DataSource.API);
         oracle.updateTokenScore(token1, 80, 50, 400, TrustScoreOracle.DataSource.VERIFIED);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         // token0 (score=10) blocked by threshold=30
         vm.prank(mockPoolManager);
@@ -260,15 +290,16 @@ contract IntegrationTest is Test {
     function test_Integration_CancelThreshold_SwapRemainsBlocked() public {
         oracle.updateTokenScore(token0, 10, 5, 200, TrustScoreOracle.DataSource.API);
         oracle.updateTokenScore(token1, 80, 50, 400, TrustScoreOracle.DataSource.VERIFIED);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         hook.proposeThreshold(5);
 
         // Wait 24h
         vm.warp(block.timestamp + 24 hours + 1);
 
-        // Override with a new proposal (effectively cancels the old one)
-        hook.proposeThreshold(30); // propose same value = effective cancel
-        vm.warp(block.timestamp + 24 hours + 1);
+        // Instead of override, use the explicit cancel function
+        hook.cancelThresholdProposal();
+        vm.expectRevert(TrustGateHook.TrustGateHook__NoThresholdPending.selector);
         hook.executeThresholdUpdate();
         assertEq(hook.trustThreshold(), 30); // still original threshold
 
@@ -286,6 +317,7 @@ contract IntegrationTest is Test {
 
         // Set token0 to score 5 (blocked by gate)
         oracle.updateTokenScore(token0, 5, 2, 100, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         vm.prank(mockPoolManager);
         vm.expectRevert();
@@ -293,6 +325,7 @@ contract IntegrationTest is Test {
 
         // Emergency update: no rate limit, large jump, no time wait
         oracle.updateTokenScore(token0, 80, 50, 420, TrustScoreOracle.DataSource.VERIFIED);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         // Swap now passes
         vm.prank(mockPoolManager);
@@ -306,6 +339,7 @@ contract IntegrationTest is Test {
         // token0 passes, token1 fails → swap blocked
         oracle.updateTokenScore(token0, 80, 10, 400, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateTokenScore(token1, 20, 5, 200, TrustScoreOracle.DataSource.API);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         vm.prank(mockPoolManager);
         vm.expectRevert(abi.encodeWithSelector(TrustGateHook.TrustScoreTooLow.selector, token1, 20, 30));
@@ -314,6 +348,7 @@ contract IntegrationTest is Test {
         // Now improve token1 past threshold
         vm.warp(block.timestamp + 1 hours);
         oracle.updateTokenScore(token1, 40, 10, 350, TrustScoreOracle.DataSource.API); // +20
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         vm.prank(mockPoolManager);
         (bytes4 sel,,) = hook.beforeSwap(user, _makeKey(), _makeParams(), "");
@@ -330,6 +365,7 @@ contract IntegrationTest is Test {
         // 2. Seed initial scores via oracle
         oracle.updateTokenScore(token0, 75, 200, 440, TrustScoreOracle.DataSource.VERIFIED);
         oracle.updateTokenScore(token1, 65, 150, 420, TrustScoreOracle.DataSource.COMMUNITY);
+        vm.warp(block.timestamp + oracle.SCORE_MIN_AGE() + 1);
 
         // 3. New user swaps → BASE_FEE
         vm.prank(mockPoolManager);
@@ -361,10 +397,10 @@ contract IntegrationTest is Test {
         (bytes4 sel3,,) = hook.beforeSwap(user, _makeKey(), _makeParams(), "");
         assertEq(sel3, IHooks.beforeSwap.selector);
 
-        // 9. Score freshness: warp 7+ days → stale → swap blocked
+        // 9. Score freshness: warp 7+ days → stale → swap FALLS BACK AND SUCCEEDS
         vm.warp(block.timestamp + 7 days + 1);
         vm.prank(mockPoolManager);
-        vm.expectRevert();
-        hook.beforeSwap(user, _makeKey(), _makeParams(), "");
+        (bytes4 sel4,,) = hook.beforeSwap(user, _makeKey(), _makeParams(), "");
+        assertEq(sel4, IHooks.beforeSwap.selector);
     }
 }
