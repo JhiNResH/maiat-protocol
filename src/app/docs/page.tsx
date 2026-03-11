@@ -19,12 +19,16 @@ type SidebarItem =
 const SIDEBAR: SidebarItem[] = [
   { type: 'label', label: 'Protocol' },
   { type: 'link', id: 'overview', label: 'Overview' },
-  { type: 'link', id: 'trust-score', label: 'Trust Score', badge: 'v1.2' },
+  { type: 'link', id: 'trust-score', label: 'Trust Score', badge: 'v2.0' },
   { type: 'link', id: 'passport', label: 'Trust Passport' },
+  { type: 'label', label: 'Wadjet' },
+  { type: 'link', id: 'wadjet', label: 'Risk Intelligence' },
+  { type: 'link', id: 'sentinel', label: 'Sentinel Alerts' },
   { type: 'label', label: 'Endpoints' },
   { type: 'link', id: 'agents-api', label: 'Agents API' },
-  { type: 'link', id: 'markets-api', label: 'Markets API' },
   { type: 'link', id: 'reviews-api', label: 'Reviews API' },
+  { type: 'label', label: 'ACP' },
+  { type: 'link', id: 'offerings', label: 'Offerings' },
   { type: 'label', label: 'SDK' },
   { type: 'link', id: 'installation', label: 'Installation' },
   { type: 'link', id: 'usage', label: 'Quick Start' },
@@ -135,12 +139,12 @@ export default function DocsPage() {
                 <Code size={32} />
                 <h1 className="text-4xl font-black tracking-tighter uppercase">API Reference</h1>
               </div>
-              <p className="text-slate-500 font-bold uppercase tracking-[0.3em]">Maiat Protocol // Behavioral Oracle // v1.2</p>
+              <p className="text-slate-500 font-bold uppercase tracking-[0.3em]">Maiat Protocol // Trust Layer for Agentic Commerce // v2.0</p>
             </div>
 
             <p className="text-lg text-slate-400 leading-relaxed italic border-l-2 border-blue-500/20 pl-6">
-              Maiat Protocol provides multi-layered behavioral trust scoring for AI agents operating on the Virtuals Agent Commerce Protocol (ACP). 
-              Our endpoints are open-access and designed for high-integrity autonomous systems.
+              Maiat is the trust layer for agentic commerce — answering one question: &quot;Is this agent trustworthy?&quot;
+              Powered by Wadjet, an ML risk engine combining on-chain behavior, token health, and community reviews.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
@@ -173,10 +177,9 @@ export default function DocsPage() {
 
             <div className="space-y-4">
               {[
-                { label: 'On-Chain Integrity', val: '40%', desc: 'Historical job completion and payment reliability.' },
-                { label: 'Social Consensus', val: '30%', desc: 'Community field intelligence and weighted reviews.' },
-                { label: 'Identity Verification', val: '20%', desc: 'Passport level and soulbound token metadata.' },
-                { label: 'Activity Age', val: '10%', desc: 'Longevity and frequency of network interactions.' },
+                { label: 'On-Chain Behavioral', val: '50%', desc: 'ACP job history — completion rate, payment rate, total jobs.' },
+                { label: 'Off-Chain Signals', val: '30%', desc: 'Token health via Wadjet — liquidity, rug probability, price trends.' },
+                { label: 'Human Reviews', val: '20%', desc: 'Community ratings, sentiment, weighted by reviewer reputation.' },
               ].map((layer, i) => (
                 <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.01] border border-white/5">
                   <div className="space-y-1">
@@ -219,6 +222,85 @@ export default function DocsPage() {
               <ApiEndpoint method="GET" path="/api/v1/review?address={target}" title="Retrieve Node Field Reports" />
               <CodeBlock code="curl -X GET https://app.maiat.io/api/v1/review?address=0x..." />
             </div>
+          </section>
+
+          {/* ── Wadjet ── */}
+          <section id="wadjet" className="space-y-8">
+            <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+              <Cpu className="w-5 h-5 text-blue-500" />
+              <h3 className="text-xl font-black text-white uppercase tracking-tight">Wadjet Risk Intelligence</h3>
+            </div>
+            
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Wadjet is Maiat&apos;s ML-powered risk engine. It runs independently as a service, combining XGBoost prediction (98% accuracy, 50 features, 18K+ training tokens) with real-time DexScreener data and behavioral profiling.
+            </p>
+
+            <div className="space-y-4">
+              <ApiEndpoint method="POST" path="/predict/agent" title="Agent Rug Prediction" />
+              <CodeBlock lang="bash" code={`curl -X POST https://wadjet-production.up.railway.app/predict/agent \\
+  -H "Content-Type: application/json" \\
+  -d '{"token_address": "0x..."}'`} />
+            </div>
+
+            <div className="space-y-4">
+              <ApiEndpoint method="GET" path="/wadjet/{address}" title="Full Risk Profile + Monte Carlo" />
+              <CodeBlock code="curl https://wadjet-production.up.railway.app/wadjet/0x..." />
+            </div>
+
+            <div className="space-y-4">
+              <ApiEndpoint method="GET" path="/risks/summary" title="Risk Dashboard Summary" />
+              <CodeBlock code="curl https://wadjet-production.up.railway.app/risks/summary" />
+            </div>
+          </section>
+
+          {/* ── Sentinel ── */}
+          <section id="sentinel" className="space-y-8">
+            <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+              <Search className="w-5 h-5 text-blue-500" />
+              <h3 className="text-xl font-black text-white uppercase tracking-tight">Sentinel Alerts</h3>
+            </div>
+            
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Real-time monitoring. Wadjet&apos;s Sentinel watches indexed agents and tokens, flagging trust degradation and rug signals automatically.
+            </p>
+
+            <div className="space-y-4">
+              <ApiEndpoint method="GET" path="/sentinel/alerts" title="Get Active Alerts" />
+              <CodeBlock code="curl https://wadjet-production.up.railway.app/sentinel/alerts?severity=critical&limit=10" />
+            </div>
+
+            <div className="space-y-4">
+              <ApiEndpoint method="GET" path="/api/v1/monitor/alerts" title="Alerts via Protocol Gateway" />
+              <CodeBlock code="curl https://app.maiat.io/api/v1/monitor/alerts" />
+            </div>
+          </section>
+
+          {/* ── ACP Offerings ── */}
+          <section id="offerings" className="space-y-8">
+            <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+              <Layers className="w-5 h-5 text-blue-500" />
+              <h3 className="text-xl font-black text-white uppercase tracking-tight">ACP Offerings</h3>
+            </div>
+
+            <div className="space-y-4">
+              {[
+                { name: 'agent_trust', price: '$0.02', desc: 'Core — "Is this agent trustworthy?" Returns trust score, verdict, riskOutlook, and token health via Wadjet.' },
+                { name: 'token_check', price: '$0.01', desc: 'Quick token safety check — honeypot detection, liquidity analysis, basic risk assessment.' },
+                { name: 'agent_reputation', price: '$0.03', desc: 'Community intelligence — reviews, sentiment analysis, market consensus for any agent.' },
+              ].map((offering, i) => (
+                <div key={i} className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5">
+                  <div className="space-y-1">
+                    <div className="text-xs font-bold text-white font-mono">{offering.name}</div>
+                    <p className="text-[10px] text-slate-500 max-w-md">{offering.desc}</p>
+                  </div>
+                  <span className="text-sm font-black text-emerald-400">{offering.price}</span>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[10px] text-slate-600 italic">
+              Every ACP query feeds Wadjet&apos;s training data. More queries → better predictions → more trustworthy scores.
+            </p>
           </section>
 
           {/* ── Footer ── */}
