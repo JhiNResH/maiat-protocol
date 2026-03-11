@@ -357,3 +357,27 @@ model CallerWallet {
   @@map("caller_wallets")
   @@index([walletAddress])
 }
+
+/// Wadjet proactive alerts — trust degradation, rug signals, anomalies
+model WadjetAlert {
+  id            String   @id @default(cuid())
+  target        String                  // wallet or token address
+  targetType    String                  // "agent" | "token"
+  alertType     String                  // "trust_degradation" | "rug_risk" | "anomaly"
+  severity      String                  // "low" | "medium" | "high" | "critical"
+  title         String
+  summary       String
+  previousScore Int?                    // previous trust/rug score
+  currentScore  Int                     // current score
+  delta         Int?                    // score change
+  metadata      Json     @default("{}")
+  resolved      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@map("wadjet_alerts")
+  @@index([target])
+  @@index([alertType])
+  @@index([severity])
+  @@index([createdAt])
+  @@index([resolved])
+}
