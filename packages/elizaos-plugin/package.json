@@ -1,6 +1,9 @@
 {
   "name": "@jhinresh/elizaos-plugin",
   "version": "0.7.3",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Maiat Trust Score plugin for ElizaOS — verify trust before your agent swaps or transacts",
   "license": "MIT",
   "type": "module",

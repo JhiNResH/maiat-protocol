@@ -1,6 +1,9 @@
 {
   "name": "@jhinresh/viem-guard",
   "version": "0.7.3",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Universal trust middleware for viem — auto-checks Maiat trust score before every transaction",
   "type": "module",
   "main": "./dist/index.js",
