@@ -26,7 +26,7 @@ module.exports = __toCommonJS(index_exports);
 
 // src/maiatTrustPlugin.ts
 var import_game = require("@virtuals-protocol/game");
-var import_maiat_sdk = require("maiat-sdk");
+var import_maiat_sdk = require("@jhinresh/maiat-sdk");
 var DEFAULT_MIN_SCORE = 3;
 var MaiatTrustPlugin = class {
   constructor(options = {}) {

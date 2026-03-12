@@ -1,4 +1,4 @@
-import { Maiat } from "maiat-sdk";
+import { Maiat } from "@jhinresh/maiat-sdk";
 export class MaiatTrustError extends Error {
     address;
     score;

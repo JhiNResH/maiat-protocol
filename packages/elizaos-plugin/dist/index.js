@@ -1,4 +1,4 @@
-import { Maiat } from "maiat-sdk";
+import { Maiat } from "@jhinresh/maiat-sdk";
 /**
  * ElizaOS plugin definition following the standard plugin interface.
  */
