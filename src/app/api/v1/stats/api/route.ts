@@ -26,6 +26,7 @@ export async function GET() {
       recentQueries,
       uniqueBuyers,
       uniqueTargets,
+      trending,
     ] = await Promise.all([
       prisma.queryLog.count(),
       prisma.queryLog.count({ where: { createdAt: { gte: h24 } } }),
@@ -51,9 +52,23 @@ export async function GET() {
         .groupBy({ by: ["buyer"], where: { buyer: { not: null } } })
         .then((g) => g.length),
       prisma.queryLog.groupBy({ by: ["target"] }).then((g) => g.length),
+      prisma.queryLog.groupBy({
+        by: ["target"],
+        _count: { _all: true },
+        orderBy: { _count: { target: 'desc' } },
+        take: 10
+      }),
     ]);
 
-    // Extract unique callers from metadata
+    // Fetch trust grades for trending targets
+    const trendingTargets = trending.map(t => t.target);
+    const projects = await prisma.project.findMany({
+      where: { address: { in: trendingTargets } },
+      select: { address: true, trustScore: true, trustGrade: true }
+    });
+    const trustMap = Object.fromEntries(projects.map(p => [p.address, p]));
+
+    // Extract unique callers + resolve identities
     const recentWithMeta = await prisma.queryLog.findMany({
       where: { createdAt: { gte: d7 } },
       select: { metadata: true, clientId: true },
@@ -66,18 +81,67 @@ export async function GET() {
       const cid = (r.clientId || meta?.userAgent as string || "unknown");
       clientCounts[cid] = (clientCounts[cid] || 0) + 1;
     }
-    const topClients = Object.entries(clientCounts)
+
+    // Resolve top clients to names/wallets
+    const topClientEntries = Object.entries(clientCounts)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([client, count]) => ({ client, count }));
+      .slice(0, 10);
+
+    const resolvedClients = await Promise.all(
+      topClientEntries.map(async ([clientId, count]) => {
+        // Try to find a CallerWallet first
+        const caller = await prisma.callerWallet.findUnique({
+          where: { clientId },
+          select: { walletAddress: true }
+        });
+
+        if (caller) {
+          const user = await prisma.user.findUnique({
+            where: { address: caller.walletAddress.toLowerCase() },
+            select: { displayName: true }
+          });
+          return {
+            client: clientId,
+            count,
+            wallet: caller.walletAddress,
+            name: user?.displayName || null,
+            type: 'sdk'
+          };
+        }
+
+        // If not an SDK client, check if it's a known User-Agent with a browser pattern
+        const isBrowser = clientId.toLowerCase().includes('browser') || clientId.toLowerCase().includes('mozilla');
+        return {
+          client: clientId,
+          count,
+          wallet: null,
+          name: null,
+          type: isBrowser ? 'browser' : 'external'
+        };
+      })
+    );
 
     return NextResponse.json({
-      overview: { total, last24h, last7d, last30d, uniqueBuyers, uniqueTargets, uniqueCallers7d: uniqueIps.size },
+      overview: { 
+        total, 
+        last24h, 
+        last7d, 
+        last30d, 
+        uniqueBuyers, 
+        uniqueTargets, 
+        uniqueCallers7d: uniqueIps.size 
+      },
       byType: Object.fromEntries(byType.map((r) => [r.type, r._count])),
       byVerdict: Object.fromEntries(byVerdict.map((r) => [r.verdict ?? "pending", r._count])),
       outcomes: Object.fromEntries(outcomeStats.map((r) => [r.outcome ?? "unreported", r._count])),
+      trending: trending.map(t => ({
+        target: t.target,
+        count: t._count._all,
+        trustScore: trustMap[t.target]?.trustScore || null,
+        trustGrade: trustMap[t.target]?.trustGrade || null
+      })),
       recent: recentQueries,
-      topClients,
+      topClients: resolvedClients,
       generatedAt: now.toISOString(),
     });
   } catch (error) {
