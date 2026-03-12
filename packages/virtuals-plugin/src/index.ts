@@ -1,4 +1,4 @@
-import { Maiat } from "@maiat/sdk";
+import { Maiat } from "maiat-sdk";
 
 // ═══════════════════════════════════════════
 //  GAME SDK compatible types (peer dep compatible)

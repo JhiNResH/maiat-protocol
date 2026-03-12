@@ -1,7 +1,7 @@
 {
   "name": "@jhinresh/virtuals-plugin",
-  "version": "0.7.0",
-  "description": "Maiat Trust Score plugin for Virtuals GAME SDK \u2014 trust-gate agent transactions on Virtuals Protocol",
+  "version": "0.7.1",
+  "description": "Maiat Trust Score plugin for Virtuals GAME SDK — trust-gate agent transactions on Virtuals Protocol",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -15,6 +15,9 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "maiat-sdk": "^0.7.1"
   },
   "peerDependencies": {
     "@virtuals-protocol/game": ">=1.0.0"
