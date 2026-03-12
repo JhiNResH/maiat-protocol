@@ -138,6 +138,16 @@ export async function triggerScan(tokenAddress: string): Promise<unknown> {
 }
 
 // ─── Feedback Loop (Protocol → Wadjet) ──────────────────────────────────────
+export interface ReviewFeedbackItem {
+  target_address: string
+  reviewer_address: string
+  rating: number // 1-10
+  comment: string
+  quality_score: number // 0-100
+  source: 'human' | 'agent'
+  interaction_tier?: string
+  recorded_at?: string
+}
 
 export interface OutcomeFeedbackItem {
   agent_address: string
@@ -201,6 +211,28 @@ export async function pushOutcomeBatch(items: OutcomeFeedbackItem[]): Promise<Fe
     })
   } catch (err) {
     console.warn('[wadjet-client] pushOutcomeBatch failed (non-blocking):', err)
+    return null
+  }
+}
+
+/**
+ * Push a single human review to Wadjet for retraining pipeline.
+ */
+export async function pushReview(item: ReviewFeedbackItem): Promise<FeedbackResult | null> {
+  try {
+    return await wadjetFetch<FeedbackResult>('/feedback/reviews', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Cron-Api-Key': process.env.WADJET_CRON_KEY ?? '',
+      },
+      body: JSON.stringify({
+        reviews: [item],
+        source: 'maiat-protocol',
+      }),
+    })
+  } catch (err) {
+    console.warn('[wadjet-client] pushReview failed (non-blocking):', err)
     return null
   }
 }

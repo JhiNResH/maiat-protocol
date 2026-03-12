@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, BarChart3, Users, Target, Clock } from "lucide-react";
+import { 
+  Activity, Users, Target, Clock, BarChart3, 
+  Shield, ExternalLink, ArrowUpRight, TrendingUp,
+  ThumbsUp
+} from "lucide-react";
 
 interface ApiStats {
   overview: {
@@ -11,7 +15,21 @@ interface ApiStats {
     last30d: number;
     uniqueBuyers: number;
     uniqueTargets: number;
+    uniqueCallers7d: number;
   };
+  trending: Array<{
+    target: string;
+    count: number;
+    trustScore: number | null;
+    trustGrade: string | null;
+  }>;
+  topClients: Array<{ 
+    client: string; 
+    count: number; 
+    name: string | null; 
+    wallet: string | null; 
+    type: 'sdk' | 'browser' | 'external' 
+  }>;
   byType: Record<string, number>;
   byVerdict: Record<string, number>;
   outcomes: Record<string, number>;
@@ -77,6 +95,33 @@ function verdictColor(v: string | null) {
 export default function AnalyticsPage() {
   const [stats, setStats] = useState<ApiStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [engagement, setEngagement] = useState<{
+    overview: {
+      totalUsers: number;
+      totalAgents: number;
+      totalReviews: number;
+      uniqueReviewers: number;
+      totalVotes: number;
+      totalBets: number;
+    };
+    feed: Array<{
+      id: string;
+      type: string;
+      user: string;
+      userName: string | null;
+      isAgent?: boolean;
+      target: string;
+      value: number | string;
+      detail?: string;
+      createdAt: string;
+    }>;
+    people?: Array<{
+      address: string;
+      displayName: string | null;
+      reputation: number;
+      reviews: number;
+    }>;
+  } | null>(null);
 
   useEffect(() => {
     fetch("/api/v1/stats/api")
@@ -86,7 +131,21 @@ export default function AnalyticsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    fetch("/api/v1/stats/engagement")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setEngagement(d) })
+      .catch(console.error);
+  }, []);
+
   if (!stats) {
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[#555] font-mono text-sm">
+          // LOADING LOGISTICS...
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[#555] font-mono text-sm">
         Failed to load analytics
@@ -101,36 +160,93 @@ export default function AnalyticsPage() {
     <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5]">
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-1">
-          <BarChart3 className="w-4 h-4 text-[#3b82f6]" />
-          <h1 className="text-xs font-mono text-[#666] uppercase tracking-widest">
-            // API ANALYTICS
-          </h1>
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-[#3b82f6]" />
+            <h1 className="text-xs font-mono text-[#666] uppercase tracking-widest">
+              // PLATFORM ANALYTICS
+            </h1>
+          </div>
+          <div className="text-[9px] font-mono text-[#333] italic">
+            * Real-time behavioral transparency enabled
+          </div>
         </div>
         <div className="h-px bg-gradient-to-r from-[#3b82f6]/50 via-[#1F1F1F] to-transparent mb-8" />
 
-        {/* Overview Cards */}
+        {/* API Usage Section */}
+        <div className="flex items-center gap-2 mb-4">
+          <Activity className="w-3.5 h-3.5 text-[#3b82f6]" />
+          <h2 className="text-[10px] font-mono text-[#888] uppercase tracking-widest">API Logistics</h2>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           <StatCard icon={Activity} label="Total Queries" value={overview.total} />
           <StatCard icon={Clock} label="Last 24h" value={overview.last24h} sub={`${overview.last7d} this week`} />
-          <StatCard icon={Users} label="Unique Buyers" value={overview.uniqueBuyers} />
+          <StatCard icon={Users} label="Unique Callers" value={overview.uniqueCallers7d} sub={`${overview.uniqueBuyers} registered buyers`} />
           <StatCard icon={Target} label="Unique Targets" value={overview.uniqueTargets} />
         </div>
+
+        {/* Engagement Section */}
+        {engagement && (
+          <>
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-3.5 h-3.5 text-[#a855f7]" />
+              <h2 className="text-[10px] font-mono text-[#888] uppercase tracking-widest">User Engagement</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              <StatCard 
+                icon={Shield} 
+                label="Total Protected Nodes" 
+                value={(engagement.overview.totalAgents ?? 0).toLocaleString()} 
+                sub={`${engagement.overview.totalUsers} connected users`} 
+              />
+              <StatCard icon={Activity} label="Total Reviews" value={engagement.overview.totalReviews} />
+              <StatCard icon={Target} label="Market Bets" value={engagement.overview.totalBets} />
+              <StatCard 
+                icon={ThumbsUp} 
+                label="Endorsements" 
+                value={engagement.overview.totalVotes} 
+                sub="Helpful votes on intel"
+              />
+            </div>
+
+            {/* Human Guardians Section (Moved Up for visibility) */}
+            {engagement?.people && engagement.people.length > 0 && (
+              <div className="bg-[#111]/20 border border-[rgba(168,85,247,0.1)] rounded-xl p-4 mb-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <Users className="w-3.5 h-3.5 text-[#a855f7]" />
+                  <h2 className="text-[10px] font-mono text-[#888] uppercase tracking-widest text-[#a855f7]/70">Verified Human Guardians (ACP)</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  {engagement.people.slice(0, 10).map((person) => (
+                    <div key={person.address} className="bg-[#111]/30 rounded-lg p-2 border border-[#1F1F1F] hover:border-[#a855f7]/30 transition-all">
+                      <div className="text-[10px] font-bold text-[#AAA] truncate mb-0.5" title={person.displayName || person.address}>
+                        {person.displayName || truncAddr(person.address)}
+                      </div>
+                      <div className="flex justify-between items-center text-[9px] font-mono">
+                        <span className="text-[#444]" title="Base reputation + participation points">Reputation</span>
+                        <span className="text-[#a855f7]">{person.reputation} <span className="text-[7px] text-[#444] opacity-50">Score</span></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Type + Verdict */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
-            <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">By Type</h2>
+            <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">API Load by Type</h2>
             <div className="space-y-2">
               {Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
                 <TypeBar key={type} type={type} count={count} max={maxType} />
               ))}
-              {Object.keys(byType).length === 0 && <p className="text-[11px] font-mono text-[#444]">No data yet</p>}
             </div>
           </div>
 
           <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
-            <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">Verdicts</h2>
+            <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">API Verdict Distribution</h2>
             <div className="space-y-2">
               {Object.entries(byVerdict).sort((a, b) => b[1] - a[1]).map(([verdict, count]) => (
                 <div key={verdict} className="flex justify-between items-center">
@@ -139,52 +255,134 @@ export default function AnalyticsPage() {
                 </div>
               ))}
             </div>
-
-            <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mt-6 mb-3">Outcomes</h2>
-            <div className="space-y-2">
-              {Object.entries(outcomes).sort((a, b) => b[1] - a[1]).map(([outcome, count]) => (
-                <div key={outcome} className="flex justify-between items-center">
-                  <span className="text-xs font-mono text-[#888]">{outcome}</span>
-                  <span className="text-xs font-mono text-[#666]">{count}</span>
-                </div>
-              ))}
+            <div className="mt-6 pt-4 border-t border-[#111]">
+              <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-3">Top SDK Clients</h2>
+              <div className="space-y-1">
+                {stats.topClients?.map((c) => (
+                  <div key={c.client} className="flex justify-between items-center text-[10px] font-mono">
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[#AAA] truncate max-w-[150px]" title={c.client}>
+                        {c.name || (c.wallet ? truncAddr(c.wallet) : c.client.replace('Mozilla/5.0', 'Browser'))}
+                      </span>
+                      {c.name && <span className="text-[8px] text-[#444] truncate">{truncAddr(c.wallet || '')}</span>}
+                    </div>
+                    <span className="text-[#333] tracking-tighter">{c.count} q</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Recent Queries */}
-        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
-          <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">Recent Queries</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs font-mono">
-              <thead>
-                <tr className="text-[10px] text-[#444] uppercase border-b border-[var(--border-default)]">
-                  <th className="text-left py-2 pr-3">Type</th>
-                  <th className="text-left py-2 pr-3">Target</th>
-                  <th className="text-right py-2 pr-3">Score</th>
-                  <th className="text-left py-2 pr-3">Verdict</th>
-                  <th className="text-left py-2 pr-3">Outcome</th>
-                  <th className="text-right py-2">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.filter((q) => !["agent_deep_check", "trust_swap", "submit_review"].includes(q.type)).map((q) => (
-                  <tr key={q.id} className="border-b border-[#111] hover:bg-[var(--bg-surface)]">
-                    <td className="py-2 pr-3 text-[#3b82f6]">{q.type}</td>
-                    <td className="py-2 pr-3 text-[#888]">{truncAddr(q.target)}</td>
-                    <td className="py-2 pr-3 text-right text-[#E5E5E5]">{q.trustScore ?? "—"}</td>
-                    <td className={`py-2 pr-3 ${verdictColor(q.verdict)}`}>{q.verdict ?? "—"}</td>
-                    <td className="py-2 pr-3 text-[#666]">{q.outcome ?? "—"}</td>
-                    <td className="py-2 text-right text-[#444]">{new Date(q.createdAt).toLocaleString()}</td>
-                  </tr>
-                ))}
-                {recent.length === 0 && (
-                  <tr><td colSpan={7} className="py-8 text-center text-[#444]">No queries yet</td></tr>
-                )}
-              </tbody>
-            </table>
+        {/* Network Heatmap Section */}
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Target className="w-3.5 h-3.5 text-[#ef4444]" />
+              <h2 className="text-[10px] font-mono text-[#888] uppercase tracking-widest">Network Heatmap (Trending Targets)</h2>
+            </div>
+            <div className="text-[9px] font-mono text-[#333] italic">
+              * Critical training feed for Wadjet Sentinel
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {stats.trending?.map((t) => (
+              <div key={t.target} className="bg-[#111]/30 rounded-lg p-3 border border-[#1F1F1F] hover:border-[#ef4444]/30 transition-all group">
+                <div className="text-[10px] font-bold text-[#E5E5E5] truncate mb-1" title={t.target}>
+                  {truncAddr(t.target)}
+                </div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[9px] font-mono text-[#555]">Query Heat</span>
+                  <span className="text-[10px] font-mono text-[#ef4444] font-bold animate-pulse">{t.count}</span>
+                </div>
+                <div className="flex justify-between items-center text-[9px] font-mono">
+                  <span className="text-[#444]">Trust</span>
+                  <span className={t.trustGrade ? (t.trustGrade.startsWith('A') ? 'text-[#10b981]' : t.trustGrade.startsWith('C') ? 'text-[#f59e0b]' : 'text-[#ef4444]') : 'text-[#333]'}>
+                    {t.trustGrade || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+
+        {/* Two Columns for Feeds */}
+        <div className="grid md:grid-cols-5 gap-6 mb-8">
+          {/* Recent API Queries */}
+          <div className="md:col-span-3 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
+            <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">Recent API Queries</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs font-mono">
+                <thead>
+                  <tr className="text-[10px] text-[#444] uppercase border-b border-[#111]">
+                    <th className="text-left py-2 pr-3">Type</th>
+                    <th className="text-left py-2 pr-3">Target</th>
+                    <th className="text-right py-2 pr-3">Score</th>
+                    <th className="text-left py-2 pr-3">Verdict</th>
+                    <th className="text-right py-2">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent.filter((q) => !["agent_deep_check", "trust_swap", "submit_review"].includes(q.type)).slice(0, 10).map((q) => (
+                    <tr key={q.id} className="border-b border-[#111] hover:bg-[#111]/30">
+                      <td className="py-2 pr-3 text-[#3b82f6] truncate max-w-[80px]">{q.type.replace('agent_', '')}</td>
+                      <td className="py-2 pr-3 text-[#555]">{truncAddr(q.target)}</td>
+                      <td className="py-2 pr-3 text-right text-[#E5E5E5] font-bold">{q.trustScore ?? "—"}</td>
+                      <td className={`py-2 pr-3 ${verdictColor(q.verdict)}`}>{q.verdict ?? "—"}</td>
+                      <td className="py-2 text-right text-[#333]">{new Date(q.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Live Engagement Feed */}
+          <div className="md:col-span-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
+            <h2 className="text-[10px] font-mono text-[#a855f7] uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Activity className="w-3 h-3" /> Live Engagement
+            </h2>
+            <div className="space-y-4">
+              {engagement?.feed.map((item) => (
+                <div key={item.id} className="border-l-2 border-[#1F1F1F] pl-3 py-1 hover:border-[#a855f7] transition-all">
+                  <div className="flex justify-between items-start mb-0.5">
+                    <span className={`text-[10px] font-mono uppercase ${
+                      item.type === 'review' ? 'text-[#3b82f6]' : 
+                      item.type === 'bet' ? 'text-[#a855f7]' : 
+                      'text-[#10b981]'
+                    }`}>
+                      {item.type}
+                    </span>
+                    <span className="text-[9px] font-mono text-[#333]">
+                      {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[#AAA] mb-1">
+                    <span className="text-[#E5E5E5] font-mono flex items-center gap-1 flex-wrap">
+                      {item.isAgent ? '🤖' : '👤'} {item.userName || truncAddr(item.user)}
+                    </span>
+                    <span className="text-[#666]">
+                      {item.type === 'review' ? ' rated ' : item.type === 'bet' ? ' bet ' : ' voted '}
+                    </span>
+                    <span className="text-[#E5E5E5] font-mono">{truncAddr(item.target)}</span>
+                    <span className="text-[#E5E5E5] font-mono ml-1">
+                      {item.type === 'review' ? `[${item.value}/10]` : 
+                       item.type === 'bet' ? `[${item.value} 🪲]` : 
+                       `[${item.value === 1 ? '👍' : '👎'}]`}
+                    </span>
+                  </div>
+                  {item.detail && (
+                    <div className="text-[10px] italic text-[#555] line-clamp-1">"{item.detail}"</div>
+                  )}
+                </div>
+              ))}
+              {engagement?.feed.length === 0 && (
+                <p className="text-[10px] font-mono text-[#444] py-4 text-center">Waiting for activity...</p>
+              )}
+            </div>
+          </div>
+        </div>
+
 
         <p className="text-[10px] font-mono text-[#333] mt-4 text-right">
           Generated: {new Date(stats.generatedAt).toLocaleString()}
