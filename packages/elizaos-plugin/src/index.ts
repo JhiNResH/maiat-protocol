@@ -1,26 +1,4 @@
-/**
- * @maiat/elizaos-plugin
- * 
- * Maiat Trust Score plugin for ElizaOS (ai16z agent framework).
- * 
- * Adds trust checking capabilities to any ElizaOS agent:
- * - "Is this address safe?" → trust score lookup
- * - Auto-gate transactions before execution
- * - Report transaction outcomes back to Maiat
- * 
- * @example
- * ```typescript
- * import { maiatPlugin } from "@maiat/elizaos-plugin";
- * 
- * const agent = new ElizaAgent({
- *   plugins: [maiatPlugin({ minScore: 3.0 })],
- * });
- * ```
- */
-
-// ═══════════════════════════════════════════
-//  Types
-// ═══════════════════════════════════════════
+import { Maiat } from "@maiat/sdk";
 
 export interface MaiatElizaConfig {
   apiUrl?: string;
@@ -29,62 +7,19 @@ export interface MaiatElizaConfig {
   minScore?: number;
 }
 
-interface TrustResult {
-  address: string;
-  score: number;
-  risk: string;
-  type: string;
-  flags: string[];
-  safe: boolean;
-}
-
-// ═══════════════════════════════════════════
-//  API Client (lightweight)
-// ═══════════════════════════════════════════
-
-async function queryMaiat(
-  address: string,
-  config: MaiatElizaConfig
-): Promise<TrustResult> {
-  const apiUrl = config.apiUrl || "https://app.maiat.io";
-  const chain = config.chain || "base";
-  const minScore = config.minScore ?? 3.0;
-
-  const headers: Record<string, string> = {
-    "User-Agent": "maiat-elizaos-plugin/0.1.0",
-  };
-  if (config.apiKey) headers["Authorization"] = `Bearer ${config.apiKey}`;
-
-  const res = await fetch(`${apiUrl}/api/v1/agent/${address}`, { headers, signal: AbortSignal.timeout(15_000) });
-
-  if (!res.ok) {
-    throw new Error(`Maiat API error: ${res.status}`);
-  }
-
-  const data = await res.json();
-  return {
-    address: data.address,
-    score: data.score,
-    risk: data.risk,
-    type: data.type,
-    flags: data.flags || [],
-    safe: data.score >= minScore,
-  };
-}
-
-// ═══════════════════════════════════════════
-//  ElizaOS Plugin
-// ═══════════════════════════════════════════
-
 /**
  * ElizaOS plugin definition following the standard plugin interface.
- * 
- * Registers:
- * - Action: CHECK_TRUST — responds to "is 0x... safe?" type queries
- * - Evaluator: TRUST_GATE — evaluates if an address should be interacted with
- * - Provider: TRUST_DATA — provides trust context for agent reasoning
  */
 export function maiatPlugin(config: MaiatElizaConfig = {}) {
+  const sdk = new Maiat({
+    baseUrl: config.apiUrl,
+    apiKey: config.apiKey,
+    framework: "elizaos",
+    clientId: "elizaos-plugin-standard"
+  });
+
+  const minScore = config.minScore ?? 60; // SDK uses 0-100 scale
+
   return {
     name: "maiat-trust",
     description: "Trust scoring for on-chain addresses via Maiat Protocol",
@@ -106,11 +41,12 @@ export function maiatPlugin(config: MaiatElizaConfig = {}) {
           if (!match) return { text: "Please provide a valid Ethereum address (0x...)" };
 
           try {
-            const result = await queryMaiat(match[0], config);
-            const emoji = result.safe ? "🟢" : result.risk === "CRITICAL" ? "🔴" : "🟡";
+            const result = await sdk.agentTrust(match[0]);
+            const safe = result.trustScore >= minScore;
+            const emoji = safe ? "🟢" : result.verdict === "avoid" ? "🔴" : "🟡";
 
             return {
-              text: `${emoji} **Trust Score: ${result.score}/10** (${result.risk} risk)\n\nAddress: \`${result.address}\`\nType: ${result.type}\nFlags: ${result.flags.join(", ") || "None"}\n\n${result.safe ? "✅ Safe to interact." : "⚠️ Exercise caution — low trust score."}`,
+              text: `${emoji} **Trust Score: ${result.trustScore}/100** (${result.verdict} verdict)\n\nAddress: \`${result.address}\`\nSource: ${result.dataSource}\nJobs: ${result.breakdown.totalJobs}\n\n${safe ? "✅ Safe to interact." : "⚠️ Exercise caution — score below threshold."}`,
               data: result,
             };
           } catch (error) {
@@ -130,14 +66,15 @@ export function maiatPlugin(config: MaiatElizaConfig = {}) {
           if (!context.address) return { pass: true, reason: "No address to check" };
 
           try {
-            const result = await queryMaiat(context.address, config);
+            const result = await sdk.agentTrust(context.address);
+            const safe = result.trustScore >= minScore;
             return {
-              pass: result.safe,
-              score: result.score,
-              risk: result.risk,
-              reason: result.safe
-                ? `Address trusted (${result.score}/10)`
-                : `Address untrusted (${result.score}/10, ${result.risk} risk)`,
+              pass: safe,
+              score: result.trustScore,
+              verdict: result.verdict,
+              reason: safe
+                ? `Address trusted (${result.trustScore}/100)`
+                : `Address untrusted (${result.trustScore}/100, ${result.verdict} verdict)`,
             };
           } catch {
             return { pass: false, reason: "Trust check failed — blocking by default" };
@@ -152,7 +89,7 @@ export function maiatPlugin(config: MaiatElizaConfig = {}) {
         description: "Provides trust scoring context for agent reasoning",
         handler: async () => {
           return {
-            text: "You have access to Maiat trust scoring. Before interacting with any unknown on-chain address, use CHECK_TRUST to verify it's safe. Addresses scoring below 3.0/10 should be avoided.",
+            text: `You have access to Maiat trust scoring. Before interacting with any unknown on-chain address, use CHECK_TRUST to verify it's safe. Addresses scoring below ${minScore}/100 should be avoided.`,
           };
         },
       },
