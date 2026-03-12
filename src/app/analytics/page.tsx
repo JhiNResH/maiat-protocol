@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { 
   Activity, Users, Target, Clock, BarChart3, 
   Shield, ExternalLink, ArrowUpRight, TrendingUp,
-  ThumbsUp
+  ThumbsUp,
+  ArrowDownRight,
+  ShieldCheck,
+  MessageSquare,
 } from "lucide-react";
 
 interface ApiStats {
@@ -46,19 +49,6 @@ interface ApiStats {
   generatedAt: string;
 }
 
-function StatCard({ icon: Icon, label, value, sub }: { icon: typeof Activity; label: string; value: string | number; sub?: string }) {
-  return (
-    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Icon className="w-3.5 h-3.5 text-[#3b82f6]" />
-        <span className="text-[10px] font-mono text-[#555] uppercase tracking-wider">{label}</span>
-      </div>
-      <div className="text-2xl font-mono font-bold text-[#E5E5E5]">{value}</div>
-      {sub && <div className="text-[10px] font-mono text-[#444] mt-1">{sub}</div>}
-    </div>
-  );
-}
-
 function TypeBar({ type, count, max }: { type: string; count: number; max: number }) {
   const pct = max > 0 ? (count / max) * 100 : 0;
   const colors: Record<string, string> = {
@@ -81,6 +71,21 @@ function TypeBar({ type, count, max }: { type: string; count: number; max: numbe
   );
 }
 
+const StatCard = ({ label, value, sub, icon: Icon }: any) => {
+  return (
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-4 rounded-xl">
+      <div className="flex items-center gap-2 mb-2">
+        <Icon className="w-3.5 h-3.5 text-[#555]" />
+        <span className="text-[10px] font-mono text-[#555] uppercase tracking-wider">{label}</span>
+      </div>
+      <div className="text-xl font-bold font-mono text-[#E5E5E5]">
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </div>
+      {sub && <p className="text-[9px] font-mono text-[#333] mt-1">{sub}</p>}
+    </div>
+  );
+};
+
 function truncAddr(addr: string) {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "—";
 }
@@ -91,6 +96,24 @@ function verdictColor(v: string | null) {
   if (v === "avoid") return "text-[#ef4444]";
   return "text-[#555]";
 }
+
+const UserCard = ({ user, index }: { user: any; index: number }) => {
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg">
+      <div className="flex items-center gap-3">
+        <div className="text-[10px] font-mono text-[#333]">#{(index + 1).toString().padStart(2, '0')}</div>
+        <div>
+          <div className="text-xs font-medium text-[#AAA]">{user.displayName || truncAddr(user.address)}</div>
+          <div className="text-[9px] font-mono text-[#555] uppercase">{user.totalReviews} Reviews</div>
+        </div>
+      </div>
+      <div className="text-right">
+        <div className="text-sm font-bold font-mono text-[#a855f7]">{user.reputationScore}</div>
+        <div className="text-[8px] font-mono text-[#444] uppercase">Score</div>
+      </div>
+    </div>
+  );
+};
 
 export default function AnalyticsPage() {
   const [stats, setStats] = useState<ApiStats | null>(null);
@@ -209,16 +232,16 @@ export default function AnalyticsPage() {
               />
             </div>
 
-            {/* Human Guardians Section (Moved Up for visibility) */}
+            {/* Human Guardians Section */}
             {engagement?.people && engagement.people.length > 0 && (
-              <div className="bg-[#111]/20 border border-[rgba(168,85,247,0.1)] rounded-xl p-4 mb-8">
+              <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4 mb-8">
                 <div className="flex items-center gap-2 mb-4">
                   <Users className="w-3.5 h-3.5 text-[#a855f7]" />
                   <h2 className="text-[10px] font-mono text-[#888] uppercase tracking-widest text-[#a855f7]/70">Verified Human Guardians (ACP)</h2>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   {engagement.people.slice(0, 10).map((person) => (
-                    <div key={person.address} className="bg-[#111]/30 rounded-lg p-2 border border-[#1F1F1F] hover:border-[#a855f7]/30 transition-all">
+                    <div key={person.address} className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg p-2 hover:border-white/10 transition-all">
                       <div className="text-[10px] font-bold text-[#AAA] truncate mb-0.5" title={person.displayName || person.address}>
                         {person.displayName || truncAddr(person.address)}
                       </div>
@@ -256,24 +279,13 @@ export default function AnalyticsPage() {
               ))}
             </div>
             <div className="mt-6 pt-4 border-t border-[#111]">
-              <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-3">Top SDK Clients</h2>
-                {(!stats.topClients || stats.topClients.length === 0) && (
-                  <p className="text-[10px] font-mono text-[#333] italic py-2">No active SDK frameworks detected...</p>
-                )}
-                {stats.topClients?.map((c) => (
-                  <div key={c.client} className="flex justify-between items-center text-[10px] font-mono">
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        {c.type === 'sdk' && <span className="text-[8px] bg-[#3b82f6]/10 text-[#3b82f6] px-1 rounded">SDK</span>}
-                        <span className="text-[#AAA] truncate max-w-[150px]" title={c.client}>
-                          {c.name || (c.wallet ? truncAddr(c.wallet) : c.client)}
-                        </span>
-                      </div>
-                      {c.name && c.wallet && <span className="text-[8px] text-[#444] truncate">{truncAddr(c.wallet || '')}</span>}
-                    </div>
-                    <span className="text-[#333] tracking-tighter">{c.count} q</span>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2 mb-3 grayscale opacity-30">
+                <Activity className="w-3.5 h-3.5 text-[#555]" />
+                <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider">SDK Network Activity</h2>
+              </div>
+              <p className="text-[10px] font-mono text-[#333] italic">
+                 SDK identity tracking active in secure backend registry. External adoption pending detection.
+              </p>
             </div>
           </div>
         </div>
@@ -291,7 +303,7 @@ export default function AnalyticsPage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {stats.trending?.map((t) => (
-              <div key={t.target} className="bg-[#111]/30 rounded-lg p-3 border border-[#1F1F1F] hover:border-[#ef4444]/30 transition-all group">
+              <div key={t.target} className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg p-3 hover:border-white/10 transition-all group">
                 <div className="text-[10px] font-bold text-[#E5E5E5] truncate mb-1" title={t.target}>
                   {truncAddr(t.target)}
                 </div>
@@ -348,7 +360,7 @@ export default function AnalyticsPage() {
             </h2>
             <div className="space-y-4">
               {engagement?.feed.map((item) => (
-                <div key={item.id} className="border-l-2 border-[#1F1F1F] pl-3 py-1 hover:border-[#a855f7] transition-all">
+                <div key={item.id} className="border-l border-[var(--border-default)] pl-3 py-1 hover:border-white/20 transition-all">
                   <div className="flex justify-between items-start mb-0.5">
                     <span className={`text-[10px] font-mono uppercase ${
                       item.type === 'review' ? 'text-[#3b82f6]' : 
@@ -386,7 +398,6 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </div>
-
 
         <p className="text-[10px] font-mono text-[#333] mt-4 text-right">
           Generated: {new Date(stats.generatedAt).toLocaleString()}
