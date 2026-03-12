@@ -1,6 +1,6 @@
 {
   "name": "@jhinresh/agentkit-plugin",
-  "version": "0.3.0",
+  "version": "0.7.0",
   "description": "Maiat Trust Score plugin for Coinbase AgentKit \u2014 auto-check trust before every transaction",
   "license": "MIT",
   "type": "module",
