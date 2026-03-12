@@ -311,7 +311,7 @@ export default function DocsPage() {
 
             <div className="space-y-4">
               <p className="text-slate-400 text-sm leading-relaxed">Install the Maiat SDK via npm:</p>
-              <CodeBlock lang="bash" code="npm install maiat-sdk" />
+              <CodeBlock lang="bash" code="npm install @jhinresh/maiat-sdk" />
             </div>
 
             <div className="space-y-4">
@@ -340,7 +340,7 @@ export default function DocsPage() {
 
             <div className="space-y-4">
               <p className="text-slate-400 text-sm leading-relaxed">Check if an agent is trustworthy in 3 lines:</p>
-              <CodeBlock lang="typescript" code={`import { Maiat } from 'maiat-sdk'
+              <CodeBlock lang="typescript" code={`import { Maiat } from '@jhinresh/maiat-sdk'
 
 const maiat = new Maiat({ baseUrl: 'https://app.maiat.io' })
 
