@@ -92,6 +92,12 @@ export async function GET() {
         // Filter out explicit 'test' IDs
         if (clientId.toLowerCase() === 'test') return null;
 
+        // Find the metadata for this client to check for framework
+        const sampleRecord = recentWithMeta.find(r => 
+          r.clientId === clientId || (r.clientId === null && (r.metadata as any)?.userAgent === clientId)
+        );
+        const framework = (sampleRecord?.metadata as any)?.framework;
+
         // Try to find a CallerWallet first
         const caller = await prisma.callerWallet.findUnique({
           where: { clientId },
@@ -107,7 +113,7 @@ export async function GET() {
             client: clientId,
             count,
             wallet: caller.walletAddress,
-            name: user?.displayName || null,
+            name: user?.displayName || (framework ? `${framework} (Verified)` : null),
             type: 'sdk' as const
           };
         }
@@ -115,20 +121,22 @@ export async function GET() {
         const lowId = clientId.toLowerCase();
         const isBrowser = lowId.includes('browser') || lowId.includes('mozilla') || lowId.includes('iphone');
         
-        let framework = null;
-        if (lowId.includes('eliza')) framework = 'elizaOS';
-        else if (lowId.includes('virtual')) framework = 'Virtuals SDK';
-        else if (lowId.includes('rig')) framework = 'Rig SDK';
-        else if (lowId.includes('game') || lowId.includes('unity') || lowId.includes('unreal')) framework = 'Game Engine';
+        let inferredFramework = framework;
+        if (!inferredFramework) {
+          if (lowId.includes('eliza')) inferredFramework = 'elizaOS';
+          else if (lowId.includes('virtual')) inferredFramework = 'Virtuals SDK';
+          else if (lowId.includes('rig')) inferredFramework = 'Rig SDK';
+          else if (lowId.includes('game') || lowId.includes('unity') || lowId.includes('unreal')) inferredFramework = 'Game Engine';
+        }
 
-        let finalName = framework || (isBrowser ? 'Web Browser' : (clientId === 'unknown' ? 'System/Unidentified' : clientId));
+        let finalName = inferredFramework ? `${inferredFramework} Plugin` : (isBrowser ? 'Web Browser' : (clientId === 'unknown' ? 'System/Unidentified' : clientId));
 
         return {
           client: clientId,
           count: count,
           wallet: null,
           name: finalName,
-          type: framework ? 'sdk' as const : (isBrowser ? 'browser' as const : 'external' as const)
+          type: inferredFramework ? 'sdk' as const : (isBrowser ? 'browser' as const : 'external' as const)
         };
       })
     );

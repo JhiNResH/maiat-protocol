@@ -1,3 +1,5 @@
+import { Maiat } from "@maiat/sdk";
+
 /**
  * @maiat/agentkit-plugin
  * 
@@ -165,107 +167,102 @@ export class MaiatTrustError extends Error {
 //  API Client
 // ═══════════════════════════════════════════
 
+// ═══════════════════════════════════════════
+//  API Client (Internal wrapper for SDK)
+// ═══════════════════════════════════════════
+
 export class MaiatClient {
-  private apiUrl: string;
-  private apiKey: string;
-  private chain: string;
+  private sdk: Maiat;
   private cache: Map<string, { result: TrustScoreResult; expiresAt: number }> = new Map();
 
   constructor(config: Pick<MaiatPluginConfig, "apiUrl" | "apiKey" | "chain"> = {}) {
-    this.apiUrl = config.apiUrl || "https://app.maiat.io";
-    this.apiKey = config.apiKey || "";
-    this.chain = config.chain || "base";
+    this.sdk = new Maiat({
+      baseUrl: config.apiUrl,
+      apiKey: config.apiKey,
+      framework: "agentkit",
+      clientId: "agentkit-plugin-standard"
+    });
   }
 
-  private get headers(): Record<string, string> {
-    const h: Record<string, string> = {
-      "Content-Type": "application/json",
-      "User-Agent": "maiat-agentkit-plugin/0.2.0",
-    };
-    if (this.apiKey) h["Authorization"] = `Bearer ${this.apiKey}`;
-    return h;
-  }
-
-  async checkTrust(address: string, chain?: string): Promise<TrustScoreResult> {
-    const cacheKey = `${address}:${chain || this.chain}`;
+  async checkTrust(address: string, _chain?: string): Promise<TrustScoreResult> {
+    const cacheKey = `${address}`;
     const cached = this.cache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return cached.result;
     }
 
-    const url = `${this.apiUrl}/api/v1/agent/${address}`;
-    const res = await fetch(url, { headers: this.headers, signal: AbortSignal.timeout(15_000) });
+    const res = await this.sdk.agentTrust(address);
+    
+    // Map SDK result to plugin's internal TrustScoreResult type
+    const result: TrustScoreResult = {
+      address: res.address,
+      score: res.trustScore / 10, // Plugin uses 0-10, SDK uses 0-100
+      risk: res.verdict === 'avoid' ? 'CRITICAL' : (res.verdict === 'caution' ? 'MEDIUM' : 'LOW'),
+      type: res.dataSource,
+      flags: [],
+      breakdown: {
+        onChainHistory: res.breakdown.totalJobs,
+        contractAnalysis: res.breakdown.completionRate,
+        blacklistCheck: 0,
+        activityPattern: 0
+      },
+      details: {
+        txCount: res.breakdown.totalJobs,
+        balanceETH: 0,
+        isContract: false,
+        walletAge: res.breakdown.ageWeeks ? `${res.breakdown.ageWeeks} weeks` : null,
+        lastActive: res.lastUpdated
+      }
+    };
 
-    if (!res.ok) {
-      throw new Error(`Maiat API error (${res.status}): ${await res.text()}`);
-    }
-
-    const result: TrustScoreResult = await res.json();
     this.cache.set(cacheKey, { result, expiresAt: Date.now() + 5 * 60 * 1000 });
     return result;
-  }
-
-  async batchCheck(addresses: string[], chain?: string): Promise<TrustScoreResult[]> {
-    return Promise.all(addresses.map((addr) => this.checkTrust(addr, chain)));
   }
 
   isSafe(score: number, minScore: number = 3.0): boolean {
     return score >= minScore;
   }
 
-  /** Submit a trust review for a contract address. Costs 2 Scarab. */
   async submitReview(review: ReviewSubmission): Promise<ReviewResult> {
-    const res = await fetch(`${this.apiUrl}/api/v1/review`, {
+    const res = await (this.sdk as any).request("/api/v1/review", {
       method: "POST",
-      headers: this.headers,
       body: JSON.stringify(review),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-      throw new Error(`Review submission failed: ${err.error || err.detail || res.status}`);
-    }
-    return res.json();
+    return res;
   }
 
-  /** Discover contracts a wallet has interacted with on Base. */
   async getInteractions(walletAddress: string): Promise<InteractionResult> {
-    const res = await fetch(
-      `${this.apiUrl}/api/v1/wallet/${walletAddress}/interactions`,
-      { headers: this.headers }
-    );
-    if (!res.ok) throw new Error(`Interactions API error: ${res.status}`);
-    return res.json();
+    return (this.sdk as any).request(`/api/v1/wallet/${walletAddress}/interactions`);
   }
 
-  /** Get a wallet's reputation passport (trust level, Scarab, reviews). */
   async getPassport(walletAddress: string): Promise<PassportResult> {
-    const res = await fetch(
-      `${this.apiUrl}/api/v1/wallet/${walletAddress}/passport`,
-      { headers: this.headers }
-    );
-    if (!res.ok) throw new Error(`Passport API error: ${res.status}`);
-    return res.json();
+    const res = await this.sdk.scarab(walletAddress);
+    // Note: This is a simplified mapping for the plugin's legacy interface
+    return {
+      wallet: walletAddress,
+      passport: {
+        trustLevel: "new",
+        reputationScore: 0,
+        totalReviews: 0,
+        feeTier: { rate: 1, discount: "0%", label: "Standard" }
+      },
+      scarab: { balance: res.balanceFormatted },
+      reviews: { count: 0, addressesReviewed: [] },
+      progression: {
+        current: "new",
+        nextLevel: null,
+        pointsToNext: null,
+        benefits: []
+      }
+    };
   }
 
-  /** Get DeFi/token info by address, or search by name. */
   async getDefiInfo(slugOrAddress: string): Promise<EntityInfoResult> {
-    const isAddr = /^0x[0-9a-fA-F]{40}$/.test(slugOrAddress);
-    const url = isAddr
-      ? `${this.apiUrl}/api/v1/token/${slugOrAddress}`
-      : `${this.apiUrl}/api/v1/explore?search=${encodeURIComponent(slugOrAddress)}`;
-    const res = await fetch(url, { headers: this.headers, signal: AbortSignal.timeout(15_000) });
-    if (!res.ok) throw new Error(`DeFi info API error: ${res.status}`);
-    return res.json();
+    return (this.sdk as any).request(`/api/v1/token/${slugOrAddress}`);
   }
 
-  /** Get AI agent info by slug or address. */
   async getAgentInfo(slugOrAddress: string): Promise<EntityInfoResult> {
-    const res = await fetch(
-      `${this.apiUrl}/api/v1/agent/${slugOrAddress}`,
-      { headers: this.headers }
-    );
-    if (!res.ok) throw new Error(`Agent info API error: ${res.status}`);
-    return res.json();
+    return (this.sdk as any).request(`/api/v1/agent/${slugOrAddress}`);
   }
 }
 

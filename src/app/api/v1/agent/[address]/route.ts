@@ -300,6 +300,7 @@ async function buildResponse(
 
   // Log for training data — async to get queryId for feedback loop
   const clientId = request.headers.get("x-maiat-client") ?? undefined;
+  const framework = request.headers.get("x-maiat-framework") ?? undefined;
   const callerIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || undefined;
   const userAgent = request.headers.get("user-agent") || undefined;
 
@@ -319,6 +320,7 @@ async function buildResponse(
     trustScore: finalTrustScore,
     verdict,
     clientId,
+    framework,
     callerIp,
     userAgent,
     metadata: {

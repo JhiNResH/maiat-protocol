@@ -19,6 +19,8 @@ export interface MaiatConfig {
   apiKey?: string;
   /** Client identifier — tracks which agent/app is making requests (training data) */
   clientId?: string;
+  /** Framework identifier — e.g. "elizaos", "virtuals", "game" */
+  framework?: string;
   /** Request timeout in ms. Default: 15000 */
   timeout?: number;
 }
@@ -137,12 +139,14 @@ export class Maiat {
   private baseUrl: string;
   private apiKey?: string;
   private clientId?: string;
+  private framework?: string;
   private timeout: number;
 
   constructor(config: MaiatConfig = {}) {
     this.baseUrl = (config.baseUrl ?? "https://app.maiat.io").replace(/\/$/, "");
     this.apiKey = config.apiKey;
     this.clientId = config.clientId;
+    this.framework = config.framework;
     this.timeout = config.timeout ?? 15_000;
   }
 
@@ -151,6 +155,8 @@ export class Maiat {
       "Content-Type": "application/json",
       ...(this.apiKey ? { "X-Maiat-Key": this.apiKey } : {}),
       ...(this.clientId ? { "X-Maiat-Client": this.clientId } : {}),
+      ...(this.framework ? { "X-Maiat-Framework": this.framework } : {}),
+      "User-Agent": `maiat-sdk-js/1.0.0${this.framework ? ` (${this.framework})` : ''}`,
     };
 
     const res = await fetch(`${this.baseUrl}${path}`, {
