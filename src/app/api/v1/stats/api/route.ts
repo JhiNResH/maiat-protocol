@@ -110,13 +110,21 @@ export async function GET() {
         }
 
         // If not an SDK client, check if it's a known User-Agent with a browser pattern
-        const isBrowser = clientId.toLowerCase().includes('browser') || clientId.toLowerCase().includes('mozilla');
+        const lowId = clientId.toLowerCase();
+        const isBrowser = lowId.includes('browser') || lowId.includes('mozilla') || lowId.includes('iphone');
+        
+        let framework = null;
+        if (lowId.includes('eliza')) framework = 'elizaOS';
+        else if (lowId.includes('virtual')) framework = 'Virtuals SDK';
+        else if (lowId.includes('rig')) framework = 'Rig SDK';
+        else if (lowId.includes('game') || lowId.includes('unity') || lowId.includes('unreal')) framework = 'Game Engine';
+
         return {
           client: clientId,
-          count,
+          count: count,
           wallet: null,
-          name: null,
-          type: isBrowser ? 'browser' : 'external'
+          name: framework, // Use framework name if recognized
+          type: framework ? 'sdk' : (isBrowser ? 'browser' : 'external')
         };
       })
     );

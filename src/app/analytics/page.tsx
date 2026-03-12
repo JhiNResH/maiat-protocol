@@ -261,10 +261,13 @@ export default function AnalyticsPage() {
                 {stats.topClients?.map((c) => (
                   <div key={c.client} className="flex justify-between items-center text-[10px] font-mono">
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[#AAA] truncate max-w-[150px]" title={c.client}>
-                        {c.name || (c.wallet ? truncAddr(c.wallet) : c.client.replace('Mozilla/5.0', 'Browser'))}
-                      </span>
-                      {c.name && <span className="text-[8px] text-[#444] truncate">{truncAddr(c.wallet || '')}</span>}
+                      <div className="flex items-center gap-1.5">
+                        {c.type === 'sdk' && <span className="text-[8px] bg-[#3b82f6]/10 text-[#3b82f6] px-1 rounded">SDK</span>}
+                        <span className="text-[#AAA] truncate max-w-[150px]" title={c.client}>
+                          {c.name || (c.wallet ? truncAddr(c.wallet) : c.client.replace(/Mozilla\/5.0.*$/, 'Browser'))}
+                        </span>
+                      </div>
+                      {c.name && c.wallet && <span className="text-[8px] text-[#444] truncate">{truncAddr(c.wallet || '')}</span>}
                     </div>
                     <span className="text-[#333] tracking-tighter">{c.count} q</span>
                   </div>
