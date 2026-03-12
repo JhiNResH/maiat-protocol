@@ -160,24 +160,15 @@ export declare class MaiatTrustError extends Error {
     constructor(address: string, score: number, risk: string, minScore: number);
 }
 export declare class MaiatClient {
-    private apiUrl;
-    private apiKey;
-    private chain;
+    private sdk;
     private cache;
     constructor(config?: Pick<MaiatPluginConfig, "apiUrl" | "apiKey" | "chain">);
-    private get headers();
-    checkTrust(address: string, chain?: string): Promise<TrustScoreResult>;
-    batchCheck(addresses: string[], chain?: string): Promise<TrustScoreResult[]>;
+    checkTrust(address: string, _chain?: string): Promise<TrustScoreResult>;
     isSafe(score: number, minScore?: number): boolean;
-    /** Submit a trust review for a contract address. Costs 2 Scarab. */
     submitReview(review: ReviewSubmission): Promise<ReviewResult>;
-    /** Discover contracts a wallet has interacted with on Base. */
     getInteractions(walletAddress: string): Promise<InteractionResult>;
-    /** Get a wallet's reputation passport (trust level, Scarab, reviews). */
     getPassport(walletAddress: string): Promise<PassportResult>;
-    /** Get DeFi protocol info by slug or address. */
     getDefiInfo(slugOrAddress: string): Promise<EntityInfoResult>;
-    /** Get AI agent info by slug or address. */
     getAgentInfo(slugOrAddress: string): Promise<EntityInfoResult>;
 }
 /**

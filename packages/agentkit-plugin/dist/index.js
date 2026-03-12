@@ -1,24 +1,4 @@
-/**
- * @maiat/agentkit-plugin
- *
- * Coinbase AgentKit plugin that adds trust scoring to every agent transaction.
- *
- * V0.2.0 — Cold-start update:
- * - submitReview(): Submit trust reviews with Scarab staking
- * - getInteractions(): Discover contracts a wallet has interacted with
- * - getPassport(): Get a wallet's reputation passport
- * - getDefiInfo(): Query DeFi protocol trust data by slug or address
- * - getAgentInfo(): Query AI agent trust data by slug or address
- *
- * Usage:
- * ```typescript
- * import { AgentKit } from "@coinbase/agentkit";
- * import { maiatTrustPlugin } from "@maiat/agentkit-plugin";
- *
- * const agent = new AgentKit({ ... });
- * agent.use(maiatTrustPlugin({ minScore: 3.0 }));
- * ```
- */
+import { Maiat } from "maiat-sdk";
 export class MaiatTrustError extends Error {
     address;
     score;
@@ -36,86 +16,90 @@ export class MaiatTrustError extends Error {
 // ═══════════════════════════════════════════
 //  API Client
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+//  API Client (Internal wrapper for SDK)
+// ═══════════════════════════════════════════
 export class MaiatClient {
-    apiUrl;
-    apiKey;
-    chain;
+    sdk;
     cache = new Map();
     constructor(config = {}) {
-        this.apiUrl = config.apiUrl || "https://maiat-protocol.vercel.app";
-        this.apiKey = config.apiKey || "";
-        this.chain = config.chain || "base";
+        this.sdk = new Maiat({
+            baseUrl: config.apiUrl,
+            apiKey: config.apiKey,
+            framework: "agentkit",
+            clientId: "agentkit-plugin-standard"
+        });
     }
-    get headers() {
-        const h = {
-            "Content-Type": "application/json",
-            "User-Agent": "maiat-agentkit-plugin/0.2.0",
-        };
-        if (this.apiKey)
-            h["Authorization"] = `Bearer ${this.apiKey}`;
-        return h;
-    }
-    async checkTrust(address, chain) {
-        const cacheKey = `${address}:${chain || this.chain}`;
+    async checkTrust(address, _chain) {
+        const cacheKey = `${address}`;
         const cached = this.cache.get(cacheKey);
         if (cached && cached.expiresAt > Date.now()) {
             return cached.result;
         }
-        const url = `${this.apiUrl}/api/v1/score/${address}?chain=${chain || this.chain}`;
-        const res = await fetch(url, { headers: this.headers });
-        if (!res.ok) {
-            throw new Error(`Maiat API error (${res.status}): ${await res.text()}`);
-        }
-        const result = await res.json();
+        const res = await this.sdk.agentTrust(address);
+        // Map SDK result to plugin's internal TrustScoreResult type
+        const result = {
+            address: res.address,
+            score: res.trustScore / 10, // Plugin uses 0-10, SDK uses 0-100
+            risk: res.verdict === 'avoid' ? 'CRITICAL' : (res.verdict === 'caution' ? 'MEDIUM' : 'LOW'),
+            type: res.dataSource,
+            flags: [],
+            breakdown: {
+                onChainHistory: res.breakdown.totalJobs,
+                contractAnalysis: res.breakdown.completionRate,
+                blacklistCheck: 0,
+                activityPattern: 0
+            },
+            details: {
+                txCount: res.breakdown.totalJobs,
+                balanceETH: 0,
+                isContract: false,
+                walletAge: res.breakdown.ageWeeks ? `${res.breakdown.ageWeeks} weeks` : null,
+                lastActive: res.lastUpdated
+            }
+        };
         this.cache.set(cacheKey, { result, expiresAt: Date.now() + 5 * 60 * 1000 });
         return result;
-    }
-    async batchCheck(addresses, chain) {
-        return Promise.all(addresses.map((addr) => this.checkTrust(addr, chain)));
     }
     isSafe(score, minScore = 3.0) {
         return score >= minScore;
     }
-    /** Submit a trust review for a contract address. Costs 2 Scarab. */
     async submitReview(review) {
-        const res = await fetch(`${this.apiUrl}/api/v1/review`, {
+        const res = await this.sdk.request("/api/v1/review", {
             method: "POST",
-            headers: this.headers,
             body: JSON.stringify(review),
         });
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-            throw new Error(`Review submission failed: ${err.error || err.detail || res.status}`);
-        }
-        return res.json();
+        return res;
     }
-    /** Discover contracts a wallet has interacted with on Base. */
     async getInteractions(walletAddress) {
-        const res = await fetch(`${this.apiUrl}/api/v1/wallet/${walletAddress}/interactions`, { headers: this.headers });
-        if (!res.ok)
-            throw new Error(`Interactions API error: ${res.status}`);
-        return res.json();
+        return this.sdk.request(`/api/v1/wallet/${walletAddress}/interactions`);
     }
-    /** Get a wallet's reputation passport (trust level, Scarab, reviews). */
     async getPassport(walletAddress) {
-        const res = await fetch(`${this.apiUrl}/api/v1/wallet/${walletAddress}/passport`, { headers: this.headers });
-        if (!res.ok)
-            throw new Error(`Passport API error: ${res.status}`);
-        return res.json();
+        const res = await this.sdk.scarab(walletAddress);
+        // Note: This is a simplified mapping for the plugin's legacy interface
+        return {
+            wallet: walletAddress,
+            passport: {
+                trustLevel: "new",
+                reputationScore: 0,
+                totalReviews: 0,
+                feeTier: { rate: 1, discount: "0%", label: "Standard" }
+            },
+            scarab: { balance: res.balanceFormatted },
+            reviews: { count: 0, addressesReviewed: [] },
+            progression: {
+                current: "new",
+                nextLevel: null,
+                pointsToNext: null,
+                benefits: []
+            }
+        };
     }
-    /** Get DeFi protocol info by slug or address. */
     async getDefiInfo(slugOrAddress) {
-        const res = await fetch(`${this.apiUrl}/api/v1/defi/${slugOrAddress}`, { headers: this.headers });
-        if (!res.ok)
-            throw new Error(`DeFi info API error: ${res.status}`);
-        return res.json();
+        return this.sdk.request(`/api/v1/token/${slugOrAddress}`);
     }
-    /** Get AI agent info by slug or address. */
     async getAgentInfo(slugOrAddress) {
-        const res = await fetch(`${this.apiUrl}/api/v1/agent/${slugOrAddress}`, { headers: this.headers });
-        if (!res.ok)
-            throw new Error(`Agent info API error: ${res.status}`);
-        return res.json();
+        return this.sdk.request(`/api/v1/agent/${slugOrAddress}`);
     }
 }
 // ═══════════════════════════════════════════
