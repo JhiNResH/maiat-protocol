@@ -19,6 +19,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { Maiat } from "@jhinresh/maiat-sdk";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -32,42 +33,14 @@ const CLIENT_ID =
   process.env.MAIAT_CLIENT_ID || `mcp-${(process.env.USER || "anon").slice(0, 20)}`;
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Maiat SDK Client
 // ---------------------------------------------------------------------------
 
-function baseHeaders(): Record<string, string> {
-  return {
-    "Content-Type": "application/json",
-    "X-Maiat-Client": CLIENT_ID,
-  };
-}
-
-async function maiatGet(path: string) {
-  const url = `${MAIAT_API_URL}${path}`;
-  const res = await fetch(url, {
-    method: "GET",
-    headers: baseHeaders(),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status}: ${body}`);
-  }
-  return res.json();
-}
-
-async function maiatPost(path: string, body: Record<string, unknown>) {
-  const url = `${MAIAT_API_URL}${path}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: baseHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const body2 = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status}: ${body2}`);
-  }
-  return res.json();
-}
+const sdk = new Maiat({
+  baseUrl: MAIAT_API_URL,
+  framework: "mcp",
+  clientId: CLIENT_ID
+});
 
 // ---------------------------------------------------------------------------
 // MCP Server
@@ -93,10 +66,7 @@ server.tool(
   },
   async ({ address, deep }) => {
     try {
-      const path = deep
-        ? `/api/v1/agent/${address}/deep`
-        : `/api/v1/agent/${address}`;
-      const data = await maiatGet(path);
+      const data = await sdk.agentTrust(address, { deep });
       return {
         content: [
           {
@@ -134,9 +104,7 @@ server.tool(
   },
   async ({ address, chain }) => {
     try {
-      const data = await maiatGet(
-        `/api/v1/token/${address}/forensics?chain=${chain}`
-      );
+      const data = await sdk.tokenCheck(address, { chain });
       return {
         content: [
           {
