@@ -4,7 +4,7 @@ description: >
   Build integrations with Maiat Protocol — the universal trust layer for onchain entities.
   Use this skill when: writing code that queries Maiat trust scores, integrating
   trust-gated swaps, submitting reviews, staking in markets, or building on top
-  of the Maiat API. Covers API usage, SDK, contract addresses, and coding conventions.
+  of the Maiat API. Covers API usage, SDK (@jhinresh/maiat-sdk), contract addresses, and coding conventions.
 ---
 
 # Maiat Protocol — Agent Skill
@@ -152,10 +152,10 @@ Primary input for agent trust scoring. Fetched from Virtuals ACP REST API:
 
 ---
 
-## SDK Usage (`maiat-sdk`) ← Preferred
+## SDK Usage (`@jhinresh/maiat-sdk`) ← Preferred
 
 ```ts
-import { Maiat } from 'maiat-sdk'
+import { Maiat } from '@jhinresh/maiat-sdk'
 
 const maiat = new Maiat({
   baseUrl: 'https://app.maiat.io', // optional, this is the default
@@ -194,7 +194,7 @@ const trusted = await maiat.isAgentTrusted('0x...', 70)  // threshold default 60
 const safe    = await maiat.isTokenSafe('0xTokenAddress')
 ```
 
-**SDK package:** `maiat-sdk` (v0.2.0) — `packages/sdk/` in repo
+**SDK package:** `@jhinresh/maiat-sdk` (v0.7.3) — `packages/sdk/` in repo
 
 ---
 
