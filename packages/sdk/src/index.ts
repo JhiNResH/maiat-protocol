@@ -2,7 +2,7 @@
  * Maiat SDK — Trust scores, token safety & swap verification for AI agents
  *
  * Usage:
- *   import { Maiat } from "maiat-sdk";
+ *   import { Maiat } from "@jhinresh/maiat-sdk";
  *   const maiat = new Maiat({ clientId: "my-agent" });
  *   const score = await maiat.agentTrust("0x...");
  *   const token = await maiat.tokenCheck("0x...");

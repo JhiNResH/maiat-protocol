@@ -1,6 +1,6 @@
 {
-  "name": "maiat-sdk",
-  "version": "0.7.2",
+  "name": "@jhinresh/maiat-sdk",
+  "version": "0.7.3",
   "description": "Maiat Protocol SDK — trust scores, token safety, and swap verification for AI agents",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

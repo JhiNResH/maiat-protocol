@@ -1,6 +1,6 @@
 {
   "name": "@jhinresh/elizaos-plugin",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Maiat Trust Score plugin for ElizaOS — verify trust before your agent swaps or transacts",
   "license": "MIT",
   "type": "module",
@@ -11,7 +11,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "maiat-sdk": "^0.7.2"
+    "@jhinresh/maiat-sdk": "^0.7.3"
   },
   "keywords": [
     "maiat",
