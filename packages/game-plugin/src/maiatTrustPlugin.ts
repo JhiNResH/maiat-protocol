@@ -4,14 +4,13 @@ import {
   ExecutableGameFunctionResponse,
   ExecutableGameFunctionStatus,
 } from "@virtuals-protocol/game";
+import { Maiat } from "maiat-sdk";
 
 // ─────────────────────────────────────────────
 //  Config
 // ─────────────────────────────────────────────
 
-const DEFAULT_API_URL = "https://app.maiat.io";
 const DEFAULT_MIN_SCORE = 3.0; // 0–10 scale
-const DEFAULT_CHAIN = "base";
 
 interface IMaiatTrustPluginOptions {
   id?: string;
@@ -34,73 +33,6 @@ interface TrustResponse {
 }
 
 // ─────────────────────────────────────────────
-//  API client
-// ─────────────────────────────────────────────
-
-async function fetchTrustScore(
-  identifier: string,
-  apiUrl: string,
-  chain: string,
-  apiKey?: string
-): Promise<TrustResponse> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "User-Agent": "game-maiat-plugin/0.1.0",
-  };
-  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
-
-  // Use canonical /api/v1/agent/{address} for addresses, explore search for names
-  const isAddress = /^0x[0-9a-fA-F]{40}$/.test(identifier);
-  const url = isAddress
-    ? `${apiUrl}/api/v1/agent/${identifier}`
-    : `${apiUrl}/api/v1/explore?search=${encodeURIComponent(identifier)}`;
-
-  const res = await fetch(url, {
-    method: "GET",
-    headers,
-    signal: AbortSignal.timeout(15_000),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Maiat API error: ${res.status} ${res.statusText}`);
-  }
-
-  const data = await res.json() as Record<string, any>;
-
-  // Normalise both API response shapes
-  if (isAddress && data["score"] !== undefined) {
-    return {
-      address: identifier,
-      score: data["score"] as number,
-      risk: data["riskLevel"] ?? scoreToRisk(data["score"] as number),
-      type: data["type"] ?? "unknown",
-      flags: data["flags"] ?? [],
-      safe: (data["score"] as number) >= DEFAULT_MIN_SCORE,
-      source: data["source"] ?? "maiat",
-    };
-  }
-
-  // POST /api/v1/trust-score response shape
-  const score = (data["trustScore"] as Record<string, any>)?.["overall"] ?? 0;
-  return {
-    address: identifier,
-    score: score / 10, // convert 0–100 to 0–10
-    risk: scoreToRisk(score / 10),
-    type: (data["project"] as Record<string, any>)?.["category"] ?? "unknown",
-    flags: [],
-    safe: score / 10 >= DEFAULT_MIN_SCORE,
-    source: "maiat",
-  };
-}
-
-function scoreToRisk(score: number): "low" | "medium" | "high" | "unknown" {
-  if (score >= 7) return "low";
-  if (score >= 4) return "medium";
-  if (score >= 0) return "high";
-  return "unknown";
-}
-
-// ─────────────────────────────────────────────
 //  Plugin class
 // ─────────────────────────────────────────────
 
@@ -108,10 +40,8 @@ class MaiatTrustPlugin {
   private id: string;
   private name: string;
   private description: string;
-  private apiUrl: string;
-  private apiKey?: string;
+  private sdk: Maiat;
   private minScore: number;
-  private chain: string;
 
   constructor(options: IMaiatTrustPluginOptions = {}) {
     this.id = options.id ?? "maiat_trust_worker";
@@ -121,10 +51,15 @@ class MaiatTrustPlugin {
       "Queries Maiat Protocol for trust scores of on-chain addresses, tokens, " +
         "DeFi protocols, and AI agents. Use before executing any swap, transfer, " +
         "or interaction to assess counterparty risk.";
-    this.apiUrl = options.apiUrl ?? DEFAULT_API_URL;
-    this.apiKey = options.apiKey;
+    
+    this.sdk = new Maiat({
+      baseUrl: options.apiUrl,
+      apiKey: options.apiKey,
+      framework: "game-engine",
+      clientId: "game-plugin-standard"
+    });
+    
     this.minScore = options.minScore ?? DEFAULT_MIN_SCORE;
-    this.chain = options.chain ?? DEFAULT_CHAIN;
   }
 
   public getWorker(data?: {
@@ -158,13 +93,7 @@ class MaiatTrustPlugin {
           description:
             "Ethereum/Base address (0x...) OR project/agent name (e.g. 'Uniswap', 'AIXBT').",
           type: "string",
-        },
-        {
-          name: "chain",
-          description: "Blockchain to query. Defaults to 'base'.",
-          type: "string",
-          optional: true,
-        },
+        }
       ] as const,
       executable: async (args: any, logger: any) => {
         try {
@@ -175,21 +104,24 @@ class MaiatTrustPlugin {
             );
           }
 
-          const chain = args.chain ?? this.chain;
-          logger(`[Maiat] Checking trust score for: ${args.identifier} on ${chain}`);
+          logger(`[Maiat] Checking trust score for: ${args.identifier}`);
 
-          const result = await fetchTrustScore(
-            args.identifier,
-            this.apiUrl,
-            chain,
-            this.apiKey
-          );
+          const res = await this.sdk.agentTrust(args.identifier);
+          
+          const result: TrustResponse = {
+            address: res.address,
+            score: res.trustScore / 10,
+            risk: res.verdict === 'avoid' ? 'high' : (res.verdict === 'caution' ? 'medium' : 'low'),
+            type: res.dataSource,
+            flags: [],
+            safe: (res.trustScore / 10) >= this.minScore,
+            source: "maiat"
+          };
 
           const summary =
             `Trust score for ${args.identifier}: ${result.score.toFixed(1)}/10 ` +
             `| Risk: ${result.risk.toUpperCase()} ` +
-            `| Safe: ${result.safe ? "YES" : "NO"} ` +
-            (result.flags.length ? `| Flags: ${result.flags.join(", ")}` : "");
+            `| Safe: ${result.safe ? "YES" : "NO"}`;
 
           logger(`[Maiat] ${summary}`);
 
@@ -229,7 +161,7 @@ class MaiatTrustPlugin {
         },
         {
           name: "min_score",
-          description: `Minimum trust score required (0–10). Defaults to ${DEFAULT_MIN_SCORE}.`,
+          description: `Minimum trust score required (0–10).`,
           type: "number",
           optional: true,
         },
@@ -246,20 +178,23 @@ class MaiatTrustPlugin {
           const minScore = args.min_score ?? this.minScore;
           logger(`[Maiat] Gating swap: ${args.token_in} → ${args.token_out} (min score: ${minScore})`);
 
-          const [scoreIn, scoreOut] = await Promise.all([
-            fetchTrustScore(args.token_in, this.apiUrl, this.chain, this.apiKey),
-            fetchTrustScore(args.token_out, this.apiUrl, this.chain, this.apiKey),
+          const [resIn, resOut] = await Promise.all([
+            this.sdk.agentTrust(args.token_in),
+            this.sdk.agentTrust(args.token_out),
           ]);
 
+          const scoreIn = resIn.trustScore / 10;
+          const scoreOut = resOut.trustScore / 10;
+
           const rejected: string[] = [];
-          if (scoreIn.score < minScore) {
+          if (scoreIn < minScore) {
             rejected.push(
-              `${args.token_in} score ${scoreIn.score.toFixed(1)} < ${minScore} (risk: ${scoreIn.risk})`
+              `${args.token_in} score ${scoreIn.toFixed(1)} < ${minScore}`
             );
           }
-          if (scoreOut.score < minScore) {
+          if (scoreOut < minScore) {
             rejected.push(
-              `${args.token_out} score ${scoreOut.score.toFixed(1)} < ${minScore} (risk: ${scoreOut.risk})`
+              `${args.token_out} score ${scoreOut.toFixed(1)} < ${minScore}`
             );
           }
 
@@ -273,16 +208,14 @@ class MaiatTrustPlugin {
           }
 
           const approval =
-            `APPROVED: ${args.token_in} (${scoreIn.score.toFixed(1)}/10) → ` +
-            `${args.token_out} (${scoreOut.score.toFixed(1)}/10) — both pass threshold`;
+            `APPROVED: ${args.token_in} (${scoreIn.toFixed(1)}/10) → ` +
+            `${args.token_out} (${scoreOut.toFixed(1)}/10) — both pass threshold`;
           logger(`[Maiat] ${approval}`);
 
           return new ExecutableGameFunctionResponse(
             ExecutableGameFunctionStatus.Done,
             JSON.stringify({
               approved: true,
-              token_in: scoreIn,
-              token_out: scoreOut,
               message: approval,
             })
           );
@@ -329,16 +262,21 @@ class MaiatTrustPlugin {
           logger(`[Maiat] Batch checking ${ids.length} identifiers`);
 
           const results = await Promise.allSettled(
-            ids.map((id: string) =>
-              fetchTrustScore(id, this.apiUrl, this.chain, this.apiKey)
-            )
+            ids.map((id: string) => this.sdk.agentTrust(id))
           );
 
-          const scores = results.map((r, i) =>
-            r.status === "fulfilled"
-              ? r.value
-              : { address: ids[i], score: 0, risk: "unknown", safe: false, error: (r as any).reason?.message }
-          );
+          const scores = results.map((r, i) => {
+            if (r.status === "fulfilled") {
+              return {
+                address: r.value.address,
+                score: r.value.trustScore / 10,
+                risk: r.value.verdict,
+                safe: (r.value.trustScore / 10) >= this.minScore
+              };
+            } else {
+              return { address: ids[i], score: 0, risk: "unknown", safe: false, error: (r as any).reason?.message };
+            }
+          });
 
           // Sort by score descending
           scores.sort((a: any, b: any) => b.score - a.score);
