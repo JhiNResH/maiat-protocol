@@ -89,6 +89,9 @@ export async function GET() {
 
     const resolvedClients = await Promise.all(
       topClientEntries.map(async ([clientId, count]) => {
+        // Filter out explicit 'test' IDs
+        if (clientId.toLowerCase() === 'test') return null;
+
         // Try to find a CallerWallet first
         const caller = await prisma.callerWallet.findUnique({
           where: { clientId },
@@ -105,11 +108,10 @@ export async function GET() {
             count,
             wallet: caller.walletAddress,
             name: user?.displayName || null,
-            type: 'sdk'
+            type: 'sdk' as const
           };
         }
 
-        // If not an SDK client, check if it's a known User-Agent with a browser pattern
         const lowId = clientId.toLowerCase();
         const isBrowser = lowId.includes('browser') || lowId.includes('mozilla') || lowId.includes('iphone');
         
@@ -119,15 +121,33 @@ export async function GET() {
         else if (lowId.includes('rig')) framework = 'Rig SDK';
         else if (lowId.includes('game') || lowId.includes('unity') || lowId.includes('unreal')) framework = 'Game Engine';
 
+        let finalName = framework || (isBrowser ? 'Web Browser' : (clientId === 'unknown' ? 'System/Unidentified' : clientId));
+
         return {
           client: clientId,
           count: count,
           wallet: null,
-          name: framework, // Use framework name if recognized
-          type: framework ? 'sdk' : (isBrowser ? 'browser' : 'external')
+          name: finalName,
+          type: framework ? 'sdk' as const : (isBrowser ? 'browser' as const : 'external' as const)
         };
       })
     );
+
+    // Filter nulls and merge categories (especially browsers)
+    const mergedClients: Record<string, { client: string, count: number, name: string | null, wallet: string | null, type: any }> = {};
+    for (const c of resolvedClients) {
+      if (!c) continue;
+      const key = c.name || c.client;
+      if (!mergedClients[key]) {
+        mergedClients[key] = c;
+      } else {
+        mergedClients[key].count += c.count;
+      }
+    }
+
+    const finalTopClients = Object.values(mergedClients)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
 
     return NextResponse.json({
       overview: { 
@@ -149,7 +169,7 @@ export async function GET() {
         trustGrade: trustMap[t.target]?.trustGrade || null
       })),
       recent: recentQueries,
-      topClients: resolvedClients,
+      topClients: finalTopClients,
       generatedAt: now.toISOString(),
     });
   } catch (error) {
