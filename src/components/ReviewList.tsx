@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Shield, MessageSquare, Star, Clock, ThumbsUp, ThumbsDown, Bot, User, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Shield, MessageSquare, Star, Clock, ThumbsUp, ThumbsDown, Bot, User, CheckCircle, AlertTriangle, Zap } from 'lucide-react'
 import { usePrivy } from '@privy-io/react-auth'
 
 interface Review {
@@ -120,13 +120,11 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
     )
   }
 
-  // Sort: verified first, low quality last
+  // Sort: qualityScore descending, verified first, low quality last
   const sorted = [...reviews].sort((a, b) => {
-    const tierOrder = (qs: number | null | undefined) => {
-      const s = qs ?? 50
-      return s >= 70 ? 0 : s >= 40 ? 1 : 2
-    }
-    return tierOrder(a.qualityScore) - tierOrder(b.qualityScore)
+    const scoreA = a.qualityScore ?? 50;
+    const scoreB = b.qualityScore ?? 50;
+    return scoreB - scoreA;
   })
 
   return (
@@ -169,9 +167,16 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
                         <InteractionIcon className="w-2.5 h-2.5" /> {interaction.label}
                       </span>
                       {/* Quality badge */}
-                      {quality.badge && (
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${quality.badgeClass}`}>
-                          {quality.badge}
+                      {review.qualityScore != null && (
+                        <span 
+                          className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider cursor-help ${
+                            review.qualityScore >= 70 ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' :
+                            review.qualityScore >= 40 ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20' :
+                            'text-red-400 bg-red-500/10 border border-red-400/20'
+                          }`}
+                          title={`AI Quality Intel: Relevance, Evidence, and Helpfulness scored by Gemini.`}
+                        >
+                          <Zap size={10} className="fill-current" /> AI Quality: {(review.qualityScore / 10).toFixed(1)}
                         </span>
                       )}
                     </div>
@@ -179,7 +184,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          className={`w-3 h-3 ${i < Math.floor((review.rating || 0) / 2) ? 'fill-amber-400 text-amber-400' : 'text-[#333]'}`}
+                          className={`w-3 h-3 ${i < Math.round((review.rating || 0) / 2) ? 'fill-amber-400 text-amber-400' : 'text-[#2a2a2e]'}`}
                         />
                       ))}
                       <span className="ml-2 text-[11px] font-mono text-[#666]">

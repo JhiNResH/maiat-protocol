@@ -642,6 +642,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // --- Step 7.1: Push to Wadjet for training (Human-in-the-loop) ---
+    try {
+      const { pushReview } = await import("@/lib/wadjet-client");
+      pushReview({
+        target_address: checksumAddress,
+        reviewer_address: checksumReviewer,
+        rating,
+        comment: comment ?? "",
+        quality_score: qualityScore ?? 50,
+        source: source === "agent" ? "agent" : "human",
+        interaction_tier: interactionTier ?? "none",
+        recorded_at: new Date().toISOString(),
+      }).catch((err) => {
+        console.warn("[review] pushReview to Wadjet failed (non-blocking):", err.message);
+      });
+    } catch { /* best effort */ }
+
     // --- Step 7.5: Feedback loop — recalculate agent trust score ---
     try {
       const { recalculateAgentScore } = await import("@/lib/feedback-loop");

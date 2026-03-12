@@ -140,13 +140,13 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
     <form onSubmit={handleSubmit} className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-5 flex flex-col gap-5">
       <div className="flex flex-wrap gap-2">
         {interactionStatus === 'verified' && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981] text-[9px] font-bold font-mono uppercase">
-            <CheckCircle className="w-3 h-3" /> On-Chain 3x
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981] text-[9px] font-bold font-mono uppercase animate-in fade-in slide-in-from-left-2 transition-all">
+            <CheckCircle className="w-3 h-3" /> History Auto-Detected (3x weight)
           </div>
         )}
         {detectedEasId && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-[9px] font-bold font-mono uppercase">
-            <Trophy className="w-3 h-3" /> EAS RECEIPT 5x
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-[9px] font-bold font-mono uppercase animate-in fade-in slide-in-from-left-2 transition-all">
+            <Trophy className="w-3 h-3" /> EAS Auto-Detected (5x weight)
           </div>
         )}
         {scarabBalance !== null && (

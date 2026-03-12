@@ -19,6 +19,7 @@ interface ReviewableAgent {
 
 interface PassportData {
   address: string
+  displayName: string | null
   passport: {
     trustLevel: string
     reputationScore: number
@@ -95,6 +96,13 @@ export default function PassportPage() {
   const [data, setData] = useState<PassportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  
+  // Profile editing
+  const [isEditing, setIsEditing] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [editError, setEditError] = useState('')
+
   // reviewable projects removed — only agents matter now
   const [reviewableAgents, setReviewableAgents] = useState<ReviewableAgent[]>([])
   const [agentsLoading, setAgentsLoading] = useState(false)
@@ -131,6 +139,38 @@ export default function PassportPage() {
     navigator.clipboard.writeText(window.location.href)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleUpdateProfile = async () => {
+    if (!editName.trim() || savingProfile) return
+    setSavingProfile(true)
+    setEditError('')
+    try {
+      // 1. Sign the intent
+      const activeWallet = wallets.find(w => w.address.toLowerCase() === address.toLowerCase())
+        || wallets.find(w => w.walletClientType !== 'privy')
+      if (!activeWallet) throw new Error('Wallet not connected')
+
+      const message = `Update my Maiat profile name to: ${editName}`
+      const signature = await activeWallet.sign(message)
+
+      // 2. POST to API
+      const res = await fetch(`/api/v1/wallet/${address}/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: editName, signature })
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Update failed')
+
+      // 3. Update local state
+      setData(prev => prev ? { ...prev, displayName: editName } : null)
+      setIsEditing(false)
+    } catch (err: any) {
+      setEditError(err.message || 'Failed to update')
+    } finally {
+      setSavingProfile(false)
+    }
   }
 
   if (loading) {
@@ -220,7 +260,47 @@ export default function PassportPage() {
                   <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500 font-mono mb-1">
                     // TRUST PASSPORT
                   </p>
-                  <p className="text-white font-mono text-lg font-bold tracking-wide">{fmt(data?.address)}</p>
+                  {isEditing ? (
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        placeholder="Enter display name…"
+                        className="bg-[var(--bg-elevated)] border border-[var(--border-default)] text-white font-mono text-sm px-3 py-1.5 rounded outline-none focus:border-[#3b82f6]"
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleUpdateProfile}
+                        disabled={savingProfile}
+                        className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
+                      >
+                        {savingProfile ? '…' : 'SAVE'}
+                      </button>
+                      <button
+                        onClick={() => { setIsEditing(false); setEditError('') }}
+                        className="text-[10px] font-bold text-gray-500 hover:text-gray-400"
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                       <p className="text-white font-mono text-lg font-bold tracking-wide">
+                        {data?.displayName || fmt(data?.address)}
+                      </p>
+                      {isOwn && (
+                        <button
+                          onClick={() => { setIsEditing(true); setEditName(data?.displayName || '') }}
+                          className="p-1 hover:bg-white/10 rounded transition-colors text-gray-500 hover:text-white"
+                          title="Edit Profile"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {editError && <p className="text-[9px] text-red-500 font-mono mt-1">{editError}</p>}
                   <p className="text-gray-600 font-mono text-[10px] mt-0.5">{data?.address}</p>
                 </div>
                 <span
@@ -508,8 +588,8 @@ function MarketPositions({ address }: { address: string }) {
 
   // Merge positions by project+market
   const merged = Object.values(
-    positions.reduce<Record<string, typeof positions[0] & { totalAmount: number; count: number }>>((acc, pos) => {
-      const key = `${pos.projectId}__${pos.marketId}`
+    positions.reduce<Record<string, any>>((acc, pos) => {
+      const key = `${pos.projectName}__${pos.marketId}`
       if (!acc[key]) acc[key] = { ...pos, totalAmount: 0, count: 0 }
       acc[key].totalAmount += pos.amount
       acc[key].count += 1

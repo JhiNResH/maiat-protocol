@@ -108,6 +108,7 @@ export async function GET(
     return NextResponse.json(
       {
         address: normalizedAddress,
+        displayName: user?.displayName || null,
         passport: {
           trustLevel: reputation.trustLevel,
           reputationScore: reputation.reputationScore,
