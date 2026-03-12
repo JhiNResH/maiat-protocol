@@ -40,7 +40,7 @@
 
 **Day 1 experience:** Connect wallet → get 10 free Scarab (arcade token) → review agents, bet on predictions → earn more Scarab → unlock risk alerts. Prediction markets double as data production — every bet feeds back into trust analysis.
 
-**Ask:** Launch MAIAT on Virtuals Unicorn. 60 days to prove: query volume growth, SDK adoption, protocol integrations, transparent buybacks.
+**Ask:** Launch MAIAT on Virtuals. 60 days to prove: query volume growth, SDK adoption, protocol integrations, transparent buybacks.
 
 ---
 
@@ -49,7 +49,8 @@
 When a user opens app.maiat.io on launch day:
 
 **Homepage hero:**
-> *17,437 AI agents. Which ones can you trust?*
+
+> _17,437 AI agents. Which ones can you trust?_
 > [Explore Agents] [Predict & Earn Scarab]
 
 ### Action 1: Review Agents (Data Production)
@@ -67,15 +68,16 @@ When a user opens app.maiat.io on launch day:
 
 5-10 active predictions visible on homepage. Bet 1-50 Scarab on outcomes:
 
-| Prediction | Settles | Why It's Engaging |
-|-----------|---------|-------------------|
-| "MAIAT reaches 500 holders in 7 days" | Day 7 | Self-fulfilling prophecy — holders want to push it |
-| "Agent #X maintains >70 trust score for 30 days" | Day 30 | Meta-game testing oracle accuracy |
-| "Next ACP rug happens within 14 days" | Day 14 | Fear-driven engagement |
-| "Maiat gets integrated by 1 DeFi protocol in 30 days" | Day 30 | Team accountability |
-| "ACP adds >1,000 new agents in 30 days" | Day 30 | Ecosystem sentiment indicator |
+| Prediction                                            | Settles | Why It's Engaging                                  |
+| ----------------------------------------------------- | ------- | -------------------------------------------------- |
+| "MAIAT reaches 500 holders in 7 days"                 | Day 7   | Self-fulfilling prophecy — holders want to push it |
+| "Agent #X maintains >70 trust score for 30 days"      | Day 30  | Meta-game testing oracle accuracy                  |
+| "Next ACP rug happens within 14 days"                 | Day 14  | Fear-driven engagement                             |
+| "Maiat gets integrated by 1 DeFi protocol in 30 days" | Day 30  | Team accountability                                |
+| "ACP adds >1,000 new agents in 30 days"               | Day 30  | Ecosystem sentiment indicator                      |
 
 **Prediction → Trust Data pipeline:**
+
 ```
 Many users bet "Agent X will rug"
   → Signal: community has concerns about Agent X
@@ -124,89 +126,89 @@ Maiat solves this by computing behavioral trust scores from on-chain data, commu
 
 ### Smart Contracts (Base Mainnet)
 
-| Contract | Address | Purpose |
-|---|---|---|
-| **MaiatOracle** | `0xc6cf...6da` | On-chain trust scores — `getTrustScore()` |
-| **MaiatReceiptResolver** | `0xda69...1c0` | EAS guardian — rejects non-Maiat attestations |
-| **TrustGateHook** | `0xf980...aFf` | Uniswap v4 Hook — gates swaps via `beforeSwap` |
-| **EAS Schema** | `0x24b0...d802` | Maiat Receipt attestation schema |
-| **ERC-8004 Identity** | `0x8004A169FB4a...` | Identity registry on Base mainnet |
-| **ERC-8004 Reputation** | `0x8004BAa17C55a...` | Reputation feedback on Base mainnet |
+| Contract                 | Address              | Purpose                                        |
+| ------------------------ | -------------------- | ---------------------------------------------- |
+| **MaiatOracle**          | `0xc6cf...6da`       | On-chain trust scores — `getTrustScore()`      |
+| **MaiatReceiptResolver** | `0xda69...1c0`       | EAS guardian — rejects non-Maiat attestations  |
+| **TrustGateHook**        | `0xf980...aFf`       | Uniswap v4 Hook — gates swaps via `beforeSwap` |
+| **EAS Schema**           | `0x24b0...d802`      | Maiat Receipt attestation schema               |
+| **ERC-8004 Identity**    | `0x8004A169FB4a...`  | Identity registry on Base mainnet              |
+| **ERC-8004 Reputation**  | `0x8004BAa17C55a...` | Reputation feedback on Base mainnet            |
 
 ### Maiat Trust Hook Suite (Uniswap v4)
 
-| Hook | Callback | Function | Status |
-|------|----------|----------|--------|
-| **TrustGateHook** | `beforeSwap` | Binary gate — block swaps below threshold | ✅ Deployed (Base Sepolia) |
-| **TrustFeeHook** | `beforeSwap` + `afterSwap` | Dynamic fees + reputation mining | 🔜 Hookathon (3/19) |
-| **TrustLPGuard** | `beforeAddLiquidity` + `beforeRemoveLiquidity` | LP rug protection — lock period for low-trust | 🔜 Hookathon (3/19) |
+| Hook              | Callback                                       | Function                                      | Status                     |
+| ----------------- | ---------------------------------------------- | --------------------------------------------- | -------------------------- |
+| **TrustGateHook** | `beforeSwap`                                   | Binary gate — block swaps below threshold     | ✅ Deployed (Base Sepolia) |
+| **TrustFeeHook**  | `beforeSwap` + `afterSwap`                     | Dynamic fees + reputation mining              | 🔜 Hookathon (3/19)        |
+| **TrustLPGuard**  | `beforeAddLiquidity` + `beforeRemoveLiquidity` | LP rug protection — lock period for low-trust | 🔜 Hookathon (3/19)        |
 
 **Hook Strategy: Infrastructure, Not Application** — Any pool creator on Uniswap v4 can attach hooks. Maiat earns from oracle queries, not swap fees.
 
 ### Launch Strategy: Route A — Virtuals Launch + Self-Built v4 Dogfood Pool
 
-| Phase | Action |
-|-------|--------|
-| Day 1 | MAIAT launches on Virtuals Unicorn (V2 pool) |
-| Day 30 | Deploy TrustFeeHook to Base mainnet + MAIAT/WETH v4 pool |
-| Day 30+ | Bankr API-level trust check integration |
-| Day 60+ | Non-Virtuals projects adopt hooks permissionlessly |
-| Day 90+ | Pitch Virtuals on v4 graduation support |
+| Phase   | Action                                                   |
+| ------- | -------------------------------------------------------- |
+| Day 1   | MAIAT launches on Virtuals Unicorn (V2 pool)             |
+| Day 30  | Deploy TrustFeeHook to Base mainnet + MAIAT/WETH v4 pool |
+| Day 30+ | Bankr API-level trust check integration                  |
+| Day 60+ | Non-Virtuals projects adopt hooks permissionlessly       |
+| Day 90+ | Pitch Virtuals on v4 graduation support                  |
 
 **Honest constraint:** Virtuals graduation migrates to Uniswap V2, not V4. Cannot add hooks to Virtuals pools. Self-built v4 pool is dogfood + demo.
 
 ### ACP Offerings (Live on Railway)
 
-| Offering | Fee | Description |
-|---|---|---|
-| `token_check` | $0.01 | Honeypot detection, tax analysis, risk flags |
-| `agent_trust` | $0.02 | Behavioral trust score from on-chain job history |
-| `agent_deep_check` | $0.10 | Percentile rank, risk flags, tier, recommendation |
-| `trust_swap` | $0.05 + 0.15% | Trust-gated Uniswap swap |
+| Offering           | Fee           | Description                                       |
+| ------------------ | ------------- | ------------------------------------------------- |
+| `token_check`      | $0.01         | Honeypot detection, tax analysis, risk flags      |
+| `agent_trust`      | $0.02         | Behavioral trust score from on-chain job history  |
+| `agent_deep_check` | $0.10         | Percentile rank, risk flags, tier, recommendation |
+| `trust_swap`       | $0.05 + 0.15% | Trust-gated Uniswap swap                          |
 
 **Agent Self-Service (Planned Day 15-30):**
 
-| Offering | Fee | Status |
-|---|---|---|
-| `agent_claim` | $0.02 | 🔜 Day 15 |
-| `agent_certify` | $0.20 | 🔜 Day 20 |
-| `agent_analytics` | $0.03 | 🔜 Day 25 |
-| `agent_boost` | $0.05/day | 🔜 Day 30 |
+| Offering          | Fee       | Status    |
+| ----------------- | --------- | --------- |
+| `agent_claim`     | $0.02     | 🔜 Day 15 |
+| `agent_certify`   | $0.20     | 🔜 Day 20 |
+| `agent_analytics` | $0.03     | 🔜 Day 25 |
+| `agent_boost`     | $0.05/day | 🔜 Day 30 |
 
 ### Web App (app.maiat.io)
 
-| Page | Function |
-|---|---|
-| `/explore` | Browse 2,292+ agents with trust scores |
-| `/agent/[name]` | Agent detail with behavioral insights |
-| `/review/[address]` | On-chain review with weighted scoring |
-| `/swap` | Trust-gated swap UI |
-| `/markets` | AI agent prediction markets |
-| `/leaderboard` | Top agents by trust score |
-| `/passport/[address]` | Trust Passport — wallet reputation |
-| `/analytics` | Protocol analytics dashboard |
-| `/docs` | API reference, SDK guides |
+| Page                  | Function                               |
+| --------------------- | -------------------------------------- |
+| `/explore`            | Browse 2,292+ agents with trust scores |
+| `/agent/[name]`       | Agent detail with behavioral insights  |
+| `/review/[address]`   | On-chain review with weighted scoring  |
+| `/swap`               | Trust-gated swap UI                    |
+| `/markets`            | AI agent prediction markets            |
+| `/leaderboard`        | Top agents by trust score              |
+| `/passport/[address]` | Trust Passport — wallet reputation     |
+| `/analytics`          | Protocol analytics dashboard           |
+| `/docs`               | API reference, SDK guides              |
 
 ### SDK Ecosystem (7 npm packages)
 
-| Package | Framework |
-|---|---|
-| `maiat-sdk` | Core |
-| `@jhinresh/viem-guard` | Viem |
-| `@jhinresh/mcp-server` | MCP |
-| `@jhinresh/elizaos-plugin` | ElizaOS |
-| `@jhinresh/agentkit-plugin` | Coinbase AgentKit |
-| `@jhinresh/game-maiat-plugin` | GAME SDK |
-| `@jhinresh/virtuals-plugin` | Virtuals GAME |
+| Package                       | Framework         |
+| ----------------------------- | ----------------- |
+| `maiat-sdk`                   | Core              |
+| `@jhinresh/viem-guard`        | Viem              |
+| `@jhinresh/mcp-server`        | MCP               |
+| `@jhinresh/elizaos-plugin`    | ElizaOS           |
+| `@jhinresh/agentkit-plugin`   | Coinbase AgentKit |
+| `@jhinresh/game-maiat-plugin` | GAME SDK          |
+| `@jhinresh/virtuals-plugin`   | Virtuals GAME     |
 
 ### Automated Infrastructure
 
-| Cron Job | Schedule | Purpose |
-|---|---|---|
-| `index-agents` | Daily 02:00 UTC | Index new agents from ACP |
-| `auto-attest` | Daily 03:00 UTC | EAS attestations for ACP interactions |
-| `oracle-sync` | Every 6h | Sync trust scores to on-chain oracle |
-| `resolve-markets` | Every 6h | Settle prediction markets past closesAt |
+| Cron Job          | Schedule        | Purpose                                 |
+| ----------------- | --------------- | --------------------------------------- |
+| `index-agents`    | Daily 02:00 UTC | Index new agents from ACP               |
+| `auto-attest`     | Daily 03:00 UTC | EAS attestations for ACP interactions   |
+| `oracle-sync`     | Every 6h        | Sync trust scores to on-chain oracle    |
+| `resolve-markets` | Every 6h        | Settle prediction markets past closesAt |
 
 ### External Dashboards
 
@@ -242,6 +244,7 @@ Unforgeable — from on-chain job records.
 Every Maiat interaction → permanent on-chain attestation → feeds back into scoring.
 
 **3 EAS Schemas (Base Sepolia):**
+
 - `MaiatServiceAttestation` — on every ACP offering completion
 - `MaiatTrustQuery` — on every trust score lookup
 - `MaiatReviewAttestation` — on every review submission
@@ -270,23 +273,24 @@ Railway-hosted persistent indexer replacing daily cron jobs.
 
 **Repo:** `github.com/JhiNResH/maiat-indexer` (private)
 
-| Phase | Source | Status |
-|---|---|---|
-| A | Virtuals ACP REST API (5min polling, 17K+ agents) | ✅ Live |
-| A | Virtuals Protocol API (24hr sync, 20K+ agents) | ✅ Live |
-| A | Base mainnet events (EAS + ERC-8004) | ✅ Live |
-| B | DexScreener price tracking (15min, 100+ tokens) | ✅ Live |
-| C | Health signals engine (completion trend, LP drain, volatility) | ✅ Live |
-| D | Rug prediction MVP (rule-based, 8 signals) | ✅ Live |
-| D+ | GoPlus Security API | Planned (SSL issue) |
-| E | XGBoost ML model | Planned (needs 3+ months price history) |
-| F | Monte Carlo simulation | Planned (needs sufficient snapshot data) |
+| Phase | Source                                                         | Status                                   |
+| ----- | -------------------------------------------------------------- | ---------------------------------------- |
+| A     | Virtuals ACP REST API (5min polling, 17K+ agents)              | ✅ Live                                  |
+| A     | Virtuals Protocol API (24hr sync, 20K+ agents)                 | ✅ Live                                  |
+| A     | Base mainnet events (EAS + ERC-8004)                           | ✅ Live                                  |
+| B     | DexScreener price tracking (15min, 100+ tokens)                | ✅ Live                                  |
+| C     | Health signals engine (completion trend, LP drain, volatility) | ✅ Live                                  |
+| D     | Rug prediction MVP (rule-based, 8 signals)                     | ✅ Live                                  |
+| D+    | GoPlus Security API                                            | Planned (SSL issue)                      |
+| E     | XGBoost ML model                                               | Planned (needs 3+ months price history)  |
+| F     | Monte Carlo simulation                                         | Planned (needs sufficient snapshot data) |
 
 ### Layer 6: Wadjet Rug Prediction Engine
 
 **API:** `GET /api/v1/agent/:address/rug-prediction` (accepts wallet or token address)
 
 **8 Weighted Signals:**
+
 ```
 rugScore = (
   veryLowTrust * 20 +           // trust < 20
@@ -303,6 +307,7 @@ rugScore = (
 **Risk Levels:** 0-25 Low | 26-50 Medium | 51-75 High | 76-100 Critical
 
 **Data Pipeline:**
+
 ```
 Virtuals ACP (behavior) ──┐
 Virtuals Protocol (tokens)┤──▶ AgentScore DB ──▶ DexScreener (prices)
@@ -311,15 +316,18 @@ Base Chain (attestations) ┘         │                    │
                              Health Signals ──▶ Rug Prediction API
                              (trend, LP, vol)    (rule-based → ML)
 ```
+
 ```
 
 ### Feedback Loop
 
 ```
+
 Agent action → QueryLog + TrustReview (DB)
-  → Recalculate AgentScore (behavioral 70% + reviews 30%)
-  → Oracle Sync (every 6h → on-chain)
-  → EAS Auto-Attest (daily → permanent attestations)
+→ Recalculate AgentScore (behavioral 70% + reviews 30%)
+→ Oracle Sync (every 6h → on-chain)
+→ EAS Auto-Attest (daily → permanent attestations)
+
 ```
 
 ---
@@ -630,3 +638,4 @@ Non-transferable arcade token. Earned for free, spent within Maiat.
 
 _Last updated: 2026-03-09_
 _Previous specs merged: `2026-03-07-maiat-virtuals-60days.md`, `2026-03-08-oracle-sync-scarab-token.md`, `2026-03-09-reputation-staking-linkage.md`_
+```
