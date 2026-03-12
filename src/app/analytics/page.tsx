@@ -46,10 +46,11 @@ function TypeBar({ type, count, max }: { type: string; count: number; max: numbe
   const colors: Record<string, string> = {
     agent_trust: "bg-[#3b82f6]",
     token_check: "bg-[#10b981]",
-    agent_reputation: "bg-[#8b5cf6]",
+    agent_profile: "bg-[#8b5cf6]",
+    token_forensics: "bg-[#facc15]",
   };
   // Hide deprecated offerings from display
-  const HIDDEN_TYPES = ["agent_deep_check", "token_forensics", "trust_swap", "submit_review"];
+  const HIDDEN_TYPES = ["agent_deep_check", "trust_swap", "submit_review"];
   if (HIDDEN_TYPES.includes(type)) return null;
   return (
     <div className="flex items-center gap-3">
@@ -167,7 +168,7 @@ export default function AnalyticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {recent.filter((q) => !["agent_deep_check", "token_forensics", "trust_swap", "submit_review"].includes(q.type)).map((q) => (
+                {recent.filter((q) => !["agent_deep_check", "trust_swap", "submit_review"].includes(q.type)).map((q) => (
                   <tr key={q.id} className="border-b border-[#111] hover:bg-[var(--bg-surface)]">
                     <td className="py-2 pr-3 text-[#3b82f6]">{q.type}</td>
                     <td className="py-2 pr-3 text-[#888]">{truncAddr(q.target)}</td>
