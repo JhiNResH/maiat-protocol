@@ -73,8 +73,10 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 function RepBar({ score }: { score: number }) {
-  const pct = Math.min(100, score)
-  const color = pct >= 70 ? '#A78BFA' : pct >= 40 ? '#FBBF24' : pct >= 15 ? '#34D399' : '#9CA3AF'
+  // Guardian is 200, Verified is 50, Trusted is 10, New is 0
+  // Scaling: 0-250 for progress bar
+  const pct = Math.min(100, (score / 200) * 100)
+  const color = score >= 200 ? '#A78BFA' : score >= 50 ? '#FBBF24' : score >= 10 ? '#34D399' : '#9CA3AF'
   return (
     <div className="w-full bg-[var(--bg-elevated)] rounded-full h-1.5 overflow-hidden">
       <div
