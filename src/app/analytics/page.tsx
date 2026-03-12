@@ -257,14 +257,16 @@ export default function AnalyticsPage() {
             </div>
             <div className="mt-6 pt-4 border-t border-[#111]">
               <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-3">Top SDK Clients</h2>
-              <div className="space-y-1">
+                {(!stats.topClients || stats.topClients.length === 0) && (
+                  <p className="text-[10px] font-mono text-[#333] italic py-2">No active SDK frameworks detected...</p>
+                )}
                 {stats.topClients?.map((c) => (
                   <div key={c.client} className="flex justify-between items-center text-[10px] font-mono">
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-1.5">
                         {c.type === 'sdk' && <span className="text-[8px] bg-[#3b82f6]/10 text-[#3b82f6] px-1 rounded">SDK</span>}
                         <span className="text-[#AAA] truncate max-w-[150px]" title={c.client}>
-                          {c.name || (c.wallet ? truncAddr(c.wallet) : c.client.replace(/Mozilla\/5.0.*$/, 'Browser'))}
+                          {c.name || (c.wallet ? truncAddr(c.wallet) : c.client)}
                         </span>
                       </div>
                       {c.name && c.wallet && <span className="text-[8px] text-[#444] truncate">{truncAddr(c.wallet || '')}</span>}
@@ -272,7 +274,6 @@ export default function AnalyticsPage() {
                     <span className="text-[#333] tracking-tighter">{c.count} q</span>
                   </div>
                 ))}
-              </div>
             </div>
           </div>
         </div>
