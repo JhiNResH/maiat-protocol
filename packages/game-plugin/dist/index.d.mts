@@ -22,10 +22,8 @@ declare class MaiatTrustPlugin {
     private id;
     private name;
     private description;
-    private apiUrl;
-    private apiKey?;
+    private sdk;
     private minScore;
-    private chain;
     constructor(options?: IMaiatTrustPluginOptions);
     getWorker(data?: {
         functions?: GameFunction<any>[];
@@ -35,11 +33,6 @@ declare class MaiatTrustPlugin {
         readonly name: "identifier";
         readonly description: "Ethereum/Base address (0x...) OR project/agent name (e.g. 'Uniswap', 'AIXBT').";
         readonly type: "string";
-    }, {
-        readonly name: "chain";
-        readonly description: "Blockchain to query. Defaults to 'base'.";
-        readonly type: "string";
-        readonly optional: true;
     }]>;
     get gateSwap(): GameFunction<[{
         readonly name: "token_in";
@@ -51,7 +44,7 @@ declare class MaiatTrustPlugin {
         readonly type: "string";
     }, {
         readonly name: "min_score";
-        readonly description: "Minimum trust score required (0–10). Defaults to 3.";
+        readonly description: "Minimum trust score required (0–10).";
         readonly type: "number";
         readonly optional: true;
     }]>;
