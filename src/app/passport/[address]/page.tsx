@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
+import { Award, Zap, Info } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -237,23 +238,9 @@ export default function PassportPage() {
 
           {/* ── Row 1: Hero Trust Passport Card ────────────────────────── */}
           <div
-            className="relative rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)]"
-            style={{ borderColor: trust.border }}
+            className="relative rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6"
           >
-            {/* Ambient glow */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{ background: `radial-gradient(ellipse at top right, ${trust.color}22 0%, transparent 65%)` }}
-            />
-            {/* Watermark label */}
-            <div
-              className="absolute right-6 top-1/2 -translate-y-1/2 text-[6rem] font-black opacity-[0.04] font-mono pointer-events-none select-none leading-none"
-              style={{ color: trust.color }}
-            >
-              {trust.label}
-            </div>
-
-            <div className="relative p-6">
+            <div className="relative">
               {/* Address + trust badge row */}
               <div className="flex items-start justify-between mb-5">
                 <div>
@@ -304,13 +291,8 @@ export default function PassportPage() {
                   <p className="text-gray-600 font-mono text-[10px] mt-0.5">{data?.address}</p>
                 </div>
                 <span
-                  className="text-xs font-bold font-mono px-3 py-1.5 rounded-lg border backdrop-blur-sm"
-                  style={{
-                    color: trust.color,
-                    borderColor: trust.border,
-                    backgroundColor: `${trust.color}18`,
-                    boxShadow: `0 0 16px ${trust.color}22`,
-                  }}
+                  className="text-xs font-bold font-mono px-3 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)]"
+                  style={{ color: trust.color }}
                 >
                   {trust.label}
                 </span>
