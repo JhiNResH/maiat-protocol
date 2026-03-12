@@ -20,7 +20,7 @@ export declare function maiatPlugin(config?: MaiatElizaConfig): {
             data?: undefined;
         } | {
             text: string;
-            data: import("maiat-sdk").AgentTrustResult;
+            data: import("@jhinresh/maiat-sdk").AgentTrustResult;
         }>;
     }[];
     evaluators: {

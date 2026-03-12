@@ -5,7 +5,7 @@ import {
   ExecutableGameFunctionResponse,
   ExecutableGameFunctionStatus
 } from "@virtuals-protocol/game";
-import { Maiat } from "maiat-sdk";
+import { Maiat } from "@jhinresh/maiat-sdk";
 var DEFAULT_MIN_SCORE = 3;
 var MaiatTrustPlugin = class {
   constructor(options = {}) {
