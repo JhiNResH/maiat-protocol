@@ -1,6 +1,6 @@
 {
   "name": "@jhinresh/viem-guard",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Universal trust middleware for viem — auto-checks Maiat trust score before every transaction",
   "type": "module",
   "main": "./dist/index.js",
@@ -32,7 +32,7 @@
     "viem": ">=2.0.0"
   },
   "dependencies": {
-    "maiat-sdk": "^0.7.2"
+    "@jhinresh/maiat-sdk": "^0.7.3"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

@@ -1,5 +1,5 @@
 import type { MaiatCheckResult } from './errors.js'
-import { Maiat } from 'maiat-sdk'
+import { Maiat } from "@jhinresh/maiat-sdk"
 
 // Simple in-memory cache: address → { result, expiresAt }
 const cache = new Map<string, { result: MaiatCheckResult; expiresAt: number }>()

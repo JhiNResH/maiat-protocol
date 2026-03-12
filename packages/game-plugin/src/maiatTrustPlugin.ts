@@ -4,7 +4,7 @@ import {
   ExecutableGameFunctionResponse,
   ExecutableGameFunctionStatus,
 } from "@virtuals-protocol/game";
-import { Maiat } from "maiat-sdk";
+import { Maiat } from "@jhinresh/maiat-sdk";
 
 // ─────────────────────────────────────────────
 //  Config

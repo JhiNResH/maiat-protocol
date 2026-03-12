@@ -1,6 +1,6 @@
 {
   "name": "@jhinresh/game-maiat-plugin",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Maiat Trust Score plugin for the GAME SDK — lets your Virtuals agent verify trust before swapping or transacting",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -34,7 +34,7 @@
   "homepage": "https://app.maiat.io",
   "dependencies": {
     "@virtuals-protocol/game": "^0.1.4",
-    "maiat-sdk": "^0.7.2"
+    "@jhinresh/maiat-sdk": "^0.7.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
