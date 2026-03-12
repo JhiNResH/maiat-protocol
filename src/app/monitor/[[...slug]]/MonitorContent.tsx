@@ -9,7 +9,7 @@ import {
   Plus, Minus, Maximize, PenTool, Search, Activity, FileText,
   Globe, BarChart3, TrendingUp, AlertCircle, LayoutDashboard,
   ShieldAlert, Eye, DollarSign, Clock, CheckCircle, Bug, ArrowRight,
-  Trophy, ArrowUpRight, Handshake, Copy, Check
+  Trophy, ArrowUpRight, Handshake, Copy, Check, Star, Bot, ThumbsUp, ThumbsDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ReviewForm } from '@/components/ReviewForm';
@@ -659,6 +659,31 @@ return (
                 </div>
               </div>
 
+              {/* Recent Surveillance Scans */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <Radar className="w-3 h-3 text-[#10b981]" /> Live Protocol Audit
+                  </span>
+                </div>
+                <div className="bg-[#111]/40 border border-[#10b981]/10 rounded-xl p-3 space-y-2">
+                  {intelFeed.filter(m => m.msg.includes('SURVEILLANCE')).slice(-3).reverse().map((scan, i) => (
+                    <div key={i} className="flex flex-col gap-1 border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[7px] font-mono text-[#555] uppercase">{scan.time}</span>
+                        <span className="text-[8px] font-black text-[#10b981] uppercase tracking-tighter">Secure</span>
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-300 leading-tight">
+                        {scan.msg.split(': ')[1] || scan.msg}
+                      </div>
+                    </div>
+                  ))}
+                  {intelFeed.filter(m => m.msg.includes('SURVEILLANCE')).length === 0 && (
+                    <div className="text-[9px] font-mono text-slate-600 italic py-2 text-center">Initializing surveillance sensors...</div>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-4 flex-1">
                 <div className="flex items-center justify-between">
                   <span className="text-[8px] font-mono text-slate-500 uppercase">Top 5 Active</span>
@@ -730,10 +755,9 @@ function AgentReviews({ agentId }: { agentId: string }) {
     <p className="text-[9px] font-mono text-[#666] text-center py-4">No reviews yet — be the first to report intel</p>
   );
 
-  // Sort: verified first, low quality last
+  // Sort: qualityScore descending
   const sorted = [...reviews].sort((a: any, b: any) => {
-    const tierOrder = (qs: number) => qs >= 70 ? 0 : qs >= 40 ? 1 : 2;
-    return tierOrder(a.qualityScore ?? 50) - tierOrder(b.qualityScore ?? 50);
+    return (b.qualityScore ?? 50) - (a.qualityScore ?? 50);
   });
 
   const getInteractionBadge = (r: any) => {
@@ -763,7 +787,7 @@ function AgentReviews({ agentId }: { agentId: string }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {sorted.map((r: any) => {
         const qs = r.qualityScore ?? 50;
         const style = getQualityStyle(qs);
@@ -771,45 +795,81 @@ function AgentReviews({ agentId }: { agentId: string }) {
         const isLow = qs < 40;
         
         return (
-          <details key={r.id} open={!isLow} className={`rounded-xl border ${style.cardClass} transition-all`}>
-            <summary className="p-3 cursor-pointer list-none">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    {/* Rating */}
-                    <span className="text-[10px] font-bold text-amber-400">{'★'.repeat(Math.round(r.rating / 2))}{'☆'.repeat(5 - Math.round(r.rating / 2))}</span>
-                    <span className="text-[9px] font-mono text-[#666]">{r.rating}/10</span>
-                    {/* Quality badge */}
-                    {style.badge && <span className={`text-[8px] font-bold uppercase tracking-wider ${style.badgeClass}`}>{style.badge}</span>}
-                    {/* Interaction tier */}
-                    <span className={`text-[8px] px-1.5 py-0.5 rounded border font-mono ${badge.color}`}>{badge.label}</span>
+          <details key={r.id} open={!isLow} className={`rounded-xl border ${style.cardClass} transition-all bg-[rgba(255,255,255,0.02)] border-white/5`}>
+            <summary className="p-4 cursor-pointer list-none">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] font-bold text-white font-mono">
+                        {r.reviewer?.slice(0, 6)}…{r.reviewer?.slice(-4)}
+                      </span>
+                      {r.source === 'agent' ? (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 text-[8px] font-bold uppercase tracking-wider border border-purple-500/20">
+                          <Bot size={10} /> Agent
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 text-[#888] text-[8px] font-bold uppercase tracking-wider border border-white/10">
+                          <User size={10} /> Human
+                        </span>
+                      )}
+                      {badge.label !== 'Unverified' && (
+                        <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${badge.color}`}>
+                          <Shield size={10} /> {badge.label}
+                        </span>
+                      )}
+                      {/* Quality badge */}
+                      {r.qualityScore != null && (
+                        <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${
+                          r.qualityScore >= 70 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+                          r.qualityScore >= 40 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+                          'text-red-400 bg-red-500/10 border-red-400/20'
+                        }`}>
+                          <Zap size={10} className="fill-current" /> Quality: {(r.qualityScore / 10).toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={10}
+                          className={`${i < Math.round((r.rating || 0) / 2) ? 'fill-amber-400 text-amber-400' : 'text-[#2a2a2e]'}`}
+                        />
+                      ))}
+                      <span className="ml-2 text-[10px] font-mono text-[#555]">
+                        {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}
+                      </span>
+                    </div>
                   </div>
-                  <p className={`text-[10px] leading-relaxed ${isLow ? 'text-[#555]' : 'text-[#999]'}`}>
-                    {r.comment ? (r.comment.length > 200 && isLow ? r.comment.slice(0, 100) + '…' : r.comment) : <em>No comment</em>}
-                  </p>
+                  <div className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                    r.rating >= 8 ? 'bg-emerald-500/10 text-emerald-400' :
+                    r.rating >= 5 ? 'bg-amber-500/10 text-amber-400' :
+                    'bg-red-500/10 text-red-400'
+                  }`}>
+                    {r.rating}/10
+                  </div>
                 </div>
-                {/* Vote buttons */}
-                <div className="flex flex-col items-center gap-0.5 shrink-0 ml-2">
-                  <button
-                    onClick={(e) => { e.preventDefault(); handleVote(r.id, 'up'); }}
-                    disabled={votingId === r.id}
-                    className="text-[#666] hover:text-emerald-400 transition-colors disabled:opacity-30 text-xs"
-                  >▲</button>
-                  <span className="text-[9px] font-mono text-[#888]">{r.upvotes ?? 0}</span>
-                  <button
-                    onClick={(e) => { e.preventDefault(); handleVote(r.id, 'down'); }}
-                    disabled={votingId === r.id}
-                    className="text-[#666] hover:text-red-400 transition-colors disabled:opacity-30 text-xs"
-                  >▼</button>
+
+                <p className={`text-[11px] leading-relaxed font-mono ${isLow ? 'text-[#555] italic' : 'text-[#ccc]'}`}>
+                  {r.comment ? (r.comment.length > 150 && isLow ? r.comment.slice(0, 100) + '…' : r.comment) : <em>No comment</em>}
+                </p>
+
+                <div className="flex items-center justify-end gap-3 pt-1 border-t border-white/5">
+                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => { e.preventDefault(); handleVote(r.id, 'up'); }}
+                      disabled={votingId === r.id}
+                      className="text-[#555] hover:text-emerald-400 transition-colors disabled:opacity-30"
+                    ><ThumbsUp size={12} /></button>
+                    <span className="text-[10px] font-mono text-[#666]">{r.upvotes ?? 0}</span>
+                    <button
+                      onClick={(e) => { e.preventDefault(); handleVote(r.id, 'down'); }}
+                      disabled={votingId === r.id}
+                      className="text-[#555] hover:text-red-400 transition-colors disabled:opacity-30"
+                    ><ThumbsDown size={12} /></button>
+                  </div>
                 </div>
-              </div>
-              {/* Reviewer + time */}
-              <div className="flex items-center gap-2 mt-2 text-[8px] font-mono text-[#555]">
-                <span>{r.reviewer?.slice(0, 6)}…{r.reviewer?.slice(-4)}</span>
-                <span>·</span>
-                <span>{r.source === 'agent' ? '🤖' : '👤'} {r.source}</span>
-                <span>·</span>
-                <span>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span>
               </div>
             </summary>
           </details>
