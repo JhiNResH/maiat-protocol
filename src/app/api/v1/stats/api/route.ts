@@ -146,6 +146,7 @@ export async function GET() {
     }
 
     const finalTopClients = Object.values(mergedClients)
+      .filter(c => c.type === 'sdk' || (c.wallet !== null)) // Only show actual SDKs and resolved wallets
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
