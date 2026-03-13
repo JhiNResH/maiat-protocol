@@ -79,14 +79,25 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate required fields (Phase 1: signature optional)
-    const { jobId, agentAddress, reporter, outcome, actualAmountOut, callerSignature } = body as {
-      jobId?: string;
-      agentAddress?: string;
-      reporter?: string;
-      outcome?: string;
-      actualAmountOut?: string;
-      callerSignature?: string;
-    };
+    const { jobId, agentAddress, reporter, outcome, actualAmountOut, callerSignature, metadata } =
+      body as {
+        jobId?: string;
+        agentAddress?: string;
+        reporter?: string;
+        outcome?: string;
+        actualAmountOut?: string;
+        callerSignature?: string;
+        /** Optional swap metadata from maiat-guard — enriches Wadjet training data */
+        metadata?: {
+          poolAddress?: string;
+          token0?: string;
+          token1?: string;
+          hookAddress?: string;
+          feePaid?: string;
+          txType?: "swap" | "transfer" | "contract_call";
+          [key: string]: unknown;
+        };
+      };
 
     if (!jobId || typeof jobId !== "string") {
       return NextResponse.json(
@@ -143,13 +154,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update the QueryLog with outcome + optional signature
+    // Update the QueryLog with outcome + optional signature + guard metadata
     const updatedLog = await prisma.queryLog.update({
       where: { id: queryLog.id },
       data: {
         outcome,
         metadata: {
           ...((queryLog.metadata as Record<string, unknown>) || {}),
+          // Merge caller-supplied swap metadata (poolAddress, token0/1, hookAddress, etc.)
+          ...(metadata && typeof metadata === "object" ? metadata : {}),
           actualAmountOut: actualAmountOut ?? null,
           callerSignature: callerSignature ?? null,
           outcomeRecordedAt: new Date().toISOString(),
