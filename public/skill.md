@@ -8,7 +8,7 @@ description: >
 license: MIT
 metadata:
   author: JhiNResH
-  version: "2.0.0"
+  version: "2.1.0"
   privacy: >
     MCP mode sends query context to app.maiat.io. Do not use MCP if your
     conversation contains sensitive data. REST API mode only sends explicit
@@ -133,6 +133,64 @@ if (score0 && score1) {
 - **With Guard:** Every tx is trust-gated, anti-poisoned, and contributes data. Your agent earns Guardian status (0% fee) over time
 
 **Package:** `@maiat/viem-guard` (v0.2.0) — [GitHub](https://github.com/JhiNResH/maiat-guard)
+
+---
+
+## Threat Reporting (Collective Immunity)
+
+When Guard blocks a malicious address, it auto-reports to the Maiat network. You can also report threats directly:
+
+```
+POST /api/v1/threat/report
+Body: {
+  "maliciousAddress": "0x...",
+  "threatType": "address_poisoning" | "low_trust" | "vanity_match" | "dust_liveness",
+  "evidence": { ... },
+  "guardVersion": "0.2.0",
+  "chainId": 8453
+}
+→ { "received": true, "reportId": "..." }
+```
+
+**Auto-flag:** If the same address gets 3+ independent reports, its trustScore is automatically set to 0 across the entire network. Every Guard-protected agent instantly blocks it.
+
+**Privacy:** Reporter IP is SHA-256 hashed for dedup only. No wallet addresses or tx values are stored.
+
+---
+
+## ERC-8183 Integration (Agentic Commerce)
+
+Maiat serves as the **Evaluator** in ERC-8183 (Agentic Commerce Protocol) — the standard co-developed by Virtuals Protocol and the Ethereum Foundation's dAI team.
+
+```
+ERC-8183 Job Flow:
+  Client → creates Job with escrow
+    → Provider submits deliverable
+      → Evaluator (Maiat) attests quality
+        → Funds release or refund
+
+Maiat's 3-layer protection in ERC-8183:
+  PRE-JOB:   Guard checks Provider trust → warns Client if score too low
+  POST-JOB:  Maiat Evaluator attests deliverable quality on-chain
+  FEEDBACK:  Outcome writes to ERC-8004 → updates TrustScore → loop
+```
+
+### Using Maiat as ERC-8183 Evaluator
+```ts
+// Before creating a Job — check Provider trust
+const trust = await maiat.agentTrust(providerAddress)
+if (trust.verdict === 'avoid') {
+  // Don't fund this Job
+}
+
+// After Job completion — Maiat evaluates and attests
+// Result automatically writes to ERC-8004 Reputation Registry
+// Provider's trust score updates for all future interactions
+```
+
+**ERC-8004 registries (Base Mainnet):**
+- Identity: `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
+- Reputation: `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`
 
 ---
 
