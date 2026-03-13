@@ -327,10 +327,10 @@ export default function AnalyticsPage() {
           {/* Recent API Queries */}
           <div className="md:col-span-3 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
             <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">Recent API Queries</h2>
-            <div className="overflow-x-auto">
+            <div className="max-h-[500px] overflow-y-auto pr-1">
               <table className="w-full text-xs font-mono">
                 <thead>
-                  <tr className="text-[10px] text-[#444] uppercase border-b border-[#111]">
+                  <tr className="text-[10px] text-[#444] uppercase border-b border-[#111] sticky top-0 bg-[var(--bg-surface)] z-10">
                     <th className="text-left py-2 pr-3">Type</th>
                     <th className="text-left py-2 pr-3">Target</th>
                     <th className="text-right py-2 pr-3">Score</th>
@@ -339,13 +339,21 @@ export default function AnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recent.filter((q) => !["agent_deep_check", "trust_swap", "submit_review"].includes(q.type)).slice(0, 10).map((q) => (
+                  {recent.filter((q) => !["agent_deep_check", "trust_swap", "submit_review"].includes(q.type)).slice(0, 50).map((q) => (
                     <tr key={q.id} className="border-b border-[#111] hover:bg-[#111]/30">
                       <td className="py-2 pr-3 text-[#3b82f6] truncate max-w-[80px]">{q.type.replace('agent_', '')}</td>
                       <td className="py-2 pr-3 text-[#555]">{truncAddr(q.target)}</td>
                       <td className="py-2 pr-3 text-right text-[#E5E5E5] font-bold">{q.trustScore ?? "—"}</td>
                       <td className={`py-2 pr-3 ${verdictColor(q.verdict)}`}>{q.verdict ?? "—"}</td>
-                      <td className="py-2 text-right text-[#333]">{new Date(q.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                      <td className="py-2 text-right text-[#333]">
+                        {(() => {
+                          const d = new Date(q.createdAt);
+                          const isToday = d.toDateString() === new Date().toDateString();
+                          return isToday 
+                            ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                        })()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -358,43 +366,45 @@ export default function AnalyticsPage() {
             <h2 className="text-[10px] font-mono text-[#a855f7] uppercase tracking-wider mb-4 flex items-center gap-2">
               <Activity className="w-3 h-3" /> Live Engagement
             </h2>
-            <div className="space-y-4">
-              {engagement?.feed.map((item) => (
-                <div key={item.id} className="border-l border-[var(--border-default)] pl-3 py-1 hover:border-white/20 transition-all">
-                  <div className="flex justify-between items-start mb-0.5">
-                    <span className={`text-[10px] font-mono uppercase ${
-                      item.type === 'review' ? 'text-[#3b82f6]' : 
-                      item.type === 'bet' ? 'text-[#a855f7]' : 
-                      'text-[#10b981]'
-                    }`}>
-                      {item.type}
-                    </span>
-                    <span className="text-[9px] font-mono text-[#333]">
-                      {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+            <div className="max-h-[500px] overflow-y-auto pr-1">
+              <div className="space-y-4">
+                {engagement?.feed.map((item) => (
+                  <div key={item.id} className="border-l border-[var(--border-default)] pl-3 py-1 hover:border-white/20 transition-all">
+                    <div className="flex justify-between items-start mb-0.5">
+                      <span className={`text-[10px] font-mono uppercase ${
+                        item.type === 'review' ? 'text-[#3b82f6]' : 
+                        item.type === 'bet' ? 'text-[#a855f7]' : 
+                        'text-[#10b981]'
+                      }`}>
+                        {item.type}
+                      </span>
+                      <span className="text-[9px] font-mono text-[#333]">
+                        {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-[#AAA] mb-1">
+                      <span className="text-[#E5E5E5] font-mono flex items-center gap-1 flex-wrap">
+                        {item.isAgent ? '🤖' : '👤'} {item.userName || truncAddr(item.user)}
+                      </span>
+                      <span className="text-[#666]">
+                        {item.type === 'review' ? ' rated ' : item.type === 'bet' ? ' bet ' : ' voted '}
+                      </span>
+                      <span className="text-[#E5E5E5] font-mono">{truncAddr(item.target)}</span>
+                      <span className="text-[#E5E5E5] font-mono ml-1">
+                        {item.type === 'review' ? `[${item.value}/10]` : 
+                         item.type === 'bet' ? `[${item.value} 🪲]` : 
+                         `[${item.value === 1 ? '👍' : '👎'}]`}
+                      </span>
+                    </div>
+                    {item.detail && (
+                      <div className="text-[10px] italic text-[#555] line-clamp-1">"{item.detail}"</div>
+                    )}
                   </div>
-                  <div className="text-[11px] text-[#AAA] mb-1">
-                    <span className="text-[#E5E5E5] font-mono flex items-center gap-1 flex-wrap">
-                      {item.isAgent ? '🤖' : '👤'} {item.userName || truncAddr(item.user)}
-                    </span>
-                    <span className="text-[#666]">
-                      {item.type === 'review' ? ' rated ' : item.type === 'bet' ? ' bet ' : ' voted '}
-                    </span>
-                    <span className="text-[#E5E5E5] font-mono">{truncAddr(item.target)}</span>
-                    <span className="text-[#E5E5E5] font-mono ml-1">
-                      {item.type === 'review' ? `[${item.value}/10]` : 
-                       item.type === 'bet' ? `[${item.value} 🪲]` : 
-                       `[${item.value === 1 ? '👍' : '👎'}]`}
-                    </span>
-                  </div>
-                  {item.detail && (
-                    <div className="text-[10px] italic text-[#555] line-clamp-1">"{item.detail}"</div>
-                  )}
-                </div>
-              ))}
-              {engagement?.feed.length === 0 && (
-                <p className="text-[10px] font-mono text-[#444] py-4 text-center">Waiting for activity...</p>
-              )}
+                ))}
+                {engagement?.feed.length === 0 && (
+                  <p className="text-[10px] font-mono text-[#444] py-4 text-center">Waiting for activity...</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
