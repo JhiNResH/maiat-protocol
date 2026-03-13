@@ -83,6 +83,50 @@ token_check ($0.01)
 
 ---
 
+## Protect Your Wallet (Maiat Guard)
+
+If you are an agent with a wallet that sends transactions, **wrap it with Maiat Guard** to auto-protect every transaction and feed data back to Wadjet.
+
+```bash
+npm install @maiat/viem-guard viem
+```
+
+### One-Line Setup
+```ts
+import { createMaiatAgentWallet } from '@maiat/viem-guard'
+
+const wallet = createMaiatAgentWallet(yourProvider, {
+  minScore: 60,        // block txs to low-trust addresses
+  antiPoison: true,    // detect address poisoning attacks
+  apiKey: 'mk_...',    // optional — raises rate limits
+})
+
+await wallet.sendTransaction({ to, value })
+// ^ auto: trust check → anti-poison → hookData injection → threat reporting → outcome recording
+```
+
+### What Happens Automatically
+1. **Anti-Poisoning** — vanity match detection (first4+last4 collision) + dust liveness traps
+2. **Trust Gate** — queries Maiat before every tx. Score < threshold → block/warn
+3. **TrustGateHook Integration** — auto-detects Uniswap V4 pools with TrustGateHook, fetches EIP-712 signed scores, injects hookData. Better reputation = lower swap fees (0% at Guardian tier)
+4. **Collective Immunity** — blocked attacks auto-report to network. One agent blocks → all agents immunized
+5. **Wadjet Feedback** — every tx outcome feeds Wadjet ML, improving global trust scores
+
+### Manual Hook Data
+```ts
+import { fetchSignedScore, encodeSwapHookData } from '@maiat/viem-guard'
+
+const score0 = await fetchSignedScore('0xToken0')
+const score1 = await fetchSignedScore('0xToken1')
+if (score0 && score1) {
+  const hookData = encodeSwapHookData(myAddress, score0, score1)
+}
+```
+
+**Package:** `@maiat/viem-guard` v0.2.0 — [GitHub](https://github.com/JhiNResH/maiat-guard)
+
+---
+
 ## MCP Integration (Fastest Way to Connect)
 
 If you support **Model Context Protocol (MCP)**, point directly to:
