@@ -260,7 +260,7 @@ GET  /risks/summary      → risk dashboard summary
 GET  /health             → service health
 ```
 
-**Model:** XGBoost V2, 50 features, trained on 9,500+ agents and their tokens.
+**Model:** XGBoost V2, 22 features, 97.6% accuracy, trained on 32,900+ real token samples (Uniswap V2 + ETH/BSC rug data).
 
 ### Scarab 🪲
 ```
