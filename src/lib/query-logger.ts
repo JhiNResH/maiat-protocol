@@ -94,7 +94,18 @@ const CACHE_TTL_SECONDS = 300; // 5 minute window for identical queries
 // Fallback for development without Redis
 const localIdempotencyCache = new Map<string, number>();
 
+// Internal / test client IDs that should never pollute analytics
+const INTERNAL_CLIENT_PREFIXES = ["internal", "test", "dev", "bounty-hunter", "patrick"];
+
 async function buildAndCreateLog(input: QueryLogInput): Promise<string> {
+  // Skip logging for internal/test calls entirely
+  if (input.clientId) {
+    const lower = input.clientId.toLowerCase();
+    if (INTERNAL_CLIENT_PREFIXES.some((p) => lower.startsWith(p))) {
+      return "skipped_internal";
+    }
+  }
+
   const normalizedTarget = input.target.toLowerCase();
   const trustScore = typeof input.trustScore === "number" ? input.trustScore : null;
   const verdict = input.verdict ?? null;
