@@ -379,6 +379,12 @@ async function buildResponse(
           note: "Report outcome to improve oracle accuracy. Outcomes refine trust scores over time.",
         },
       }),
+      _outcomeReporting: {
+        endpoint: "POST /api/v1/outcome",
+        required: { jobId: `from this response's queryId${queryId ? ` (${queryId})` : ""}`, agentAddress: checksumAddress, outcome: "success|failure|partial|expired", txHash: "on-chain tx hash" },
+        headers: { "X-Maiat-Client": "your-client-id" },
+        reward: "+2 🪲 Scarab per outcome reported",
+      },
       // ERC-8004 on-chain identity & reputation
       erc8004: erc8004Data ?? null,
     },

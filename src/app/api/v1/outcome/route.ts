@@ -75,11 +75,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Check A: Require X-Maiat-Client header
+  const clientId = request.headers.get("x-maiat-client");
+  if (!clientId || clientId.length < 3) {
+    return NextResponse.json(
+      { error: "X-Maiat-Client header required. Use @jhinresh/maiat-sdk for outcome reporting." },
+      { status: 401, headers: CORS_HEADERS }
+    );
+  }
+
   try {
     const body = await request.json();
 
     // Validate required fields (Phase 1: signature optional)
-    const { jobId, agentAddress, reporter, outcome, actualAmountOut, callerSignature, metadata } =
+    const { jobId, agentAddress, reporter, outcome, actualAmountOut, callerSignature, txHash, metadata } =
       body as {
         jobId?: string;
         agentAddress?: string;
@@ -87,6 +96,7 @@ export async function POST(request: NextRequest) {
         outcome?: string;
         actualAmountOut?: string;
         callerSignature?: string;
+        txHash?: string;
         /** Optional swap metadata from maiat-guard — enriches Wadjet training data */
         metadata?: {
           poolAddress?: string;
@@ -98,6 +108,14 @@ export async function POST(request: NextRequest) {
           [key: string]: unknown;
         };
       };
+
+    // Check B: Require txHash (on-chain proof)
+    if (!txHash || typeof txHash !== "string" || txHash.length < 66) {
+      return NextResponse.json(
+        { error: "txHash required — must provide on-chain transaction proof" },
+        { status: 400, headers: CORS_HEADERS }
+      );
+    }
 
     if (!jobId || typeof jobId !== "string") {
       return NextResponse.json(
@@ -165,6 +183,7 @@ export async function POST(request: NextRequest) {
           ...(metadata && typeof metadata === "object" ? metadata : {}),
           actualAmountOut: actualAmountOut ?? null,
           callerSignature: callerSignature ?? null,
+          txHash: txHash ?? null,
           outcomeRecordedAt: new Date().toISOString(),
         },
       },
