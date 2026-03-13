@@ -91,7 +91,7 @@ async function fetchAndIndexAgent(
 
 export const dynamic = "force-dynamic";
 
-const agentRateLimiter = createRateLimiter("agent:trust", 120, 60); // 120 req/min per IP — generous: more queries = more Wadjet training data
+const agentRateLimiter = createRateLimiter("agent:trust", 600, 60); // 10 req/sec per IP — only blocks actual DDoS
 
 /** Map trust score to a human-readable verdict */
 function scoreToVerdict(score: number): "proceed" | "caution" | "avoid" {
