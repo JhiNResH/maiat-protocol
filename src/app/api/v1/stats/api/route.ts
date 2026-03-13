@@ -45,6 +45,8 @@ export async function GET() {
           trustScore: true,
           verdict: true,
           outcome: true,
+          clientId: true,
+          metadata: true,
           createdAt: true,
         },
       }),
@@ -177,7 +179,21 @@ export async function GET() {
         trustScore: trustMap[t.target]?.trustScore || null,
         trustGrade: trustMap[t.target]?.trustGrade || null
       })),
-      recent: recentQueries,
+      recent: recentQueries.map(q => {
+        const meta = q.metadata as Record<string, unknown> | null;
+        return {
+          id: q.id,
+          type: q.type,
+          target: q.target,
+          trustScore: q.trustScore,
+          verdict: q.verdict,
+          outcome: q.outcome,
+          clientId: q.clientId || null,
+          framework: meta?.framework || null,
+          callerIp: meta?.callerIp ? (meta.callerIp as string).replace(/\d+$/, 'x') : null, // mask last octet
+          createdAt: q.createdAt,
+        };
+      }),
       topClients: finalTopClients,
       generatedAt: now.toISOString(),
     });

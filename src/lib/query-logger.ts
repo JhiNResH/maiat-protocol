@@ -89,7 +89,7 @@ const redis =
       })
     : null;
 
-const CACHE_TTL_SECONDS = 60; // 1 minute window for identical queries
+const CACHE_TTL_SECONDS = 300; // 5 minute window for identical queries
 
 // Fallback for development without Redis
 const localIdempotencyCache = new Map<string, number>();
