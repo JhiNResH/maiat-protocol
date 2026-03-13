@@ -164,42 +164,6 @@ Body: {
 
 ---
 
-## ERC-8183 Integration (Agentic Commerce)
-
-Maiat serves as the **Evaluator** in ERC-8183 (Agentic Commerce Protocol) — the standard co-developed by Virtuals Protocol and the Ethereum Foundation's dAI team.
-
-```
-ERC-8183 Job Flow:
-  Client → creates Job with escrow
-    → Provider submits deliverable
-      → Evaluator (Maiat) attests quality
-        → Funds release or refund
-
-Maiat's 3-layer protection in ERC-8183:
-  PRE-JOB:   Guard checks Provider trust → warns Client if score too low
-  POST-JOB:  Maiat Evaluator attests deliverable quality on-chain
-  FEEDBACK:  Outcome writes to ERC-8004 → updates TrustScore → loop
-```
-
-### Using Maiat as ERC-8183 Evaluator
-```ts
-// Before creating a Job — check Provider trust
-const trust = await maiat.agentTrust(providerAddress)
-if (trust.verdict === 'avoid') {
-  // Don't fund this Job
-}
-
-// After Job completion — Maiat evaluates and attests
-// Result automatically writes to ERC-8004 Reputation Registry
-// Provider's trust score updates for all future interactions
-```
-
-**ERC-8004 registries (Base Mainnet):**
-- Identity: `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
-- Reputation: `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`
-
----
-
 ## Connection Methods
 
 ### Option 1: MCP (Model Context Protocol)
