@@ -358,5 +358,23 @@ model CallerWallet {
   @@index([walletAddress])
 }
 
+/// Threat reports submitted by Guard when it intercepts malicious activity
+model ThreatReport {
+  id               String   @id @default(cuid())
+  maliciousAddress String
+  threatType       String   // "address_poisoning" | "low_trust" | "vanity_match" | "dust_liveness"
+  evidence         Json
+  guardVersion     String?
+  chainId          Int?
+  reporterIp       String?  // SHA-256 hashed, never raw
+  timestamp        DateTime
+  createdAt        DateTime @default(now())
+
+  @@map("threat_reports")
+  @@index([maliciousAddress])
+  @@index([threatType])
+  @@index([createdAt])
+}
+
 /// Wadjet alerts now live in wadjet service DB (Railway)
 /// Protocol queries them via wadjet-client.ts → /sentinel/alerts
