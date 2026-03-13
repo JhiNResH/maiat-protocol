@@ -37,7 +37,7 @@ export async function GET() {
       prisma.queryLog.groupBy({ by: ["outcome"], _count: true }),
       prisma.queryLog.findMany({
         orderBy: { createdAt: "desc" },
-        take: 20,
+        take: 100,
         select: {
           id: true,
           type: true,
