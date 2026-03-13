@@ -93,10 +93,11 @@ export const dynamic = "force-dynamic";
 
 const agentRateLimiter = createRateLimiter("agent:trust", 600, 60); // 10 req/sec per IP — only blocks actual DDoS
 
-/** Map trust score to a human-readable verdict */
-function scoreToVerdict(score: number): "proceed" | "caution" | "avoid" {
-  if (score >= 80) return "proceed";
-  if (score >= 60) return "caution";
+/** Map trust score to a human-readable verdict (4-tier) */
+function scoreToVerdict(score: number): "trusted" | "proceed" | "caution" | "avoid" {
+  if (score >= 80) return "trusted";
+  if (score >= 60) return "proceed";
+  if (score >= 40) return "caution";
   return "avoid";
 }
 
