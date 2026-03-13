@@ -29,6 +29,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { logQueryAsync } from "@/lib/query-logger";
+import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
 import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
 import { computeTrustScore, getBlendedTrustScore, type AcpAgent } from "@/lib/acp-indexer";
@@ -90,6 +91,8 @@ async function fetchAndIndexAgent(
 
 export const dynamic = "force-dynamic";
 
+const agentRateLimiter = createRateLimiter("agent:trust", 30, 60); // 30 req/min per IP
+
 /** Map trust score to a human-readable verdict */
 function scoreToVerdict(score: number): "proceed" | "caution" | "avoid" {
   if (score >= 80) return "proceed";
@@ -102,6 +105,15 @@ export async function GET(
   { params }: { params: Promise<{ address: string }> }
 ) {
   try {
+    // ── Rate limit ────────────────────────────────────────────────────────────
+    const { success: rlOk } = await checkIpRateLimit(request, agentRateLimiter);
+    if (!rlOk) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Max 30 requests/min per IP.", retryAfter: 60 },
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+    }
+
     // ── Validate address ─────────────────────────────────────────────────────
     const { address: rawAddress } = await params;
 
