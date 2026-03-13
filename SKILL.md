@@ -50,7 +50,8 @@ User asks: "Is this agent trustworthy?"
 
 **Maiat Protocol** = API gateway + frontend (Next.js, Vercel)  
 **Wadjet** = ML brain — all prediction, scanning, alerting (Python, Railway)  
-**ACP Offerings** = data input layer — every query feeds Wadjet
+**ACP Offerings** = data input layer — every query feeds Wadjet  
+**Coverage:** Indexes 14,600+ agents from the Virtuals ACP network (18,000+ total)
 
 ---
 
