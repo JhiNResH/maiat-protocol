@@ -8,7 +8,7 @@ description: >
 license: MIT
 metadata:
   author: JhiNResH
-  version: "2.1.0"
+  version: "2.2.0"
   privacy: >
     MCP mode sends query context to app.maiat.io. Do not use MCP if your
     conversation contains sensitive data. REST API mode only sends explicit
@@ -54,13 +54,15 @@ User asks: "Is this agent trustworthy?"
 
 ---
 
-## ACP Offerings (3 total)
+## ACP Offerings (5 total)
 
 | Offering | Price | What it does |
 |---|---|---|
-| `agent_trust` | $0.02 | Core — "Is this agent trustworthy?" Includes token health via Wadjet. Returns: trustScore, verdict, riskOutlook, tokenHealth |
-| `token_check` | $0.01 | Quick token safety check — honeypot, liquidity, basic risk |
+| `agent_trust` | $0.02 | Complete trust + behavioral profile. Returns: trustScore, verdict (trusted/proceed/caution/avoid), riskOutlook, behavioral analysis (trend, buyer diversity, wash-trading detection), tokenHealth via Wadjet |
+| `token_check` | $0.01 | Quick token safety check — honeypot, tax, liquidity, basic risk. Verdict: trusted/proceed/caution/avoid |
+| `token_forensics` | $0.05 | Deep rug pull analysis — contract ownership, holder concentration, liquidity depth, Wadjet ML (XGBoost on 9,500+ agents). Returns: rugScore 0-100, riskLevel, detailed breakdown |
 | `agent_reputation` | $0.03 | Community reviews, sentiment, market consensus |
+| `trust_swap` | $0.05 | Trust-gated swap — bundles token_check + Uniswap quote in one call. Returns trust verdict + unsigned calldata. You sign and submit — Maiat never holds funds |
 
 ---
 
@@ -70,9 +72,13 @@ User asks: "Is this agent trustworthy?"
 
 ```
 token_check ($0.01) → "Safe token? Hire the agent."
-  → agent_trust ($0.02) → behavioral score + token health + riskOutlook
+  → agent_trust ($0.02) → behavioral score + trend + diversity + token health + riskOutlook
   → "Great score. What do others say?"
   → agent_reputation ($0.03) → community reviews + sentiment
+  → "Want to swap? Need safety first?"
+  → trust_swap ($0.05) → trust check + Uniswap calldata in one call
+  → "Need deep forensics?"
+  → token_forensics ($0.05) → rug score + holder/liquidity/contract breakdown
   → "Used the agent. How did it go?"
   → report_outcome (+5 🪲 Scarab) → closes the feedback loop
   → Wadjet recomputes trust score with your outcome data
@@ -336,13 +342,13 @@ Score = (On-chain Behavioral × 0.5) + (Off-chain Signals × 0.3) + (Human Revie
 }
 ```
 
-### Score Tiers
+### Score Tiers (4-tier)
 | Score | Label | Verdict |
 |---|---|---|
-| ≥ 70 | 🟢 LOW RISK | proceed |
-| 40–69 | 🟡 MEDIUM RISK | caution |
-| 10–39 | 🔴 HIGH RISK | avoid |
-| < 10 | ⛔ CRITICAL | avoid |
+| ≥ 80 | 🟢 TRUSTED | trusted |
+| 60–79 | 🔵 LOW RISK | proceed |
+| 40–59 | 🟡 MEDIUM RISK | caution |
+| < 40 | 🔴 HIGH RISK | avoid |
 
 ---
 
