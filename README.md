@@ -235,14 +235,22 @@ git clone https://github.com/JhiNResH/maiat-protocol.git
 cd maiat-protocol
 npm install
 
-cp .env.example .env
-# Required: DATABASE_URL, DIRECT_URL
-# Optional: GEMINI_API_KEY, MAIAT_ADMIN_PRIVATE_KEY, CRON_SECRET
+# Create .env.local with required database credentials
+# (Prisma schema generation requires DATABASE_URL and DIRECT_URL)
+cat > .env.local << 'EOF'
+DATABASE_URL="postgresql://dev:dev@localhost:5432/maiat_dev"
+DIRECT_URL="postgresql://dev:dev@localhost:5432/maiat_dev"
+NEXT_PUBLIC_PRIVY_APP_ID=""
+PRIVY_APP_ID=""
+GEMINI_API_KEY=""
+EOF
 
 npx prisma generate
-npx prisma db push
+npx prisma db push  # optional: only if you have a running PostgreSQL instance
 npm run dev
 ```
+
+**Note:** `.env.local` is gitignored for security. Use `.env.example` as reference for all available variables.
 
 ---
 
