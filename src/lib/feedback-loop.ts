@@ -17,6 +17,12 @@ export async function recalculateAgentScore(agentAddress: string): Promise<void>
   const wallet = agentAddress.toLowerCase();
 
   try {
+    // Fast-path: skip if no reviews exist (single cheap count query)
+    const reviewCount = await prisma.trustReview.count({
+      where: { address: wallet },
+    });
+    if (reviewCount === 0) return; // No reviews — nothing to blend
+
     // 1. Get current ACP behavioral score
     const agentScore = await prisma.agentScore.findUnique({
       where: { walletAddress: wallet },
@@ -31,8 +37,6 @@ export async function recalculateAgentScore(agentAddress: string): Promise<void>
       where: { address: wallet },
       select: { rating: true, weight: true },
     });
-
-    if (reviews.length === 0) return; // No reviews yet — keep behavioral score as-is
 
     // 3. Calculate weighted review score (ratings are 1-5, normalize to 0-100)
     const totalWeight = reviews.reduce((sum, r) => sum + (r.weight || 1), 0);
