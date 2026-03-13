@@ -78,10 +78,21 @@ export async function logQueryAsync(input: QueryLogInput): Promise<string | null
   }
 }
 
-// Short-term idempotency cache: prevents identical logs within a 5-second window.
-// In serverless, this persists as long as the instance stays warm.
-const idempotencyCache = new Map<string, number>();
-const CACHE_TTL_MS = 5000;
+import { Redis } from "@upstash/redis";
+
+// Initialize Redis client (serverless-friendly)
+const redis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    : null;
+
+const CACHE_TTL_SECONDS = 60; // 1 minute window for identical queries
+
+// Fallback for development without Redis
+const localIdempotencyCache = new Map<string, number>();
 
 async function buildAndCreateLog(input: QueryLogInput): Promise<string> {
   const normalizedTarget = input.target.toLowerCase();
@@ -89,24 +100,31 @@ async function buildAndCreateLog(input: QueryLogInput): Promise<string> {
   const verdict = input.verdict ?? null;
 
   // Idempotency check: hash (type + target + score + verdict)
-  const cacheKey = `${input.type}:${normalizedTarget}:${trustScore}:${verdict}`;
+  const cacheKey = `idemp:query:${input.type}:${normalizedTarget}:${trustScore}:${verdict}`;
   const now = Date.now();
-  const lastLogged = idempotencyCache.get(cacheKey);
 
-  if (lastLogged && now - lastLogged < CACHE_TTL_MS) {
-    // Return early if we already logged this recently. 
-    // We return a "cached" indicator or find the last ID if we really needed it, 
-    // but for fire-and-forget logging, skipping is sufficient.
-    return "skipped_duplicate";
-  }
+  if (redis) {
+    const isNew = await redis.set(cacheKey, now, { 
+      nx: true, 
+      ex: CACHE_TTL_SECONDS 
+    });
+    
+    if (!isNew) {
+      return "skipped_duplicate";
+    }
+  } else {
+    // In-memory fallback (best effort for local dev)
+    const lastLogged = localIdempotencyCache.get(cacheKey);
+    if (lastLogged && now - lastLogged < CACHE_TTL_SECONDS * 1000) {
+      return "skipped_duplicate";
+    }
+    localIdempotencyCache.set(cacheKey, now);
 
-  // Set cache immediately to prevent concurrent triggers
-  idempotencyCache.set(cacheKey, now);
-
-  // Periodic cleanup of old cache entries (naive)
-  if (idempotencyCache.size > 1000) {
-    for (const [k, v] of idempotencyCache.entries()) {
-      if (now - v > CACHE_TTL_MS) idempotencyCache.delete(k);
+    // Naive cleanup
+    if (localIdempotencyCache.size > 1000) {
+      for (const [k, v] of localIdempotencyCache.entries()) {
+        if (now - v > CACHE_TTL_SECONDS * 1000) localIdempotencyCache.delete(k);
+      }
     }
   }
 
