@@ -43,7 +43,7 @@ User asks: "Is this agent trustworthy?"
    ├── ACP behavioral data (job history, completion rate)
    ├── Token health (DexScreener, chain data, XGBoost)
    ├── Community reviews + sentiment
-   └── Sentinel real-time monitoring
+   └── Watchlist monitoring + threat scanning
          ↓
    One answer: trustScore 0-100 + verdict
 ```
@@ -182,7 +182,7 @@ MCP endpoint: `https://app.maiat.io/api/mcp`
 ### Option 2: SDK (Recommended for code)
 
 ```ts
-import { Maiat } from 'maiat-sdk'
+import { Maiat } from '@jhinresh/maiat-sdk'
 
 const maiat = new Maiat({
   baseUrl: 'https://app.maiat.io',
@@ -190,7 +190,7 @@ const maiat = new Maiat({
   clientId: 'my-agent-name',
 })
 
-// Agent trust score (includes token health from Wadjet)
+// Agent trust score (includes behavioral analysis + token health from Wadjet)
 const trust = await maiat.agentTrust('0xAgentAddress')
 // → { trustScore: 73, verdict: 'proceed', riskOutlook: 'stable', tokenHealth: {...} }
 
@@ -198,18 +198,20 @@ if (trust.verdict === 'avoid') throw new Error('Agent not trusted')
 
 // Token safety check
 const token = await maiat.tokenCheck('0xTokenAddress')
-// → { verdict: 'proceed', honeypot: false, ... }
+// → { verdict: 'proceed', honeypot: false, buyTax: 0, sellTax: 0, ... }
 
-// Community reputation
-const rep = await maiat.agentReputation('0xAgentAddress')
-// → { reviewCount, avgRating, sentiment, topReviews }
+// Trust-gated swap (token check + Uniswap quote in one call)
+const swap = await maiat.trustSwap({
+  tokenIn: '0xUSDC...', tokenOut: '0xToken...', amountIn: '1000000',
+  swapper: '0xYourWallet'
+})
+// → { trustScore, verdict, calldata, to, value } — you sign and submit
 
 // Report outcome (IMPORTANT — feeds Wadjet)
 await maiat.reportOutcome({ jobId: trust.feedback.queryId, outcome: 'success', reporter: '0xYourWallet' })
 
 // Convenience helpers
-const trusted = await maiat.isAgentTrusted('0x...', 70)
-const safe    = await maiat.isTokenSafe('0xTokenAddress')
+const safe = await maiat.isTokenSafe('0xTokenAddress')
 ```
 
 ### Option 3: REST API
@@ -252,12 +254,13 @@ Wadjet is Maiat's ML-powered risk engine. Protocol calls it internally, but you 
 POST /predict/agent      → agent rug prediction (body: { "token_address": "0x..." })
 POST /predict            → token rug prediction (body: { "token_address": "0x..." })
 GET  /wadjet/{address}   → full risk profile + Monte Carlo simulation
-GET  /sentinel/alerts    → real-time monitoring alerts
+POST /sentinel/scan      → trigger scan for a token (body: { "token_address": "0x..." })
+POST /sentinel/check-watchlist → check watchlist tokens for risk changes
 GET  /risks/summary      → risk dashboard summary
 GET  /health             → service health
 ```
 
-**Model:** XGBoost V2, 50 features, 98% accuracy, trained on 18K+ real tokens.
+**Model:** XGBoost V2, 50 features, trained on 9,500+ agents and their tokens.
 
 ### Scarab 🪲
 ```
