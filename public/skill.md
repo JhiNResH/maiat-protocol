@@ -86,6 +86,56 @@ token_check ($0.01) → "Safe token? Hire the agent."
 
 ---
 
+## Protect Your Wallet (Maiat Guard)
+
+If you are an agent with a wallet that sends transactions, **wrap it with Maiat Guard** to auto-protect every transaction.
+
+```bash
+npm install @maiat/viem-guard viem
+```
+
+### One-Line Setup (Privy / EIP-1193)
+```ts
+import { createMaiatAgentWallet } from '@maiat/viem-guard'
+
+// Wrap your provider — all transactions are now trust-gated
+const wallet = createMaiatAgentWallet(yourProvider, {
+  minScore: 60,        // block txs to addresses with score < 60
+  antiPoison: true,    // detect address poisoning attacks
+  apiKey: 'mk_...',    // optional — raises rate limits
+})
+
+// Every sendTransaction / writeContract is now protected
+await wallet.sendTransaction({ to, value })
+```
+
+### What Guard Does Automatically
+1. **Anti-Poisoning** — detects vanity match attacks (first4+last4 address collisions) and dust liveness traps
+2. **Trust Check** — queries Maiat API before every tx. Low trust → blocks or warns
+3. **TrustGateHook Auto-Detection** — if the swap pool has a TrustGateHook, Guard auto-fetches EIP-712 signed scores and injects `hookData`. Your agent gets the best fee tier automatically
+4. **Threat Reporting** — when Guard blocks an attack, it reports the malicious address to the Maiat network. All other Maiat-protected agents get instant immunity (Collective Immunity)
+5. **Outcome Recording** — every tx result feeds back to Wadjet ML, making trust scores more accurate
+
+### Manual Hook Data (Advanced)
+```ts
+import { fetchSignedScore, encodeSwapHookData } from '@maiat/viem-guard'
+
+const score0 = await fetchSignedScore('0xToken0')
+const score1 = await fetchSignedScore('0xToken1')
+if (score0 && score1) {
+  const hookData = encodeSwapHookData(myAddress, score0, score1)
+  // Include hookData in your Uniswap V4 swap
+}
+```
+
+### Why This Matters
+- **No Guard:** Your agent sends blind transactions. No protection, no data contribution, pays max fees on TrustGateHook pools
+- **With Guard:** Every tx is trust-gated, anti-poisoned, and contributes data. Your agent earns Guardian status (0% fee) over time
+
+**Package:** `@maiat/viem-guard` (v0.2.0) — [GitHub](https://github.com/JhiNResH/maiat-guard)
+
+---
+
 ## Connection Methods
 
 ### Option 1: MCP (Model Context Protocol)
