@@ -74,7 +74,7 @@ interface ScarabReviews {
   reviewCount: number;
 }
 
-type Verdict = "proceed" | "caution" | "avoid";
+type Verdict = "trusted" | "proceed" | "caution" | "avoid";
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
 
@@ -310,7 +310,9 @@ function calculateScore(
 
   // ── Verdict mapping ──────────────────────────────────────────────────────────
   let verdict: Verdict;
-  if (score >= 70) {
+  if (score >= 80) {
+    verdict = "trusted";
+  } else if (score >= 60) {
     verdict = "proceed";
   } else if (score >= 40) {
     verdict = "caution";
@@ -426,7 +428,7 @@ export async function GET(
         const hasScore = agentScore.trustScore !== null;
         const score = agentScore.trustScore ?? 50;
         const verdict: Verdict =
-          score >= 70 ? "proceed" : score >= 40 ? "caution" : "avoid";
+          score >= 80 ? "trusted" : score >= 60 ? "proceed" : score >= 40 ? "caution" : "avoid";
         const agentRiskFlags: string[] = [];
         if (score < 40) agentRiskFlags.push("LOW_AGENT_TRUST");
         if (!hasScore) agentRiskFlags.push("INSUFFICIENT_DATA");
@@ -539,8 +541,18 @@ export async function GET(
           averageRating: scarabReviews.averageRating,
           reviewCount: scarabReviews.reviewCount,
         },
+        tokenName: tokenMetadata.name,
+        tokenSymbol: tokenMetadata.symbol,
+        buyTax: honeypot.buyTax,
+        sellTax: honeypot.sellTax,
         tokenType: "memecoin",
         dataSource: "HONEYPOT_IS + ALCHEMY + SCARAB",
+        _outcomeReporting: {
+          endpoint: "POST /api/v1/outcome",
+          required: { agentAddress: checksumAddress, outcome: "success|failure|partial|expired", txHash: "on-chain tx hash", jobId: "query ID" },
+          headers: { "X-Maiat-Client": "your-client-id" },
+          reward: "+2 🪲 Scarab per outcome reported",
+        },
       },
       {
         status: 200,
