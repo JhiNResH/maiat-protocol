@@ -111,46 +111,25 @@ export default function PassportPage() {
   const [agentsLoading, setAgentsLoading] = useState(false)
   const [showAllAgents, setShowAllAgents] = useState(false)
 
-  const isAddress = /^0x[a-f0-9]{40}$/i.test(address)
-  const [resolvedAddress, setResolvedAddress] = useState<string | null>(isAddress ? address : null)
-  const isOwn = (externalWallet?.address ?? user?.wallet?.address)?.toLowerCase() === resolvedAddress
-
-  // If param is not an address, try passport lookup to resolve ENS name → address
-  useEffect(() => {
-    if (!address) return
-    if (isAddress) {
-      setResolvedAddress(address)
-      return
-    }
-    // Treat as ENS name lookup
-    const ensName = address.replace(/\.maiat\.eth$/, '')
-    fetch(`/api/v1/passport/lookup?q=${encodeURIComponent(ensName)}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d?.passport?.walletAddress) {
-          setResolvedAddress(d.passport.walletAddress.toLowerCase())
-        }
-      })
-      .catch(console.error)
-  }, [address, isAddress])
+  const isOwn = (externalWallet?.address ?? user?.wallet?.address)?.toLowerCase() === address
 
   useEffect(() => {
-    if (!resolvedAddress) return
+    if (!address || !/^0x[a-f0-9]{40}$/.test(address)) return
     setLoading(true)
-    fetch(`/api/v1/wallet/${resolvedAddress}/passport`)
+    fetch(`/api/v1/wallet/${address}/passport`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.passport) setData(d) })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [resolvedAddress])
+  }, [address])
 
     // Projects section removed — only ACP agents are reviewable now
 
   // Fetch reviewable agents: first try ACP interactions, fallback to top agents
   useEffect(() => {
-    if (!resolvedAddress) return
+    if (!address || !/^0x[a-f0-9]{40}$/.test(address)) return
     setAgentsLoading(true)
-    fetch(`/api/v1/passport/${resolvedAddress}/reviewable`)
+    fetch(`/api/v1/passport/${address}/reviewable`)
       .then(r => r.json())
       .then((d) => {
         setReviewableAgents(d.agents ?? [])
