@@ -358,6 +358,55 @@ model CallerWallet {
   @@index([walletAddress])
 }
 
+/// Agent Passport — unified identity layer (ENS + 8004 + trust)
+model Passport {
+  id            String   @id @default(cuid())
+
+  // ENS = primary identity
+  ensName       String?  @unique           // "agent" (without .maiat.eth suffix)
+
+  // Identity anchors (any one can resolve to this Passport)
+  clientId      String?  @unique           // X-Maiat-Client header
+  walletAddress String?  @unique           // Agent wallet
+  ownerAddress  String?                    // Human owner (after claim)
+  acpAgentId    String?  @unique           // Virtuals ACP ID
+  erc8004Id     String?                    // On-chain identity ID
+
+  // Profile
+  name          String?
+  description   String?
+  type          String   @default("agent") // "agent" | "human"
+  status        String   @default("unclaimed") // unclaimed | claimed | active
+  avatarUrl     String?
+
+  // Metrics
+  trustScore    Int      @default(30)
+  scarabBalance Int      @default(10)      // welcome gift
+  totalQueries  Int      @default(0)
+  totalOutcomes Int      @default(0)
+  streakDays    Int      @default(0)
+  lastActiveAt  DateTime @default(now())
+
+  // Referral
+  referralCode  String   @unique @default(cuid())
+  referredBy    String?
+
+  // Claim
+  claimTweetUrl String?                    // Tweet URL for verification
+  claimedAt     DateTime?
+
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("passports")
+  @@index([walletAddress])
+  @@index([clientId])
+  @@index([status])
+  @@index([trustScore])
+  @@index([ensName])
+}
+
 /// Threat reports submitted by Guard when it intercepts malicious activity
 model ThreatReport {
   id               String   @id @default(cuid())

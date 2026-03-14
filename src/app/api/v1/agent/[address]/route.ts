@@ -34,6 +34,7 @@ import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
 import { computeTrustScore, getBlendedTrustScore, type AcpAgent } from "@/lib/acp-indexer";
 import { getERC8004Data, type ERC8004Data } from "@/lib/erc8004";
+import { autoCreatePassport } from "@/lib/passport-middleware";
 
 const ACP_AGENTS_URL = "https://acpx.virtuals.io/api/agents";
 
@@ -114,6 +115,9 @@ export async function GET(
         { status: 429, headers: { "Retry-After": "60" } }
       );
     }
+
+    // ── Auto-create passport (non-blocking) ────────────────────────────────
+    autoCreatePassport(request);
 
     // ── Validate address ─────────────────────────────────────────────────────
     const { address: rawAddress } = await params;
