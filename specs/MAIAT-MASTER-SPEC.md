@@ -868,8 +868,232 @@ Maiat answers: trustScore + verdict + Wadjet ML
 
 **Strategy:** Prove value on Base first → expand to Solana (Pump.fun's home) → then BNB/others.
 
+### 16.7 ERC-8183 — MaiatEvaluator + MaiatACPHook (🔥 Phase 1 Priority)
+
+> Merged from `2026-03-12-maiat-evaluator.md`. Updated 2026-03-14.
+
+**Goal:** 兩個合約組成一個系統 — Evaluator 做裁判，ACPHook 攔截 6 個 lifecycle actions。
+
+#### 閉環飛輪
+
+```
+Guard 擋壞人 → ACP 鎖錢 → Hook 攔截 → Evaluator 裁判
+  → EAS 存證 → 8004 更新 → Wadjet 學習
+  → Oracle 同步 → Hook 調費率 → Guard 更準 → 循環
+```
+
+**一句話：** 每個 agent-to-agent 交易，Maiat 在交易前（Hook）、交易中（Evaluator）、交易後（EAS+8004）全程介入。
+
+#### 兩個合約
+
+| 合約 | 角色 | 介入時機 |
+|------|------|---------|
+| **MaiatACPHook** | IACPHook — lifecycle 攔截 | `beforeAction` / `afterAction` |
+| **MaiatEvaluator** | 裁判 — complete/reject | Job submitted 後 |
+
+#### MaiatACPHook — 6 Lifecycle Hooks
+
+```solidity
+interface IACPHook {
+    function beforeAction(uint256 jobId, bytes4 selector, bytes calldata data) external returns (bool);
+    function afterAction(uint256 jobId, bytes4 selector, bytes calldata data) external;
+}
+```
+
+| Action | beforeAction | afterAction |
+|--------|-------------|-------------|
+| `setProvider` | 查 provider trust → 低分 revert | — |
+| `setBudget` | 根據 trust 調整額度上限 | — |
+| `fund` | 查 client trust → 防惡意 client | — |
+| `submit` | 驗證 provider 未被 flagged | — |
+| `complete` | — | 寫 EAS attestation + ERC-8004 reputation +1 |
+| `reject` | — | 記錄失敗，ERC-8004 reputation -1 |
+| `claimRefund` | ❌ 不 hook（安全考量） | ❌ |
+
+**beforeAction 邏輯：**
+```
+beforeAction(jobId, selector, data):
+  provider = decode(data)
+  score = MaiatOracle.getTrustScore(provider)
+  threats = threatReports[provider]
+
+  if selector == setProvider:
+    require(score >= providerThreshold, "LOW_TRUST")
+    require(threats < threatThreshold, "FLAGGED")
+  
+  if selector == setBudget:
+    maxBudget = score >= 80 ? unlimited : score >= 50 ? 1 ETH : 0.1 ETH
+    require(budget <= maxBudget, "BUDGET_EXCEEDS_TRUST")
+
+  if selector == fund:
+    clientScore = MaiatOracle.getTrustScore(client)
+    require(clientScore >= clientThreshold, "UNTRUSTED_CLIENT")
+
+  if selector == submit:
+    require(threats < threatThreshold, "PROVIDER_FLAGGED")
+  
+  return true
+```
+
+**afterAction 邏輯：**
+```
+afterAction(jobId, selector, data):
+  if selector == complete:
+    → EAS.attest(provider, score, "COMPLETED", jobId)
+    → ERC8004Reputation.addFeedback(provider, true)
+    → emit JobCompleted(jobId, provider, score)
+
+  if selector == reject:
+    → ERC8004Reputation.addFeedback(provider, false)
+    → emit JobRejected(jobId, provider, score, reason)
+```
+
+#### MaiatEvaluator — 裁判合約
+
+```solidity
+interface IMaiatEvaluator {
+    function evaluate(address acpContract, uint256 jobId) external;
+    function setThreshold(uint256 threshold) external;
+    function setThreatThreshold(uint256 count) external;
+    function preCheck(address provider) external view returns (uint256 score, bool wouldPass);
+}
+```
+
+**evaluate() 邏輯：**
+```
+evaluate(acpContract, jobId):
+  job = ACP.getJob(jobId)
+  require(job.status == Submitted)
+  require(job.evaluator == address(this))
+  score = TrustScoreOracle.getScore(job.provider)
+  threatCount = threatReports[job.provider]
+
+  if threatCount >= threatThreshold → reject("FLAGGED_AGENT")
+  if score >= threshold → complete(attestationHash)
+  if score < threshold  → reject("LOW_TRUST_SCORE")
+
+  emit EvaluationResult(jobId, provider, score, decision, reason)
+```
+
+#### TrustGateHook vs MaiatACPHook（完全分離）
+
+| | TrustGateHook | MaiatACPHook |
+|--|--------------|-------------|
+| 標準 | Uniswap V4 | ERC-8183 |
+| Callback | `beforeSwap` / `afterSwap` | `beforeAction` / `afterAction` |
+| 場景 | DEX swap 費率 | Agent-to-agent job escrow |
+| 共同點 | 都讀 MaiatOracle trust score | 同左 |
+
+#### Maiat 在 8183 中的三個角色
+
+| 角色 | 做什麼 | 已有 code |
+|------|--------|----------|
+| **Hook** | `beforeAction` 查 trust，低分擋交易 | ✅ TrustGateHook (需 adapt) |
+| **Evaluator** | `complete/reject` 決定工作是否完成 | 🔜 MaiatEvaluator |
+| **Attestor** | 交易完成後發 EAS + 寫 8004 reputation | ✅ auto-attest cron |
+
+#### 自己吃自己的飯
+
+| 角色 | 誰 | 說明 |
+|------|-----|------|
+| Client | 外部 Agent | 付 $0.01-0.05 買 Maiat 的 ACP offerings |
+| Provider | Maiat (Agent #18281) | 提供 agent_trust / token_check / token_forensics / agent_reputation / trust_swap |
+| Evaluator | MaiatEvaluator | 根據 TrustScore 裁判 Job 品質 |
+| Hook | MaiatACPHook | 攔截 6 個 lifecycle actions |
+
+#### 合約依賴
+
+| 依賴 | 地址 | 網路 |
+|------|------|------|
+| MaiatOracle | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` | Base Mainnet |
+| TrustScoreOracle | `0xf662902ca227baba3a4d11a1bc58073e0b0d1139` | Base Sepolia |
+| ERC-8004 Identity | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` | Base Mainnet |
+| ERC-8004 Reputation | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` | Base Mainnet |
+| AgenticCommerce (ERC-8183) | TBD — Virtuals 部署 | — |
+
+#### 配置參數
+
+| 參數 | 預設值 | 說明 |
+|------|--------|------|
+| `providerThreshold` | 30 | setProvider 最低分數 |
+| `clientThreshold` | 20 | fund 最低 client 分數 |
+| `threatThreshold` | 3 | 幾個 threat reports 自動 reject |
+| `owner` | deployer (`0xB1e5...`) | admin |
+| `oracle` | MaiatOracle | 分數來源 |
+
+#### Events
+
+```solidity
+// MaiatACPHook
+event ActionBlocked(uint256 indexed jobId, bytes4 selector, address actor, uint256 score, string reason);
+event JobCompleted(uint256 indexed jobId, address indexed provider, uint256 score);
+event JobRejected(uint256 indexed jobId, address indexed provider, uint256 score, bytes32 reason);
+
+// MaiatEvaluator
+event EvaluationResult(uint256 indexed jobId, address indexed provider, uint256 score, bool completed, bytes32 reason);
+event ThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
+event ThreatReported(address indexed provider, uint256 newCount);
+```
+
+#### 安全考量
+
+1. **只有指定 Evaluator 能 complete/reject** — 合約地址必須是 Job 的 evaluator
+2. **Oracle 數據新鮮度** — 每日同步，~24h 延遲；備案：EIP-712 signed scores
+3. **Reentrancy** — complete/reject 轉帳 escrow，用 ReentrancyGuard
+4. **Gas** — beforeAction ≈ 50-80k gas，evaluate() ≈ 150-200k gas
+5. **Fail-safe** — oracle 沒分數 → 預設 score = 0 → reject
+6. **claimRefund 不 hook** — 安全考量，不應該攔退款
+
+#### 測試計劃
+
+**MaiatACPHook (`test/MaiatACPHook.t.sol`):**
+- [ ] beforeAction(setProvider) — score >= threshold → pass
+- [ ] beforeAction(setProvider) — score < threshold → revert
+- [ ] beforeAction(setProvider) — flagged → revert
+- [ ] beforeAction(setBudget) — budget capped by trust tier
+- [ ] beforeAction(fund) — client score check
+- [ ] beforeAction(submit) — flagged provider → revert
+- [ ] afterAction(complete) — EAS attestation + 8004 reputation +1
+- [ ] afterAction(reject) — 8004 reputation -1
+
+**MaiatEvaluator (`test/MaiatEvaluator.t.sol`):**
+- [ ] evaluate() — score >= threshold → complete
+- [ ] evaluate() — score < threshold → reject
+- [ ] evaluate() — 3+ threats → auto-reject
+- [ ] evaluate() — job not Submitted → revert
+- [ ] evaluate() — evaluator != this → revert
+- [ ] preCheck() — correct score + wouldPass
+- [ ] setThreshold() — owner only
+
+**Fuzz Tests:**
+- [ ] fuzz_beforeAction_thresholdBoundary(uint256 score, uint256 threshold)
+- [ ] fuzz_evaluate_threatCount(uint256 threats, uint256 threatThreshold)
+
+**Deploy:**
+- [ ] Base Sepolia: MaiatACPHook + MaiatEvaluator
+- [ ] Verify on BaseScan
+- [ ] Wire to existing MaiatOracle
+
+#### Acceptance Criteria
+
+- [ ] `forge build` 通過
+- [ ] `forge test` 全部通過（unit + fuzz）
+- [ ] MaiatACPHook: 6 lifecycle hooks 正確攔截
+- [ ] MaiatEvaluator: complete/reject 邏輯正確
+- [ ] beforeAction revert 有 clear error message
+- [ ] afterAction 寫 EAS + 8004
+- [ ] 部署到 Base Sepolia
+- [ ] Hookathon 提交前完成 (3/19 deadline)
+
+#### Future Hooks（Phase 3+ — 有需求再做）
+
+- LendingTrustHook — 借貸協議信任門檻
+- BridgeTrustHook — 跨鏈橋信任檢查
+- NFTMarketHook — NFT 交易信任
+- DelegationHook — 委託信任
+
 ---
 
-_Last updated: 2026-03-13_
-_Previous specs merged: `2026-03-07-maiat-virtuals-60days.md`, `2026-03-08-oracle-sync-scarab-token.md`, `2026-03-09-reputation-staking-linkage.md`, `2026-03-12-maiat-guard-2.0.md`, `2026-03-12-maiat-close-the-loop.md`_
+_Last updated: 2026-03-14_
+_Previous specs merged: `2026-03-07-maiat-virtuals-60days.md`, `2026-03-08-oracle-sync-scarab-token.md`, `2026-03-09-reputation-staking-linkage.md`, `2026-03-12-maiat-guard-2.0.md`, `2026-03-12-maiat-close-the-loop.md`, `2026-03-12-maiat-evaluator.md`_
 ```
