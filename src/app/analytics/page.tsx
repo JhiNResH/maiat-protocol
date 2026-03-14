@@ -147,18 +147,28 @@ export default function AnalyticsPage() {
   } | null>(null);
 
   useEffect(() => {
-    fetch("/api/v1/stats/api")
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d) setStats(d) })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    const fetchStats = () =>
+      fetch("/api/v1/stats/api")
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => { if (d) setStats(d) })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+
+    fetchStats();
+    const statsTimer = setInterval(fetchStats, 30_000);
+    return () => clearInterval(statsTimer);
   }, []);
 
   useEffect(() => {
-    fetch("/api/v1/stats/engagement")
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d) setEngagement(d) })
-      .catch(console.error);
+    const fetchEngagement = () =>
+      fetch("/api/v1/stats/engagement")
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => { if (d) setEngagement(d) })
+        .catch(console.error);
+
+    fetchEngagement();
+    const engagementTimer = setInterval(fetchEngagement, 30_000);
+    return () => clearInterval(engagementTimer);
   }, []);
 
   if (!stats) {
