@@ -540,57 +540,62 @@ Non-transferable arcade token. Earned for free, spent within Maiat.
 
 ## 9. Roadmap
 
-### Phase 1: 1-30 days
+### Phase 1: NOW → 3/19 (Hookathon Deadline) 🔥
 
 - [x] Guard SDK v0.2.0 — wallet protection for every agent tx
 - [x] Guard → SKILL.md distribution
 - [x] 閉環: threat/report + oracle sync + outcome metadata
 - [x] MCP server ready
 - [x] Uniswap V4 TrustGateHook on testnet
+- [x] Maiat Passport + ENS — agent.maiat.eth identity, auto-create on API call
+- [x] Passport register + lookup API endpoints
+- [x] Auto-create middleware (any API call → upsert Passport)
+- [ ] **MaiatACPHook.sol (ERC-8183)** — 6 lifecycle hooks, deploy to Base 🔥 THIS WEEK
+- [ ] **TrustFeeHook** — dynamic fees + reputation mining 🔥 Hookathon
 - [ ] Auto-attest on ACP offerings
-- [ ] Hook demo: 建 1 個測試池展示動態費率
 - [ ] Free API endpoint /api/v1/trust — the distribution hook
 - [ ] EAS data flywheel
-- [ ] ERC-8183 MaiatEvaluator — Maiat as the trust evaluator for the Virtuals/EF agentic commerce standard 🔥
 
-### Phase 2: 31-60 days
+### Phase 2: 3/20 → 4/15 (Token Launch Sprint)
 
-- [x] Maiat Passport + ENS — agent.maiat.eth identity, auto-create on API call
 - [ ] Passport claim flow — wallet signature + mandatory tweet → Scarab rewards
+- [ ] passport.maiat.io — independent subdomain, ENS-style UI
 - [ ] Agent claim page + "Maiat Certified" badge — supply-side revenue starts
-- [ ] ElizaOS or GAME SDK PR — default-on trust checks for thousands of agents
-- [ ] First DeFi integration + 2 in pipeline
-- [ ] Hook: 建 2-3 個真實 token pair 池子（USDC/WETH）— 證明 Guard 用戶 swap 拿到費率優惠
-- [ ] MAIAT prediction pools
-- [ ] Bounty board (MAIAT-settled)
-- [ ] MAIAT staking → Scarab multiplier
-- [ ] 60 Days transparency report — query volume, scores served, buybacks executed
+- [ ] Pump.fun Base integration — token_check for agent tokens on Base
+- [ ] Guard SDK for Pump.fun trading bots
+- [ ] Hook demo: 建 2-3 個真實 token pair 池子（USDC/WETH）
+- [ ] MAIAT token launch on Virtuals
+- [ ] First buyback execution
+- [ ] ElizaOS or GAME SDK PR — default-on trust checks
 
-### Phase 3: Q3
+### Phase 3: 4/15 → 6/15 (Multi-Chain + Growth)
 
-- [ ] TrustGateHook live on Base mainnet — every gated pool = passive query volume
-- [ ] Hook Factory — 一鍵建 TrustGated 池子 (app.maiat.io/create-pool)
-- [ ] Guard RPC Proxy (rpc.maiat.xyz) — zero-code integration for any agent
+- [ ] TrustGateHook live on Base mainnet
+- [ ] Hook Factory — 一鍵建 TrustGated 池子
+- [ ] Pump.fun Agent Trust Feed — embed Maiat scores
+- [ ] **Solana expansion** — port MaiatOracle, token_check for Solana mints
+- [ ] `@maiat/solana-guard` SDK
+- [ ] Guard RPC Proxy (rpc.maiat.xyz)
 - [ ] SDK growth (Rig, Swarms, CrewAI, LangChain)
-- [ ] Multi-chain agent indexing — beyond Virtuals
-- [ ] Premium Data API (MAIAT)
-- [ ] Scarab expansion — bounty board, leaderboard, on-chain migration if MAU >500
+- [ ] 60 Days transparency report
+- [ ] Scarab leaderboard + bounty board
 
-### Phase 4: Q4
+### Phase 4: Q3 (Scale)
 
+- [ ] **BNB Chain expansion** — clone Base contracts, Wadjet BNB training data
 - [ ] Hook 生態: 10+ pools actively using TrustGateHook
 - [ ] Hook Revenue: protocol fee from dynamic fee spread
-- [ ] ZKTLS exploration (if ecosystem ready)
+- [ ] Chainlink CRE cross-chain oracle
+- [ ] Premium Data API (MAIAT-gated)
 - [ ] Reputation staking
-- [ ] Chainlink CRE cross-chain oracle — trust scores available on any chain
-- [ ] Agent Yelp premium — boost, analytics dashboard, verified profiles
+- [ ] Agent Yelp premium — boost, analytics, verified profiles
 
-### Phase 5: Q5
+### Phase 5: Q4+ (Moat)
 
-- [ ] ZKML — verifiable trust computation, ZK proof that score is legit without exposing raw data
-- [ ] Hook as DeFi standard — protocols gate liquidity, lending, and swaps through Maiat scores natively
-- [ ] Multi-chain Hook deployment (Arbitrum, Optimism, Ethereum)
-- [ ] Agentic Commerce Data Layer — Maiat becomes the default trust check for all agent-to-agent transactions across chains
+- [ ] ZKML — verifiable trust computation
+- [ ] Hook as DeFi standard — protocols gate liquidity natively
+- [ ] Multi-chain Hook deployment (Arbitrum, Optimism, Monad)
+- [ ] Agentic Commerce Data Layer — default trust check for all agent-to-agent transactions
 
 ---
 
