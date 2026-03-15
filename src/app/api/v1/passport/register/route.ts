@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserReputation } from "@/lib/reputation";
 import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
+import { registerAgent, getKYACode, getAgentId } from "@/lib/erc8004";
+import { mintPassportSBT } from "@/lib/passport";
 
 const rateLimiter = createRateLimiter("passport:register", 10, 60);
 
@@ -68,6 +70,16 @@ export async function POST(request: NextRequest) {
         where: { address: normalizedAddress },
       });
 
+      // Fetch ERC-8004 data (non-blocking)
+      let erc8004AgentId: number | null = null;
+      let kyaCode: string | null = null;
+      try {
+        erc8004AgentId = await getAgentId(normalizedAddress);
+        kyaCode = await getKYACode(normalizedAddress);
+      } catch (e: any) {
+        console.warn("[passport/register] ERC-8004 lookup failed (existing user):", e.message);
+      }
+
       return NextResponse.json({
         passport: {
           ensName: cleanEnsName,
@@ -78,6 +90,10 @@ export async function POST(request: NextRequest) {
           totalQueries: reputation.totalReviews,
           scarabBalance: scarab?.balance ?? 0,
           isNew: false,
+          erc8004AgentId,
+          kyaCode,
+          sbtMinted: false,
+          sbtTxHash: null,
         },
       }, { status: 200, headers: CORS_HEADERS });
     }
@@ -126,6 +142,39 @@ export async function POST(request: NextRequest) {
 
     const reputation = await getUserReputation(normalizedAddress);
 
+    // --- ERC-8004 Registration (non-blocking) ---
+    let erc8004AgentId: number | null = null;
+    let kyaCode: string | null = null;
+    try {
+      const registeredId = await registerAgent(normalizedAddress);
+      if (registeredId !== null) {
+        erc8004AgentId = Number(registeredId);
+      }
+    } catch (e: any) {
+      console.warn("[passport/register] ERC-8004 registerAgent failed (non-blocking):", e.message);
+    }
+
+    // --- Generate KYA Code (non-blocking) ---
+    try {
+      kyaCode = await getKYACode(normalizedAddress);
+    } catch (e: any) {
+      console.warn("[passport/register] getKYACode failed (non-blocking):", e.message);
+    }
+
+    // --- SBT Mint (non-blocking) ---
+    let sbtMinted = false;
+    let sbtTxHash: string | null = null;
+    try {
+      const mintResult = await mintPassportSBT(normalizedAddress);
+      sbtMinted = mintResult.minted;
+      sbtTxHash = mintResult.txHash;
+      if (mintResult.skipped) {
+        console.log("[passport/register] SBT mint skipped:", mintResult.reason);
+      }
+    } catch (e: any) {
+      console.warn("[passport/register] SBT mint failed (non-blocking):", e.message);
+    }
+
     return NextResponse.json({
       passport: {
         ensName: cleanEnsName,
@@ -136,6 +185,10 @@ export async function POST(request: NextRequest) {
         totalQueries: 0,
         scarabBalance: 10,
         isNew: true,
+        erc8004AgentId,
+        kyaCode,
+        sbtMinted,
+        sbtTxHash,
       },
     }, { status: 201, headers: CORS_HEADERS });
 
