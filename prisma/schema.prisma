@@ -376,6 +376,36 @@ model ThreatReport {
   @@index([createdAt])
 }
 
+/// KYA (Know Your Agent) referral codes — agents generate codes, users verify via tweet
+model KyaCode {
+  id           String            @id @default(cuid())
+  code         String            @unique // e.g. "MAIAT-7X2K"
+  agentAddress String            @map("agent_address")
+  usageCount   Int               @default(0) @map("usage_count")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  verifications KyaVerification[]
+
+  @@map("kya_codes")
+  @@index([agentAddress])
+  @@index([code])
+}
+
+/// KYA verification records — tracks each tweet-based verification
+model KyaVerification {
+  id              String   @id @default(cuid())
+  codeId          String   @map("code_id")
+  verifierAddress String   @map("verifier_address")
+  tweetUrl        String   @map("tweet_url")
+  verifiedAt      DateTime @default(now()) @map("verified_at")
+  scarabAwarded   Int      @default(5) @map("scarab_awarded")
+  code            KyaCode  @relation(fields: [codeId], references: [id])
+
+  @@unique([codeId, verifierAddress]) // one verification per code per verifier
+  @@map("kya_verifications")
+  @@index([verifierAddress])
+  @@index([codeId])
+}
+
 /// Wadjet alerts now live in wadjet service DB (Railway)
 /// Protocol queries them via wadjet-client.ts → /sentinel/alerts
 
