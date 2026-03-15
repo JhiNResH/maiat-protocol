@@ -467,7 +467,7 @@ export default function VerifyPage() {
             </div>
             <p className="flex items-center gap-4 text-base font-bold flex-wrap">
               <span className="text-[var(--text-muted)]">$</span>
-              <span>curl https://app.maiat.io/api/v1/agent/0x71c...4E8F</span>
+              <span>curl https://app.maiat.io/api/v1/agent/0x5bB4...9F68</span>
             </p>
           </div>
         </motion.div>
