@@ -440,7 +440,7 @@ export default function VerifyPage() {
           <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
             <div className="text-center lg:text-left">
               <h2 className="text-5xl font-bold text-[var(--text-color)] mb-6">Build with Maiat</h2>
-              <p className="text-[var(--text-secondary)] text-xl max-w-md font-medium">Integrate our trust engine into your own dApp or AI Agent with our high-performance API.</p>
+              <p className="text-[var(--text-secondary)] text-xl max-w-md font-medium">Add trust scoring to your agent in 3 lines. No API key needed.</p>
             </div>
             <div className="flex flex-wrap justify-center gap-5">
               <a
@@ -465,10 +465,11 @@ export default function VerifyPage() {
               <div className="w-3 h-3 rounded-full bg-[var(--text-muted)]" />
               <div className="w-3 h-3 rounded-full bg-[var(--text-muted)]" />
             </div>
-            <p className="flex items-center gap-4 text-base font-bold flex-wrap">
-              <span className="text-[var(--text-muted)]">$</span>
-              <span>curl https://app.maiat.io/api/v1/agent/0x5bB4...9F68</span>
-            </p>
+            <div className="space-y-2 text-[13px] leading-relaxed">
+              <p><span className="text-emerald-500">const</span> res = <span className="text-emerald-500">await</span> <span className="text-blue-400">fetch</span>(<span className="text-amber-500">{`"https://app.maiat.io/api/v1/agent/${"${agentAddress}"}" `}</span>)</p>
+              <p><span className="text-emerald-500">const</span> {"{"} trustScore, verdict {"}"} = <span className="text-emerald-500">await</span> res.<span className="text-blue-400">json</span>()</p>
+              <p className="text-[var(--text-muted)]">// trustScore: 100, verdict: &quot;trusted&quot;</p>
+            </div>
           </div>
         </motion.div>
       </main>
