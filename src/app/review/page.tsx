@@ -30,7 +30,7 @@ export default function ReviewIndexPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex flex-col text-[#E5E5E5]">
-      <Header />
+      
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 pb-16">
         <div className="w-full max-w-md">

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import Link from 'next/link'
-import { Header } from '@/components/Header'
 import { Award, Zap, Info } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -179,7 +178,7 @@ export default function PassportPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center">
-        <Header />
+        
         <p className="font-mono text-gray-500 text-xs animate-pulse m-auto">// LOADING PASSPORT…</p>
       </div>
     )
@@ -188,7 +187,7 @@ export default function PassportPage() {
   if (!data) {
     return (
       <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center gap-3">
-        <Header />
+        
         <div className="m-auto flex flex-col items-center gap-3">
           <p className="font-mono text-slate-400 text-sm">// INVALID ADDRESS</p>
           <Link href="/monitor" className="font-mono text-[#3b82f6] text-xs hover:underline">← back to monitor</Link>
@@ -218,7 +217,7 @@ export default function PassportPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
-      <Header />
+      
 
       <main className="flex-1 pt-6 px-4 pb-16">
         <div className="max-w-5xl mx-auto space-y-4">

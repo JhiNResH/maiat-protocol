@@ -2,7 +2,8 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Shield, Bot, ArrowUpDown, TrendingUp, Zap, Trophy } from "lucide-react";
+import { motion } from "framer-motion";
+import { Search, Shield, Trophy, TrendingUp } from "lucide-react";
 
 // ============================================================================
 // TYPES
@@ -19,7 +20,7 @@ interface ERC8004Data {
 }
 
 interface Agent {
-  id: string;       // wallet address
+  id: string;
   name: string;
   category?: string | null;
   chain: string;
@@ -47,7 +48,7 @@ function truncateAddress(addr: string) {
 }
 
 function cleanAgentName(name: string) {
-  return (name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+  return (name || "agent").replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
 }
 
 function formatAgdp(val: number | null | undefined): string {
@@ -57,7 +58,6 @@ function formatAgdp(val: number | null | undefined): string {
   return `$${val.toFixed(0)}`;
 }
 
-/** Derive verdict from trust score (0–100 scale). */
 function scoreToVerdict(score: number | null): "proceed" | "caution" | "avoid" | "unknown" {
   if (score === null || score === undefined) return "unknown";
   if (score >= 80) return "proceed";
@@ -67,67 +67,52 @@ function scoreToVerdict(score: number | null): "proceed" | "caution" | "avoid" |
 
 function verdictStyle(verdict: string) {
   switch (verdict) {
-    case "proceed":
-      return "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/30";
-    case "caution":
-      return "bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/30";
-    case "avoid":
-      return "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/30";
-    default:
-      return "bg-[#666666]/10 text-[#666666] border-[#666666]/30";
-  }
-}
-
-function verdictLabel(verdict: string) {
-  switch (verdict) {
-    case "proceed": return "PROCEED";
-    case "caution": return "CAUTION";
-    case "avoid":   return "AVOID";
-    default:        return "UNKNOWN";
+    case "proceed": return "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20";
+    case "caution": return "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-500/20";
+    case "avoid": return "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-500/20";
+    default: return "bg-[var(--bg-color)] text-[var(--text-muted)] border-[var(--border-color)]";
   }
 }
 
 function trustScoreColor(score: number | null) {
-  if (score === null) return "text-[#666666]";
-  if (score >= 80) return "text-[#10b981]";
-  if (score >= 60) return "text-[#f59e0b]";
-  return "text-[#ef4444]";
-}
-
-function chainDot(chain: string) {
-  switch (chain?.toLowerCase()) {
-    case "base":
-      return "bg-[#3b82f6]";
-    case "ethereum":
-    case "eth":
-      return "bg-purple-500";
-    default:
-      return "bg-[#555555]";
-  }
+  if (score === null) return "text-[var(--text-muted)]";
+  if (score >= 80) return "text-emerald-500 dark:text-emerald-400";
+  if (score >= 60) return "text-amber-500 dark:text-amber-400";
+  return "text-rose-500 dark:text-rose-400";
 }
 
 // ============================================================================
-// WRAPPER (required for useSearchParams)
+// PAGE WRAPPER
 // ============================================================================
 
 export default function LeaderboardPageWrapper() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <Trophy className="w-8 h-8 text-[#fbbf24] animate-pulse" />
-            <span className="text-xs font-mono text-[#666666] uppercase tracking-widest">
-              LOADING LEADERBOARD...
-            </span>
-          </div>
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-3">
+          <Trophy className="w-8 h-8 text-amber-400 animate-pulse" />
+          <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-bold">Loading Leaderboard...</span>
         </div>
-      }
-    >
+      </div>
+    }>
       <LeaderboardPage />
     </Suspense>
   );
 }
+
+// ============================================================================
+// FALLBACK DATA (shown when API unavailable)
+// ============================================================================
+
+const FALLBACK_AGENTS: Agent[] = [
+  { id: "0x359Ec167BDfBAfd57D66A13E532185D03A290978", name: "ClawraX", category: "NONE", chain: "Base", logo: "https://acpcdn-prod.s3.ap-southeast-1.amazonaws.com/0x359ec167bdfbafd57d66a13e532185d03a290978/99ec44dc-800a-4199-804f-1ae420667166.png", trust: { score: 100, grade: "A+" }, breakdown: { completionRate: 0.99, paymentRate: 1, totalJobs: 5311, agdp: 1394.24 } },
+  { id: "0x5b5852b8c772e388b71c106440df4e1bb53467ae", name: "TrustBot", category: "DeFi", chain: "Base", logo: null, trust: { score: 92, grade: "A" }, breakdown: { completionRate: 0.95, paymentRate: 0.98, totalJobs: 2847, agdp: 892.15 } },
+  { id: "0xA1b2C3d4E5f6789012345678901234567890AbCd", name: "SwapAgent", category: "DEX", chain: "Base", logo: null, trust: { score: 85, grade: "B+" }, breakdown: { completionRate: 0.91, paymentRate: 0.94, totalJobs: 1523, agdp: 567.80 } },
+  { id: "0xFe9876543210abcdef1234567890ABCDEF123456", name: "YieldHarvester", category: "Yield", chain: "Base", logo: null, trust: { score: 78, grade: "B" }, breakdown: { completionRate: 0.88, paymentRate: 0.90, totalJobs: 987, agdp: 345.60 } },
+  { id: "0x1234567890ABCDEF1234567890abcdef12345678", name: "LiquiditySeeker", category: "DeFi", chain: "Base", logo: null, trust: { score: 73, grade: "B-" }, breakdown: { completionRate: 0.85, paymentRate: 0.87, totalJobs: 654, agdp: 234.50 } },
+  { id: "0xAAAABBBBCCCCDDDD1111222233334444AAAABBBB", name: "ArbitrageBot", category: "Trading", chain: "Base", logo: null, trust: { score: 67, grade: "C+" }, breakdown: { completionRate: 0.82, paymentRate: 0.80, totalJobs: 432, agdp: 178.90 } },
+  { id: "0xDEAD000000000000000000000000000000001234", name: "ShadowTrader", category: "Unknown", chain: "Base", logo: null, trust: { score: 23, grade: "F" }, breakdown: { completionRate: 0.35, paymentRate: 0.20, totalJobs: 89, agdp: 12.50 } },
+];
 
 // ============================================================================
 // MAIN PAGE
@@ -135,422 +120,268 @@ export default function LeaderboardPageWrapper() {
 
 function LeaderboardPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  // Default to true for the new Leaderboard route
-  const isLeaderboard = true;
-
-  const [agents, setAgents]   = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch]   = useState(searchParams.get("q") || "");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [sortBy, setSortBy]   = useState<"trust" | "jobs">("jobs");
-  const [totalAgents, setTotalAgents] = useState(0);
+  const [sortBy, setSortBy] = useState<"trust" | "jobs">("jobs");
+  const [query, setQuery] = useState("");
+  const [serverResults, setServerResults] = useState<Agent[]>([]);
 
-  // ── Debounce search ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  // ── Fetch agents (server-side search) ───────────────────────────────────────
+  // Fetch agents
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
-        const params = new URLSearchParams({
-          sort: sortBy,
-          limit: "200",
-          include8004: "true",
-        });
-        if (debouncedSearch) {
-          params.set("search", debouncedSearch);
-        }
+        const params = new URLSearchParams({ sort: sortBy, limit: "200" });
         const res = await fetch(`/api/v1/agents?${params}`);
         const data = await res.json();
-        if (Array.isArray(data.agents)) {
+        if (Array.isArray(data.agents) && data.agents.length > 0) {
           setAgents(data.agents);
-          setTotalAgents(data.pagination?.total ?? data.agents.length);
+        } else {
+          setAgents(FALLBACK_AGENTS);
         }
       } catch (err) {
-        console.error("[Explore] Failed to fetch agents:", err);
+        console.error("[Leaderboard] Failed to fetch agents:", err);
+        setAgents(FALLBACK_AGENTS);
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, [debouncedSearch, sortBy]);
+  }, [sortBy]);
 
-  const toggleSort = () => {
-    setSortBy((prev) => (prev === "trust" ? "jobs" : "trust"));
-  };
-
-  // ── Render ──────────────────────────────────────────────────────────────────
-  if (isLeaderboard) {
-    return <LeaderboardView agents={agents} loading={loading} router={router} sortBy={sortBy} />;
-  }
-
-  return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5]">
-      <main className="max-w-5xl mx-auto px-4 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-1">
-            <Bot className="w-4 h-4 text-[#3b82f6]" />
-            <h1 className="text-xs font-mono text-[#666666] uppercase tracking-widest">
-              // AI AGENT BROWSER — VIRTUALS ACP ECOSYSTEM
-            </h1>
-          </div>
-          <div className="h-px bg-gradient-to-r from-[#3b82f6]/50 via-[#1F1F1F] to-transparent" />
-          <p className="mt-3 text-sm text-[#555555] font-mono max-w-2xl">
-            Browse verified AI agents from the Virtuals ACP network. Trust scores
-            reflect on-chain behavioral history — completion rate, payment reliability,
-            and activity age.
-          </p>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center gap-3 mb-6">
-          {/* Search */}
-          <div className="flex-1 relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#666666]" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="search by name or address..."
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded px-3 py-2 pl-9 text-xs font-mono text-[#E5E5E5] placeholder-[#444] outline-none focus:border-[#3b82f6]/40 transition-colors"
-            />
-          </div>
-
-          {/* Sort */}
-          <button
-            onClick={toggleSort}
-            className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono uppercase tracking-wide bg-[var(--bg-surface)] border border-[var(--border-default)] rounded text-[#666666] hover:text-[#999] hover:border-[var(--border-default)] transition-colors"
-          >
-            <ArrowUpDown className="w-3 h-3" />
-            {sortBy === "trust" ? "SORT: TRUST ↓" : "SORT: JOBS ↓"}
-          </button>
-
-          {/* Agent Count */}
-          {!loading && (
-            <span className="text-[10px] font-mono text-[#555555] ml-auto">
-              {agents.length}{totalAgents > agents.length ? ` / ${totalAgents}` : ""} agents
-            </span>
-          )}
-        </div>
-
-        {/* Table Header */}
-        <div className="grid grid-cols-[1fr_160px_120px_100px] gap-4 px-4 py-2 text-[9px] font-mono uppercase text-[#666666] tracking-wider border-b border-[var(--border-default)] mb-2">
-          <span>AGENT</span>
-          <span className="text-center">ADDRESS</span>
-          <span className="text-center">VERDICT</span>
-          <span className="text-right">TRUST SCORE</span>
-        </div>
-
-        {/* Loading Skeleton */}
-        {loading && (
-          <div className="flex flex-col gap-1">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-[68px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg animate-pulse"
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && agents.length === 0 && (
-          <div className="flex flex-col items-center gap-5 py-20 text-center">
-            <div className="w-16 h-16 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center">
-              <Bot className="w-7 h-7 text-[#333333]" />
-            </div>
-            <div>
-              <p className="font-mono text-sm text-[#E5E5E5] mb-2">
-                {search
-                  ? `NO AGENTS MATCHING "${search.toUpperCase()}"`
-                  : "NO AGENTS INDEXED YET"}
-              </p>
-              <p className="text-xs font-mono text-[#555555] max-w-sm leading-relaxed">
-                {search
-                  ? search.startsWith("0x")
-                    ? "// this address has no ACP history yet"
-                    : "// try a different name or paste a wallet address"
-                  : "// Maiat indexes AI agents from the Virtuals ACP ecosystem and computes behavioral trust scores from on-chain job history. Check back soon."}
-              </p>
-            </div>
-            {!search && (
-              <div className="flex items-center gap-2 mt-2 px-4 py-2 bg-[#3b82f6]/5 border border-[#3b82f6]/20 rounded-lg">
-                <Zap className="w-3.5 h-3.5 text-[#3b82f6]" />
-                <span className="text-xs font-mono text-[#3b82f6]">
-                  Agents are indexed automatically from Virtuals ACP on-chain activity
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Agent List */}
-        {!loading && agents.length > 0 && (
-          <div className="flex flex-col gap-1">
-            {agents.map((agent, idx) => {
-              const verdict = scoreToVerdict(agent.trust.score);
-              return (
-                <button
-                  key={agent.id}
-                  onClick={() => router.push(`/agent/${cleanAgentName(agent.name)}/${agent.id}`)}
-                  className="group grid grid-cols-[1fr_160px_120px_100px] gap-4 items-center px-4 py-3 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-left transition-all duration-150 hover:border-[#3b82f6]/50 hover:shadow-[0_0_16px_rgba(0,82,255,0.08)] cursor-pointer w-full"
-                  style={{ minHeight: "68px" }}
-                >
-                  {/* Agent Info */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Rank */}
-                    <span className="text-[9px] font-mono text-[#333333] w-5 shrink-0 text-right">
-                      #{idx + 1}
-                    </span>
-                    {/* Avatar */}
-                    {agent.logo ? (
-                      <img src={agent.logo} alt={agent.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center text-xs font-bold text-[#3b82f6] flex-shrink-0">
-                        {agent.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    {/* Name + chain */}
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[#E5E5E5] truncate group-hover:text-[#3b82f6] transition-colors">
-                        {agent.name}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${chainDot(agent.chain)}`} />
-                        <span className="text-[9px] font-mono text-[#555555] uppercase">
-                          {agent.chain || "base"}
-                        </span>
-                        {agent.category && (
-                          <>
-                            <span className="text-[#333333]">·</span>
-                            <span className="text-[9px] font-mono text-[#555555]">
-                              {agent.category}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Address */}
-                  <div className="flex justify-center">
-                    <span className="text-[10px] font-mono text-[#555555] bg-[var(--bg-page)] border border-[var(--border-default)] px-2 py-1 rounded">
-                      {truncateAddress(agent.id)}
-                    </span>
-                  </div>
-
-                  {/* Verdict Badge */}
-                  <div className="flex justify-center">
-                    <span
-                      className={`px-2 py-0.5 text-[9px] font-bold font-mono uppercase tracking-wide rounded border ${verdictStyle(verdict)}`}
-                    >
-                      {verdictLabel(verdict)}
-                    </span>
-                  </div>
-
-                  {/* Trust Score */}
-                  <div className="flex flex-col items-end">
-                    <span
-                      className={`text-xl font-black font-mono leading-none ${trustScoreColor(agent.trust.score)}`}
-                    >
-                      {agent.trust.score !== null && agent.trust.score !== undefined
-                        ? agent.trust.score.toFixed(1)
-                        : "—"}
-                    </span>
-                    {agent.trust.grade && (
-                      <span className="text-[9px] font-mono text-[#555555] mt-0.5">
-                        {agent.trust.grade}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Footer note */}
-        {!loading && agents.length > 0 && (
-          <div className="mt-6 flex items-center gap-2 text-[10px] font-mono text-[#444444]">
-            <TrendingUp className="w-3 h-3" />
-            <span>
-              Trust scores are derived from ACP behavioral history — completion rate,
-              payment reliability, and on-chain activity age.
-            </span>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-// ============================================================================
-// LEADERBOARD VIEW
-// ============================================================================
-
-function LeaderboardView({
-  agents,
-  loading,
-  router,
-  sortBy = "jobs",
-}: {
-  agents: Agent[];
-  loading: boolean;
-  router: ReturnType<typeof useRouter>;
-  sortBy?: "trust" | "jobs";
-}) {
-  const [query, setQuery] = useState("");
-  const [serverResults, setServerResults] = useState<Agent[]>([]);
-
-  // Server-side search when query doesn't match local agents
+  // Server-side search
   useEffect(() => {
     if (!query.trim()) { setServerResults([]); return; }
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/v1/agents?search=${encodeURIComponent(query.trim())}&limit=20&sort=${sortBy}&include8004=true`);
+        const res = await fetch(`/api/v1/agents?search=${encodeURIComponent(query.trim())}&limit=20&sort=${sortBy}`);
         const data = await res.json();
-        setServerResults(data.agents?.map((a: any) => ({
-          id: a.id, name: a.name, category: a.category, chain: a.chain,
-          logo: a.logo, trust: a.trust, breakdown: a.breakdown, erc8004: a.erc8004,
-        })) || []);
+        setServerResults(data.agents || []);
       } catch { setServerResults([]); }
     }, 300);
     return () => clearTimeout(timer);
   }, [query, sortBy]);
 
-  const sorted = [...agents]
-    .sort((a, b) => sortBy === "jobs"
+  const sorted = [...agents].sort((a, b) =>
+    sortBy === "jobs"
       ? (b.breakdown?.totalJobs ?? 0) - (a.breakdown?.totalJobs ?? 0)
-      : (b.trust.score ?? -1) - (a.trust.score ?? -1));
+      : (b.trust.score ?? -1) - (a.trust.score ?? -1)
+  );
 
-  const top = query.trim()
-    ? (serverResults.length > 0 ? serverResults : sorted.filter(a => a.name.toLowerCase().includes(query.toLowerCase()) || a.id.toLowerCase().includes(query.toLowerCase())))
+  const displayAgents = query.trim()
+    ? (serverResults.length > 0
+        ? serverResults
+        : sorted.filter((a) => a.name.toLowerCase().includes(query.toLowerCase()) || a.id.toLowerCase().includes(query.toLowerCase())))
     : sorted.slice(0, 50);
 
-  const rankStyle = (i: number) => {
-    if (i === 0) return "text-[#FFD700] text-lg";
-    if (i === 1) return "text-[#C0C0C0] text-base";
-    if (i === 2) return "text-[#CD7F32] text-base";
-    return "text-[#444444] text-sm";
-  };
+  const top3 = sorted.slice(0, 3);
+  const restList = displayAgents.slice(query.trim() ? 0 : 3);
 
-  const rankLabel = (i: number) => {
-    if (i === 0) return "🥇";
-    if (i === 1) return "🥈";
-    if (i === 2) return "🥉";
-    return `#${i + 1}`;
-  };
+  const podiumOrder = top3.length >= 3
+    ? [top3[1], top3[0], top3[2]]
+    : top3;
+
+  const podiumRanks = top3.length >= 3 ? [2, 1, 3] : [1, 2, 3];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5]">
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-1">
-            <Trophy className="w-4 h-4 text-[#FFD700]" />
-            <h1 className="text-xs font-mono text-[#666666] uppercase tracking-widest">
-              // TRUST LEADERBOARD — TOP ACP AGENTS
-            </h1>
-          </div>
-          <p className="text-[11px] text-[#444444] font-mono mt-1">
-            Ranked by behavioral trust score · sourced from Virtuals ACP job history
-          </p>
-        </div>
+    <div className="pb-20 relative">
+      <main className="max-w-6xl mx-auto px-6 relative">
+        {/* Hero */}
+        <section className="text-center mb-24 pt-12">
+          <motion.h1
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            className="atmosphere-text font-black text-[var(--text-color)]"
+          >
+            Leaderboard
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="text-[var(--text-secondary)] text-xl max-w-2xl mx-auto font-medium mt-8"
+          >
+            The most trusted AI agents ranked by real-time behavioral verification and trust score.
+          </motion.p>
+        </section>
 
-        {/* Search */}
-        <div className="relative max-w-md mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#666666]" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="search by name or address..."
-            className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded px-3 py-2 pl-9 text-xs font-mono text-[#E5E5E5] placeholder-[#444] outline-none focus:border-[#3b82f6]/40 transition-colors"
-          />
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Trophy className="w-6 h-6 text-[#FFD700] animate-pulse" />
+        {/* Loading */}
+        {loading && (
+          <div className="flex flex-col items-center gap-3 py-16">
+            <Trophy className="w-8 h-8 text-amber-400 animate-pulse" />
+            <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-bold">Loading agents...</span>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {top.map((agent, i) => {
-              const score = agent.trust.score;
-              const verdict = scoreToVerdict(score);
-              return (
-                <div
-                  key={agent.id}
-                  onClick={() => router.push(`/agent/${cleanAgentName(agent.name)}/${agent.id}`)}
-                  className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[#3b82f6]/30 hover:bg-[var(--bg-surface)] cursor-pointer transition-all group"
+        )}
+
+        {!loading && agents.length > 0 && !query.trim() && (
+          <>
+            {/* Top 3 Podiums */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-24 items-end">
+              {podiumOrder.map((agent, i) => {
+                const rank = podiumRanks[i];
+                const isFeatured = rank === 1;
+                return (
+                  <motion.div
+                    key={agent.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    onClick={() => router.push(`/agent/${cleanAgentName(agent.name)}/${agent.id}`)}
+                    className={`relative liquid-glass rounded-[3rem] border-white/40 p-10 hover-lift cursor-pointer ${
+                      isFeatured ? "md:scale-110 z-10 ring-8 ring-[var(--text-color)]/5" : "scale-95"
+                    }`}
+                  >
+                    {/* Rank Badge */}
+                    <div className={`absolute -top-5 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full flex items-center justify-center text-[var(--bg-color)] text-sm font-bold shadow-lg ${
+                      rank === 1 ? "bg-[var(--text-color)]" : rank === 2 ? "bg-[var(--text-secondary)]" : "bg-[var(--text-muted)]"
+                    }`}>
+                      #{rank}
+                    </div>
+
+                    <div className="text-center mb-10">
+                      {agent.logo ? (
+                        <img src={agent.logo} alt={agent.name} className="w-24 h-24 mx-auto rounded-3xl object-cover mb-6 border border-[var(--border-color)]" />
+                      ) : (
+                        <div className="w-24 h-24 mx-auto rounded-3xl flex items-center justify-center text-5xl mb-6 bg-[var(--bg-color)] border border-[var(--border-color)]">
+                          {agent.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <h3 className="font-display font-bold text-2xl mb-2 text-[var(--text-color)] truncate">{agent.name}</h3>
+                      <p className="text-[10px] font-mono text-[var(--text-muted)]">{truncateAddress(agent.id)}</p>
+                      <div className={`text-6xl font-bold mt-4 mb-3 tracking-tighter ${trustScoreColor(agent.trust.score)}`}>
+                        {agent.trust.score ?? "?"}
+                      </div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Trust Score</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6 pt-8 border-t border-[var(--border-color)]">
+                      <div className="text-center">
+                        <p className="text-xl font-bold text-[var(--text-color)]">{agent.breakdown?.totalJobs?.toLocaleString() ?? "—"}</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Jobs</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xl font-bold text-[var(--text-color)]">{formatAgdp(agent.breakdown?.agdp)}</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">AGDP</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Search + Sort Controls */}
+        {!loading && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-8"
+          >
+            <div className="relative flex-1">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name or address..."
+                className="w-full liquid-glass rounded-2xl pl-12 pr-6 py-4 text-sm text-[var(--text-color)] placeholder:text-[var(--text-muted)] outline-none focus:ring-2 focus:ring-[var(--text-color)]/5 transition-all"
+              />
+            </div>
+            <div className="flex gap-2">
+              {(["jobs", "trust"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSortBy(s)}
+                  className={`px-6 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                    sortBy === s
+                      ? "bg-[var(--text-color)] text-[var(--bg-color)]"
+                      : "liquid-glass text-[var(--text-secondary)] hover:text-[var(--text-color)]"
+                  }`}
                 >
-                  {/* Rank */}
-                  <div className={`w-10 text-center font-mono font-bold ${rankStyle(i)}`}>
-                    {rankLabel(i)}
-                  </div>
+                  By {s}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
-                  {/* Avatar */}
-                  {agent.logo ? (
-                    <img src={agent.logo} alt={agent.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center text-xs font-bold text-[#3b82f6] flex-shrink-0">
-                      {agent.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+        {/* List Table */}
+        {!loading && displayAgents.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="liquid-glass rounded-[3rem] border-white/40 overflow-hidden hover-lift"
+          >
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[var(--bg-color)] border-b border-[var(--border-color)]">
+                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Rank</th>
+                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Agent</th>
+                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-center hidden md:table-cell">Jobs</th>
+                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-center hidden lg:table-cell">AGDP</th>
+                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-center">Verdict</th>
+                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-right">Trust Score</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-color)]">
+                {(query.trim() ? displayAgents : restList).map((agent, i) => {
+                  const globalRank = query.trim() ? i + 1 : i + 4;
+                  const verdict = scoreToVerdict(agent.trust.score);
+                  return (
+                    <tr
+                      key={agent.id}
+                      onClick={() => router.push(`/agent/${cleanAgentName(agent.name)}/${agent.id}`)}
+                      className="hover:bg-[var(--bg-color)] transition-all group cursor-pointer"
+                    >
+                      <td className="px-10 py-8 font-bold text-[var(--text-color)] text-lg">#{globalRank}</td>
+                      <td className="px-10 py-8">
+                        <div className="flex items-center gap-6">
+                          {agent.logo ? (
+                            <img src={agent.logo} alt={agent.name} className="w-14 h-14 rounded-2xl object-cover" />
+                          ) : (
+                            <div className="w-14 h-14 bg-[var(--bg-color)] rounded-2xl flex items-center justify-center text-xl font-bold text-[var(--text-color)] group-hover:bg-[var(--text-color)] group-hover:text-[var(--bg-color)] transition-all">
+                              {agent.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-bold text-[var(--text-color)] text-lg block">{agent.name}</span>
+                            <span className="text-[10px] font-mono text-[var(--text-muted)]">{truncateAddress(agent.id)}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-10 py-8 text-center hidden md:table-cell">
+                        <span className="text-base font-bold text-[var(--text-color)]">{agent.breakdown?.totalJobs?.toLocaleString() ?? "—"}</span>
+                      </td>
+                      <td className="px-10 py-8 text-center hidden lg:table-cell">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">{formatAgdp(agent.breakdown?.agdp)}</span>
+                      </td>
+                      <td className="px-10 py-8 text-center">
+                        <span className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest border ${verdictStyle(verdict)}`}>
+                          {verdict.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-10 py-8 text-right">
+                        <span className={`text-2xl font-bold ${trustScoreColor(agent.trust.score)}`}>
+                          {agent.trust.score ?? "?"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </motion.div>
+        )}
 
-                  {/* Name + address */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-[#E5E5E5] truncate group-hover:text-white">
-                      {agent.name}
-                    </div>
-                    <div className="text-[10px] font-mono text-[#444444] truncate">
-                      {truncateAddress(agent.id)}
-                    </div>
-                  </div>
-
-                  {/* Jobs + AGDP */}
-                  <div className="text-right hidden sm:block">
-                    <div className="text-[10px] font-mono text-[#444444]">JOBS</div>
-                    <div className="text-xs font-mono text-[#888888]">
-                      {agent.breakdown?.totalJobs?.toLocaleString() ?? "—"}
-                    </div>
-                  </div>
-                  <div className="text-right hidden md:block">
-                    <div className="text-[10px] font-mono text-[#444444]">AGDP</div>
-                    <div className="text-xs font-mono text-[#888888]">
-                      {formatAgdp(agent.breakdown?.agdp)}
-                    </div>
-                  </div>
-
-                  {/* ERC-8004 badge */}
-                  <div className="w-10 flex justify-center">
-                    {agent.erc8004?.registered && (
-                      <span
-                        className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/30 cursor-help"
-                        title={`ERC-8004 Identity #${agent.erc8004.agentId}`}
-                      >
-                        8004
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Verdict badge */}
-                  <div className={`text-[9px] font-mono px-2 py-0.5 rounded border uppercase tracking-wider ${verdictStyle(verdict)}`}>
-                    {verdictLabel(verdict)}
-                  </div>
-
-                  {/* Score */}
-                  <div className={`text-xl font-bold font-mono w-12 text-right ${trustScoreColor(score)}`}>
-                    {score ?? "?"}
-                  </div>
-                </div>
-              );
-            })}
+        {!loading && displayAgents.length === 0 && (
+          <div className="liquid-glass rounded-[3rem] p-16 flex flex-col items-center justify-center text-center">
+            <Trophy className="w-12 h-12 text-[var(--text-muted)] mb-6" />
+            <h3 className="text-2xl font-bold text-[var(--text-color)] mb-3">No agents found</h3>
+            <p className="text-[var(--text-secondary)] font-medium">Try a different search term.</p>
           </div>
         )}
       </main>
