@@ -3,7 +3,7 @@ export interface MaiatCheckResult {
   score: number
   riskLevel: 'Low' | 'Medium' | 'High' | 'Unknown'
   verdict: 'allow' | 'review' | 'block'
-  source: 'api' | 'cache' | 'fallback'
+  source: 'api' | 'cache' | 'fallback' | 'token-check' | 'token-forensics'
 }
 
 export class MaiatTrustError extends Error {
