@@ -427,9 +427,8 @@ useEffect(() => {
     try {
       const data = JSON.parse(event.data);
       if (data?.msg) {
-        let sanitizedMsg = data.msg.replace(/mock/gi, 'Verified').replace(/job completed by/gi, 'Operation finality reached via');
         setIntelFeed(prev => {
-          const newFeed = [...prev, { ...data, msg: sanitizedMsg }];
+          const newFeed = [...prev, { ...data }];
           if (newFeed.length > 20) newFeed.shift();
           return newFeed;
         });
@@ -440,6 +439,7 @@ useEffect(() => {
 }, []);
 
 const { data: agentsData } = useSWR('/api/v1/agents?limit=1000&include8004=true', fetcher, { refreshInterval: 30000 });
+const { data: apiStats } = useSWR('/api/v1/stats/api', fetcher, { refreshInterval: 30000 });
 const [fallbackAgent, setFallbackAgent] = useState<any>(null);
 const [directSelectedId, setDirectSelectedId] = useState<string | null>(null);
 
@@ -728,6 +728,8 @@ return (
                   {[
                     { label: 'Total Nodes', val: agentsData?.pagination?.total || radarAgents.length, icon: Globe },
                     { label: 'Ecosystem Vol', val: (() => { const total = agentsData?.agents?.reduce((acc:any,a:any)=>acc+(a.breakdown?.agdp||0),0)||0; return total > 0 ? `$${(total/1000).toFixed(1)}K` : '—'; })(), icon: BarChart3 },
+                    { label: 'Total Queries', val: apiStats?.overview?.total != null ? apiStats.overview.total.toLocaleString() : '—', icon: Activity },
+                    { label: 'Active Callers (7d)', val: apiStats?.overview?.uniqueCallers7d != null ? apiStats.overview.uniqueCallers7d.toLocaleString() : '—', icon: TrendingUp },
                   ].map((item, i) => (
                     <div key={i} className="flex flex-col gap-1 p-3 rounded-xl bg-white/[0.02] border border-white/5">
                       <div className="flex items-center gap-2 text-slate-500"><item.icon size={10} /><span className="text-[8px] font-bold uppercase tracking-widest">{item.label}</span></div>
