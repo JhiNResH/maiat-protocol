@@ -6,7 +6,7 @@
 :root {
   --bg-color: #FDFDFB;
   --text-color: #000000;
-  --text-secondary: rgba(0, 0, 0, 0.6);
+  --text-secondary: #9ca3af;
   --text-muted: #9ca3af;
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(0, 0, 0, 0.08);
@@ -29,9 +29,9 @@
   --bg-page: #0A0A0A;
   --bg-surface: #0A0A0A;
   --bg-elevated: #111111;
-  --text-color: #fff;
-  --text-primary: #f1f5f9;
-  --text-secondary: rgba(255, 255, 255, 0.5);
+  --text-color: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
   --text-muted: #9ca3af;
   --border-default: rgba(255, 255, 255, 0.08);
   --border-subtle: rgba(255, 255, 255, 0.05);
@@ -152,7 +152,7 @@
   --danger-crimson: #ef4444;
   --warning-amber: #d4a017;
   --text-primary: #000000;
-  --text-secondary: #6b7280;
+  --text-secondary: #9ca3af;
   --text-muted: #9ca3af;
 
   /* Monitor — unified with main palette */
