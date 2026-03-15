@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Footer } from "@/components/Footer";
 import { 
   Activity, Users, Target, Clock, BarChart3, 
   Shield, ExternalLink, ArrowUpRight, TrendingUp,
@@ -423,6 +424,7 @@ export default function AnalyticsPage() {
           Generated: {new Date(stats.generatedAt).toLocaleString()}
         </p>
       </main>
+      <Footer />
     </div>
   );
 }

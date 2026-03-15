@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { MarketCard } from "@/components/MarketCard";
+import { Footer } from "@/components/Footer";
 import { Shield, TrendingUp, Clock, Trophy } from "lucide-react";
 
 interface Market {
@@ -14,6 +15,7 @@ interface Market {
   status: "open" | "closed" | "resolved";
   totalPool: number;
   positionCount: number;
+  voterCount?: number;
   closesAt: string;
   topProjects: { projectId: string; totalStake: number }[];
 }
@@ -67,7 +69,7 @@ function MarketsContent() {
   const totalPositions = markets.reduce((acc, m) => acc + m.positionCount, 0);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5] font-['JetBrains_Mono',monospace]">
+    <div className="min-h-screen text-[var(--text-color)] font-['JetBrains_Mono',monospace]">
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Terminal Header */}
         <div className="mb-6">
@@ -271,6 +273,7 @@ function MarketsContent() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

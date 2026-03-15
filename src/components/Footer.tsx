@@ -1,67 +1,94 @@
-import Link from 'next/link'
-import { Feather } from 'lucide-react'
+'use client';
+
+import React from 'react';
+import { ShieldCheck, Twitter, Github } from 'lucide-react';
+import Link from 'next/link';
 
 export function Footer() {
-  const chains = ['Base', 'Ethereum', 'BNB', 'Solana', 'Unichain']
-
   return (
-    <footer className="bg-surface border-t border-border-subtle px-[60px] pt-[60px] pb-8">
-      <div className="flex gap-[60px] w-full">
-        {/* Brand */}
-        <div className="flex-1 flex flex-col gap-4">
-          <div className="flex items-center gap-2.5">
-            <Feather className="w-6 h-6 text-gold" />
-            <span className="font-mono text-lg font-bold tracking-[3px] text-txt-primary">MAIAT</span>
+    <footer className="mt-20 pt-20 pb-10 border-t border-[var(--border-color)] relative overflow-hidden">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
+          <div className="col-span-1 md:col-span-1">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-[var(--text-color)] rounded-full flex items-center justify-center text-[var(--bg-color)]">
+                <ShieldCheck size={24} />
+              </div>
+              <span className="font-mono font-bold text-2xl tracking-tight text-[var(--text-color)]">Maiat</span>
+            </div>
+            <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-8">
+              The decentralized truth layer. Verifying the future of autonomous agent communication and trust.
+            </p>
+            <div className="flex items-center gap-5">
+              <Link href="#" className="w-10 h-10 rounded-full liquid-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-color)] transition-all hover-lift">
+                <Twitter size={20} />
+              </Link>
+              <a
+                href="https://github.com/JhiNResH/maiat-protocol"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full liquid-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-color)] transition-all hover-lift"
+              >
+                <Github size={20} />
+              </a>
+            </div>
           </div>
-          <p className="text-sm text-txt-muted leading-[1.6] max-w-[300px]">
-            Ancient wisdom meets cutting-edge technology. Weighing truth for 4000 years, now in milliseconds.
-          </p>
+
+          <div>
+            <h4 className="font-mono font-bold text-[10px] uppercase tracking-[0.2em] text-[var(--text-color)] mb-8">Product</h4>
+            <ul className="space-y-4">
+              <li><Link href="/" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Verify</Link></li>
+              <li><Link href="/markets" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Markets</Link></li>
+              <li><Link href="/analytics" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Analytics</Link></li>
+              <li><Link href="/leaderboard" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Leaderboard</Link></li>
+              <li><Link href="/passport" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Passport</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-mono font-bold text-[10px] uppercase tracking-[0.2em] text-[var(--text-color)] mb-8">Resources</h4>
+            <ul className="space-y-4">
+              <li><Link href="/docs" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Documentation</Link></li>
+              <li><Link href="/docs" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">API Reference</Link></li>
+              <li>
+                <a
+                  href="https://github.com/JhiNResH/maiat-protocol"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors"
+                >
+                  GitHub
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-mono font-bold text-[10px] uppercase tracking-[0.2em] text-[var(--text-color)] mb-8">Newsletter</h4>
+            <p className="text-[var(--text-secondary)] text-xs mb-6">Stay updated with the latest protocol updates and security alerts.</p>
+            <div className="flex flex-col gap-3">
+              <input
+                type="email"
+                placeholder="Email address"
+                className="liquid-glass rounded-xl px-4 py-3 text-xs w-full focus:outline-none transition-all text-[var(--text-color)] placeholder:text-[var(--text-muted)] bg-transparent"
+              />
+              <button className="bg-[var(--text-color)] text-[var(--bg-color)] px-4 py-3 rounded-xl text-xs font-bold hover:opacity-90 transition-all shadow-lg active:scale-95">
+                Subscribe
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Products */}
-        <div className="flex flex-col gap-4">
-          <span className="text-[13px] font-semibold text-txt-primary">Products</span>
-          <span className="text-[13px] text-txt-muted">Score API</span>
-          <span className="text-[13px] text-txt-muted">v4 Hook</span>
-          <span className="text-[13px] text-txt-muted">AgentKit Plugin</span>
-          <span className="text-[13px] text-txt-muted">MCP Server</span>
-        </div>
-
-        {/* Developers */}
-        <div className="flex flex-col gap-4">
-          <span className="text-[13px] font-semibold text-txt-primary">Developers</span>
-          <Link href="/docs" className="text-[13px] text-txt-muted hover:text-txt-primary transition-colors">Documentation</Link>
-          <a href="https://github.com/JhiNResH/maiat" target="_blank" rel="noopener noreferrer" className="text-[13px] text-txt-muted hover:text-txt-primary transition-colors">GitHub</a>
-          <span className="text-[13px] text-txt-muted">SDK</span>
-          <span className="text-[13px] text-txt-muted">Status</span>
-        </div>
-
-        {/* Community */}
-        <div className="flex flex-col gap-4">
-          <span className="text-[13px] font-semibold text-txt-primary">Community</span>
-          <a href="https://x.com/0xmaiat" target="_blank" rel="noopener noreferrer" className="text-[13px] text-txt-muted hover:text-txt-primary transition-colors">Twitter</a>
-          <span className="text-[13px] text-txt-muted">Discord</span>
-          <span className="text-[13px] text-txt-muted">Blog</span>
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="w-full h-px bg-border-subtle my-12" />
-
-      {/* Bottom */}
-      <div className="flex items-center justify-between w-full">
-        <span className="text-xs text-txt-muted">&copy; 2026 Maiat Protocol. All rights reserved.</span>
-        <div className="flex items-center gap-3">
-          {chains.map((chain) => (
-            <span
-              key={chain}
-              className="text-[11px] font-medium text-txt-muted px-3 py-1 rounded-full border border-border-subtle bg-[#1e203520]"
-            >
-              {chain}
-            </span>
-          ))}
+        <div className="flex flex-col md:flex-row items-center justify-between pt-10 border-t border-[var(--border-color)] gap-6">
+          <p className="text-[var(--text-secondary)] text-[10px] font-medium">© 2026 Maiat Protocol. All rights reserved.</p>
+          <div className="flex items-center gap-8">
+            <Link href="#" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-[10px] font-bold transition-colors">Privacy Policy</Link>
+            <Link href="#" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-[10px] font-bold transition-colors">Terms of Service</Link>
+          </div>
         </div>
       </div>
     </footer>
-  )
+  );
 }
+
+export default Footer;

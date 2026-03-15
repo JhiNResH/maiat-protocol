@@ -102,7 +102,7 @@ export default function ReviewPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
-        <Header />
+        
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
@@ -116,7 +116,7 @@ export default function ReviewPage() {
   if (notFound || !agent) {
     return (
       <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
-        <Header />
+        
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4">
           <div className="w-16 h-16 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center">
             <span className="text-2xl text-gray-600">?</span>
@@ -138,7 +138,7 @@ export default function ReviewPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
-      <Header />
+      
 
       <main className="flex-1 flex flex-col items-center pt-6 px-4 pb-16">
         <div className="w-full max-w-lg space-y-4">

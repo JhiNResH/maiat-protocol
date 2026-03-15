@@ -7,8 +7,8 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' })
 
 export const metadata: Metadata = {
-  title: 'Maiat Protocol | Tactical Monitor',
-  description: 'Real-time agent relationship mapping and trust scoring.',
+  title: 'Maiat Protocol | Trust Layer for AI Agents',
+  description: 'The decentralized truth layer. Verifying the future of autonomous agents and trust.',
 }
 
 export default function RootLayout({
@@ -17,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} ${mono.variable} font-sans bg-[var(--bg-page)] text-txt-primary min-h-screen antialiased`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} ${mono.variable} font-sans antialiased`}>
         <ClientLayout>
           {children}
         </ClientLayout>

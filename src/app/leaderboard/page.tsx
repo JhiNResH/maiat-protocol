@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Shield, Bot, ArrowUpDown, TrendingUp, Zap, Trophy } from "lucide-react";
+import { Footer } from "@/components/Footer";
 
 // ============================================================================
 // TYPES
@@ -190,7 +191,7 @@ function LeaderboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5]">
+    <div className="min-h-screen text-[var(--text-color)]">
       <main className="max-w-5xl mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">
@@ -386,6 +387,7 @@ function LeaderboardPage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }
@@ -448,7 +450,7 @@ function LeaderboardView({
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5]">
+    <div className="min-h-screen text-[var(--text-color)]">
       <main className="max-w-3xl mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
@@ -554,6 +556,7 @@ function LeaderboardView({
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }
