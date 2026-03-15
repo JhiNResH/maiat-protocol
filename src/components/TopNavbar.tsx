@@ -147,7 +147,7 @@ export default function TopNavbar() {
             className="w-7 h-7 rounded-full shadow-lg"
           />
           <span className="font-mono font-bold text-base tracking-widest text-[var(--text-color)] uppercase">
-            MAIAT
+            maiat
           </span>
         </Link>
 
