@@ -378,3 +378,38 @@ model ThreatReport {
 
 /// Wadjet alerts now live in wadjet service DB (Railway)
 /// Protocol queries them via wadjet-client.ts → /sentinel/alerts
+
+/// KYA (Know Your Agent) — Twitter endorsement system
+model KyaCode {
+  id                String           @id @default(cuid())
+  code              String           @unique // MAIAT-XXXX (8 char)
+  agentAddress      String // wallet address of the agent
+  agentName         String? // display name
+  twitterHandle     String? // @AgentName
+  totalEndorsements Int              @default(0)
+  trustBoost        Int              @default(0) // accumulated trust score boost
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  endorsements      KyaEndorsement[]
+
+  @@map("kya_codes")
+  @@index([agentAddress])
+  @@index([code])
+}
+
+model KyaEndorsement {
+  id              String   @id @default(cuid())
+  kyaCodeId       String
+  kyaCode         KyaCode  @relation(fields: [kyaCodeId], references: [id])
+  endorserAddress String // wallet of the person endorsing
+  tweetUrl        String // the tweet URL as proof
+  referrer        String? // ENS name of referrer (from ?ref= param)
+  status          String   @default("pending") // pending | verified | rejected
+  scarabAwarded   Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@unique([kyaCodeId, endorserAddress]) // one endorsement per user per agent
+  @@map("kya_endorsements")
+  @@index([endorserAddress])
+  @@index([status])
+}
