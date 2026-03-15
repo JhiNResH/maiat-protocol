@@ -1,19 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
-import { Header } from '@/components/Header'
+import { motion } from 'framer-motion'
+import { ShieldCheck, Fingerprint, Activity, Search } from 'lucide-react'
 
 export default function PassportIndexPage() {
   const router = useRouter()
   const { authenticated, user, login } = usePrivy()
   const { wallets } = useWallets()
-  const externalWallet = wallets.find(w => w.walletClientType !== 'privy')
+  const externalWallet = wallets.find((w) => w.walletClientType !== 'privy')
   const [manualAddr, setManualAddr] = useState('')
   const [error, setError] = useState('')
 
-  // Auto-redirect if wallet is already connected — prefer external wallet (MetaMask)
+  // Auto-redirect if wallet is already connected
   useEffect(() => {
     const addr = externalWallet?.address ?? user?.wallet?.address
     if (authenticated && addr) {
@@ -31,59 +32,152 @@ export default function PassportIndexPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] flex flex-col text-[#E5E5E5]">
-      <Header />
+    <div className="min-h-screen pb-20 relative">
+      <main className="max-w-6xl mx-auto px-6 relative">
+        {/* Hero */}
+        <section className="text-center mb-24 pt-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-3 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--text-color)] px-6 py-2 rounded-full text-[10px] font-bold tracking-widest uppercase mb-12"
+          >
+            <span className="w-2 h-2 bg-[var(--text-color)] rounded-full animate-pulse" />
+            Live on Mainnet
+          </motion.div>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 pb-16">
-        <div className="w-full max-w-sm space-y-6">
+          <motion.h1
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            className="atmosphere-text font-black text-[var(--text-color)]"
+          >
+            Your <br />
+            <span className="text-[var(--text-muted)]">Identity</span>
+          </motion.h1>
 
-          <div className="text-center">
-            <h1 className="text-white font-mono font-bold text-xl mb-2">Trust Passport</h1>
-            <p className="text-gray-500 font-mono text-xs leading-relaxed">
-              Your on-chain reputation score, review history,<br />
-              and trust level in the Maiat network.
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="text-[var(--text-secondary)] text-2xl max-w-2xl mx-auto mb-16 font-medium mt-8"
+          >
+            The decentralized standard for digital reputation and Sybil resistance. One passport, infinite access.
+          </motion.p>
+
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={login}
+            className="bg-[var(--text-color)] text-[var(--bg-color)] px-12 py-5 rounded-2xl font-bold shadow-xl shadow-black/5 hover:opacity-90 transition-all flex items-center gap-4 mx-auto uppercase tracking-widest text-[10px]"
+          >
+            <ShieldCheck size={20} />
+            Connect Wallet to View Passport
+          </motion.button>
+        </section>
+
+        {/* Bento Grid Preview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-stretch">
+          {/* Recent Reviews */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="liquid-glass rounded-[3rem] border-white/40 p-12 flex flex-col items-center justify-center text-center min-h-[400px] hover-lift"
+          >
+            <div className="w-24 h-24 bg-[var(--card-bg)] rounded-[2rem] flex items-center justify-center text-[var(--text-muted)] mb-10">
+              <Activity size={48} />
+            </div>
+            <h3 className="text-3xl font-bold mb-4 text-[var(--text-color)]">Recent Reviews</h3>
+            <p className="text-[var(--text-secondary)] font-medium">
+              Connect your wallet to see your review history.
             </p>
-          </div>
+          </motion.div>
 
-          {/* Connect wallet */}
-          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-6 text-center">
-            <p className="text-gray-400 font-mono text-sm mb-4">View your passport</p>
+          {/* Main Passport Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="liquid-glass rounded-[3rem] border-white/40 p-12 flex flex-col items-center justify-center text-center min-h-[450px] relative overflow-hidden group hover-lift"
+          >
+            <div className="absolute top-0 left-0 w-full h-2 bg-[var(--text-color)]" />
+            <div className="w-24 h-24 bg-[var(--card-bg)] rounded-full flex items-center justify-center text-[var(--text-color)] mb-10 group-hover:bg-[var(--text-color)] group-hover:text-[var(--bg-color)] transition-all">
+              <Fingerprint size={48} />
+            </div>
+            <h2 className="text-6xl font-bold mb-6 text-[var(--text-color)] tracking-tighter leading-none">
+              Your<br />Passport
+            </h2>
+            <p className="text-[var(--text-secondary)] mb-12 font-medium">
+              Connect wallet to generate your unique reputation score.
+            </p>
             <button
               onClick={login}
-              className="w-full bg-[#3b82f6] hover:bg-[#DC2626] text-white font-mono font-bold text-sm py-3 rounded-lg transition-colors"
+              className="bg-[var(--text-color)] text-[var(--bg-color)] px-10 py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-black/5"
             >
-              Connect Wallet
+              Connect Wallet to Generate
             </button>
-          </div>
+          </motion.div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-[#222]" />
-            <span className="text-gray-600 font-mono text-xs">or look up any wallet</span>
-            <div className="flex-1 h-px bg-[#222]" />
-          </div>
+          {/* Activity Heatmap */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+            className="liquid-glass rounded-[3rem] border-white/40 p-12 flex flex-col items-center justify-center text-center min-h-[400px] hover-lift"
+          >
+            <div className="grid grid-cols-7 gap-3 mb-10">
+              {Array.from({ length: 28 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-7 h-7 rounded-lg transition-colors ${
+                    i % 5 === 0 ? 'bg-[var(--text-color)]' :
+                    i % 3 === 0 ? 'bg-[var(--text-secondary)]' :
+                    i % 2 === 0 ? 'bg-[var(--text-muted)]' : 'bg-[var(--card-bg)]'
+                  }`}
+                />
+              ))}
+            </div>
+            <h3 className="text-3xl font-bold mb-4 text-[var(--text-color)]">Activity Heatmap</h3>
+            <p className="text-[var(--text-secondary)] font-medium">Start contributing to build your map</p>
+          </motion.div>
+        </div>
 
-          {/* Manual lookup */}
-          <div className="space-y-2">
-            <div className="flex gap-2">
+        {/* Manual Lookup */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="mt-16 text-center"
+        >
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-6">
+            Or look up any address
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
+            <div className="relative flex-1">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
               <input
                 type="text"
+                placeholder="0x... wallet address"
                 value={manualAddr}
-                onChange={e => { setManualAddr(e.target.value); setError('') }}
-                onKeyDown={e => e.key === 'Enter' && handleLookup()}
-                placeholder="0x wallet address…"
-                className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-default)] focus:border-[#3b82f6] text-white font-mono text-sm px-4 py-2.5 rounded-lg outline-none transition-colors placeholder:text-gray-600"
+                onChange={(e) => { setManualAddr(e.target.value); setError('') }}
+                onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+                className="w-full liquid-glass rounded-2xl pl-12 pr-6 py-4 text-sm text-[var(--text-color)] placeholder:text-[var(--text-muted)] outline-none focus:ring-2 focus:ring-[var(--text-color)]/5 transition-all"
               />
-              <button
-                onClick={handleLookup}
-                className="border border-[var(--border-default)] hover:border-[#555] text-gray-300 font-mono text-sm px-4 py-2.5 rounded-lg transition-colors"
-              >
-                →
-              </button>
             </div>
-            {error && <p className="text-slate-400 font-mono text-xs">{error}</p>}
+            <button
+              onClick={handleLookup}
+              className="bg-[var(--text-color)] text-[var(--bg-color)] px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:opacity-90 transition-all shrink-0"
+            >
+              Look Up
+            </button>
           </div>
-
-        </div>
+          {error && (
+            <p className="mt-3 text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-widest">{error}</p>
+          )}
+        </motion.div>
       </main>
     </div>
   )

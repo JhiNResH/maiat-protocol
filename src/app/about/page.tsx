@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5]">
-      <Header />
+      
 
       <main className="max-w-3xl mx-auto px-4 py-12">
         {/* Header */}

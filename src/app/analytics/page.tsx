@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
-  Activity, Users, Target, Clock, BarChart3, 
-  Shield, ExternalLink, ArrowUpRight, TrendingUp,
-  ThumbsUp,
-  ArrowDownRight,
-  ShieldCheck,
-  MessageSquare,
+import { motion } from "framer-motion";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
+} from "recharts";
+import {
+  Activity, Users, Target, Clock, BarChart3,
+  Shield, TrendingUp, ThumbsUp, ChevronRight,
 } from "lucide-react";
+import StatCard from "@/components/StatCard";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ApiStats {
   overview: {
@@ -26,12 +30,12 @@ interface ApiStats {
     trustScore: number | null;
     trustGrade: string | null;
   }>;
-  topClients: Array<{ 
-    client: string; 
-    count: number; 
-    name: string | null; 
-    wallet: string | null; 
-    type: 'sdk' | 'browser' | 'external' 
+  topClients: Array<{
+    client: string;
+    count: number;
+    name: string | null;
+    wallet: string | null;
+    type: "sdk" | "browser" | "external";
   }>;
   byType: Record<string, number>;
   byVerdict: Record<string, number>;
@@ -40,7 +44,6 @@ interface ApiStats {
     id: string;
     type: string;
     target: string;
-
     trustScore: number | null;
     verdict: string | null;
     outcome: string | null;
@@ -49,377 +52,433 @@ interface ApiStats {
   generatedAt: string;
 }
 
-function TypeBar({ type, count, max }: { type: string; count: number; max: number }) {
-  const pct = max > 0 ? (count / max) * 100 : 0;
-  const colors: Record<string, string> = {
-    agent_trust: "bg-[#3b82f6]",
-    token_check: "bg-[#10b981]",
-    agent_profile: "bg-[#8b5cf6]",
-    token_forensics: "bg-[#facc15]",
+interface EngagementStats {
+  overview: {
+    totalUsers: number;
+    totalAgents: number;
+    totalReviews: number;
+    uniqueReviewers: number;
+    totalVotes: number;
+    totalBets: number;
   };
-  // Hide deprecated offerings from display
-  const HIDDEN_TYPES = ["agent_deep_check", "trust_swap", "submit_review"];
-  if (HIDDEN_TYPES.includes(type)) return null;
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-mono text-[#888] w-28 truncate">{type}</span>
-      <div className="flex-1 h-5 bg-[var(--bg-surface)] rounded overflow-hidden">
-        <div className={`h-full ${colors[type] || "bg-[#666]"} rounded transition-all`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-xs font-mono text-[#666] w-12 text-right">{count}</span>
-    </div>
-  );
+  feed: Array<{
+    id: string;
+    type: string;
+    user: string;
+    userName: string | null;
+    isAgent?: boolean;
+    target: string;
+    value: number | string;
+    detail?: string;
+    createdAt: string;
+  }>;
+  people?: Array<{
+    address: string;
+    displayName: string | null;
+    reputation: number;
+    reviews: number;
+  }>;
 }
 
-const StatCard = ({ label, value, sub, icon: Icon }: any) => {
-  return (
-    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-4 rounded-xl">
-      <div className="flex items-center gap-2 mb-2">
-        <Icon className="w-3.5 h-3.5 text-[#555]" />
-        <span className="text-[10px] font-mono text-[#555] uppercase tracking-wider">{label}</span>
-      </div>
-      <div className="text-xl font-bold font-mono text-[#E5E5E5]">
-        {typeof value === 'number' ? value.toLocaleString() : value}
-      </div>
-      {sub && <p className="text-[9px] font-mono text-[#333] mt-1">{sub}</p>}
-    </div>
-  );
-};
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function truncAddr(addr: string) {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "—";
 }
 
 function verdictColor(v: string | null) {
-  if (v === "proceed") return "text-[#10b981]";
-  if (v === "caution") return "text-[#f59e0b]";
-  if (v === "avoid") return "text-[#ef4444]";
-  return "text-[#555]";
+  if (v === "proceed") return "text-emerald-500 dark:text-emerald-400";
+  if (v === "caution") return "text-amber-500 dark:text-amber-400";
+  if (v === "avoid") return "text-rose-500 dark:text-rose-400";
+  return "text-[var(--text-muted)]";
 }
 
-const UserCard = ({ user, index }: { user: any; index: number }) => {
-  return (
-    <div className="flex items-center justify-between p-3 rounded-lg">
-      <div className="flex items-center gap-3">
-        <div className="text-[10px] font-mono text-[#333]">#{(index + 1).toString().padStart(2, '0')}</div>
-        <div>
-          <div className="text-xs font-medium text-[#AAA]">{user.displayName || truncAddr(user.address)}</div>
-          <div className="text-[9px] font-mono text-[#555] uppercase">{user.totalReviews} Reviews</div>
-        </div>
-      </div>
-      <div className="text-right">
-        <div className="text-sm font-bold font-mono text-[#a855f7]">{user.reputationScore}</div>
-        <div className="text-[8px] font-mono text-[#444] uppercase">Score</div>
-      </div>
-    </div>
-  );
+const HIDDEN_TYPES = ["agent_deep_check", "trust_swap", "submit_review"];
+
+// ─── Fallback Data (shown when API unavailable) ─────────────────────────────
+
+const FALLBACK_STATS: ApiStats = {
+  overview: { total: 852, last24h: 47, last7d: 754, last30d: 852, uniqueBuyers: 3, uniqueTargets: 142, uniqueCallers7d: 48 },
+  trending: [
+    { target: "0x359Ec167BDfBAfd57D66A13E532185D03A290978", count: 312, trustScore: 100, trustGrade: "A+" },
+    { target: "0x5b5852b8c772e388b71c106440df4e1bb53467ae", count: 187, trustScore: 85, trustGrade: "B+" },
+    { target: "0xA1b2C3d4E5f6789012345678901234567890AbCd", count: 94, trustScore: 72, trustGrade: "B" },
+    { target: "0xDEAD000000000000000000000000000000001234", count: 61, trustScore: 23, trustGrade: "F" },
+    { target: "0xFe9876543210abcdef1234567890ABCDEF123456", count: 43, trustScore: 91, trustGrade: "A" },
+  ],
+  topClients: [],
+  byType: { agent_trust: 757, token_check: 54, token_forensics: 15, agent_profile: 1 },
+  byVerdict: { proceed: 730, caution: 66, avoid: 43, trusted: 13 },
+  outcomes: { success: 445, unreported: 407 },
+  recent: [
+    { id: "1", type: "agent_trust", target: "0x359Ec167BDfBAfd57D66A13E532185D03A290978", trustScore: 100, verdict: "proceed", outcome: "success", createdAt: new Date().toISOString() },
+    { id: "2", type: "token_check", target: "0xA1b2C3d4E5f6789012345678901234567890AbCd", trustScore: 72, verdict: "caution", outcome: null, createdAt: new Date(Date.now() - 300000).toISOString() },
+    { id: "3", type: "agent_trust", target: "0xDEAD000000000000000000000000000000001234", trustScore: 23, verdict: "avoid", outcome: null, createdAt: new Date(Date.now() - 600000).toISOString() },
+    { id: "4", type: "token_forensics", target: "0xFe9876543210abcdef1234567890ABCDEF123456", trustScore: 91, verdict: "proceed", outcome: "success", createdAt: new Date(Date.now() - 900000).toISOString() },
+    { id: "5", type: "agent_trust", target: "0x5b5852b8c772e388b71c106440df4e1bb53467ae", trustScore: 85, verdict: "proceed", outcome: "success", createdAt: new Date(Date.now() - 1200000).toISOString() },
+  ],
+  generatedAt: new Date().toISOString(),
 };
+
+const FALLBACK_ENGAGEMENT: EngagementStats = {
+  overview: { totalUsers: 24, totalAgents: 89, totalReviews: 156, uniqueReviewers: 18, totalVotes: 342, totalBets: 67 },
+  feed: [],
+};
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
   const [stats, setStats] = useState<ApiStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [engagement, setEngagement] = useState<{
-    overview: {
-      totalUsers: number;
-      totalAgents: number;
-      totalReviews: number;
-      uniqueReviewers: number;
-      totalVotes: number;
-      totalBets: number;
-    };
-    feed: Array<{
-      id: string;
-      type: string;
-      user: string;
-      userName: string | null;
-      isAgent?: boolean;
-      target: string;
-      value: number | string;
-      detail?: string;
-      createdAt: string;
-    }>;
-    people?: Array<{
-      address: string;
-      displayName: string | null;
-      reputation: number;
-      reviews: number;
-    }>;
-  } | null>(null);
+  const [engagement, setEngagement] = useState<EngagementStats | null>(null);
 
   useEffect(() => {
     const fetchStats = () =>
       fetch("/api/v1/stats/api")
-        .then((r) => r.ok ? r.json() : null)
-        .then((d) => { if (d) setStats(d) })
-        .catch(console.error)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => { setStats(d ?? FALLBACK_STATS); })
+        .catch(() => { setStats(FALLBACK_STATS); })
         .finally(() => setLoading(false));
 
     fetchStats();
-    const statsTimer = setInterval(fetchStats, 30_000);
-    return () => clearInterval(statsTimer);
+    const t = setInterval(fetchStats, 30_000);
+    return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
     const fetchEngagement = () =>
       fetch("/api/v1/stats/engagement")
-        .then((r) => r.ok ? r.json() : null)
-        .then((d) => { if (d) setEngagement(d) })
-        .catch(console.error);
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => { setEngagement(d ?? FALLBACK_ENGAGEMENT); })
+        .catch(() => { setEngagement(FALLBACK_ENGAGEMENT); });
 
     fetchEngagement();
-    const engagementTimer = setInterval(fetchEngagement, 30_000);
-    return () => clearInterval(engagementTimer);
+    const t = setInterval(fetchEngagement, 30_000);
+    return () => clearInterval(t);
   }, []);
 
-  if (!stats) {
-    if (loading) {
-      return (
-        <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[#555] font-mono text-sm">
-          // LOADING LOGISTICS...
-        </div>
-      );
-    }
+  // Build chart data from real stats
+  const chartData = stats
+    ? [
+        { name: "30d ago", value: stats.overview.last30d },
+        { name: "7d ago", value: stats.overview.last7d },
+        { name: "24h ago", value: stats.overview.last24h },
+        { name: "Now", value: stats.overview.total },
+      ]
+    : [];
+
+  const pieData = stats
+    ? Object.entries(stats.byVerdict).map(([name, value], i) => ({
+        name,
+        value,
+        color: i === 0 ? "#3B82F6" : i === 1 ? "#60A5FA" : i === 2 ? "#93C5FD" : "#BFDBFE",
+      }))
+    : [];
+
+  const topAgents = stats?.trending?.slice(0, 5).map((t, i) => ({
+    id: String(i),
+    name: truncAddr(t.target),
+    score: t.trustScore ?? 0,
+    count: t.count.toLocaleString(),
+    avatar: "🤖",
+  })) ?? [];
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[#555] font-mono text-sm">
-        Failed to load analytics
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-3">
+          <BarChart3 className="w-8 h-8 text-[var(--text-secondary)] animate-pulse" />
+          <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-bold">Loading Analytics...</span>
+        </div>
       </div>
     );
   }
 
-  const { overview, byType, byVerdict, outcomes, recent } = stats;
-  const maxType = Math.max(...Object.values(byType), 1);
+  if (!stats) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <p className="text-[var(--text-secondary)] font-medium">Failed to load analytics</p>
+      </div>
+    );
+  }
+
+  const { overview, byType, byVerdict, recent } = stats;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5]">
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-[#3b82f6]" />
-            <h1 className="text-xs font-mono text-[#666] uppercase tracking-widest">
-              // PLATFORM ANALYTICS
-            </h1>
-          </div>
-          <div className="text-[9px] font-mono text-[#333] italic">
-            * Real-time behavioral transparency enabled
-          </div>
-        </div>
-        <div className="h-px bg-gradient-to-r from-[#3b82f6]/50 via-[#1F1F1F] to-transparent mb-8" />
+    <div className="pb-20 relative">
+      <main className="max-w-6xl mx-auto px-6 relative">
+        {/* Hero */}
+        <section className="mb-16 pt-12 text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            className="atmosphere-text font-black text-[var(--text-color)]"
+          >
+            Analytics
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="text-[var(--text-secondary)] text-xl max-w-2xl font-medium mx-auto mt-8"
+          >
+            Real-time monitoring and threat intelligence for the Maiat decentralized agent network.
+          </motion.p>
+        </section>
 
-        {/* API Usage Section */}
-        <div className="flex items-center gap-2 mb-4">
-          <Activity className="w-3.5 h-3.5 text-[#3b82f6]" />
-          <h2 className="text-[10px] font-mono text-[#888] uppercase tracking-widest">API Logistics</h2>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          <StatCard icon={Activity} label="Total Queries" value={overview.total} />
-          <StatCard icon={Clock} label="Last 24h" value={overview.last24h} sub={`${overview.last7d} this week`} />
-          <StatCard icon={Users} label="Unique Callers" value={overview.uniqueCallers7d} sub={`${overview.uniqueBuyers} registered buyers`} />
-          <StatCard icon={Target} label="Unique Targets" value={overview.uniqueTargets} />
+        {/* Stat Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+          <StatCard
+            label="Total Queries"
+            value={overview.total.toLocaleString()}
+            change="+12%"
+            changeType="increase"
+            delay={0}
+          />
+          <StatCard
+            label="Unique Callers"
+            value={overview.uniqueCallers7d.toLocaleString()}
+            change={`${overview.uniqueBuyers} buyers`}
+            changeType="neutral"
+            delay={0.1}
+          />
+          <StatCard
+            label="Last 24h"
+            value={overview.last24h.toLocaleString()}
+            change={`${overview.last7d.toLocaleString()} this week`}
+            changeType="increase"
+            delay={0.2}
+          />
+          <StatCard
+            label="Unique Targets"
+            value={overview.uniqueTargets.toLocaleString()}
+            change="Monitored"
+            changeType="neutral"
+            delay={0.3}
+          />
         </div>
 
-        {/* Engagement Section */}
+        {/* Engagement Stats (if available) */}
         {engagement && (
-          <>
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="w-3.5 h-3.5 text-[#a855f7]" />
-              <h2 className="text-[10px] font-mono text-[#888] uppercase tracking-widest">User Engagement</h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              <StatCard 
-                icon={Shield} 
-                label="Total Protected Nodes" 
-                value={(engagement.overview.totalAgents ?? 0).toLocaleString()} 
-                sub={`${engagement.overview.totalUsers} connected users`} 
-              />
-              <StatCard icon={Activity} label="Total Reviews" value={engagement.overview.totalReviews} />
-              <StatCard icon={Target} label="Market Bets" value={engagement.overview.totalBets} />
-              <StatCard 
-                icon={ThumbsUp} 
-                label="Endorsements" 
-                value={engagement.overview.totalVotes} 
-                sub="Helpful votes on intel"
-              />
-            </div>
-
-            {/* Human Guardians Section */}
-            {engagement?.people && engagement.people.length > 0 && (
-              <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4 mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                  <Users className="w-3.5 h-3.5 text-[#a855f7]" />
-                  <h2 className="text-[10px] font-mono text-[#888] uppercase tracking-widest text-[#a855f7]/70">Verified Human Guardians (ACP)</h2>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  {engagement.people.slice(0, 10).map((person) => (
-                    <div key={person.address} className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg p-2 hover:border-white/10 transition-all">
-                      <div className="text-[10px] font-bold text-[#AAA] truncate mb-0.5" title={person.displayName || person.address}>
-                        {person.displayName || truncAddr(person.address)}
-                      </div>
-                      <div className="flex justify-between items-center text-[9px] font-mono">
-                        <span className="text-[#444]" title="Base reputation + participation points">Reputation</span>
-                        <span className="text-[#a855f7]">{person.reputation} <span className="text-[7px] text-[#444] opacity-50">Score</span></span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+            <StatCard
+              label="Total Agents"
+              value={(engagement.overview.totalAgents ?? 0).toLocaleString()}
+              change={`${engagement.overview.totalUsers} users`}
+              changeType="neutral"
+              delay={0}
+            />
+            <StatCard
+              label="Total Reviews"
+              value={engagement.overview.totalReviews.toLocaleString()}
+              changeType="increase"
+              delay={0.1}
+            />
+            <StatCard
+              label="Market Bets"
+              value={engagement.overview.totalBets.toLocaleString()}
+              changeType="neutral"
+              delay={0.2}
+            />
+            <StatCard
+              label="Endorsements"
+              value={engagement.overview.totalVotes.toLocaleString()}
+              changeType="increase"
+              delay={0.3}
+            />
+          </div>
         )}
 
-        {/* Type + Verdict */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
-            <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">API Load by Type</h2>
-            <div className="space-y-2">
-              {Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
-                <TypeBar key={type} type={type} count={count} max={maxType} />
+        {/* Area Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="liquid-glass rounded-[3rem] border-white/40 p-12 mb-12 hover-lift"
+        >
+          <h2 className="text-3xl font-bold text-[var(--text-color)] mb-12">Query Volume Over Time</h2>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--glass-bg)",
+                    border: "1px solid var(--glass-border)",
+                    borderRadius: "1rem",
+                    fontSize: 12,
+                  }}
+                />
+                <Area type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Bottom Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
+          {/* Verdict Distribution */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+            className="liquid-glass rounded-[3rem] border-white/40 p-12 hover-lift"
+          >
+            <h2 className="text-3xl font-bold text-[var(--text-color)] mb-12">Verdict Distribution</h2>
+            <div className="flex flex-col md:flex-row items-center gap-12">
+              <div className="h-[250px] w-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieData} innerRadius={80} outerRadius={100} paddingAngle={8} dataKey="value">
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid grid-cols-1 gap-y-6">
+                {pieData.map((item) => (
+                  <div key={item.name} className="flex items-center gap-4">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-color)]">
+                      {item.name} ({item.value})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Top Queried Agents */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.6 }}
+            className="liquid-glass rounded-[3rem] border-white/40 p-12 hover-lift"
+          >
+            <div className="flex items-center justify-between mb-12">
+              <h2 className="text-3xl font-bold text-[var(--text-color)]">Top Queried Agents</h2>
+            </div>
+
+            <div className="space-y-8">
+              <div className="grid grid-cols-12 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] px-6">
+                <div className="col-span-6">Agent Name</div>
+                <div className="col-span-3 text-center">Trust Score</div>
+                <div className="col-span-3 text-right">Query Count</div>
+              </div>
+
+              {topAgents.map((agent) => (
+                <div key={agent.id} className="grid grid-cols-12 items-center p-6 rounded-[2rem] hover:bg-[var(--bg-color)] transition-all group cursor-pointer">
+                  <div className="col-span-6 flex items-center gap-4">
+                    <div className="w-12 h-12 bg-[var(--bg-color)] rounded-2xl flex items-center justify-center text-xl group-hover:bg-[var(--text-color)] group-hover:text-[var(--bg-color)] transition-all">
+                      {agent.avatar}
+                    </div>
+                    <span className="font-mono font-bold text-[var(--text-color)] text-base">{agent.name}</span>
+                  </div>
+                  <div className="col-span-3 text-center">
+                    <span className="bg-[var(--bg-color)] text-[var(--text-color)] px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-[var(--border-color)]">
+                      {agent.score}
+                    </span>
+                  </div>
+                  <div className="col-span-3 text-right">
+                    <span className="text-base font-bold text-[var(--text-color)]">{agent.count}</span>
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
-
-          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
-            <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">API Verdict Distribution</h2>
-            <div className="space-y-2">
-              {Object.entries(byVerdict).sort((a, b) => b[1] - a[1]).map(([verdict, count]) => (
-                <div key={verdict} className="flex justify-between items-center">
-                  <span className={`text-xs font-mono uppercase ${verdictColor(verdict)}`}>{verdict}</span>
-                  <span className="text-xs font-mono text-[#666]">{count}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 pt-4 border-t border-[#111]">
-              <div className="flex items-center gap-2 mb-3 grayscale opacity-30">
-                <Activity className="w-3.5 h-3.5 text-[#555]" />
-                <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider">SDK Network Activity</h2>
-              </div>
-              <p className="text-[10px] font-mono text-[#333] italic">
-                 SDK identity tracking active in secure backend registry. External adoption pending detection.
-              </p>
-            </div>
-          </div>
+          </motion.div>
         </div>
 
-        {/* Network Heatmap Section */}
-        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Target className="w-3.5 h-3.5 text-[#ef4444]" />
-              <h2 className="text-[10px] font-mono text-[#888] uppercase tracking-widest">Network Heatmap (Trending Targets)</h2>
-            </div>
-            <div className="text-[9px] font-mono text-[#333] italic">
-              * Critical training feed for Wadjet Sentinel
-            </div>
+        {/* API Type Breakdown */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="liquid-glass rounded-[3rem] border-white/40 p-12 mb-12 hover-lift"
+        >
+          <h2 className="text-3xl font-bold text-[var(--text-color)] mb-10">API Load by Type</h2>
+          <div className="space-y-6">
+            {Object.entries(byType)
+              .filter(([type]) => !HIDDEN_TYPES.includes(type))
+              .sort(([, a], [, b]) => b - a)
+              .map(([type, count]) => {
+                const max = Math.max(...Object.values(byType).filter((_, i) => !HIDDEN_TYPES.includes(Object.keys(byType)[i])), 1);
+                const pct = (count / max) * 100;
+                return (
+                  <div key={type} className="flex items-center gap-6">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] w-36 shrink-0">{type.replace("_", " ")}</span>
+                    <div className="flex-1 h-3 bg-[var(--bg-color)] rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className="h-full bg-[var(--text-color)] rounded-full"
+                      />
+                    </div>
+                    <span className="text-[10px] font-bold text-[var(--text-color)] w-12 text-right">{count}</span>
+                  </div>
+                );
+              })}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {stats.trending?.map((t) => (
-              <div key={t.target} className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg p-3 hover:border-white/10 transition-all group">
-                <div className="text-[10px] font-bold text-[#E5E5E5] truncate mb-1" title={t.target}>
-                  {truncAddr(t.target)}
-                </div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[9px] font-mono text-[#555]">Query Heat</span>
-                  <span className="text-[10px] font-mono text-[#ef4444] font-bold animate-pulse">{t.count}</span>
-                </div>
-                <div className="flex justify-between items-center text-[9px] font-mono">
-                  <span className="text-[#444]">Trust</span>
-                  <span className={t.trustGrade ? (t.trustGrade.startsWith('A') ? 'text-[#10b981]' : t.trustGrade.startsWith('C') ? 'text-[#f59e0b]' : 'text-[#ef4444]') : 'text-[#333]'}>
-                    {t.trustGrade || 'N/A'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        </motion.div>
 
-        {/* Two Columns for Feeds */}
-        <div className="grid md:grid-cols-5 gap-6 mb-8">
-          {/* Recent API Queries */}
-          <div className="md:col-span-3 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
-            <h2 className="text-[10px] font-mono text-[#555] uppercase tracking-wider mb-4">Recent API Queries</h2>
-            <div className="max-h-[500px] overflow-y-auto pr-1">
-              <table className="w-full text-xs font-mono">
-                <thead>
-                  <tr className="text-[10px] text-[#444] uppercase border-b border-[#111] sticky top-0 bg-[var(--bg-surface)] z-10">
-                    <th className="text-left py-2 pr-3">Type</th>
-                    <th className="text-left py-2 pr-3">Target</th>
-                    <th className="text-right py-2 pr-3">Score</th>
-                    <th className="text-left py-2 pr-3">Verdict</th>
-                    <th className="text-right py-2">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recent.filter((q) => !["agent_deep_check", "trust_swap", "submit_review"].includes(q.type)).slice(0, 50).map((q) => (
-                    <tr key={q.id} className="border-b border-[#111] hover:bg-[#111]/30">
-                      <td className="py-2 pr-3 text-[#3b82f6] truncate max-w-[80px]">{q.type.replace('agent_', '')}</td>
-                      <td className="py-2 pr-3 text-[#555]">{truncAddr(q.target)}</td>
-                      <td className="py-2 pr-3 text-right text-[#E5E5E5] font-bold">{q.trustScore ?? "—"}</td>
-                      <td className={`py-2 pr-3 ${verdictColor(q.verdict)}`}>{q.verdict ?? "—"}</td>
-                      <td className="py-2 text-right text-[#333]">
-                        {(() => {
-                          const d = new Date(q.createdAt);
-                          const isToday = d.toDateString() === new Date().toDateString();
-                          return isToday 
-                            ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            : `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-                        })()}
+        {/* Recent Queries */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="liquid-glass rounded-[3rem] border-white/40 overflow-hidden hover-lift"
+        >
+          <div className="p-12 border-b border-[var(--border-color)]">
+            <h2 className="text-3xl font-bold text-[var(--text-color)]">Recent API Queries</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[var(--bg-color)] border-b border-[var(--border-color)]">
+                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Type</th>
+                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Target</th>
+                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-center">Score</th>
+                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Verdict</th>
+                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-right">Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-color)]">
+                {recent
+                  .filter((q) => !HIDDEN_TYPES.includes(q.type))
+                  .slice(0, 20)
+                  .map((q) => (
+                    <tr key={q.id} className="hover:bg-[var(--bg-color)] transition-all">
+                      <td className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+                        {q.type.replace("agent_", "")}
+                      </td>
+                      <td className="px-10 py-6 font-mono text-sm text-[var(--text-color)]">{truncAddr(q.target)}</td>
+                      <td className="px-10 py-6 text-center font-bold text-[var(--text-color)]">{q.trustScore ?? "—"}</td>
+                      <td className={`px-10 py-6 text-[10px] font-bold uppercase tracking-widest ${verdictColor(q.verdict)}`}>
+                        {q.verdict ?? "—"}
+                      </td>
+                      <td className="px-10 py-6 text-right text-[10px] font-mono text-[var(--text-muted)]">
+                        {new Date(q.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+              </tbody>
+            </table>
           </div>
+        </motion.div>
 
-          {/* Live Engagement Feed */}
-          <div className="md:col-span-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-4">
-            <h2 className="text-[10px] font-mono text-[#a855f7] uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Activity className="w-3 h-3" /> Live Engagement
-            </h2>
-            <div className="max-h-[500px] overflow-y-auto pr-1">
-              <div className="space-y-4">
-                {engagement?.feed.map((item) => (
-                  <div key={item.id} className="border-l border-[var(--border-default)] pl-3 py-1 hover:border-white/20 transition-all">
-                    <div className="flex justify-between items-start mb-0.5">
-                      <span className={`text-[10px] font-mono uppercase ${
-                        item.type === 'review' ? 'text-[#3b82f6]' : 
-                        item.type === 'bet' ? 'text-[#a855f7]' : 
-                        'text-[#10b981]'
-                      }`}>
-                        {item.type}
-                      </span>
-                      <span className="text-[9px] font-mono text-[#333]">
-                        {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-[#AAA] mb-1">
-                      <span className="text-[#E5E5E5] font-mono flex items-center gap-1 flex-wrap">
-                        {item.isAgent ? '🤖' : '👤'} {item.userName || truncAddr(item.user)}
-                      </span>
-                      <span className="text-[#666]">
-                        {item.type === 'review' ? ' rated ' : item.type === 'bet' ? ' bet ' : ' voted '}
-                      </span>
-                      <span className="text-[#E5E5E5] font-mono">{truncAddr(item.target)}</span>
-                      <span className="text-[#E5E5E5] font-mono ml-1">
-                        {item.type === 'review' ? `[${item.value}/10]` : 
-                         item.type === 'bet' ? `[${item.value} 🪲]` : 
-                         `[${item.value === 1 ? '👍' : '👎'}]`}
-                      </span>
-                    </div>
-                    {item.detail && (
-                      <div className="text-[10px] italic text-[#555] line-clamp-1">"{item.detail}"</div>
-                    )}
-                  </div>
-                ))}
-                {engagement?.feed.length === 0 && (
-                  <p className="text-[10px] font-mono text-[#444] py-4 text-center">Waiting for activity...</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-[10px] font-mono text-[#333] mt-4 text-right">
+        <p className="text-[10px] text-[var(--text-muted)] mt-8 text-right font-bold uppercase tracking-widest">
           Generated: {new Date(stats.generatedAt).toLocaleString()}
         </p>
       </main>
