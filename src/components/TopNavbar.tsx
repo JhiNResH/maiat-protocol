@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { Sun, Moon, Wallet, LogOut, User, Flame } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import useSWR from 'swr';
@@ -22,14 +21,14 @@ const navLinks = [
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-// ─── macOS Dock magnification effect ──────────────────────────────────────────
+// ─── macOS Dock magnification effect (matches passport-ens exactly) ───────────
 
-function NavDock({ pathname }: { pathname: string }) {
+function NavDock({ pathname, isDark }: { pathname: string; isDark: boolean }) {
   const mouseX = useMotionValue(-Infinity);
 
   return (
     <motion.div
-      className="hidden md:flex items-center gap-0.5 px-2 py-1 rounded-full"
+      className="hidden md:flex items-center gap-0.5"
       onMouseMove={(e) => mouseX.set(e.clientX)}
       onMouseLeave={() => mouseX.set(-Infinity)}
     >
@@ -38,6 +37,7 @@ function NavDock({ pathname }: { pathname: string }) {
           key={link.name}
           link={link}
           mouseX={mouseX}
+          isDark={isDark}
           isActive={pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))}
         />
       ))}
@@ -48,10 +48,12 @@ function NavDock({ pathname }: { pathname: string }) {
 function DockItem({
   link,
   mouseX,
+  isDark,
   isActive,
 }: {
   link: { name: string; href: string };
   mouseX: ReturnType<typeof useMotionValue<number>>;
+  isDark: boolean;
   isActive: boolean;
 }) {
   const ref = useRef<HTMLAnchorElement>(null);
@@ -66,38 +68,27 @@ function DockItem({
 
   return (
     <Link ref={ref} href={link.href} className="relative">
-      <motion.div
-        style={{ scale: springScale }}
-        className="px-3 py-2 rounded-full whitespace-nowrap relative"
-      >
-        {isActive && (
-          <motion.div
-            layoutId="nav-pill"
-            className="absolute inset-0 bg-[var(--text-color)]/10 rounded-full"
-            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-          />
-        )}
+      <motion.div style={{ scale: springScale }} className="px-5 py-2 rounded-full">
         <span
-          className={cn(
-            'relative z-10 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors',
+          className={`text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${
             isActive
-              ? 'text-[var(--text-color)]'
-              : 'text-[var(--text-muted)] hover:text-[var(--text-color)]'
-          )}
+              ? isDark ? 'text-white' : 'text-black'
+              : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-black'
+          }`}
         >
           {link.name}
         </span>
       </motion.div>
-
     </Link>
   );
 }
 
-// ─── Main Navbar ──────────────────────────────────────────────────────────────
+// ─── Main Navbar (structure matches passport-ens exactly) ─────────────────────
 
 export default function TopNavbar() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
   const { authenticated, user, login, logout } = usePrivy();
   const { wallets } = useWallets();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -117,7 +108,6 @@ export default function TopNavbar() {
   const externalWallet = wallets.find((w) => w.walletClientType !== 'privy');
   const walletAddress = externalWallet?.address ?? user?.wallet?.address;
 
-  // Scarab balance
   const { data: scarab } = useSWR(
     walletAddress ? `/api/v1/scarab?address=${walletAddress}` : null,
     fetcher
@@ -131,104 +121,123 @@ export default function TopNavbar() {
 
   return (
     <motion.nav
-      initial={{ y: -100, x: '-50%', opacity: 0 }}
-      animate={{ y: navVisible ? 0 : -100, x: '-50%', opacity: navVisible ? 1 : 0 }}
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: navVisible ? 0 : -100, opacity: navVisible ? 1 : 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed top-6 left-1/2 z-50 w-[95%] max-w-5xl"
+      className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-5xl rounded-full px-6 py-3 flex items-center justify-between border transition-all duration-500 ${
+        isDark
+          ? 'bg-white/5 border-white/[0.08] shadow-[inset_0_0_30px_rgba(255,255,255,0.02),0_30px_100px_rgba(0,0,0,0.3)]'
+          : 'bg-white/70 border-black/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.05)]'
+      }`}
+      style={{ backdropFilter: 'blur(60px) saturate(180%)', WebkitBackdropFilter: 'blur(60px) saturate(180%)' }}
     >
-      <div className="liquid-glass px-6 py-3 flex items-center justify-between rounded-full">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-          <Image
-            src="/maiat-logo.jpg"
-            alt="Maiat"
-            width={28}
-            height={28}
-            className="w-7 h-7 rounded-full shadow-lg"
-          />
-          <span className="font-mono font-bold text-base tracking-widest text-[var(--text-color)]">
-            maiat
-          </span>
-        </Link>
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+        <Image
+          src="/maiat-logo.jpg"
+          alt="Maiat"
+          width={28}
+          height={28}
+          className="w-7 h-7 rounded-full shadow-lg"
+        />
+        <span className={`font-mono font-bold text-base tracking-widest ${isDark ? 'text-white' : 'text-black'}`}>
+          maiat
+        </span>
+      </Link>
 
-        {/* Nav Links (desktop) — macOS Dock magnification */}
-        <NavDock pathname={pathname} />
+      {/* Nav Links (desktop) — macOS Dock magnification */}
+      <NavDock pathname={pathname} isDark={isDark} />
 
-        {/* Right side */}
-        <div className="flex items-center gap-3">
-          {/* Scarab balance (when logged in) */}
-          {authenticated && walletAddress && (
-            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)]">
-              <span className="text-sm">🪲</span>
-              <span className="text-[10px] font-bold text-[var(--text-color)]">
-                {scarab?.balance ?? '0'}
-              </span>
-            </div>
-          )}
+      {/* Right side */}
+      <div className="flex items-center gap-3">
+        {/* Scarab balance (when logged in) */}
+        {authenticated && walletAddress && (
+          <div className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${
+            isDark ? 'bg-white/10 border-white/10' : 'bg-black/5 border-black/5'
+          }`}>
+            <span className="text-sm">🪲</span>
+            <span className={`text-[10px] font-bold ${isDark ? 'text-white' : 'text-black'}`}>
+              {scarab?.balance ?? '0'}
+            </span>
+          </div>
+        )}
 
-          {/* Theme toggle */}
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all active:scale-90 ${
+            isDark ? 'bg-white/10 border-white/10 text-yellow-400' : 'bg-black/5 border-black/5 text-gray-500'
+          }`}
+          aria-label="Toggle theme"
+        >
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+
+        {/* Wallet button */}
+        {!authenticated ? (
           <button
-            onClick={toggleTheme}
-            className="w-9 h-9 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-color)] transition-colors"
-            aria-label="Toggle theme"
+            onClick={login}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] hover:opacity-90 transition-all shadow-lg ${
+              isDark ? 'bg-white text-black' : 'bg-black text-white'
+            }`}
           >
-            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+            <Wallet size={13} />
+            <span className="hidden sm:inline">Connect</span>
           </button>
-
-          {/* Wallet button */}
-          {!authenticated ? (
+        ) : (
+          <div className="relative">
             <button
-              onClick={login}
-              className="flex items-center gap-2 bg-[var(--text-color)] text-[var(--bg-color)] px-5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] hover:opacity-90 transition-all shadow-lg"
+              onClick={() => setMenuOpen((o) => !o)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-bold transition-all border ${
+                isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-black/5 border-black/5 text-black'
+              }`}
             >
-              <Wallet size={13} />
-              <span className="hidden sm:inline">Connect</span>
+              <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <User size={10} className="text-emerald-500" />
+              </div>
+              <span className="hidden sm:inline font-mono">{truncate(walletAddress || '')}</span>
             </button>
-          ) : (
-            <div className="relative">
-              <button
-                onClick={() => setMenuOpen((o) => !o)}
-                className="flex items-center gap-2 bg-[var(--card-bg)] border border-[var(--border-color)] px-4 py-2 rounded-full text-[10px] font-bold text-[var(--text-color)] hover:opacity-80 transition-all"
-              >
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                  <User size={10} className="text-emerald-500" />
-                </div>
-                <span className="hidden sm:inline font-mono">{truncate(walletAddress || '')}</span>
-              </button>
 
-              {menuOpen && (
-                <div className="absolute right-0 top-12 liquid-glass rounded-2xl p-3 min-w-[180px] space-y-2">
-                  {/* Scarab claim */}
-                  {scarabStatus?.claimedToday ? (
-                    <Link
-                      href="/passport"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20"
-                    >
-                      <span>✓ Scarab Claimed</span>
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/passport"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-[10px] font-bold text-[var(--text-color)] hover:bg-[var(--card-bg)] transition-colors border border-[var(--border-color)]"
-                    >
-                      <Flame size={12} className="text-amber-500" />
-                      <span>Claim Scarab</span>
-                    </Link>
-                  )}
-                  <button
-                    onClick={() => { logout(); setMenuOpen(false); }}
-                    className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-[10px] font-bold text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-500/5 transition-colors"
+            {menuOpen && (
+              <div className={`absolute right-0 top-12 rounded-2xl p-3 min-w-[180px] space-y-2 border ${
+                isDark
+                  ? 'bg-black/90 border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.5)]'
+                  : 'bg-white/90 border-black/5 shadow-[0_20px_50px_rgba(0,0,0,0.1)]'
+              }`} style={{ backdropFilter: 'blur(40px)' }}>
+                {/* Scarab claim */}
+                {scarabStatus?.claimedToday ? (
+                  <Link
+                    href="/passport"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20"
                   >
-                    <LogOut size={12} />
-                    <span>Disconnect</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                    <span>✓ Scarab Claimed</span>
+                  </Link>
+                ) : (
+                  <Link
+                    href="/passport"
+                    onClick={() => setMenuOpen(false)}
+                    className={`flex items-center gap-2 w-full px-3 py-2 rounded-xl text-[10px] font-bold transition-colors border ${
+                      isDark ? 'text-white border-white/10 hover:bg-white/5' : 'text-black border-black/5 hover:bg-black/5'
+                    }`}
+                  >
+                    <Flame size={12} className="text-amber-500" />
+                    <span>Claim Scarab</span>
+                  </Link>
+                )}
+                <button
+                  onClick={() => { logout(); setMenuOpen(false); }}
+                  className={`flex items-center gap-2 w-full px-3 py-2 rounded-xl text-[10px] font-bold transition-colors ${
+                    isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/5' : 'text-gray-500 hover:text-red-400 hover:bg-red-500/5'
+                  }`}
+                >
+                  <LogOut size={12} />
+                  <span>Disconnect</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </motion.nav>
   );
