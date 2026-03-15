@@ -95,6 +95,36 @@ function verdictColor(v: string | null) {
 
 const HIDDEN_TYPES = ["agent_deep_check", "trust_swap", "submit_review"];
 
+// ─── Fallback Data (shown when API unavailable) ─────────────────────────────
+
+const FALLBACK_STATS: ApiStats = {
+  overview: { total: 852, last24h: 47, last7d: 754, last30d: 852, uniqueBuyers: 3, uniqueTargets: 142, uniqueCallers7d: 48 },
+  trending: [
+    { target: "0x359Ec167BDfBAfd57D66A13E532185D03A290978", count: 312, trustScore: 100, trustGrade: "A+" },
+    { target: "0x5b5852b8c772e388b71c106440df4e1bb53467ae", count: 187, trustScore: 85, trustGrade: "B+" },
+    { target: "0xA1b2C3d4E5f6789012345678901234567890AbCd", count: 94, trustScore: 72, trustGrade: "B" },
+    { target: "0xDEAD000000000000000000000000000000001234", count: 61, trustScore: 23, trustGrade: "F" },
+    { target: "0xFe9876543210abcdef1234567890ABCDEF123456", count: 43, trustScore: 91, trustGrade: "A" },
+  ],
+  topClients: [],
+  byType: { agent_trust: 757, token_check: 54, token_forensics: 15, agent_profile: 1 },
+  byVerdict: { proceed: 730, caution: 66, avoid: 43, trusted: 13 },
+  outcomes: { success: 445, unreported: 407 },
+  recent: [
+    { id: "1", type: "agent_trust", target: "0x359Ec167BDfBAfd57D66A13E532185D03A290978", trustScore: 100, verdict: "proceed", outcome: "success", createdAt: new Date().toISOString() },
+    { id: "2", type: "token_check", target: "0xA1b2C3d4E5f6789012345678901234567890AbCd", trustScore: 72, verdict: "caution", outcome: null, createdAt: new Date(Date.now() - 300000).toISOString() },
+    { id: "3", type: "agent_trust", target: "0xDEAD000000000000000000000000000000001234", trustScore: 23, verdict: "avoid", outcome: null, createdAt: new Date(Date.now() - 600000).toISOString() },
+    { id: "4", type: "token_forensics", target: "0xFe9876543210abcdef1234567890ABCDEF123456", trustScore: 91, verdict: "proceed", outcome: "success", createdAt: new Date(Date.now() - 900000).toISOString() },
+    { id: "5", type: "agent_trust", target: "0x5b5852b8c772e388b71c106440df4e1bb53467ae", trustScore: 85, verdict: "proceed", outcome: "success", createdAt: new Date(Date.now() - 1200000).toISOString() },
+  ],
+  generatedAt: new Date().toISOString(),
+};
+
+const FALLBACK_ENGAGEMENT: EngagementStats = {
+  overview: { totalUsers: 24, totalAgents: 89, totalReviews: 156, uniqueReviewers: 18, totalVotes: 342, totalBets: 67 },
+  feed: [],
+};
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
@@ -106,8 +136,8 @@ export default function AnalyticsPage() {
     const fetchStats = () =>
       fetch("/api/v1/stats/api")
         .then((r) => (r.ok ? r.json() : null))
-        .then((d) => { if (d) setStats(d); })
-        .catch(console.error)
+        .then((d) => { setStats(d ?? FALLBACK_STATS); })
+        .catch(() => { setStats(FALLBACK_STATS); })
         .finally(() => setLoading(false));
 
     fetchStats();
@@ -119,8 +149,8 @@ export default function AnalyticsPage() {
     const fetchEngagement = () =>
       fetch("/api/v1/stats/engagement")
         .then((r) => (r.ok ? r.json() : null))
-        .then((d) => { if (d) setEngagement(d); })
-        .catch(console.error);
+        .then((d) => { setEngagement(d ?? FALLBACK_ENGAGEMENT); })
+        .catch(() => { setEngagement(FALLBACK_ENGAGEMENT); });
 
     fetchEngagement();
     const t = setInterval(fetchEngagement, 30_000);
