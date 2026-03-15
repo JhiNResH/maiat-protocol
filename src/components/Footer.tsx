@@ -33,7 +33,7 @@ export default function Footer() {
             <h4 className="font-display font-bold text-[10px] uppercase tracking-[0.2em] text-[var(--text-color)] mb-8">Product</h4>
             <ul className="space-y-4">
               <li><Link href="https://github.com/JhiNResH/maiat-guard" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Maiat Guard</Link></li>
-              <li><Link href="https://github.com/JhiNResH/maiat-protocol" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Maiat ACP</Link></li>
+              <li><Link href="https://app.virtuals.io/acp/agent/18281" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Maiat ACP</Link></li>
 
               <li><Link href="https://app.ens.domains/maiat.eth" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">maiat.eth</Link></li>
             </ul>
