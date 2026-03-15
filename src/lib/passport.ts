@@ -10,9 +10,18 @@ import {
   createWalletClient,
   http,
   getAddress,
+  fallback,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { baseSepolia } from 'viem/chains'
+import { baseSepolia, base } from 'viem/chains'
+
+// Use env-configured chain; default to Base Sepolia for safety
+const PASSPORT_CHAIN = process.env.PASSPORT_CHAIN === 'mainnet' ? base : baseSepolia
+
+// Match erc8004.ts RPC priority order — override via PASSPORT_RPC_URL env var
+const PASSPORT_RPC_URLS: string[] = process.env.PASSPORT_RPC_URL
+  ? [process.env.PASSPORT_RPC_URL]
+  : ['https://base.gateway.tenderly.co', 'https://mainnet.base.org', 'https://sepolia.base.org']
 
 const PASSPORT_ABI = [
   {
@@ -67,8 +76,8 @@ export async function mintPassportSBT(
   const checksummed = getAddress(walletAddress)
 
   const publicClient = createPublicClient({
-    chain: baseSepolia,
-    transport: http(),
+    chain: PASSPORT_CHAIN,
+    transport: fallback(PASSPORT_RPC_URLS.map((url) => http(url))),
   })
 
   // Check if already has passport on-chain
@@ -104,8 +113,8 @@ export async function mintPassportSBT(
   const account = privateKeyToAccount(adminKey as `0x${string}`)
   const walletClient = createWalletClient({
     account,
-    chain: baseSepolia,
-    transport: http(),
+    chain: PASSPORT_CHAIN,
+    transport: http(PASSPORT_RPC_URLS[0]),
   })
 
   const txHash = await walletClient.writeContract({
