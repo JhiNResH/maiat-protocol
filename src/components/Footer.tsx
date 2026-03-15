@@ -35,7 +35,7 @@ export default function Footer() {
               <li><Link href="https://github.com/JhiNResH/maiat-guard" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Maiat Guard</Link></li>
               <li><Link href="https://app.virtuals.io/acp/agent/18281" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Maiat ACP</Link></li>
 
-              <li><Link href="https://app.ens.domains/maiat.eth" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">maiat.eth</Link></li>
+              <li><Link href="/skill.md" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">skill.md</Link></li>
             </ul>
           </div>
 
