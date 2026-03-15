@@ -5,21 +5,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { generateKyaCode } from '@/lib/kya';
+import { generateKyaCode, kyaCorsHeaders } from '@/lib/kya';
 
 export const dynamic = 'force-dynamic';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-
-export async function OPTIONS() {
+export async function OPTIONS(req: NextRequest) {
+  const CORS = kyaCorsHeaders(req.headers.get('origin'));
   return new NextResponse(null, { status: 204, headers: CORS });
 }
 
 export async function POST(req: NextRequest) {
+  const CORS = kyaCorsHeaders(req.headers.get('origin'));
   try {
     const body = await req.json();
     const { agentAddress, agentName, twitterHandle } = body as {
