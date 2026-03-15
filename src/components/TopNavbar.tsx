@@ -88,13 +88,7 @@ function DockItem({
           {link.name}
         </span>
       </motion.div>
-      {isActive && (
-        <motion.div
-          layoutId="nav-dot"
-          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[var(--text-color)] rounded-full"
-          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-        />
-      )}
+
     </Link>
   );
 }
