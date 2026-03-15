@@ -188,7 +188,7 @@
 }
 
 body {
-  background-color: var(--bg-page);
+  background-color: transparent;
   color: var(--text-primary);
   min-height: 100vh;
 }
