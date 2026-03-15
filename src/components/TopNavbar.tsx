@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { Sun, Moon, Wallet, LogOut, User, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -21,6 +21,85 @@ const navLinks = [
 ];
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+// ─── macOS Dock magnification effect ──────────────────────────────────────────
+
+function NavDock({ pathname }: { pathname: string }) {
+  const mouseX = useMotionValue(-Infinity);
+
+  return (
+    <motion.div
+      className="hidden md:flex items-center gap-0.5 px-2 py-1 rounded-full"
+      onMouseMove={(e) => mouseX.set(e.clientX)}
+      onMouseLeave={() => mouseX.set(-Infinity)}
+    >
+      {navLinks.map((link) => (
+        <DockItem
+          key={link.name}
+          link={link}
+          mouseX={mouseX}
+          isActive={pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))}
+        />
+      ))}
+    </motion.div>
+  );
+}
+
+function DockItem({
+  link,
+  mouseX,
+  isActive,
+}: {
+  link: { name: string; href: string };
+  mouseX: ReturnType<typeof useMotionValue<number>>;
+  isActive: boolean;
+}) {
+  const ref = useRef<HTMLAnchorElement>(null);
+
+  const distance = useTransform(mouseX, (val: number) => {
+    const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
+    return val - bounds.x - bounds.width / 2;
+  });
+
+  const scale = useTransform(distance, [-120, 0, 120], [1, 1.35, 1]);
+  const springScale = useSpring(scale, { mass: 0.1, stiffness: 200, damping: 12 });
+
+  return (
+    <Link ref={ref} href={link.href} className="relative">
+      <motion.div
+        style={{ scale: springScale }}
+        className="px-4 py-2 rounded-full whitespace-nowrap relative"
+      >
+        {isActive && (
+          <motion.div
+            layoutId="nav-pill"
+            className="absolute inset-0 bg-[var(--text-color)]/10 rounded-full"
+            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+          />
+        )}
+        <span
+          className={cn(
+            'relative z-10 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors',
+            isActive
+              ? 'text-[var(--text-color)]'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-color)]'
+          )}
+        >
+          {link.name}
+        </span>
+      </motion.div>
+      {isActive && (
+        <motion.div
+          layoutId="nav-dot"
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[var(--text-color)] rounded-full"
+          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+        />
+      )}
+    </Link>
+  );
+}
+
+// ─── Main Navbar ──────────────────────────────────────────────────────────────
 
 export default function TopNavbar() {
   const pathname = usePathname();
@@ -67,40 +146,8 @@ export default function TopNavbar() {
             </span>
           </Link>
 
-          {/* Nav Links (desktop) */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
-              return (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className="relative px-4 py-2 rounded-full whitespace-nowrap"
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-pill"
-                      className="absolute inset-0 bg-[var(--text-color)]/10 rounded-full"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                  <motion.span
-                    className={cn(
-                      'relative z-10 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors',
-                      isActive
-                        ? 'text-[var(--text-color)]'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-color)]'
-                    )}
-                    whileHover={{ scale: 1.08 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                  >
-                    {link.name}
-                  </motion.span>
-                </Link>
-              );
-            })}
-          </div>
+          {/* Nav Links (desktop) — macOS Dock magnification */}
+          <NavDock pathname={pathname} />
         </div>
 
         {/* Right side */}
