@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -107,6 +107,18 @@ export default function TopNavbar() {
   const { authenticated, user, login, logout } = usePrivy();
   const { wallets } = useWallets();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navVisible, setNavVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const currentY = window.scrollY;
+      setNavVisible(currentY < 50 || currentY < lastScrollY.current);
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const externalWallet = wallets.find((w) => w.walletClientType !== 'privy');
   const walletAddress = externalWallet?.address ?? user?.wallet?.address;
@@ -126,8 +138,8 @@ export default function TopNavbar() {
   return (
     <motion.nav
       initial={{ y: -100, x: '-50%', opacity: 0 }}
-      animate={{ y: 0, x: '-50%', opacity: 1 }}
-      transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+      animate={{ y: navVisible ? 0 : -100, x: '-50%', opacity: navVisible ? 1 : 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       className="fixed top-6 left-1/2 z-50 w-[95%] max-w-5xl"
     >
       <div className="liquid-glass px-6 py-3 flex items-center justify-between rounded-full">
