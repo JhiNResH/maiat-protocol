@@ -6,6 +6,7 @@ import { apiLog } from "@/lib/logger";
 import { blendTrustScore } from "@/lib/scoring";
 import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
 import { attestReview, EAS_REVIEW_SCHEMA_UID } from "@/lib/eas";
+import { verifyAgentJWT } from "@/lib/auth";
 
 // --- DB: Prisma (Supabase) with in-memory fallback for local dev ---
 let prisma: import("@prisma/client").PrismaClient | null = null;
@@ -41,7 +42,7 @@ const rateLimiter = createRateLimiter("review", 30, 60);
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Maiat-Client, X-Maiat-Key",
+  "Access-Control-Allow-Headers": "Content-Type, X-Maiat-Client, X-Maiat-Key, Authorization",
 };
 
 export async function OPTIONS() {
@@ -251,8 +252,31 @@ export async function POST(request: NextRequest) {
     let { address, rating, comment, tags, reviewer, signature, easReceiptId, txHash } = body;
     let source: string = body.source === 'agent' ? 'agent' : 'human';
 
+    // --- JWT Auth Gate (Authorization: Bearer <token>) ---
+    // Agent-first path: if a valid JWT is present, skip all other auth.
+    let jwtAuth = false;
+    const authHeader = request.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      try {
+        const jwtPayload = await verifyAgentJWT(token);
+        // JWT is valid — auto-set reviewer from JWT, force agent source
+        reviewer = jwtPayload.address;
+        source = 'agent';
+        jwtAuth = true;
+        signature = undefined; // skip signature check
+        txHash = undefined;    // skip txHash check
+      } catch (jwtErr: any) {
+        // JWT present but invalid → reject (don't fall through to other methods)
+        return NextResponse.json(
+          { error: "Invalid or expired Bearer token", detail: jwtErr.message },
+          { status: 401, headers: CORS_HEADERS }
+        );
+      }
+    }
+
     // --- Auto-resolve reviewer from X-Maiat-Client header ---
-    const clientId = request.headers.get("x-maiat-client");
+    const clientId = !jwtAuth ? request.headers.get("x-maiat-client") : null;
     let clientIdAuth = false; // true if authenticated via X-Maiat-Client
 
     if (clientId) {
@@ -312,11 +336,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Step 1: Verify wallet ownership (signature OR txHash OR X-Maiat-Client) ---
+    // --- Step 1: Verify wallet ownership (JWT OR signature OR txHash OR X-Maiat-Client) ---
     let txHashVerified = false;
     let txHashInteracts = false;
 
-    if (clientIdAuth) {
+    if (jwtAuth) {
+      // Authenticated via JWT Bearer token — reviewer already set, skip all other verification
+    } else if (clientIdAuth) {
       // Authenticated via X-Maiat-Client header — skip signature/txHash verification
       // The agent identified itself via a stable client ID. This is sufficient for
       // agent-submitted reviews (weighted 0.5x anyway).
@@ -727,6 +753,7 @@ export async function POST(request: NextRequest) {
         txHashInteracts,
         passportLevel,
         easWeight: weight,
+        jwtAuth,
       },
     }, { status: 201, headers: CORS_HEADERS });
   } catch (err) {
