@@ -16,7 +16,7 @@
   --atmosphere-opacity: 0.6;
   --atmosphere-gradient-1: rgba(16, 185, 129, 0.08);
   --atmosphere-gradient-2: rgba(59, 130, 246, 0.08);
-  --text-gradient: linear-gradient(to bottom, #000 0%, #000 70%, #555 100%);
+  --text-gradient: linear-gradient(to bottom, #000 0%, #6b7280 100%);
   --rail-color: rgba(0, 0, 0, 0.3);
   --marquee-border: rgba(0, 0, 0, 0.05);
   --border-color: rgba(0, 0, 0, 0.08);
@@ -43,7 +43,7 @@
   --atmosphere-opacity: 0.4;
   --atmosphere-gradient-1: rgba(16, 185, 129, 0.1);
   --atmosphere-gradient-2: rgba(59, 130, 246, 0.1);
-  --text-gradient: linear-gradient(to bottom, #fff 0%, #fff 60%, #888 100%);
+  --text-gradient: linear-gradient(to bottom, #fff 0%, #6b7280 100%);
   --rail-color: rgba(255, 255, 255, 0.2);
   --marquee-border: rgba(255, 255, 255, 0.05);
   --border-color: rgba(255, 255, 255, 0.05);
