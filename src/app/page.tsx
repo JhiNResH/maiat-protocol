@@ -171,7 +171,8 @@ const VerifyResultPanel = ({ address }: { address: string }) => {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-const recentVerifications = [
+// Fallback data shown while API loads
+const fallbackVerifications = [
   { id: '1', address: '0x71c...0E2f', status: 'TRUSTED', score: 92 },
   { id: '2', address: '0xaf2...3c41', status: 'SUSPICIOUS', score: 42 },
   { id: '3', address: 'vitalik.eth', status: 'TRUSTED', score: 98 },
@@ -187,6 +188,71 @@ export default function VerifyPage() {
 
   // Fetch real stats
   const { data: statsData } = useSWR('/api/v1/stats/engagement', fetcher);
+  // Fetch real API stats (recent queries, trending)
+  const { data: apiStats } = useSWR('/api/v1/stats/api', fetcher);
+
+  // Build live verifications from real query data
+  const recentVerifications = React.useMemo(() => {
+    if (!apiStats?.recent?.length) return fallbackVerifications;
+    return apiStats.recent
+      .filter((q: any) => q.target && q.trustScore != null)
+      .slice(0, 5)
+      .map((q: any, i: number) => ({
+        id: q.id || String(i),
+        address: q.target.length > 12
+          ? `${q.target.slice(0, 6)}...${q.target.slice(-4)}`
+          : q.target,
+        fullAddress: q.target,
+        status: q.verdict === 'TRUSTED' || q.verdict === 'SAFE' || (q.trustScore >= 50) ? 'TRUSTED' : 'SUSPICIOUS',
+        score: Math.round(q.trustScore),
+      }));
+  }, [apiStats]);
+
+  // Compute global trust index from trending agents
+  const globalTrustScore = React.useMemo(() => {
+    if (!apiStats?.trending?.length) return 0;
+    const withScores = apiStats.trending.filter((t: any) => t.trustScore != null);
+    if (withScores.length === 0) return 0;
+    const avg = withScores.reduce((sum: number, t: any) => sum + t.trustScore, 0) / withScores.length;
+    return Math.round(avg);
+  }, [apiStats]);
+
+  // Build live network activity from recent queries
+  const networkActivity = React.useMemo(() => {
+    if (!apiStats?.recent?.length) return null;
+    const typeColors: Record<string, string> = {
+      agent_trust: 'bg-blue-50 dark:bg-blue-500/10 text-blue-500',
+      token_check: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500',
+      token_forensics: 'bg-purple-50 dark:bg-purple-500/10 text-purple-500',
+      trust_swap: 'bg-amber-50 dark:bg-amber-500/10 text-amber-500',
+      agent_profile: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-500',
+    };
+    const typeLabels: Record<string, string> = {
+      agent_trust: 'Agent Verify',
+      token_check: 'Token Check',
+      token_forensics: 'Token Forensics',
+      trust_swap: 'Trust Swap',
+      agent_profile: 'Agent Profile',
+    };
+    return apiStats.recent.slice(0, 3).map((q: any) => {
+      const target = q.target?.length > 12
+        ? `${q.target.slice(0, 6)}...${q.target.slice(-4)}`
+        : (q.target || 'unknown');
+      const now = Date.now();
+      const created = new Date(q.createdAt).getTime();
+      const diffMs = now - created;
+      const diffSec = Math.floor(diffMs / 1000);
+      const time = diffSec < 60 ? `${diffSec}s ago`
+        : diffSec < 3600 ? `${Math.floor(diffSec / 60)}m ago`
+        : `${Math.floor(diffSec / 3600)}h ago`;
+      return {
+        method: typeLabels[q.type] || q.type,
+        target,
+        time,
+        color: typeColors[q.type] || 'bg-gray-50 dark:bg-gray-500/10 text-gray-500',
+      };
+    });
+  }, [apiStats]);
 
   const handleVerify = () => {
     const val = searchValue.trim();
@@ -399,13 +465,15 @@ export default function VerifyPage() {
               <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-10">Global Trust Index</p>
 
               <div className="mb-10">
-                <TrustScoreGauge score={92} />
+                <TrustScoreGauge score={globalTrustScore || 0} />
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-left">
                 <div className="bg-[var(--card-bg)] p-5 rounded-[2rem] border border-[var(--border-color)]">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Anti-Poison</p>
-                  <p className="text-xs font-bold text-emerald-500 dark:text-emerald-400 flex items-center gap-2">Clean <CheckCircle2 size={12} /></p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Agents Scored</p>
+                  <p className="text-xs font-bold text-emerald-500 dark:text-emerald-400 flex items-center gap-2">
+                    {apiStats?.overview?.uniqueTargets?.toLocaleString() ?? '—'} <CheckCircle2 size={12} />
+                  </p>
                 </div>
                 <div className="bg-[var(--card-bg)] p-5 rounded-[2rem] border border-[var(--border-color)]">
                   <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Network</p>
@@ -427,11 +495,11 @@ export default function VerifyPage() {
                 <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-color)]">Network Activity</h2>
               </div>
               <div className="space-y-8">
-                {[
-                  { method: 'Agent Verify', target: '0x71c...8E2F', time: '12s ago', color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-500' },
-                  { method: 'Trust Score', target: '0x3F2...2a11', time: '4m ago', color: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500' },
-                  { method: 'EAS Attest', target: '0x111...bcde', time: '16m ago', color: 'bg-purple-50 dark:bg-purple-500/10 text-purple-500' },
-                ].map((act, i) => (
+                {(networkActivity || [
+                  { method: 'Agent Verify', target: '0x71c...8E2F', time: '—', color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-500' },
+                  { method: 'Token Check', target: '0x3F2...2a11', time: '—', color: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500' },
+                  { method: 'Token Forensics', target: '0x111...bcde', time: '—', color: 'bg-purple-50 dark:bg-purple-500/10 text-purple-500' },
+                ]).map((act: any, i: number) => (
                   <div key={i} className="flex items-start justify-between group cursor-pointer">
                     <div className="flex gap-4">
                       <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110", act.color)}>
