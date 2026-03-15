@@ -26,9 +26,15 @@
 
 .dark {
   --bg-color: #0A0A0A;
+  --bg-page: #0A0A0A;
+  --bg-surface: #0A0A0A;
+  --bg-elevated: #111111;
   --text-color: #fff;
+  --text-primary: #f1f5f9;
   --text-secondary: rgba(255, 255, 255, 0.5);
   --text-muted: #9ca3af;
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.05);
   --glass-bg: rgba(20, 20, 20, 0.4);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-shadow: 
@@ -43,6 +49,7 @@
   --border-color: rgba(255, 255, 255, 0.05);
   --card-bg: rgba(255, 255, 255, 0.02);
   --mesh-color: rgba(255, 255, 255, 0.02);
+  --monitor-bg: #0A0A0A;
 }
 
 .liquid-glass {
@@ -130,11 +137,11 @@
 /* ─── Legacy design system colors (kept for API pages / existing components) ─── */
 :root {
   /* Design system colors */
-  --bg-page: #0A0A0A;
-  --bg-surface: #0A0A0A;
-  --bg-elevated: #111111;
-  --border-default: #1e2035;
-  --border-subtle: #181928;
+  --bg-page: #FDFDFB;
+  --bg-surface: #FDFDFB;
+  --bg-elevated: #f5f5f5;
+  --border-default: rgba(0,0,0,0.08);
+  --border-subtle: rgba(0,0,0,0.05);
   --primary-gold: #d4a017;
   --primary-gold-light: #e8b84a;
   --primary-gold-dim: #b8860b;
@@ -144,12 +151,12 @@
   --success-emerald: #10b981;
   --danger-crimson: #ef4444;
   --warning-amber: #d4a017;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
+  --text-primary: #000000;
+  --text-secondary: #6b7280;
   --text-muted: #9ca3af;
 
   /* Monitor — unified with main palette */
-  --monitor-bg: #0A0A0A;
+  --monitor-bg: #FDFDFB;
   --monitor-primary: #6d8aff;
   --monitor-danger: #ef4444;
   --monitor-warning: #d4a017;
