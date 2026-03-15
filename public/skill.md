@@ -51,19 +51,19 @@ User asks: "Is this agent trustworthy?"
 **Maiat Protocol** = API gateway + frontend (Next.js, Vercel)  
 **Wadjet** = ML brain — all prediction, scanning, alerting (Python, Railway)  
 **ACP Offerings** = data input layer — every query feeds Wadjet  
-**Coverage:** Indexes 14,600+ agents from the Virtuals ACP network (18,000+ total)
+**Coverage:** Indexes 18,600+ agents from the Virtuals ACP network
 
 ---
 
 ## ACP Offerings (5 total)
 
-| Offering | Price | What it does |
-|---|---|---|
-| `agent_trust` | $0.02 | Complete trust + behavioral profile. Returns: trustScore, verdict (trusted/proceed/caution/avoid), riskOutlook, behavioral analysis (trend, buyer diversity, wash-trading detection), tokenHealth via Wadjet |
-| `token_check` | $0.01 | Quick token safety check — honeypot, tax, liquidity, basic risk. Verdict: trusted/proceed/caution/avoid |
-| `token_forensics` | $0.05 | Deep rug pull analysis — contract ownership, holder concentration, liquidity depth, Wadjet ML (XGBoost on 9,500+ agents). Returns: rugScore 0-100, riskLevel, detailed breakdown |
-| `agent_reputation` | $0.03 | Community reviews, sentiment, market consensus |
-| `trust_swap` | $0.05 | Trust-gated swap — bundles token_check + Uniswap quote in one call. Returns trust verdict + unsigned calldata. You sign and submit — Maiat never holds funds |
+| Offering | Price | TTL | What it does |
+|---|---|---|---|
+| `agent_trust` | $0.02 USDC | 5min | Before paying another agent, call this to verify their reliability. Returns: trustScore 0-100, verdict (proceed/caution/avoid), completionRate, paymentRate, expireRate, totalJobs — sourced from on-chain Virtuals ACP job history, covers all 18,600+ registered agents. Use when: you are about to hire an unknown agent for any job. If verdict is 'avoid', do not proceed. For checking a token address before swapping, use token_check instead. |
+| `token_check` | $0.01 USDC | 5min | Before swapping into an unknown ERC-20 token on Base, call this to verify it is safe. Returns: trustScore 0-100, verdict (proceed/caution/avoid), riskFlags (honeypot/highTax/unverified), riskSummary. Use when: you have a token address and want to know if it is safe to buy. For hiring agents instead of checking tokens, use agent_trust. For a bundled check+swap in one call, use trust_swap. |
+| `token_forensics` | $0.05 USDC | 5min | Deep rug pull risk analysis for any ERC-20 token on Base. Powered by Wadjet ML engine (XGBoost trained on 9,500+ agents) blended with on-chain heuristics: contract ownership & proxy patterns, holder concentration & whale distribution, liquidity depth & lock status, and trading pattern flags. Returns: rugScore 0-100 (blended 60% ML + 40% heuristic), riskLevel (low/medium/high/critical), detailed contract/holder/liquidity breakdown, Wadjet ML confidence score, and individual scoring components. |
+| `trust_swap` | $0.05 USDC | 5min | Trust-gated token swap: bundles token_check + Uniswap quote in one call. Before returning calldata, verifies the output token for honeypot risk, tax, and contract safety. Returns: trustScore, verdict, riskFlags, riskSummary, Uniswap quote (amountOut, priceImpact, route), unsigned calldata. You sign and submit — Maiat never holds funds. If verdict is 'avoid', calldata is withheld. For check-only without swapping, use token_check. |
+| `agent_reputation` | $0.03 USDC | — | What the community says about this agent. Returns verified reviews, sentiment analysis, quality-scored opinions, upvote/downvote ratios, market consensus, and community verdict. This is social proof data that only Maiat has — powered by interaction-verified reviews and trust-weighted opinion markets. Pair with agent_trust for the complete picture. |
 
 ---
 
@@ -325,7 +325,7 @@ Score = (On-chain Behavioral × 0.5) + (Off-chain Signals × 0.3) + (Human Revie
 | Contract | Address |
 |---|---|
 | MaiatOracle | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` |
-| TrustGateHook (Uniswap v4) | `0xf6065fb076090af33ee0402f7e902b2583e7721e` |
+| TrustGateHook (Uniswap v4) | `0xf6065fb076090af33ee0402f7e902b2583e7721e` (Base Sepolia) |
 | EAS Schema UID | `0x24b0db687434f15057bef6011b95f1324f2c38af06d0e636aea1c58bf346d802` |
 | ERC-8004 Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | ERC-8004 Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
