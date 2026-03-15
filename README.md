@@ -120,7 +120,7 @@ Wallet: `0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D`
 | ------------------------ | -------------- | -------------------------------------------- | ----------------------------------------------------------- |
 | **MaiatOracle**          | Base Mainnet   | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` | On-chain trust scores for AI agents — written by ACP agent after each job |
 | **MaiatReceiptResolver** | Base Mainnet   | `0xda696009655825124bcbfdd5755c0657d6d841c0` | EAS Resolver — rejects any attestation not from Maiat Attester |
-| **TrustGateHook**        | Base Mainnet   | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` | Uniswap v4 Hook — gates swaps via `beforeSwap` oracle check |
+| **TrustGateHook**        | Base Sepolia   | `0xf6065fb076090af33ee0402f7e902b2583e7721e` | Uniswap v4 Hook — gates swaps via `beforeSwap` oracle check |
 | **TrustScoreOracle**     | Base Sepolia   | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` | Legacy oracle — behavioral + review scores (Hookathon dev)  |
 | **MaiatPassport**        | Base Mainnet   | _(Phase 2)_                                  | Soulbound ERC-721 — auto-minted on wallet connect           |
 | **MaiatTrustConsumer**   | Base Sepolia   | _(planned)_                                  | Chainlink CRE consumer — receives signed reports, batch-updates TrustScoreOracle |
