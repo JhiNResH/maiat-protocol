@@ -7,6 +7,8 @@ const globalForPrisma = globalThis as unknown as {
 function buildDatasourceUrl(): string | undefined {
   const dbUrl = process.env.DATABASE_URL
   if (!dbUrl) return undefined // no DB configured — routes handle gracefully
+  // Don't force SSL for localhost connections
+  if (dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1')) return dbUrl
   return dbUrl.includes('sslmode') ? dbUrl : `${dbUrl}${dbUrl.includes('?') ? '&' : '?'}sslmode=require`
 }
 
