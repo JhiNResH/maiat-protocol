@@ -34,7 +34,7 @@ export default function Footer() {
             <ul className="space-y-4">
               <li><Link href="https://github.com/JhiNResH/maiat-guard" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Maiat Guard</Link></li>
               <li><Link href="https://github.com/JhiNResH/maiat-protocol" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Maiat ACP</Link></li>
-              <li><span className="text-[var(--text-secondary)] text-xs font-bold">Wadjet</span></li>
+
               <li><Link href="https://app.ens.domains/maiat.eth" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">maiat.eth</Link></li>
             </ul>
           </div>
