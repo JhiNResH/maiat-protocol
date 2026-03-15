@@ -13,7 +13,7 @@ import { SignJWT, jwtVerify } from 'jose'
 export const EIP712_DOMAIN = {
   name: 'Maiat Protocol',
   version: '1',
-  chainId: 84532, // Base Sepolia
+  chainId: Number(process.env.CHAIN_ID ?? 84532),
 } as const
 
 export const EIP712_TYPES = {
@@ -29,9 +29,9 @@ export const EIP712_STATEMENT = 'Sign in to Maiat Protocol'
 // ─── JWT Secret ───────────────────────────────────────────────────────────────
 
 function getJwtSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET || process.env.MAIAT_ADMIN_PRIVATE_KEY
+  const secret = process.env.JWT_SECRET
   if (!secret) {
-    throw new Error('JWT_SECRET or MAIAT_ADMIN_PRIVATE_KEY must be set')
+    throw new Error('JWT_SECRET env var is required. Do not reuse MAIAT_ADMIN_PRIVATE_KEY.')
   }
   return new TextEncoder().encode(secret)
 }
@@ -40,7 +40,7 @@ function getJwtSecret(): Uint8Array {
 
 export interface AgentJWTPayload {
   address: string
-  type: string
+  type: 'agent'
 }
 
 /**
@@ -62,8 +62,11 @@ export async function verifyAgentJWT(token: string): Promise<AgentJWTPayload> {
   if (!type || typeof type !== 'string') {
     throw new Error('Invalid JWT: missing type')
   }
+  if (type !== 'agent') {
+    throw new Error(`Invalid JWT type: expected 'agent', got '${type}'`)
+  }
 
-  return { address, type }
+  return { address, type: 'agent' }
 }
 
 /**

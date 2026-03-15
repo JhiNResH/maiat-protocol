@@ -11,8 +11,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { isAddress, getAddress, verifyTypedData } from 'viem'
+import { isAddress, getAddress, verifyTypedData, keccak256, toBytes } from 'viem'
 import { prisma } from '@/lib/prisma'
+import { createRateLimiter, checkIpRateLimit } from '@/lib/ratelimit'
 import {
   EIP712_DOMAIN,
   EIP712_TYPES,
@@ -26,13 +27,20 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
-const FIVE_MINUTES_MS = 5 * 60 * 1000
+const FIVE_MINUTES_SECS = 300
+
+// Rate limit: 10 auth attempts per IP per minute
+const rateLimiter = createRateLimiter('auth:agent', 10, 60)
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
 }
 
 export async function POST(req: NextRequest) {
+  // --- Rate limit ---
+  const rateLimitResult = await checkIpRateLimit(req, rateLimiter)
+  if (rateLimitResult) return new NextResponse(rateLimitResult.body, rateLimitResult)
+
   try {
     const body = await req.json() as {
       address?: string
@@ -69,14 +77,26 @@ export async function POST(req: NextRequest) {
     // 2. Verify timestamp is within 5 minutes
     const now = Math.floor(Date.now() / 1000)
     const diff = Math.abs(now - timestamp)
-    if (diff > 300) {
+    if (diff > FIVE_MINUTES_SECS) {
       return NextResponse.json(
         { error: 'Timestamp expired or too far in the future. Must be within 5 minutes.' },
         { status: 400, headers: CORS_HEADERS }
       )
     }
 
-    // 3. Verify EIP-712 typed data signature
+    // 3. Replay protection — check if this exact signature was already used
+    const sigHash = keccak256(toBytes(signature))
+    const existingUse = await prisma.usedAuthSignature.findUnique({
+      where: { sigHash },
+    })
+    if (existingUse) {
+      return NextResponse.json(
+        { error: 'Signature already used. Sign a new message with a fresh timestamp.' },
+        { status: 400, headers: CORS_HEADERS }
+      )
+    }
+
+    // 4. Verify EIP-712 typed data signature
     let isValid = false
     try {
       isValid = await verifyTypedData({
@@ -106,7 +126,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 4. Check that address has a passport (User exists in DB)
+    // 5. Check that address has a passport (User exists in DB)
     const user = await prisma.user.findUnique({
       where: { address: checksummedAddress.toLowerCase() },
     })
@@ -120,7 +140,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 5. Issue JWT
+    // 6. Record used signature (expires after 5 min, pruned by cron)
+    const expiresAt = new Date((timestamp + FIVE_MINUTES_SECS) * 1000)
+    await prisma.usedAuthSignature.create({
+      data: { sigHash, address: checksummedAddress.toLowerCase(), expiresAt },
+    })
+
+    // 7. Issue JWT
     const token = await issueAgentJWT(checksummedAddress)
 
     return NextResponse.json(

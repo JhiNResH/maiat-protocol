@@ -397,6 +397,20 @@ model KyaCode {
   @@index([code])
 }
 
+/// Used EIP-712 auth signatures — replay protection for POST /api/v1/auth/agent
+/// Rows with expiresAt < NOW() can be pruned by a cron job.
+model UsedAuthSignature {
+  id        String   @id @default(cuid())
+  sigHash   String   @unique // keccak256 of the raw signature hex
+  address   String   // lowercase wallet address
+  expiresAt DateTime // timestamp + 5 min
+  createdAt DateTime @default(now())
+
+  @@map("used_auth_signatures")
+  @@index([address])
+  @@index([expiresAt])
+}
+
 model KyaEndorsement {
   id              String   @id @default(cuid())
   kyaCodeId       String

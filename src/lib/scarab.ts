@@ -24,7 +24,7 @@ export const SCARAB_CONFIG = {
   STREAK_BONUS: 1, // +1 per consecutive day
   MAX_STREAK_BONUS: 5, // cap at +5 extra
   REVIEW_COST: 5,
-  VOTE_COST: 5,
+  VOTE_COST: 1, // 1 🪲 per vote (matches ReviewForm UI)
   BOOST_MULTIPLIER: 2, // first-week boost
   PURCHASE_TIERS: {
     small: { usdc: 1, scarab: 50 },
