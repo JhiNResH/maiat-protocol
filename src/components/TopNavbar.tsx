@@ -68,7 +68,7 @@ function DockItem({
     <Link ref={ref} href={link.href} className="relative">
       <motion.div
         style={{ scale: springScale }}
-        className="px-4 py-2 rounded-full whitespace-nowrap relative"
+        className="px-3 py-2 rounded-full whitespace-nowrap relative"
       >
         {isActive && (
           <motion.div
@@ -146,7 +146,7 @@ export default function TopNavbar() {
             height={28}
             className="w-7 h-7 rounded-full shadow-lg"
           />
-          <span className="font-mono font-bold text-base tracking-widest text-[var(--text-color)] uppercase">
+          <span className="font-mono font-bold text-base tracking-widest text-[var(--text-color)]">
             maiat
           </span>
         </Link>
