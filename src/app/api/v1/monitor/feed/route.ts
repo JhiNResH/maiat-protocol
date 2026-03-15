@@ -106,16 +106,6 @@ function startGlobalPolling() {
 
       lastPolledAt = new Date();
 
-      // 6. Random Node Surveillance (Simulated Scan from 20k pool)
-      const randomNodes = await prisma.agentScore.findMany({ 
-        take: 50, // Sample from top nodes
-        select: { walletAddress: true, trustScore: true } 
-      });
-      if (randomNodes.length > 0) {
-        const node = randomNodes[Math.floor(Math.random() * randomNodes.length)];
-        broadcastEvent(`[MAIAT SURVEILLANCE] Proactive audit: Node ${node.walletAddress.slice(0,6)}... Trust Score: ${node.trustScore}/100 (Status: SECURE)`, 'info');
-      }
-
       // Broadcast logs (viem-guard / agent-sdk)
       for (const log of recentLogs) {
         if (log.type === 'agent_deep_check' && log.verdict === 'avoid') {
@@ -180,25 +170,15 @@ export async function GET() {
         controller.enqueue(`data: ${JSON.stringify(event)}\n\n`);
       });
 
-      let heartbeatCounter = 0;
-
-      // Keep connection alive and send heartbeats
+      // Keep connection alive with SSE pings
       const interval = setInterval(() => {
         try {
           controller.enqueue(`: ping\n\n`);
-          heartbeatCounter++;
-
-          // Every 3 pings (30 seconds), send a system status message
-          if (heartbeatCounter >= 3) {
-            heartbeatCounter = 0;
-            const now = new Date();
-            broadcastEvent(`SYS: Real-time surveillance active — ${now.toLocaleTimeString('en-US', { hour12: false })} (Coverage: 20k+ nodes)`, 'info');
-          }
         } catch (e) {
           clearInterval(interval);
           clients.delete(controller);
         }
-      }, 10000); // Changed to 10s to align with polling, so 3 cycles = 30s heartbeat
+      }, 10000);
     },
     cancel() {
       clients.delete(streamController);
