@@ -138,23 +138,21 @@ export default function TopNavbar() {
     >
       <div className="liquid-glass px-6 py-3 flex items-center justify-between rounded-full">
         {/* Logo */}
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 group shrink-0">
-            <Image
-              src="/maiat-logo.jpg"
-              alt="Maiat"
-              width={28}
-              height={28}
-              className="w-7 h-7 rounded-full shadow-lg"
-            />
-            <span className="font-mono font-bold text-base tracking-widest text-[var(--text-color)] uppercase">
-              MAIAT
-            </span>
-          </Link>
+        <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+          <Image
+            src="/maiat-logo.jpg"
+            alt="Maiat"
+            width={28}
+            height={28}
+            className="w-7 h-7 rounded-full shadow-lg"
+          />
+          <span className="font-mono font-bold text-base tracking-widest text-[var(--text-color)] uppercase">
+            MAIAT
+          </span>
+        </Link>
 
-          {/* Nav Links (desktop) — macOS Dock magnification */}
-          <NavDock pathname={pathname} />
-        </div>
+        {/* Nav Links (desktop) — macOS Dock magnification */}
+        <NavDock pathname={pathname} />
 
         {/* Right side */}
         <div className="flex items-center gap-3">
