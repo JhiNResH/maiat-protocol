@@ -155,7 +155,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-32">
         <div className="flex flex-col items-center gap-3">
           <BarChart3 className="w-8 h-8 text-[var(--text-secondary)] animate-pulse" />
           <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-bold">Loading Analytics...</span>
@@ -166,7 +166,7 @@ export default function AnalyticsPage() {
 
   if (!stats) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-32">
         <p className="text-[var(--text-secondary)] font-medium">Failed to load analytics</p>
       </div>
     );
@@ -175,7 +175,7 @@ export default function AnalyticsPage() {
   const { overview, byType, byVerdict, recent } = stats;
 
   return (
-    <div className="min-h-screen pb-20 relative">
+    <div className="pb-20 relative">
       <main className="max-w-6xl mx-auto px-6 relative">
         {/* Hero */}
         <section className="mb-16 pt-12 text-center">

@@ -88,7 +88,7 @@ function trustScoreColor(score: number | null) {
 export default function LeaderboardPageWrapper() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-32">
         <div className="flex flex-col items-center gap-3">
           <Trophy className="w-8 h-8 text-amber-400 animate-pulse" />
           <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-bold">Loading Leaderboard...</span>
@@ -117,7 +117,7 @@ function LeaderboardPage() {
     async function load() {
       try {
         setLoading(true);
-        const params = new URLSearchParams({ sort: sortBy, limit: "200", include8004: "true" });
+        const params = new URLSearchParams({ sort: sortBy, limit: "200" });
         const res = await fetch(`/api/v1/agents?${params}`);
         const data = await res.json();
         if (Array.isArray(data.agents)) {
@@ -137,7 +137,7 @@ function LeaderboardPage() {
     if (!query.trim()) { setServerResults([]); return; }
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/v1/agents?search=${encodeURIComponent(query.trim())}&limit=20&sort=${sortBy}&include8004=true`);
+        const res = await fetch(`/api/v1/agents?search=${encodeURIComponent(query.trim())}&limit=20&sort=${sortBy}`);
         const data = await res.json();
         setServerResults(data.agents || []);
       } catch { setServerResults([]); }
@@ -167,7 +167,7 @@ function LeaderboardPage() {
   const podiumRanks = top3.length >= 3 ? [2, 1, 3] : [1, 2, 3];
 
   return (
-    <div className="min-h-screen pb-20 relative">
+    <div className="pb-20 relative">
       <main className="max-w-6xl mx-auto px-6 relative">
         {/* Hero */}
         <section className="text-center mb-24 pt-12">
