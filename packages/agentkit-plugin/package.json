@@ -1,6 +1,6 @@
 {
   "name": "@jhinresh/agentkit-plugin",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },
@@ -20,7 +20,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@jhinresh/maiat-sdk": "^0.7.3"
+    "@jhinresh/maiat-sdk": "^0.8.0"
   },
   "peerDependencies": {
     "@coinbase/agentkit": ">=0.1.0"

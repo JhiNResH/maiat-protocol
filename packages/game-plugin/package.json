@@ -1,6 +1,6 @@
 {
   "name": "@jhinresh/game-maiat-plugin",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },
@@ -37,7 +37,7 @@
   "homepage": "https://app.maiat.io",
   "dependencies": {
     "@virtuals-protocol/game": "^0.1.4",
-    "@jhinresh/maiat-sdk": "^0.7.3"
+    "@jhinresh/maiat-sdk": "^0.8.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -10,7 +10,7 @@ import { Maiat } from "@jhinresh/maiat-sdk";
 //  Config
 // ─────────────────────────────────────────────
 
-const DEFAULT_MIN_SCORE = 3.0; // 0–10 scale
+const DEFAULT_MIN_SCORE = 30; // 0–100 scale
 
 interface IMaiatTrustPluginOptions {
   id?: string;
@@ -74,6 +74,9 @@ class MaiatTrustPlugin {
         this.checkTrustScore,
         this.gateSwap,
         this.batchCheckTrust,
+        this.checkToken,
+        this.trustSwap,
+        this.reportOutcome,
       ],
       getEnvironment: data?.getEnvironment,
     });
@@ -85,7 +88,7 @@ class MaiatTrustPlugin {
       name: "check_trust_score",
       description:
         "Query the Maiat trust score for an on-chain address, token, DeFi protocol, " +
-        "or AI agent. Returns a score (0–10), risk level, and any warning flags. " +
+        "or AI agent. Returns a score (0–100), risk level, and any warning flags. " +
         "Use this before interacting with an unknown address or protocol.",
       args: [
         {
@@ -110,16 +113,16 @@ class MaiatTrustPlugin {
           
           const result: TrustResponse = {
             address: res.address,
-            score: res.trustScore / 10,
+            score: res.trustScore,
             risk: res.verdict === 'avoid' ? 'high' : (res.verdict === 'caution' ? 'medium' : 'low'),
             type: res.dataSource,
             flags: [],
-            safe: (res.trustScore / 10) >= this.minScore,
+            safe: res.trustScore >= this.minScore,
             source: "maiat"
           };
 
           const summary =
-            `Trust score for ${args.identifier}: ${result.score.toFixed(1)}/10 ` +
+            `Trust score for ${args.identifier}: ${result.score}/100 ` +
             `| Risk: ${result.risk.toUpperCase()} ` +
             `| Safe: ${result.safe ? "YES" : "NO"}`;
 
@@ -161,7 +164,7 @@ class MaiatTrustPlugin {
         },
         {
           name: "min_score",
-          description: `Minimum trust score required (0–10).`,
+          description: `Minimum trust score required (0–100).`,
           type: "number",
           optional: true,
         },
@@ -183,18 +186,18 @@ class MaiatTrustPlugin {
             this.sdk.agentTrust(args.token_out),
           ]);
 
-          const scoreIn = resIn.trustScore / 10;
-          const scoreOut = resOut.trustScore / 10;
+          const scoreIn = resIn.trustScore;
+          const scoreOut = resOut.trustScore;
 
           const rejected: string[] = [];
           if (scoreIn < minScore) {
             rejected.push(
-              `${args.token_in} score ${scoreIn.toFixed(1)} < ${minScore}`
+              `${args.token_in} score ${scoreIn} < ${minScore}`
             );
           }
           if (scoreOut < minScore) {
             rejected.push(
-              `${args.token_out} score ${scoreOut.toFixed(1)} < ${minScore}`
+              `${args.token_out} score ${scoreOut} < ${minScore}`
             );
           }
 
@@ -208,8 +211,8 @@ class MaiatTrustPlugin {
           }
 
           const approval =
-            `APPROVED: ${args.token_in} (${scoreIn.toFixed(1)}/10) → ` +
-            `${args.token_out} (${scoreOut.toFixed(1)}/10) — both pass threshold`;
+            `APPROVED: ${args.token_in} (${scoreIn}/100) → ` +
+            `${args.token_out} (${scoreOut}/100) — both pass threshold`;
           logger(`[Maiat] ${approval}`);
 
           return new ExecutableGameFunctionResponse(
@@ -269,9 +272,9 @@ class MaiatTrustPlugin {
             if (r.status === "fulfilled") {
               return {
                 address: r.value.address,
-                score: r.value.trustScore / 10,
+                score: r.value.trustScore,
                 risk: r.value.verdict,
-                safe: (r.value.trustScore / 10) >= this.minScore
+                safe: r.value.trustScore >= this.minScore
               };
             } else {
               return { address: ids[i], score: 0, risk: "unknown", safe: false, error: (r as any).reason?.message };
@@ -281,7 +284,7 @@ class MaiatTrustPlugin {
           // Sort by score descending
           scores.sort((a: any, b: any) => b.score - a.score);
 
-          logger(`[Maiat] Batch complete. Top: ${scores[0]?.address} (${scores[0]?.score?.toFixed(1)}/10)`);
+          logger(`[Maiat] Batch complete. Top: ${scores[0]?.address} (${scores[0]?.score}/100)`);
 
           return new ExecutableGameFunctionResponse(
             ExecutableGameFunctionStatus.Done,
@@ -291,6 +294,238 @@ class MaiatTrustPlugin {
           return new ExecutableGameFunctionResponse(
             ExecutableGameFunctionStatus.Failed,
             `Batch check failed: ${e.message}`
+          );
+        }
+      },
+    });
+  }
+  // ── Function 4: check_token ──────────────────
+  get checkToken() {
+    return new GameFunction({
+      name: "check_token",
+      description:
+        "Check if a token is safe using Maiat's token safety and forensics analysis. " +
+        "Detects honeypots, rug pulls, and liquidity risks. Returns a score (0–100) and risk flags.",
+      args: [
+        {
+          name: "address",
+          description: "Token contract address to check (0x...)",
+          type: "string",
+        },
+        {
+          name: "chain",
+          description: "Chain to query (default: base)",
+          type: "string",
+          optional: true,
+        },
+      ] as const,
+      executable: async (args: any, logger: any) => {
+        try {
+          if (!args.address) {
+            return new ExecutableGameFunctionResponse(
+              ExecutableGameFunctionStatus.Failed,
+              "address is required"
+            );
+          }
+
+          logger(`[Maiat] Checking token safety for: ${args.address}`);
+
+          const [tokenRes, forensicsRes] = await Promise.all([
+            this.sdk.tokenCheck(args.address),
+            this.sdk.forensics(args.address, args.chain).catch(() => null),
+          ]);
+
+          const safe = tokenRes.verdict === "proceed";
+          const summary = [
+            `Token: ${tokenRes.address}`,
+            `Trust Score: ${tokenRes.trustScore}/100`,
+            `Verdict: ${tokenRes.verdict}`,
+            `Type: ${tokenRes.tokenType}`,
+            `Risk: ${tokenRes.riskSummary}`,
+            tokenRes.riskFlags.length > 0 ? `Flags: ${tokenRes.riskFlags.join(", ")}` : "Flags: None",
+            forensicsRes ? `Forensics Verdict: ${forensicsRes.verdict}` : null,
+            forensicsRes && forensicsRes.riskFlags.length > 0
+              ? `Forensics Flags: ${forensicsRes.riskFlags.join(", ")}`
+              : null,
+            safe ? "Safe: YES" : "Safe: NO — exercise caution",
+          ]
+            .filter(Boolean)
+            .join(" | ");
+
+          logger(`[Maiat] ${summary}`);
+
+          return new ExecutableGameFunctionResponse(
+            ExecutableGameFunctionStatus.Done,
+            JSON.stringify({
+              address: tokenRes.address,
+              score: tokenRes.trustScore,
+              verdict: tokenRes.verdict,
+              tokenType: tokenRes.tokenType,
+              riskFlags: tokenRes.riskFlags,
+              riskSummary: tokenRes.riskSummary,
+              forensics: forensicsRes
+                ? { verdict: forensicsRes.verdict, riskFlags: forensicsRes.riskFlags }
+                : null,
+              safe,
+              summary,
+            })
+          );
+        } catch (e: any) {
+          logger(`[Maiat] Error: ${e.message}`);
+          return new ExecutableGameFunctionResponse(
+            ExecutableGameFunctionStatus.Failed,
+            `Failed to check token: ${e.message}`
+          );
+        }
+      },
+    });
+  }
+
+  // ── Function 5: trust_swap ──────────────────
+  get trustSwap() {
+    return new GameFunction({
+      name: "trust_swap",
+      description:
+        "Get a trust-verified swap quote with calldata. Checks both tokens for safety " +
+        "before returning a Uniswap quote. Use this instead of raw DEX quotes.",
+      args: [
+        {
+          name: "swapper",
+          description: "Wallet address executing the swap (0x...)",
+          type: "string",
+        },
+        {
+          name: "token_in",
+          description: "Token being sold (0x...)",
+          type: "string",
+        },
+        {
+          name: "token_out",
+          description: "Token being bought (0x...)",
+          type: "string",
+        },
+        {
+          name: "amount",
+          description: "Amount of token_in in wei",
+          type: "string",
+        },
+        {
+          name: "slippage",
+          description: "Slippage tolerance (e.g. 0.5 for 0.5%)",
+          type: "string",
+          optional: true,
+        },
+      ] as const,
+      executable: async (args: any, logger: any) => {
+        try {
+          if (!args.swapper || !args.token_in || !args.token_out || !args.amount) {
+            return new ExecutableGameFunctionResponse(
+              ExecutableGameFunctionStatus.Failed,
+              "swapper, token_in, token_out, and amount are all required"
+            );
+          }
+
+          logger(`[Maiat] Getting trust-verified swap: ${args.token_in} → ${args.token_out}...`);
+
+          const result = await this.sdk.trustSwap({
+            swapper: args.swapper,
+            tokenIn: args.token_in,
+            tokenOut: args.token_out,
+            amount: args.amount,
+            slippage: args.slippage ? parseFloat(args.slippage) : undefined,
+          });
+
+          const trustIn = result.trust.tokenIn;
+          const trustOut = result.trust.tokenOut;
+
+          const summary =
+            `Swap: ${args.token_in} → ${args.token_out} | ` +
+            `In Trust: ${trustIn ? `${trustIn.score}/100 (${trustIn.risk})` : "N/A"} | ` +
+            `Out Trust: ${trustOut ? `${trustOut.score}/100 (${trustOut.risk})` : "N/A"} | ` +
+            `Calldata: ${result.calldata ? "Ready" : "N/A"}`;
+
+          logger(`[Maiat] ${summary}`);
+
+          return new ExecutableGameFunctionResponse(
+            ExecutableGameFunctionStatus.Done,
+            JSON.stringify(result)
+          );
+        } catch (e: any) {
+          logger(`[Maiat] Error: ${e.message}`);
+          return new ExecutableGameFunctionResponse(
+            ExecutableGameFunctionStatus.Failed,
+            `Failed to get trust swap: ${e.message}`
+          );
+        }
+      },
+    });
+  }
+
+  // ── Function 6: report_outcome ──────────────
+  get reportOutcome() {
+    return new GameFunction({
+      name: "report_outcome",
+      description:
+        "Report the outcome of a job back to the Maiat trust oracle. " +
+        "Call this after completing, failing, or observing an expired job. Earns Scarab rewards.",
+      args: [
+        {
+          name: "job_id",
+          description: "The job ID to report outcome for",
+          type: "string",
+        },
+        {
+          name: "outcome",
+          description: "Outcome: success, failure, partial, or expired",
+          type: "string",
+        },
+        {
+          name: "reporter",
+          description: "Address of the reporter (optional)",
+          type: "string",
+          optional: true,
+        },
+        {
+          name: "note",
+          description: "Free-form note about the outcome (optional)",
+          type: "string",
+          optional: true,
+        },
+      ] as const,
+      executable: async (args: any, logger: any) => {
+        try {
+          if (!args.job_id || !args.outcome) {
+            return new ExecutableGameFunctionResponse(
+              ExecutableGameFunctionStatus.Failed,
+              "job_id and outcome are required"
+            );
+          }
+
+          logger(`[Maiat] Reporting outcome for job ${args.job_id}: ${args.outcome}...`);
+
+          const result = await this.sdk.reportOutcome({
+            jobId: args.job_id,
+            outcome: args.outcome as "success" | "failure" | "partial" | "expired",
+            reporter: args.reporter,
+            note: args.note,
+          });
+
+          const summary =
+            `Job: ${args.job_id} | Outcome: ${args.outcome} | ` +
+            `Logged: ${result.success ? "Yes" : "No"}` +
+            (result.message ? ` | ${result.message}` : "");
+
+          logger(`[Maiat] ${summary}`);
+
+          return new ExecutableGameFunctionResponse(
+            ExecutableGameFunctionStatus.Done,
+            JSON.stringify(result)
+          );
+        } catch (e: any) {
+          logger(`[Maiat] Error: ${e.message}`);
+          return new ExecutableGameFunctionResponse(
+            ExecutableGameFunctionStatus.Failed,
+            `Failed to report outcome: ${e.message}`
           );
         }
       },
