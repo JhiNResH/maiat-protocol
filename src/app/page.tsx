@@ -186,9 +186,7 @@ export default function VerifyPage() {
   const [submittedAddress, setSubmittedAddress] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
-  // Fetch real stats
-  const { data: statsData } = useSWR('/api/v1/stats/engagement', fetcher);
-  // Fetch real API stats (recent queries, trending)
+  // Fetch real API stats (queries, recent, trending) — single source of truth
   const { data: apiStats } = useSWR('/api/v1/stats/api', fetcher);
 
   // Build live verifications from real query data
@@ -208,12 +206,18 @@ export default function VerifyPage() {
       }));
   }, [apiStats]);
 
-  // Compute global trust index from trending agents
+  // Compute global trust index from recent queries (trending has null scores)
   const globalTrustScore = React.useMemo(() => {
-    if (!apiStats?.trending?.length) return 0;
-    const withScores = apiStats.trending.filter((t: any) => t.trustScore != null);
+    if (!apiStats?.recent?.length) return 0;
+    const withScores = apiStats.recent.filter((q: any) => q.trustScore != null);
     if (withScores.length === 0) return 0;
-    const avg = withScores.reduce((sum: number, t: any) => sum + t.trustScore, 0) / withScores.length;
+    // Dedupe by target, take latest score per agent
+    const byTarget: Record<string, number> = {};
+    for (const q of withScores) {
+      if (!byTarget[q.target]) byTarget[q.target] = q.trustScore;
+    }
+    const scores = Object.values(byTarget) as number[];
+    const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
     return Math.round(avg);
   }, [apiStats]);
 
@@ -371,21 +375,21 @@ export default function VerifyPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-32">
           <StatCard
             label="Total Queries"
-            value={statsData?.overview?.total?.toLocaleString() ?? '—'}
-            change={statsData?.overview?.last24h ? `+${statsData.overview.last24h} today` : undefined}
+            value={apiStats?.overview?.total?.toLocaleString() ?? '—'}
+            change={apiStats?.overview?.last24h ? `+${apiStats.overview.last24h} today` : undefined}
             changeType="increase"
             delay={0.4}
           />
           <StatCard
             label="Unique Agents"
-            value={statsData?.overview?.uniqueTargets?.toLocaleString() ?? '—'}
+            value={apiStats?.overview?.uniqueTargets?.toLocaleString() ?? '—'}
             change="Global network"
             changeType="neutral"
             delay={0.5}
           />
           <StatCard
             label="Active Callers"
-            value={statsData?.overview?.uniqueCallers7d?.toLocaleString() ?? '—'}
+            value={apiStats?.overview?.uniqueCallers7d?.toLocaleString() ?? '—'}
             change="Last 7 days"
             changeType="increase"
             delay={0.6}
