@@ -4,7 +4,7 @@
 
 /* ─── New Design System (Stitch v2) ─── */
 :root {
-  --bg-color: #ffffff;
+  --bg-color: #FDFDFB;
   --text-color: #000000;
   --text-secondary: rgba(0, 0, 0, 0.6);
   --text-muted: #9ca3af;
@@ -20,12 +20,12 @@
   --rail-color: rgba(0, 0, 0, 0.3);
   --marquee-border: rgba(0, 0, 0, 0.05);
   --border-color: rgba(0, 0, 0, 0.08);
-  --card-bg: #ffffff;
+  --card-bg: #FDFDFB;
   --mesh-color: rgba(0, 0, 0, 0.03);
 }
 
 .dark {
-  --bg-color: #050505;
+  --bg-color: #0A0A0A;
   --text-color: #fff;
   --text-secondary: rgba(255, 255, 255, 0.5);
   --text-muted: #9ca3af;
@@ -130,9 +130,9 @@
 /* ─── Legacy design system colors (kept for API pages / existing components) ─── */
 :root {
   /* Design system colors */
-  --bg-page: #050508;
-  --bg-surface: #0d0e17;
-  --bg-elevated: #13141f;
+  --bg-page: #0A0A0A;
+  --bg-surface: #0A0A0A;
+  --bg-elevated: #111111;
   --border-default: #1e2035;
   --border-subtle: #181928;
   --primary-gold: #d4a017;
@@ -149,7 +149,7 @@
   --text-muted: #9ca3af;
 
   /* Monitor — unified with main palette */
-  --monitor-bg: #050508;
+  --monitor-bg: #0A0A0A;
   --monitor-primary: #6d8aff;
   --monitor-danger: #ef4444;
   --monitor-warning: #d4a017;
