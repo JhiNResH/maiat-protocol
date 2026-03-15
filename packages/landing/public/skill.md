@@ -8,7 +8,7 @@ description: >
 license: MIT
 metadata:
   author: JhiNResH
-  version: "2.1.0"
+  version: "2.2.0"
   privacy: >
     MCP mode sends query context to app.maiat.io. Do not use MCP if your
     conversation contains sensitive data. REST API mode only sends explicit
@@ -43,24 +43,27 @@ User asks: "Is this agent trustworthy?"
    ├── ACP behavioral data (job history, completion rate)
    ├── Token health (DexScreener, chain data, XGBoost)
    ├── Community reviews + sentiment
-   └── Sentinel real-time monitoring
+   └── Watchlist monitoring + threat scanning
          ↓
    One answer: trustScore 0-100 + verdict
 ```
 
 **Maiat Protocol** = API gateway + frontend (Next.js, Vercel)  
 **Wadjet** = ML brain — all prediction, scanning, alerting (Python, Railway)  
-**ACP Offerings** = data input layer — every query feeds Wadjet
+**ACP Offerings** = data input layer — every query feeds Wadjet  
+**Coverage:** Indexes 18,600+ agents from the Virtuals ACP network
 
 ---
 
-## ACP Offerings (3 total)
+## ACP Offerings (5 total)
 
-| Offering | Price | What it does |
-|---|---|---|
-| `agent_trust` | $0.02 | Core — "Is this agent trustworthy?" Includes token health via Wadjet. Returns: trustScore, verdict, riskOutlook, tokenHealth |
-| `token_check` | $0.01 | Quick token safety check — honeypot, liquidity, basic risk |
-| `agent_reputation` | $0.03 | Community reviews, sentiment, market consensus |
+| Offering | Price | TTL | What it does |
+|---|---|---|---|
+| `agent_trust` | $0.02 USDC | 5min | Before paying another agent, call this to verify their reliability. Returns: trustScore 0-100, verdict (proceed/caution/avoid), completionRate, paymentRate, expireRate, totalJobs — sourced from on-chain Virtuals ACP job history, covers all 18,600+ registered agents. Use when: you are about to hire an unknown agent for any job. If verdict is 'avoid', do not proceed. For checking a token address before swapping, use token_check instead. |
+| `token_check` | $0.01 USDC | 5min | Before swapping into an unknown ERC-20 token on Base, call this to verify it is safe. Returns: trustScore 0-100, verdict (proceed/caution/avoid), riskFlags (honeypot/highTax/unverified), riskSummary. Use when: you have a token address and want to know if it is safe to buy. For hiring agents instead of checking tokens, use agent_trust. For a bundled check+swap in one call, use trust_swap. |
+| `token_forensics` | $0.05 USDC | 5min | Deep rug pull risk analysis for any ERC-20 token on Base. Powered by Wadjet ML engine (XGBoost trained on 9,500+ agents) blended with on-chain heuristics: contract ownership & proxy patterns, holder concentration & whale distribution, liquidity depth & lock status, and trading pattern flags. Returns: rugScore 0-100 (blended 60% ML + 40% heuristic), riskLevel (low/medium/high/critical), detailed contract/holder/liquidity breakdown, Wadjet ML confidence score, and individual scoring components. |
+| `trust_swap` | $0.05 USDC | 5min | Trust-gated token swap: bundles token_check + Uniswap quote in one call. Before returning calldata, verifies the output token for honeypot risk, tax, and contract safety. Returns: trustScore, verdict, riskFlags, riskSummary, Uniswap quote (amountOut, priceImpact, route), unsigned calldata. You sign and submit — Maiat never holds funds. If verdict is 'avoid', calldata is withheld. For check-only without swapping, use token_check. |
+| `agent_reputation` | $0.03 USDC | — | What the community says about this agent. Returns verified reviews, sentiment analysis, quality-scored opinions, upvote/downvote ratios, market consensus, and community verdict. This is social proof data that only Maiat has — powered by interaction-verified reviews and trust-weighted opinion markets. Pair with agent_trust for the complete picture. |
 
 ---
 
@@ -70,9 +73,13 @@ User asks: "Is this agent trustworthy?"
 
 ```
 token_check ($0.01) → "Safe token? Hire the agent."
-  → agent_trust ($0.02) → behavioral score + token health + riskOutlook
+  → agent_trust ($0.02) → behavioral score + trend + diversity + token health + riskOutlook
   → "Great score. What do others say?"
   → agent_reputation ($0.03) → community reviews + sentiment
+  → "Want to swap? Need safety first?"
+  → trust_swap ($0.05) → trust check + Uniswap calldata in one call
+  → "Need deep forensics?"
+  → token_forensics ($0.05) → rug score + holder/liquidity/contract breakdown
   → "Used the agent. How did it go?"
   → report_outcome (+5 🪲 Scarab) → closes the feedback loop
   → Wadjet recomputes trust score with your outcome data
@@ -158,42 +165,6 @@ Body: {
 
 ---
 
-## ERC-8183 Integration (Agentic Commerce)
-
-Maiat serves as the **Evaluator** in ERC-8183 (Agentic Commerce Protocol) — the standard co-developed by Virtuals Protocol and the Ethereum Foundation's dAI team.
-
-```
-ERC-8183 Job Flow:
-  Client → creates Job with escrow
-    → Provider submits deliverable
-      → Evaluator (Maiat) attests quality
-        → Funds release or refund
-
-Maiat's 3-layer protection in ERC-8183:
-  PRE-JOB:   Guard checks Provider trust → warns Client if score too low
-  POST-JOB:  Maiat Evaluator attests deliverable quality on-chain
-  FEEDBACK:  Outcome writes to ERC-8004 → updates TrustScore → loop
-```
-
-### Using Maiat as ERC-8183 Evaluator
-```ts
-// Before creating a Job — check Provider trust
-const trust = await maiat.agentTrust(providerAddress)
-if (trust.verdict === 'avoid') {
-  // Don't fund this Job
-}
-
-// After Job completion — Maiat evaluates and attests
-// Result automatically writes to ERC-8004 Reputation Registry
-// Provider's trust score updates for all future interactions
-```
-
-**ERC-8004 registries (Base Mainnet):**
-- Identity: `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
-- Reputation: `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`
-
----
-
 ## Connection Methods
 
 ### Option 1: MCP (Model Context Protocol)
@@ -212,7 +183,7 @@ MCP endpoint: `https://app.maiat.io/api/mcp`
 ### Option 2: SDK (Recommended for code)
 
 ```ts
-import { Maiat } from 'maiat-sdk'
+import { Maiat } from '@jhinresh/maiat-sdk'
 
 const maiat = new Maiat({
   baseUrl: 'https://app.maiat.io',
@@ -220,7 +191,7 @@ const maiat = new Maiat({
   clientId: 'my-agent-name',
 })
 
-// Agent trust score (includes token health from Wadjet)
+// Agent trust score (includes behavioral analysis + token health from Wadjet)
 const trust = await maiat.agentTrust('0xAgentAddress')
 // → { trustScore: 73, verdict: 'proceed', riskOutlook: 'stable', tokenHealth: {...} }
 
@@ -228,18 +199,20 @@ if (trust.verdict === 'avoid') throw new Error('Agent not trusted')
 
 // Token safety check
 const token = await maiat.tokenCheck('0xTokenAddress')
-// → { verdict: 'proceed', honeypot: false, ... }
+// → { verdict: 'proceed', honeypot: false, buyTax: 0, sellTax: 0, ... }
 
-// Community reputation
-const rep = await maiat.agentReputation('0xAgentAddress')
-// → { reviewCount, avgRating, sentiment, topReviews }
+// Trust-gated swap (token check + Uniswap quote in one call)
+const swap = await maiat.trustSwap({
+  tokenIn: '0xUSDC...', tokenOut: '0xToken...', amountIn: '1000000',
+  swapper: '0xYourWallet'
+})
+// → { trustScore, verdict, calldata, to, value } — you sign and submit
 
 // Report outcome (IMPORTANT — feeds Wadjet)
 await maiat.reportOutcome({ jobId: trust.feedback.queryId, outcome: 'success', reporter: '0xYourWallet' })
 
 // Convenience helpers
-const trusted = await maiat.isAgentTrusted('0x...', 70)
-const safe    = await maiat.isTokenSafe('0xTokenAddress')
+const safe = await maiat.isTokenSafe('0xTokenAddress')
 ```
 
 ### Option 3: REST API
@@ -282,12 +255,13 @@ Wadjet is Maiat's ML-powered risk engine. Protocol calls it internally, but you 
 POST /predict/agent      → agent rug prediction (body: { "token_address": "0x..." })
 POST /predict            → token rug prediction (body: { "token_address": "0x..." })
 GET  /wadjet/{address}   → full risk profile + Monte Carlo simulation
-GET  /sentinel/alerts    → real-time monitoring alerts
+POST /sentinel/scan      → trigger scan for a token (body: { "token_address": "0x..." })
+POST /sentinel/check-watchlist → check watchlist tokens for risk changes
 GET  /risks/summary      → risk dashboard summary
 GET  /health             → service health
 ```
 
-**Model:** XGBoost V2, 50 features, 98% accuracy, trained on 18K+ real tokens.
+**Model:** XGBoost V2, 22 features, 97.6% accuracy, trained on 32,900+ real token samples (Uniswap V2 + ETH/BSC rug data).
 
 ### Scarab 🪲
 ```
@@ -336,13 +310,13 @@ Score = (On-chain Behavioral × 0.5) + (Off-chain Signals × 0.3) + (Human Revie
 }
 ```
 
-### Score Tiers
+### Score Tiers (4-tier)
 | Score | Label | Verdict |
 |---|---|---|
-| ≥ 70 | 🟢 LOW RISK | proceed |
-| 40–69 | 🟡 MEDIUM RISK | caution |
-| 10–39 | 🔴 HIGH RISK | avoid |
-| < 10 | ⛔ CRITICAL | avoid |
+| ≥ 80 | 🟢 TRUSTED | trusted |
+| 60–79 | 🔵 LOW RISK | proceed |
+| 40–59 | 🟡 MEDIUM RISK | caution |
+| < 40 | 🔴 HIGH RISK | avoid |
 
 ---
 
@@ -351,7 +325,7 @@ Score = (On-chain Behavioral × 0.5) + (Off-chain Signals × 0.3) + (Human Revie
 | Contract | Address |
 |---|---|
 | MaiatOracle | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` |
-| TrustGateHook (Uniswap v4) | `0xf6065fb076090af33ee0402f7e902b2583e7721e` |
+| TrustGateHook (Uniswap v4) | `0xf6065fb076090af33ee0402f7e902b2583e7721e` (Base Sepolia) |
 | EAS Schema UID | `0x24b0db687434f15057bef6011b95f1324f2c38af06d0e636aea1c58bf346d802` |
 | ERC-8004 Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | ERC-8004 Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
