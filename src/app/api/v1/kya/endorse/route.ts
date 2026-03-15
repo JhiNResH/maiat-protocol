@@ -5,23 +5,21 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { validateTweetUrl } from '@/lib/kya';
+import { validateTweetUrl, kyaCorsHeaders } from '@/lib/kya';
 
 export const dynamic = 'force-dynamic';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-
 const SCARAB_REWARD = 5;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const RATE_LIMIT_MAX = 10; // max 10 endorsements per hour per address
 
-export async function OPTIONS() {
+export async function OPTIONS(req: NextRequest) {
+  const CORS = kyaCorsHeaders(req.headers.get('origin'));
   return new NextResponse(null, { status: 204, headers: CORS });
 }
 
 export async function POST(req: NextRequest) {
+  const CORS = kyaCorsHeaders(req.headers.get('origin'));
   try {
     const body = await req.json();
     const { code, endorserAddress, tweetUrl, referrer } = body as {
@@ -81,6 +79,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'You have already endorsed this agent', endorsement: existing },
         { status: 409, headers: CORS }
+      );
+    }
+
+    // Rate limit: max endorsements per hour per address
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+    const recentCount = await prisma.kyaEndorsement.count({
+      where: {
+        endorserAddress: normalizedEndorser,
+        createdAt: { gte: windowStart },
+      },
+    });
+    if (recentCount >= RATE_LIMIT_MAX) {
+      return NextResponse.json(
+        { error: `Rate limited: max ${RATE_LIMIT_MAX} endorsements per hour` },
+        { status: 429, headers: CORS }
       );
     }
 
