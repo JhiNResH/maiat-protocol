@@ -1,6 +1,6 @@
 {
   "name": "@jhinresh/viem-guard",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },
@@ -35,7 +35,7 @@
     "viem": ">=2.0.0"
   },
   "dependencies": {
-    "@jhinresh/maiat-sdk": "^0.7.3"
+    "@jhinresh/maiat-sdk": "^0.8.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
