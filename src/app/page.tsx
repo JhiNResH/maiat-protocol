@@ -7,58 +7,19 @@ import {
   ShieldCheck, 
   ArrowRight, 
   User, 
-  Wallet, 
-  Activity, 
-  CheckCircle2, 
   Zap,
   Lock,
   ChevronRight,
   AlertCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import StatCard from '@/components/StatCard';
+// StatCard moved to /analytics
 import { cn } from '@/lib/utils';
 import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-// ─── TrustScoreGauge ─────────────────────────────────────────────────────────
-
-const TrustScoreGauge = ({ score }: { score: number }) => {
-  const radius = 80;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
-
-  return (
-    <div className="relative inline-flex items-center justify-center">
-      <svg className="w-48 h-48 transform -rotate-90">
-        <circle cx="96" cy="96" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className="text-[var(--border-color)]" />
-        <motion.circle
-          cx="96" cy="96" r={radius}
-          stroke="currentColor" strokeWidth="8" fill="transparent"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 2, ease: "easeOut" }}
-          className="text-emerald-500"
-        />
-      </svg>
-      <div className="absolute flex flex-col items-center">
-        <motion.span
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-          className="text-7xl font-black text-[var(--text-color)] tracking-tighter"
-        >
-          {score}
-        </motion.span>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
-          Verified
-        </span>
-      </div>
-    </div>
-  );
-};
+// TrustScoreGauge moved to /analytics
 
 // ─── VerifyResult ──────────────────────────────────────────────────────────────
 
@@ -228,57 +189,7 @@ export default function VerifyPage() {
       }));
   }, [apiStats]);
 
-  // Compute global trust index from recent queries (trending has null scores)
-  const globalTrustScore = React.useMemo(() => {
-    if (!apiStats?.recent?.length) return 0;
-    const withScores = apiStats.recent.filter((q: any) => q.trustScore != null);
-    if (withScores.length === 0) return 0;
-    // Dedupe by target, take latest score per agent
-    const byTarget: Record<string, number> = {};
-    for (const q of withScores) {
-      if (!byTarget[q.target]) byTarget[q.target] = q.trustScore;
-    }
-    const scores = Object.values(byTarget) as number[];
-    const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
-    return Math.round(avg);
-  }, [apiStats]);
-
-  // Build live network activity from recent queries
-  const networkActivity = React.useMemo(() => {
-    if (!apiStats?.recent?.length) return null;
-    const typeColors: Record<string, string> = {
-      agent_trust: 'bg-blue-50 dark:bg-blue-500/10 text-blue-500',
-      token_check: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500',
-      token_forensics: 'bg-purple-50 dark:bg-purple-500/10 text-purple-500',
-      trust_swap: 'bg-amber-50 dark:bg-amber-500/10 text-amber-500',
-      agent_profile: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-500',
-    };
-    const typeLabels: Record<string, string> = {
-      agent_trust: 'Agent Verify',
-      token_check: 'Token Check',
-      token_forensics: 'Token Forensics',
-      trust_swap: 'Trust Swap',
-      agent_profile: 'Agent Profile',
-    };
-    return apiStats.recent.slice(0, 3).map((q: any) => {
-      const target = q.target?.length > 12
-        ? `${q.target.slice(0, 6)}...${q.target.slice(-4)}`
-        : (q.target || 'unknown');
-      const now = Date.now();
-      const created = new Date(q.createdAt).getTime();
-      const diffMs = now - created;
-      const diffSec = Math.floor(diffMs / 1000);
-      const time = diffSec < 60 ? `${diffSec}s ago`
-        : diffSec < 3600 ? `${Math.floor(diffSec / 60)}m ago`
-        : `${Math.floor(diffSec / 3600)}h ago`;
-      return {
-        method: typeLabels[q.type] || q.type,
-        target,
-        time,
-        color: typeColors[q.type] || 'bg-gray-50 dark:bg-gray-500/10 text-gray-500',
-      };
-    });
-  }, [apiStats]);
+  // Global Trust Index + Network Activity moved to /analytics
 
   const handleVerify = () => {
     const val = searchValue.trim();
@@ -431,40 +342,16 @@ export default function VerifyPage() {
           </div>
         </section>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-32">
-          <StatCard
-            label="Total Queries"
-            value={apiStats?.overview?.total?.toLocaleString() ?? '—'}
-            change={apiStats?.overview?.last24h ? `+${apiStats.overview.last24h} today` : undefined}
-            changeType="increase"
-            delay={0.4}
-          />
-          <StatCard
-            label="Unique Agents"
-            value={apiStats?.overview?.uniqueTargets?.toLocaleString() ?? '—'}
-            change="Global network"
-            changeType="neutral"
-            delay={0.5}
-          />
-          <StatCard
-            label="Active Callers"
-            value={apiStats?.overview?.uniqueCallers7d?.toLocaleString() ?? '—'}
-            change="Last 7 days"
-            changeType="increase"
-            delay={0.6}
-          />
-        </div>
+        {/* Stats moved to /analytics */}
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* Left: Recent Verifications */}
+        {/* Recent Verifications */}
+        <div className="mb-32">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="lg:col-span-8 liquid-glass p-10 rounded-[3rem] hover-lift"
+            className="liquid-glass p-10 rounded-[3rem] hover-lift"
           >
             <div className="flex items-center justify-between mb-10">
               <div>
@@ -516,70 +403,6 @@ export default function VerifyPage() {
             </div>
           </motion.div>
 
-          {/* Right: Trust Index */}
-          <div className="lg:col-span-4 space-y-10">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="liquid-glass p-10 text-center relative overflow-hidden rounded-[3.5rem] hover-lift"
-            >
-              <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-10">Global Trust Index</p>
-
-              <div className="mb-10">
-                <TrustScoreGauge score={globalTrustScore || 0} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-left">
-                <div className="bg-[var(--card-bg)] p-5 rounded-[2rem] border border-[var(--border-color)]">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Agents Scored</p>
-                  <p className="text-xs font-bold text-emerald-500 dark:text-emerald-400 flex items-center gap-2">
-                    {apiStats?.overview?.uniqueTargets?.toLocaleString() ?? '—'} <CheckCircle2 size={12} />
-                  </p>
-                </div>
-                <div className="bg-[var(--card-bg)] p-5 rounded-[2rem] border border-[var(--border-color)]">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Network</p>
-                  <p className="text-xs font-bold text-[var(--text-color)]">Base + ETH</p>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Activity */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
-              className="liquid-glass p-10 rounded-[3rem] hover-lift"
-            >
-              <div className="flex items-center gap-3 mb-8">
-                <Activity size={18} className="text-emerald-500" />
-                <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-color)]">Network Activity</h2>
-              </div>
-              <div className="space-y-8">
-                {(networkActivity || [
-                  { method: 'Agent Verify', target: '0x71c...8E2F', time: '—', color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-500' },
-                  { method: 'Token Check', target: '0x3F2...2a11', time: '—', color: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500' },
-                  { method: 'Token Forensics', target: '0x111...bcde', time: '—', color: 'bg-purple-50 dark:bg-purple-500/10 text-purple-500' },
-                ]).map((act: any, i: number) => (
-                  <div key={i} className="flex items-start justify-between group cursor-pointer">
-                    <div className="flex gap-4">
-                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110", act.color)}>
-                        <Activity size={18} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-[var(--text-color)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{act.method}</p>
-                        <p className="text-[10px] font-mono font-bold text-[var(--text-muted)] uppercase tracking-widest">{act.target}</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest">{act.time}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
         </div>
 
         {/* Features */}
