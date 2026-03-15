@@ -34,7 +34,7 @@ export default function Footer() {
             <ul className="space-y-4">
               <li><Link href="/" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Verify</Link></li>
               <li><Link href="/analytics" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Analytics</Link></li>
-              <li><Link href="/monitor" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Monitor</Link></li>
+              <li><Link href="https://github.com/JhiNResH/maiat-guard" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Maiat Guard</Link></li>
               <li><Link href="https://passport.maiat.io" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Passport</Link></li>
             </ul>
           </div>
@@ -44,8 +44,7 @@ export default function Footer() {
             <ul className="space-y-4">
               <li><Link href="/docs" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Documentation</Link></li>
               <li><Link href="https://github.com/JhiNResH/maiat-protocol" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">GitHub</Link></li>
-              <li><Link href="https://github.com/JhiNResH/maiat-guard" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Maiat Guard</Link></li>
-              <li><Link href="https://basescan.org/address/0xf6065fb076090af33ee0402f7e902b2583e7721e" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Contracts</Link></li>
+              <li><Link href="/monitor" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-xs font-bold transition-colors">Monitor</Link></li>
             </ul>
           </div>
 
@@ -74,7 +73,6 @@ export default function Footer() {
           <p className="text-[var(--text-secondary)] text-[10px] font-medium">© 2026 Maiat Protocol. All rights reserved.</p>
           <div className="flex items-center gap-8">
             <Link href="https://github.com/JhiNResH/maiat-protocol/blob/master/LICENSE" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-[10px] font-bold transition-colors">MIT License</Link>
-            <Link href="https://basescan.org/address/0xf6065fb076090af33ee0402f7e902b2583e7721e" target="_blank" className="text-[var(--text-secondary)] hover:text-[var(--text-color)] text-[10px] font-bold transition-colors">Base Sepolia</Link>
           </div>
         </div>
       </div>
