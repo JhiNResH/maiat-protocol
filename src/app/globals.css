@@ -7,7 +7,7 @@
   --bg-color: #ffffff;
   --text-color: #000000;
   --text-secondary: rgba(0, 0, 0, 0.6);
-  --text-muted: rgba(0, 0, 0, 0.4);
+  --text-muted: #9ca3af;
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(0, 0, 0, 0.08);
   --glass-shadow: 
@@ -28,7 +28,7 @@
   --bg-color: #050505;
   --text-color: #fff;
   --text-secondary: rgba(255, 255, 255, 0.5);
-  --text-muted: rgba(255, 255, 255, 0.3);
+  --text-muted: #9ca3af;
   --glass-bg: rgba(20, 20, 20, 0.4);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-shadow: 
