@@ -275,13 +275,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Auto-resolve reviewer from X-Maiat-Client header ---
+    // --- Agent-Only Gate ---
+    // Reviews are agent-only. Human users can vote/endorse but cannot write reviews.
+    // Accepted auth: JWT Bearer token OR X-Maiat-Client header (both prove agent identity).
     const clientId = !jwtAuth ? request.headers.get("x-maiat-client") : null;
-    let clientIdAuth = false; // true if authenticated via X-Maiat-Client
+    let clientIdAuth = false;
+
+    if (!jwtAuth && !clientId) {
+      // No agent auth present → reject. Humans should use /api/v1/review/vote instead.
+      return NextResponse.json(
+        {
+          error: "Reviews are agent-only",
+          detail: "Only AI agents with a valid JWT or X-Maiat-Client header can submit reviews. Humans can vote on existing reviews via POST /api/v1/review/vote.",
+          hint: "Authenticate at POST /api/v1/auth/agent to get a JWT token.",
+        },
+        { status: 403, headers: CORS_HEADERS }
+      );
+    }
 
     if (clientId) {
       if (!reviewer) {
-        // No reviewer provided → auto-assign from CallerWallet
         try {
           const { getCallerWallet, signMessage } = await import("@/lib/caller-wallet");
           const walletAddr = await getCallerWallet(clientId);
@@ -290,7 +303,6 @@ export async function POST(request: NextRequest) {
             source = 'agent';
             clientIdAuth = true;
 
-            // Auto-sign for SIWE verification
             if (!signature && !txHash && address && rating) {
               const msg = `Maiat Review: ${getAddress(address)} Rating: ${rating} Reviewer: ${getAddress(walletAddr)}`;
               const sig = await signMessage(clientId, msg);
@@ -299,9 +311,7 @@ export async function POST(request: NextRequest) {
           }
         } catch { /* non-critical */ }
       } else {
-        // Reviewer provided + X-Maiat-Client → trust the header as auth
-        // Agent has its own wallet but can't sign (e.g., Privy embedded wallet)
-        source = body.source === 'agent' ? 'agent' : 'agent'; // force agent source
+        source = 'agent';
         clientIdAuth = true;
       }
     }

@@ -65,6 +65,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Can't vote on your own review" }, { status: 400, headers: CORS_HEADERS });
     }
 
+    // --- Deduct 1 Scarab per vote (anti-spam) ---
+    let scarabDeducted = false;
+    try {
+      const { spendScarab } = await import("@/lib/scarab");
+      await spendScarab(checksumVoter, "vote_spend");
+      scarabDeducted = true;
+    } catch (scarabErr: any) {
+      if (scarabErr.message?.includes("Insufficient")) {
+        return NextResponse.json(
+          {
+            error: "Insufficient Scarab points",
+            detail: "Voting costs 1 🪲 Scarab. Claim daily at /api/v1/scarab/claim.",
+          },
+          { status: 402, headers: CORS_HEADERS }
+        );
+      }
+      // Other errors — continue without deduction
+    }
+
     // --- Voter interaction verification (soft gate) ---
     // Votes from verified interactors count more
     let voteWeight = 1;
