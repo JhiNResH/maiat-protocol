@@ -449,9 +449,13 @@ export default function VerifyPage() {
               >
                 View Docs
               </a>
-              <button className="bg-[var(--text-color)] hover:opacity-90 text-[var(--bg-color)] px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-3 shadow-xl hover:scale-105 active:scale-95">
-                Get API Key
-              </button>
+              <a
+                href="https://github.com/JhiNResH/maiat-protocol"
+                target="_blank"
+                className="bg-[var(--text-color)] hover:opacity-90 text-[var(--bg-color)] px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-3 shadow-xl hover:scale-105 active:scale-95"
+              >
+                GitHub
+              </a>
             </div>
           </div>
 
@@ -463,7 +467,7 @@ export default function VerifyPage() {
             </div>
             <p className="flex items-center gap-4 text-base font-bold flex-wrap">
               <span className="text-[var(--text-muted)]">$</span>
-              <span>curl https://maiat.io/api/v1/agent/0x71c...4E8F</span>
+              <span>curl https://app.maiat.io/api/v1/agent/0x71c...4E8F</span>
             </p>
           </div>
         </motion.div>
