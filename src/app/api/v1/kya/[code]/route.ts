@@ -5,23 +5,20 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { kyaCorsHeaders } from '@/lib/kya';
 
 export const dynamic = 'force-dynamic';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-
-export async function OPTIONS() {
+export async function OPTIONS(req: NextRequest) {
+  const CORS = kyaCorsHeaders(req.headers.get('origin'));
   return new NextResponse(null, { status: 204, headers: CORS });
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
+  const CORS = kyaCorsHeaders(req.headers.get('origin'));
   const { code } = await params;
 
   if (!code || !/^MAIAT-[A-Z2-9]{4}$/.test(code)) {
@@ -57,8 +54,10 @@ export async function GET(
     );
   }
 
-  const agentName = kyaCode.agentName ?? kyaCode.agentAddress.slice(0, 8);
-  const tweetTemplate = `I trust @${agentName} 🛡️ #MaiatVerified ${code}\npassport.maiat.io/verify/${code}?ref={yourENS}`;
+  const agentLabel = kyaCode.twitterHandle
+    ? `@${kyaCode.twitterHandle}`
+    : kyaCode.agentName ?? kyaCode.agentAddress.slice(0, 8);
+  const tweetTemplate = `I trust ${agentLabel} 🛡️ #MaiatVerified ${code}\npassport.maiat.io/verify/${code}?ref={yourENS}`;
 
   return NextResponse.json(
     {
