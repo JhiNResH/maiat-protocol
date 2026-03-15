@@ -17,7 +17,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <PrivyProvider>
       <ThemeProvider>
-        <div className="min-h-screen transition-colors duration-700 bg-[#FDFDFB] text-black dark:bg-[#0A0A0A] dark:text-white">
+        <div className="min-h-screen transition-colors duration-700" style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-color)' }}>
           <MeshBackground />
           <Suspense fallback={null}>
             <TopNavbar />
