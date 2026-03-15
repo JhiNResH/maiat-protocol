@@ -68,27 +68,35 @@ export default function TopNavbar() {
           </Link>
 
           {/* Nav Links (desktop) */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
               const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={cn(
-                    'text-[10px] font-bold uppercase tracking-[0.2em] transition-all relative whitespace-nowrap',
-                    isActive
-                      ? 'text-[var(--text-color)]'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-color)]'
-                  )}
+                  className="relative px-4 py-2 rounded-full whitespace-nowrap"
                 >
-                  {link.name}
                   {isActive && (
                     <motion.div
-                      layoutId="nav-underline"
-                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[var(--text-color)] rounded-full"
+                      layoutId="nav-pill"
+                      className="absolute inset-0 bg-[var(--text-color)]/10 rounded-full"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                     />
                   )}
+                  <motion.span
+                    className={cn(
+                      'relative z-10 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors',
+                      isActive
+                        ? 'text-[var(--text-color)]'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-color)]'
+                    )}
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                  >
+                    {link.name}
+                  </motion.span>
                 </Link>
               );
             })}
