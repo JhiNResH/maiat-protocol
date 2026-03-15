@@ -97,31 +97,8 @@ const HIDDEN_TYPES = ["agent_deep_check", "trust_swap", "submit_review"];
 
 // ─── Fallback Data (shown when API unavailable) ─────────────────────────────
 
-const FALLBACK_STATS: ApiStats = {
-  overview: { total: 852, last24h: 47, last7d: 754, last30d: 852, uniqueBuyers: 3, uniqueTargets: 142, uniqueCallers7d: 48 },
-  trending: [
-    { target: "0x359Ec167BDfBAfd57D66A13E532185D03A290978", count: 312, trustScore: 100, trustGrade: "A+" },
-    { target: "0x5b5852b8c772e388b71c106440df4e1bb53467ae", count: 187, trustScore: 85, trustGrade: "B+" },
-    { target: "0xA1b2C3d4E5f6789012345678901234567890AbCd", count: 94, trustScore: 72, trustGrade: "B" },
-    { target: "0xDEAD000000000000000000000000000000001234", count: 61, trustScore: 23, trustGrade: "F" },
-    { target: "0xFe9876543210abcdef1234567890ABCDEF123456", count: 43, trustScore: 91, trustGrade: "A" },
-  ],
-  topClients: [],
-  byType: { agent_trust: 757, token_check: 54, token_forensics: 15, agent_profile: 1 },
-  byVerdict: { proceed: 730, caution: 66, avoid: 43, trusted: 13 },
-  outcomes: { success: 445, unreported: 407 },
-  recent: [
-    { id: "1", type: "agent_trust", target: "0x359Ec167BDfBAfd57D66A13E532185D03A290978", trustScore: 100, verdict: "proceed", outcome: "success", createdAt: new Date().toISOString() },
-    { id: "2", type: "token_check", target: "0xA1b2C3d4E5f6789012345678901234567890AbCd", trustScore: 72, verdict: "caution", outcome: null, createdAt: new Date(Date.now() - 300000).toISOString() },
-    { id: "3", type: "agent_trust", target: "0xDEAD000000000000000000000000000000001234", trustScore: 23, verdict: "avoid", outcome: null, createdAt: new Date(Date.now() - 600000).toISOString() },
-    { id: "4", type: "token_forensics", target: "0xFe9876543210abcdef1234567890ABCDEF123456", trustScore: 91, verdict: "proceed", outcome: "success", createdAt: new Date(Date.now() - 900000).toISOString() },
-    { id: "5", type: "agent_trust", target: "0x5b5852b8c772e388b71c106440df4e1bb53467ae", trustScore: 85, verdict: "proceed", outcome: "success", createdAt: new Date(Date.now() - 1200000).toISOString() },
-  ],
-  generatedAt: new Date().toISOString(),
-};
-
 const FALLBACK_ENGAGEMENT: EngagementStats = {
-  overview: { totalUsers: 24, totalAgents: 89, totalReviews: 156, uniqueReviewers: 18, totalVotes: 342, totalBets: 67 },
+  overview: { totalUsers: 0, totalAgents: 0, totalReviews: 0, uniqueReviewers: 0, totalVotes: 0, totalBets: 0 },
   feed: [],
 };
 
@@ -131,13 +108,14 @@ export default function AnalyticsPage() {
   const [stats, setStats] = useState<ApiStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [engagement, setEngagement] = useState<EngagementStats | null>(null);
+  const [timeseries, setTimeseries] = useState<Array<{ date: string; count: number }>>([]);
 
   useEffect(() => {
     const fetchStats = () =>
       fetch("/api/v1/stats/api")
         .then((r) => (r.ok ? r.json() : null))
-        .then((d) => { setStats(d ?? FALLBACK_STATS); })
-        .catch(() => { setStats(FALLBACK_STATS); })
+        .then((d) => { setStats(d ?? null); })
+        .catch(() => { setStats(null); })
         .finally(() => setLoading(false));
 
     fetchStats();
@@ -157,15 +135,23 @@ export default function AnalyticsPage() {
     return () => clearInterval(t);
   }, []);
 
-  // Build chart data from real stats
-  const chartData = stats
-    ? [
-        { name: "30d ago", value: stats.overview.last30d },
-        { name: "7d ago", value: stats.overview.last7d },
-        { name: "24h ago", value: stats.overview.last24h },
-        { name: "Now", value: stats.overview.total },
-      ]
-    : [];
+  useEffect(() => {
+    const fetchTimeseries = () =>
+      fetch("/api/v1/stats/api/timeseries")
+        .then((r) => (r.ok ? r.json() : { data: [] }))
+        .then((d) => { setTimeseries(d.data ?? []); })
+        .catch(() => { setTimeseries([]); });
+
+    fetchTimeseries();
+    const t = setInterval(fetchTimeseries, 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Build chart data from timeseries (daily counts for last 30 days)
+  const chartData = timeseries.map((row) => ({
+    name: row.date.slice(5), // MM-DD format
+    value: row.count,
+  }));
 
   const pieData = stats
     ? Object.entries(stats.byVerdict).map(([name, value], i) => ({
@@ -197,7 +183,7 @@ export default function AnalyticsPage() {
   if (!stats) {
     return (
       <div className="flex items-center justify-center py-32">
-        <p className="text-[var(--text-secondary)] font-medium">Failed to load analytics</p>
+        <p className="text-[var(--text-secondary)] font-medium">No data available</p>
       </div>
     );
   }
@@ -232,8 +218,7 @@ export default function AnalyticsPage() {
           <StatCard
             label="Total Queries"
             value={overview.total.toLocaleString()}
-            change="+12%"
-            changeType="increase"
+            changeType="neutral"
             delay={0}
           />
           <StatCard
@@ -298,30 +283,36 @@ export default function AnalyticsPage() {
           className="liquid-glass rounded-[3rem] border-white/40 p-12 mb-12 hover-lift"
         >
           <h2 className="text-3xl font-bold text-[var(--text-color)] mb-12">Query Volume Over Time</h2>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--glass-bg)",
-                    border: "1px solid var(--glass-border)",
-                    borderRadius: "1rem",
-                    fontSize: 12,
-                  }}
-                />
-                <Area type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {chartData.length === 0 ? (
+            <div className="h-[300px] flex items-center justify-center">
+              <p className="text-[var(--text-secondary)] font-medium">No data available</p>
+            </div>
+          ) : (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--glass-bg)",
+                      border: "1px solid var(--glass-border)",
+                      borderRadius: "1rem",
+                      fontSize: 12,
+                    }}
+                  />
+                  <Area type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </motion.div>
 
         {/* Bottom Grid */}
