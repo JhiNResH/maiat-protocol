@@ -185,6 +185,28 @@ export default function VerifyPage() {
   const [searchValue, setSearchValue] = useState('');
   const [submittedAddress, setSubmittedAddress] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [searchResults, setSearchResults] = useState<Array<{ address: string; name: string; trustScore: number; image?: string | null }>>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // Debounced name search
+  React.useEffect(() => {
+    if (!searchValue || searchValue.startsWith('0x') || searchValue.length < 2) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(searchValue)}&limit=5`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const agents = data.agents || [];
+        setSearchResults(agents);
+        setShowDropdown(agents.length > 0);
+      } catch { /* ignore */ }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchValue]);
 
   // Fetch real API stats (queries, recent, trending) — single source of truth
   const { data: apiStats } = useSWR('/api/v1/stats/api', fetcher);
@@ -348,6 +370,44 @@ export default function VerifyPage() {
                 Verify <ArrowRight size={20} className="group-hover/btn:translate-x-2 transition-transform" />
               </button>
             </div>
+
+            {/* Search Dropdown */}
+            {showDropdown && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-2xl overflow-hidden z-50">
+                {searchResults.map((agent, i) => (
+                  <button
+                    key={agent.address}
+                    className="w-full flex items-center gap-4 px-6 py-4 hover:bg-[var(--text-color)]/5 transition-colors text-left"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setSearchValue(agent.address);
+                      setSubmittedAddress(agent.address);
+                      setShowDropdown(false);
+                    }}
+                  >
+                    {agent.image ? (
+                      <img src={agent.image} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-[var(--border-color)] flex items-center justify-center">
+                        <User size={14} className="text-[var(--text-muted)]" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-[var(--text-color)] truncate">{agent.name}</p>
+                      <p className="text-[10px] font-mono text-[var(--text-muted)] truncate">{agent.address}</p>
+                    </div>
+                    <div className={cn(
+                      "px-3 py-1 rounded-full text-[10px] font-bold",
+                      agent.trustScore >= 50
+                        ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500'
+                        : 'bg-rose-50 dark:bg-rose-500/10 text-rose-500'
+                    )}>
+                      {agent.trustScore}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.div>
 
           {/* Result panel */}
