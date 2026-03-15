@@ -325,7 +325,7 @@ Score = (On-chain Behavioral × 0.5) + (Off-chain Signals × 0.3) + (Human Revie
 | Contract | Address |
 |---|---|
 | MaiatOracle | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` |
-| TrustGateHook (Uniswap v4) | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` |
+| TrustGateHook (Uniswap v4) | `0xf6065fb076090af33ee0402f7e902b2583e7721e` |
 | EAS Schema UID | `0x24b0db687434f15057bef6011b95f1324f2c38af06d0e636aea1c58bf346d802` |
 | ERC-8004 Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | ERC-8004 Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
