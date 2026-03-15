@@ -17,8 +17,6 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import StatCard from '@/components/StatCard';
-import MeshBackground from '@/components/MeshBackground';
-import { Footer } from '@/components/Footer';
 import { cn } from '@/lib/utils';
 import useSWR from 'swr';
 
@@ -202,7 +200,6 @@ export default function VerifyPage() {
 
   return (
     <div className="min-h-screen pb-20 relative">
-      <MeshBackground />
 
       <main className="max-w-7xl mx-auto px-6 relative">
         {/* Vertical Rail Text */}
@@ -517,7 +514,6 @@ export default function VerifyPage() {
         </motion.div>
       </main>
 
-      <Footer />
     </div>
   );
 }

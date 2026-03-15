@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import Link from 'next/link'
-import { Footer } from '@/components/Footer'
 import { Award, Zap, Info } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -702,7 +701,6 @@ function ScarabClaim({ walletAddress }: { walletAddress: string }) {
           </button>
         )}
       </div>
-      <Footer />
     </div>
   )
 }

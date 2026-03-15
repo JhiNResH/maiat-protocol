@@ -1,19 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Search, Wallet, ArrowRight } from 'lucide-react'
-import MeshBackground from '@/components/MeshBackground'
-import { Footer } from '@/components/Footer'
-import { cn } from '@/lib/utils'
+import { ShieldCheck, Fingerprint, Activity, Search } from 'lucide-react'
 
 export default function PassportIndexPage() {
   const router = useRouter()
   const { authenticated, user, login } = usePrivy()
   const { wallets } = useWallets()
-  const externalWallet = wallets.find(w => w.walletClientType !== 'privy')
+  const externalWallet = wallets.find((w) => w.walletClientType !== 'privy')
   const [manualAddr, setManualAddr] = useState('')
   const [error, setError] = useState('')
 
@@ -36,122 +33,152 @@ export default function PassportIndexPage() {
 
   return (
     <div className="min-h-screen pb-20 relative">
-      <MeshBackground />
-
-      <main className="max-w-7xl mx-auto px-6">
-        {/* Header */}
-        <section className="text-center mb-20 pt-12">
+      <main className="max-w-6xl mx-auto px-6 relative">
+        {/* Hero */}
+        <section className="text-center mb-24 pt-12">
           <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--text-color)] text-[var(--bg-color)] text-[10px] font-black uppercase tracking-[0.2em] mb-10 mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-3 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--text-color)] px-6 py-2 rounded-full text-[10px] font-bold tracking-widest uppercase mb-12"
           >
-            <ShieldCheck size={14} />
-            <span>Trust Passport</span>
+            <span className="w-2 h-2 bg-[var(--text-color)] rounded-full animate-pulse" />
+            Live on Mainnet
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="text-5xl md:text-6xl font-black text-[var(--text-color)] tracking-tight mb-6"
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            className="atmosphere-text font-black text-[var(--text-color)]"
           >
-            Your On-Chain Identity
+            Your <br />
+            <span className="text-[var(--text-muted)]">Identity</span>
           </motion.h1>
+
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-[var(--text-secondary)] text-xl max-w-xl mx-auto font-medium"
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="text-[var(--text-secondary)] text-2xl max-w-2xl mx-auto mb-16 font-medium mt-8"
           >
-            Reputation score, review history, and trust level in the Maiat network.
+            The decentralized standard for digital reputation and Sybil resistance. One passport, infinite access.
           </motion.p>
+
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={login}
+            className="bg-[var(--text-color)] text-[var(--bg-color)] px-12 py-5 rounded-2xl font-bold shadow-xl shadow-black/5 hover:opacity-90 transition-all flex items-center gap-4 mx-auto uppercase tracking-widest text-[10px]"
+          >
+            <ShieldCheck size={20} />
+            Connect Wallet to View Passport
+          </motion.button>
         </section>
 
-        {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-          {/* Connect Wallet Card */}
+        {/* Bento Grid Preview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-stretch">
+          {/* Recent Reviews */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="liquid-glass p-10 rounded-[2.5rem] hover-lift text-center"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="liquid-glass rounded-[3rem] border-white/40 p-12 flex flex-col items-center justify-center text-center min-h-[400px] hover-lift"
           >
-            <div className="w-16 h-16 bg-[var(--text-color)] rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <Wallet size={28} className="text-[var(--bg-color)]" />
+            <div className="w-24 h-24 bg-[var(--card-bg)] rounded-[2rem] flex items-center justify-center text-[var(--text-muted)] mb-10">
+              <Activity size={48} />
             </div>
-            <h2 className="text-xl font-bold text-[var(--text-color)] mb-3">View Your Passport</h2>
-            <p className="text-[var(--text-secondary)] text-sm mb-8 leading-relaxed">
-              Connect your wallet to view your full trust passport and reputation score.
+            <h3 className="text-3xl font-bold mb-4 text-[var(--text-color)]">Recent Reviews</h3>
+            <p className="text-[var(--text-secondary)] font-medium">
+              Connect your wallet to see your review history.
+            </p>
+          </motion.div>
+
+          {/* Main Passport Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="liquid-glass rounded-[3rem] border-white/40 p-12 flex flex-col items-center justify-center text-center min-h-[450px] relative overflow-hidden group hover-lift"
+          >
+            <div className="absolute top-0 left-0 w-full h-2 bg-[var(--text-color)]" />
+            <div className="w-24 h-24 bg-[var(--card-bg)] rounded-full flex items-center justify-center text-[var(--text-color)] mb-10 group-hover:bg-[var(--text-color)] group-hover:text-[var(--bg-color)] transition-all">
+              <Fingerprint size={48} />
+            </div>
+            <h2 className="text-6xl font-bold mb-6 text-[var(--text-color)] tracking-tighter leading-none">
+              Your<br />Passport
+            </h2>
+            <p className="text-[var(--text-secondary)] mb-12 font-medium">
+              Connect wallet to generate your unique reputation score.
             </p>
             <button
               onClick={login}
-              className="w-full bg-[var(--text-color)] text-[var(--bg-color)] py-4 rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-3"
+              className="bg-[var(--text-color)] text-[var(--bg-color)] px-10 py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-black/5"
             >
-              <Wallet size={16} />
-              Connect Wallet
+              Connect Wallet to Generate
             </button>
           </motion.div>
 
-          {/* Manual Lookup Card */}
+          {/* Activity Heatmap */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="liquid-glass p-10 rounded-[2.5rem] hover-lift"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+            className="liquid-glass rounded-[3rem] border-white/40 p-12 flex flex-col items-center justify-center text-center min-h-[400px] hover-lift"
           >
-            <div className="w-16 h-16 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <Search size={28} className="text-[var(--text-secondary)]" />
-            </div>
-            <h2 className="text-xl font-bold text-[var(--text-color)] mb-3">Look Up Any Wallet</h2>
-            <p className="text-[var(--text-secondary)] text-sm mb-8 leading-relaxed">
-              Enter any wallet address to view their public trust passport.
-            </p>
-            <div className="space-y-3">
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={manualAddr}
-                  onChange={e => { setManualAddr(e.target.value); setError('') }}
-                  onKeyDown={e => e.key === 'Enter' && handleLookup()}
-                  placeholder="0x wallet address…"
-                  className="flex-1 bg-[var(--card-bg)] border border-[var(--border-color)] focus:border-[var(--text-color)] text-[var(--text-color)] font-mono text-sm px-4 py-3 rounded-2xl outline-none transition-colors placeholder:text-[var(--text-muted)]"
+            <div className="grid grid-cols-7 gap-3 mb-10">
+              {Array.from({ length: 28 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-7 h-7 rounded-lg transition-colors ${
+                    i % 5 === 0 ? 'bg-[var(--text-color)]' :
+                    i % 3 === 0 ? 'bg-[var(--text-secondary)]' :
+                    i % 2 === 0 ? 'bg-[var(--text-muted)]' : 'bg-[var(--card-bg)]'
+                  }`}
                 />
-                <button
-                  onClick={handleLookup}
-                  className="bg-[var(--text-color)] text-[var(--bg-color)] px-5 py-3 rounded-2xl font-bold transition-all hover:opacity-90 flex items-center"
-                >
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-              {error && <p className="text-rose-400 text-xs font-mono">{error}</p>}
+              ))}
             </div>
+            <h3 className="text-3xl font-bold mb-4 text-[var(--text-color)]">Activity Heatmap</h3>
+            <p className="text-[var(--text-secondary)] font-medium">Start contributing to build your map</p>
           </motion.div>
         </div>
 
-        {/* Info bento */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto mt-8">
-          {[
-            { label: 'Trust Score', desc: 'Based on on-chain behavior' },
-            { label: 'Review History', desc: 'Community attestations' },
-            { label: 'EAS Receipts', desc: 'On-chain verifications' },
-          ].map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="p-6 rounded-[2rem] bg-[var(--card-bg)] border border-[var(--border-color)] text-center"
+        {/* Manual Lookup */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="mt-16 text-center"
+        >
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-6">
+            Or look up any address
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
+            <div className="relative flex-1">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+              <input
+                type="text"
+                placeholder="0x... wallet address"
+                value={manualAddr}
+                onChange={(e) => { setManualAddr(e.target.value); setError('') }}
+                onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+                className="w-full liquid-glass rounded-2xl pl-12 pr-6 py-4 text-sm text-[var(--text-color)] placeholder:text-[var(--text-muted)] outline-none focus:ring-2 focus:ring-[var(--text-color)]/5 transition-all"
+              />
+            </div>
+            <button
+              onClick={handleLookup}
+              className="bg-[var(--text-color)] text-[var(--bg-color)] px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:opacity-90 transition-all shrink-0"
             >
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">{item.label}</p>
-              <p className="text-xs text-[var(--text-muted)]">{item.desc}</p>
-            </motion.div>
-          ))}
-        </div>
+              Look Up
+            </button>
+          </div>
+          {error && (
+            <p className="mt-3 text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-widest">{error}</p>
+          )}
+        </motion.div>
       </main>
-
-      <Footer />
     </div>
   )
 }
