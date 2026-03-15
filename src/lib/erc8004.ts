@@ -241,3 +241,111 @@ export async function getAllRegisteredAgents(): Promise<Map<string, number>> {
 }
 // Type alias for ERC-8004 data result
 export type ERC8004Data = Awaited<ReturnType<typeof getERC8004Data>> | null;
+
+// ─── Write Operations (requires admin wallet) ────────────────────────────────
+
+// Identity Registry ABI for write operations
+const IDENTITY_REGISTRY_WRITE_ABI = [
+  {
+    name: 'register',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'agentURI', type: 'string' }],
+    outputs: [{ name: 'agentId', type: 'uint256' }],
+  },
+] as const
+
+/**
+ * Register an agent in the ERC-8004 IdentityRegistry.
+ * Called server-side using MAIAT_ADMIN_PRIVATE_KEY.
+ * Returns the new agentId on success, or null if the agent is already registered.
+ * Throws on unexpected errors.
+ */
+export async function registerAgent(walletAddress: string): Promise<bigint | null> {
+  const { createWalletClient, http: viemHttp, getAddress } = await import('viem')
+  const { privateKeyToAccount } = await import('viem/accounts')
+  const { base: baseChain } = await import('viem/chains')
+
+  const adminKey = process.env.MAIAT_ADMIN_PRIVATE_KEY
+  if (!adminKey) {
+    throw new Error('MAIAT_ADMIN_PRIVATE_KEY not set')
+  }
+
+  // Check if already registered
+  const existing = await lookupAgentId(walletAddress)
+  if (existing !== null) {
+    return existing
+  }
+
+  const account = privateKeyToAccount(adminKey as `0x${string}`)
+  const walletClient = createWalletClient({
+    account,
+    chain: baseChain,
+    transport: viemHttp(RPC_URLS[0]),
+  })
+
+  const checksummedAddress = getAddress(walletAddress)
+  const agentURI = `https://app.maiat.io/agent/${checksummedAddress}`
+
+  const txHash = await walletClient.writeContract({
+    address: IDENTITY_REGISTRY,
+    abi: IDENTITY_REGISTRY_WRITE_ABI,
+    functionName: 'register',
+    args: [agentURI],
+  })
+
+  // Wait for the tx and scan for the new agentId
+  await withFallback(async (client) => {
+    await client.waitForTransactionReceipt({ hash: txHash })
+  })
+
+  // Bust cache and re-lookup
+  agentIdCache.delete(walletAddress.toLowerCase())
+  const newAgentId = await lookupAgentId(walletAddress)
+  return newAgentId
+}
+
+/**
+ * Get or generate a KYA (Know Your Agent) code for a wallet address.
+ * Uses the agentId as a seed if available, otherwise generates locally.
+ */
+export async function getKYACode(walletAddress: string): Promise<string> {
+  const KYA_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no 0/O/1/I
+
+  try {
+    const agentId = await lookupAgentId(walletAddress)
+    if (agentId !== null) {
+      // Deterministic KYA code from agentId
+      let id = Number(agentId)
+      let code = ''
+      for (let i = 0; i < 4; i++) {
+        code += KYA_CHARS[id % KYA_CHARS.length]
+        id = Math.floor(id / KYA_CHARS.length)
+      }
+      return `MAIAT-${code}`
+    }
+  } catch {
+    // Fall through to random generation
+  }
+
+  // Fallback: generate from address bytes
+  const bytes = Buffer.from(walletAddress.replace('0x', '').slice(0, 8), 'hex')
+  let code = ''
+  for (let i = 0; i < 4; i++) {
+    code += KYA_CHARS[(bytes[i] ?? Math.floor(Math.random() * KYA_CHARS.length)) % KYA_CHARS.length]
+  }
+  return `MAIAT-${code}`
+}
+
+/**
+ * Get the numeric agentId for a wallet address (0 if not registered).
+ * Returns null if lookup fails.
+ */
+export async function getAgentId(walletAddress: string): Promise<number | null> {
+  try {
+    const agentId = await lookupAgentId(walletAddress)
+    return agentId !== null ? Number(agentId) : null
+  } catch {
+    return null
+  }
+}
