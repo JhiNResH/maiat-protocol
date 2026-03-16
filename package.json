@@ -30,6 +30,7 @@
     "@types/d3-force": "^3.0.10",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.3",
+    "@vercel/analytics": "^2.0.1",
     "@x402/core": "^2.5.0",
     "@x402/evm": "^2.5.0",
     "@x402/next": "^2.5.0",
