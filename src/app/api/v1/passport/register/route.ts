@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getUserReputation } from "@/lib/reputation";
 import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
 import { registerAgent, getKYACode, getAgentId } from "@/lib/erc8004";
-import { mintPassportSBT } from "@/lib/passport";
 import { setEnsSubname } from "@/lib/namestone";
 
 const rateLimiter = createRateLimiter("passport:register", 10, 60);
@@ -218,11 +217,8 @@ export async function POST(request: NextRequest) {
     // --- On-chain identity (type-specific) ---
     let erc8004AgentId: number | null = null;
     let kyaCode: string | null = null;
-    let sbtMinted = false;
-    let sbtTxHash: string | null = null;
-
     if (userType === 'agent') {
-      // Agent → ERC-8004 registration + KYA code
+      // Agent only → ERC-8004 registration + KYA code
       try {
         const registeredId = await registerAgent(normalizedAddress);
         if (registeredId !== null) {
@@ -237,19 +233,8 @@ export async function POST(request: NextRequest) {
       } catch (e: any) {
         console.warn("[passport/register] getKYACode failed (non-blocking):", e.message);
       }
-    } else {
-      // Human → SBT passport mint
-      try {
-        const mintResult = await mintPassportSBT(normalizedAddress);
-        sbtMinted = mintResult.minted;
-        sbtTxHash = mintResult.txHash;
-        if (mintResult.skipped) {
-          console.log("[passport/register] SBT mint skipped:", mintResult.reason);
-        }
-      } catch (e: any) {
-        console.warn("[passport/register] SBT mint failed (non-blocking):", e.message);
-      }
     }
+    // Human → no on-chain mint needed (ENS + DB only, zero gas)
 
     return NextResponse.json({
       passport: {
@@ -265,8 +250,6 @@ export async function POST(request: NextRequest) {
         referralApplied,
         erc8004AgentId,
         kyaCode,
-        sbtMinted,
-        sbtTxHash,
         ensRegistered,
       },
     }, { status: 201, headers: CORS_HEADERS });
