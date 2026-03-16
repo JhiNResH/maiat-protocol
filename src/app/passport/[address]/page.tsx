@@ -523,7 +523,6 @@ export default function PassportPage() {
           )}
 
         </div>
-        </div>
       </main>
     </div>
   )
