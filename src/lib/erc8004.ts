@@ -16,13 +16,13 @@ const REPUTATION_REGISTRY = '0x8004BAa17C55a88189AE136b182e5fdA19dE9b63' as cons
 const DEPLOY_BLOCK = 41663783n
 const CHUNK_SIZE = 9999n
 
-// RPC endpoints in priority order — Alchemy first (reliable), public fallbacks
-const ALCHEMY_BASE_RPC = process.env.ALCHEMY_BASE_RPC || process.env.ALCHEMY_ETH_RPC || null;
+// RPC endpoints in priority order — publicnode most reliable, Alchemy if available
+const ALCHEMY_BASE_RPC = process.env.ALCHEMY_BASE_RPC || null;
 const RPC_URLS = [
   ...(ALCHEMY_BASE_RPC ? [ALCHEMY_BASE_RPC] : []),
+  'https://base-rpc.publicnode.com',
   'https://base.gateway.tenderly.co',
   'https://mainnet.base.org',
-  'https://base-rpc.publicnode.com',
 ]
 
 // Module-level caches
