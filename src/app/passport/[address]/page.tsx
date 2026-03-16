@@ -65,7 +65,7 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <span className="text-xs font-mono">
       {[1,2,3,4,5].map(i => (
-        <span key={i} className={i <= rating ? 'text-cyan-400' : 'text-[var(--border-color)]'}>★</span>
+        <span key={i} className={i <= rating ? 'text-amber-400' : 'text-[var(--border-color)]'}>★</span>
       ))}
     </span>
   )
@@ -179,7 +179,7 @@ export default function PassportPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center">
         
-        <p className="font-mono text-[var(--text-muted)] text-xs animate-pulse m-auto">Loading passport…</p>
+        <p className="text-[var(--text-muted)] text-xs font-medium animate-pulse">Loading passport…</p>
       </div>
     )
   }
@@ -189,8 +189,8 @@ export default function PassportPage() {
       <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center gap-3">
         
         <div className="m-auto flex flex-col items-center gap-3">
-          <p className="font-mono text-[var(--text-secondary)] text-sm">Invalid address</p>
-          <Link href="/monitor" className="font-mono text-emerald-500 text-xs hover:underline">← back to monitor</Link>
+          <p className="text-[var(--text-secondary)] font-medium text-sm">Invalid address</p>
+          <Link href="/monitor" className="text-emerald-500 font-bold text-xs hover:underline">← back to monitor</Link>
         </div>
       </div>
     )
@@ -225,13 +225,13 @@ export default function PassportPage() {
           {/* ── Top action bar ──────────────────────────────────────────── */}
           <div className="flex items-center justify-end gap-2">
             {isOwn && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-emerald-500/40 text-emerald-500">
+              <span className="text-[10px] font-bold px-3 py-0.5 rounded-full border border-emerald-500/40 text-emerald-500">
                 YOUR PASSPORT
               </span>
             )}
             <button
               onClick={handleCopy}
-              className="text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--text-color)] border border-[var(--border-color)] hover:border-emerald-500/20 px-2 py-1 rounded transition-colors"
+              className="text-[10px] text-[var(--text-muted)] font-medium hover:text-[var(--text-color)] border border-[var(--border-color)] hover:border-emerald-500/20 px-2 py-1 rounded transition-colors"
             >
               {copied ? '✓ Copied' : '⎘ Share'}
             </button>
@@ -245,7 +245,7 @@ export default function PassportPage() {
               {/* Address + trust badge row */}
               <div className="flex items-start justify-between mb-5">
                 <div>
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] font-mono mb-1">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-1">
                     Trust Passport
                   </p>
                   {isEditing ? (
@@ -255,7 +255,7 @@ export default function PassportPage() {
                         value={editName}
                         onChange={e => setEditName(e.target.value)}
                         placeholder="Enter display name…"
-                        className="bg-[var(--bg-elevated)] border border-[var(--border-color)] text-[var(--text-color)] font-mono text-sm px-3 py-1.5 rounded outline-none focus:border-emerald-500"
+                        className="bg-[var(--bg-elevated)] border border-[var(--border-color)] text-[var(--text-color)] text-sm font-medium px-3 py-1.5 rounded outline-none focus:border-emerald-500"
                         autoFocus
                       />
                       <button
@@ -274,7 +274,7 @@ export default function PassportPage() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                       <p className="text-[var(--text-color)] font-mono text-lg font-bold tracking-wide">
+                       <p className="text-[var(--text-color)] text-lg font-black tracking-wide">
                         {data?.displayName || fmt(data?.address)}
                       </p>
                       {isOwn && (
@@ -288,11 +288,11 @@ export default function PassportPage() {
                       )}
                     </div>
                   )}
-                  {editError && <p className="text-[9px] text-red-500 font-mono mt-1">{editError}</p>}
-                  <p className="text-[var(--text-muted)] font-mono text-[10px] mt-0.5">{data?.address}</p>
+                  {editError && <p className="text-[9px] text-rose-500 font-medium mt-1">{editError}</p>}
+                  <p className="text-[var(--text-muted)] text-[10px] font-medium mt-0.5">{data?.address}</p>
                 </div>
                 <span
-                  className="text-xs font-bold font-mono px-3 py-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-elevated)]"
+                  className="text-xs font-bold px-3 py-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-elevated)]"
                   style={{ color: trust.color }}
                 >
                   {trust.label}
@@ -301,21 +301,21 @@ export default function PassportPage() {
 
               {/* Stat pills */}
               <div className="grid grid-cols-3 gap-3 mb-5">
-                <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] p-3 text-center">
-                  <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-[var(--text-muted)] mb-1">REP</p>
-                  <p className="text-2xl font-bold font-mono" style={{ color: trust.color }}>
+                <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] p-5 text-center">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-1">REP</p>
+                  <p className="text-2xl font-bold" style={{ color: trust.color }}>
                     {passport.reputationScore}
                   </p>
                 </div>
-                <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] p-3 text-center">
-                  <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-[var(--text-muted)] mb-1">REVIEWS</p>
-                  <p className="text-2xl font-bold font-mono text-[var(--text-color)]">
+                <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] p-5 text-center">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-1">REVIEWS</p>
+                  <p className="text-2xl font-bold text-[var(--text-color)]">
                     {passport.totalReviews}
                   </p>
                 </div>
-                <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] p-3 text-center">
-                  <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-[var(--text-muted)] mb-1">🪲 SCARAB</p>
-                  <p className="text-2xl font-bold font-mono text-[var(--text-color)]">
+                <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] p-5 text-center">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-1">🪲 SCARAB</p>
+                  <p className="text-2xl font-bold text-[var(--text-color)]">
                     {data?.scarab?.balance ?? 0}
                   </p>
                 </div>
@@ -324,7 +324,7 @@ export default function PassportPage() {
               {/* Reputation progress bar */}
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-[10px] font-bold tracking-widest uppercase font-mono text-[var(--text-muted)]">Reputation</span>
+                  <span className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">Reputation</span>
                   <span className="text-[10px] font-mono" style={{ color: trust.color }}>{passport.reputationScore} pts</span>
                 </div>
                 <RepBar score={passport.reputationScore} />
@@ -339,24 +339,24 @@ export default function PassportPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Agents You Can Review */}
-            <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] px-4 py-4">
+            <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-[var(--text-muted)]">
+                <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">
                   Agents You Can Review
                 </p>
                 {unreviewedAgents.length > 0 && (
-                  <span className="text-[10px] font-mono text-[var(--text-muted)] border border-[var(--border-color)] px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] text-[var(--text-muted)] font-medium border border-[var(--border-color)] px-1.5 py-0.5 rounded">
                     {unreviewedAgents.length} pending
                   </span>
                 )}
               </div>
 
               {agentsLoading ? (
-                <p className="text-[var(--text-muted)] font-mono text-[10px] animate-pulse py-2">Scanning ACP history…</p>
+                <p className="text-[var(--text-muted)] text-[10px] font-medium animate-pulse py-2">Scanning ACP history…</p>
               ) : unreviewedAgents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-6 gap-2">
-                  <p className="text-[var(--text-muted)] font-mono text-[10px]">No unreviewed agents.</p>
-                  <Link href="/monitor" className="text-[10px] font-mono text-emerald-500 hover:underline">
+                  <p className="text-[var(--text-muted)] text-[10px] font-medium">No unreviewed agents.</p>
+                  <Link href="/monitor" className="text-[10px] text-emerald-500 font-bold hover:underline">
                     Explore agents →
                   </Link>
                 </div>
@@ -386,8 +386,8 @@ export default function PassportPage() {
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="text-[var(--text-color)] font-mono text-[10px] font-semibold truncate">{agent.name}</p>
-                            <p className="text-[var(--text-muted)] font-mono text-[9px]"><span className={scoreColor}>{score}</span></p>
+                            <p className="text-[var(--text-color)] text-[10px] font-bold truncate">{agent.name}</p>
+                            <p className="text-[var(--text-muted)] text-[9px] font-medium"><span className={scoreColor}>{score}</span></p>
                           </div>
                         </Link>
                       )
@@ -396,7 +396,7 @@ export default function PassportPage() {
                   {unreviewedAgents.length > 10 && !showAllAgents && (
                     <button
                       onClick={() => setShowAllAgents(true)}
-                      className="mt-3 w-full text-[10px] font-mono text-emerald-500 hover:underline"
+                      className="mt-3 w-full text-[10px] text-emerald-500 font-bold hover:underline"
                     >
                       Show {unreviewedAgents.length - 10} more →
                     </button>
@@ -413,8 +413,8 @@ export default function PassportPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Level Perks */}
-            <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] px-4 py-4">
-              <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-[var(--text-muted)] mb-3">
+            <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
+              <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
                 Level Perks
               </p>
               <div className="flex flex-col gap-2">
@@ -434,7 +434,7 @@ export default function PassportPage() {
                 ))}
               </div>
               {passport.trustLevel !== 'guardian' && (
-                <p className="mt-3 text-[10px] font-mono text-[var(--text-muted)]">
+                <p className="mt-3 text-[10px] text-[var(--text-muted)] font-medium">
                   Review more to level up →{' '}
                   <Link href="/monitor" className="text-emerald-500 hover:underline">browse</Link>
                 </p>
@@ -442,13 +442,13 @@ export default function PassportPage() {
             </div>
 
             {/* Review History */}
-            <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] px-4 py-4">
+            <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-[var(--text-muted)]">
+                <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">
                   Review History
                 </p>
                 {data?.reviews?.count > 0 && (
-                  <span className="text-[10px] font-mono text-[var(--text-muted)] border border-[var(--border-color)] px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] text-[var(--text-muted)] font-medium border border-[var(--border-color)] px-1.5 py-0.5 rounded">
                     {data?.reviews?.count} total
                   </span>
                 )}
@@ -456,9 +456,9 @@ export default function PassportPage() {
 
               {data?.reviews?.recent?.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-6 gap-2">
-                  <p className="text-[var(--text-muted)] font-mono text-[10px]">No reviews yet.</p>
+                  <p className="text-[var(--text-muted)] text-[10px] font-medium">No reviews yet.</p>
                   {isOwn && (
-                    <Link href="/review" className="text-[10px] font-mono text-emerald-500 hover:underline">
+                    <Link href="/review" className="text-[10px] text-emerald-500 font-bold hover:underline">
                       Leave your first review →
                     </Link>
                   )}
@@ -470,19 +470,19 @@ export default function PassportPage() {
                       <div className="flex items-center justify-between">
                         <Link
                           href={`/review/${r.address}`}
-                          className="text-[10px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-color)] transition-colors"
+                          className="text-[10px] text-[var(--text-secondary)] font-medium hover:text-[var(--text-color)] transition-colors"
                         >
                           {r.name || fmt(r.address)}
                         </Link>
                         <div className="flex items-center gap-1.5">
                           <StarRating rating={r.rating} />
-                          <span className="text-[var(--text-muted)] font-mono text-[10px]">
+                          <span className="text-[var(--text-muted)] text-[10px] font-medium">
                             {new Date(r.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
                       {r.comment && (
-                        <p className="text-[var(--text-muted)] font-mono text-[10px] leading-snug mt-1">
+                        <p className="text-[var(--text-muted)] text-[10px] font-medium leading-snug mt-1">
                           &ldquo;{r.comment.slice(0, 80)}{r.comment.length > 80 ? '…' : ''}&rdquo;
                         </p>
                       )}
@@ -495,8 +495,8 @@ export default function PassportPage() {
 
           {/* ── CTA (if not own wallet) ──────────────────────────────────── */}
           {!isOwn && (
-            <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] px-4 py-5 text-center">
-              <p className="text-[var(--text-muted)] font-mono text-[10px] mb-3">View your own trust passport</p>
+            <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8 text-center">
+              <p className="text-[var(--text-muted)] text-[10px] font-medium mb-3">View your own trust passport</p>
               <Link
                 href="/passport"
                 className="inline-block bg-[var(--text-color)] text-[var(--bg-color)] font-bold text-xs px-6 py-3 rounded-2xl transition-all hover:opacity-90"
@@ -546,21 +546,21 @@ function MarketPositions({ address }: { address: string }) {
   }, [address])
 
   if (loading) return (
-    <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] px-4 py-4">
-      <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-[var(--text-muted)] animate-pulse">
+    <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
+      <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] animate-pulse">
         Loading positions…
       </p>
     </div>
   )
 
   if (positions.length === 0) return (
-    <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] px-4 py-4">
-      <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-[var(--text-muted)] mb-3">
+    <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
+      <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
         Market Positions
       </p>
       <div className="flex flex-col items-center justify-center py-4 gap-2">
-        <p className="text-[var(--text-muted)] font-mono text-[10px]">No positions yet.</p>
-        <Link href="/markets" className="text-[10px] font-mono text-emerald-500 hover:underline">
+        <p className="text-[var(--text-muted)] text-[10px] font-medium">No positions yet.</p>
+        <Link href="/markets" className="text-[10px] text-emerald-500 font-bold hover:underline">
           Browse markets →
         </Link>
       </div>
@@ -581,12 +581,12 @@ function MarketPositions({ address }: { address: string }) {
   )
 
   return (
-    <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] px-4 py-4">
+    <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-[var(--text-muted)]">
+        <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">
           Market Positions
         </p>
-        <span className="text-[10px] font-mono text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+        <span className="text-[10px] text-emerald-500 font-bold border border-emerald-500/20 px-1.5 py-0.5 rounded">
           {totalStaked} 🪲 staked
         </span>
       </div>
@@ -598,12 +598,12 @@ function MarketPositions({ address }: { address: string }) {
             className="flex items-center justify-between liquid-glass border border-[var(--border-color)] rounded-lg px-2.5 py-2 hover:border-emerald-500/20 hover:bg-emerald-500/5 transition-all"
           >
             <div className="min-w-0">
-              <p className="text-[var(--text-color)] font-mono text-[10px] font-semibold truncate">{pos.projectName}</p>
-              <p className="text-[var(--text-muted)] font-mono text-[9px] truncate">{pos.marketTitle}</p>
+              <p className="text-[var(--text-color)] text-[10px] font-bold truncate">{pos.projectName}</p>
+              <p className="text-[var(--text-muted)] text-[9px] font-medium truncate">{pos.marketTitle}</p>
             </div>
             <div className="text-right shrink-0 ml-2">
-              <p className="text-[var(--text-color)] font-mono text-[10px] font-bold">{pos.totalAmount} 🪲</p>
-              <p className={`font-mono text-[9px] ${
+              <p className="text-[var(--text-color)] text-[10px] font-bold">{pos.totalAmount} 🪲</p>
+              <p className={`text-[9px] font-medium ${
                 pos.status === 'resolved'
                   ? (pos.payout && pos.payout > 0 ? 'text-emerald-400' : 'text-red-400')
                   : 'text-[var(--text-muted)]'
@@ -677,10 +677,10 @@ function ScarabClaim({ walletAddress }: { walletAddress: string }) {
   }
 
   return (
-    <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] px-4 py-3">
+    <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-bold tracking-widest uppercase font-mono text-[var(--text-muted)]">🪲 DAILY SCARAB</p>
+          <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">🪲 DAILY SCARAB</p>
           {claimResult && (
             <p className={`text-[10px] font-mono mt-1 ${claimResult.ok ? 'text-emerald-400' : 'text-red-400'}`}>
               {claimResult.text}
