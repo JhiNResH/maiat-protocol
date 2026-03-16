@@ -11,13 +11,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-[var(--text-color)] rounded-full flex items-center justify-center text-[var(--bg-color)]">
-                <ShieldCheck size={24} />
-              </div>
+              <img src="/maiat-logo.jpg" alt="Maiat" className="w-10 h-10 rounded-full object-cover" />
               <span className="font-display font-bold text-2xl tracking-tight text-[var(--text-color)]">maiat</span>
             </div>
             <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-8">
-              Trust infrastructure for AI agents. Verify, score, and gate autonomous transactions.
+              Trust infrastructure for agent economy.
             </p>
             <div className="flex items-center gap-5">
               <Link href="https://x.com/0xmaiat" target="_blank" className="w-10 h-10 rounded-full liquid-glass border-white/40 dark:border-white/10 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-color)] transition-all hover-lift">
