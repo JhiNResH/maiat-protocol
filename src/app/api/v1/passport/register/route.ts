@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { ensName, walletAddress, type } = body;
+    const { ensName, walletAddress, type, referredBy } = body;
 
     // Validate
     if (!ensName || !isValidEnsName(ensName.replace(/\.maiat\.eth$/, ""))) {
@@ -155,6 +155,51 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // --- Referral bonus (non-blocking) ---
+    let referralApplied = false;
+    if (referredBy && typeof referredBy === 'string') {
+      try {
+        const cleanRef = referredBy.trim().toLowerCase().replace(/\.maiat\.eth$/, "");
+        const referrer = await prisma.user.findFirst({
+          where: { displayName: { equals: cleanRef, mode: "insensitive" } },
+        });
+        if (referrer && referrer.address !== normalizedAddress) {
+          // +5 🪲 to referrer
+          const referrerBalance = await prisma.scarabBalance.upsert({
+            where: { address: referrer.address },
+            update: { balance: { increment: 5 }, totalEarned: { increment: 5 } },
+            create: { address: referrer.address, balance: 5, totalEarned: 5 },
+          });
+          await prisma.scarabTransaction.create({
+            data: {
+              address: referrer.address,
+              amount: 5,
+              type: "referral_bonus",
+              description: `Referral bonus: ${cleanEnsName} signed up via your link`,
+              balanceAfter: referrerBalance.balance,
+            },
+          });
+          // +5 🪲 to new user
+          await prisma.scarabBalance.update({
+            where: { address: normalizedAddress },
+            data: { balance: { increment: 5 }, totalEarned: { increment: 5 } },
+          });
+          await prisma.scarabTransaction.create({
+            data: {
+              address: normalizedAddress,
+              amount: 5,
+              type: "referral_bonus",
+              description: `Referral bonus: signed up via ${cleanRef}'s link`,
+              balanceAfter: scarab.balance + 5,
+            },
+          });
+          referralApplied = true;
+        }
+      } catch (e: any) {
+        console.warn("[passport/register] Referral bonus failed (non-blocking):", e.message);
+      }
+    }
+
     const reputation = await getUserReputation(normalizedAddress);
 
     // --- ERC-8004 Registration (non-blocking) ---
@@ -199,8 +244,9 @@ export async function POST(request: NextRequest) {
         trustScore: reputation.reputationScore,
         verdict: getVerdict(reputation.reputationScore),
         totalQueries: 0,
-        scarabBalance: 10,
+        scarabBalance: referralApplied ? 15 : 10,
         isNew: true,
+        referralApplied,
         erc8004AgentId,
         kyaCode,
         sbtMinted,
