@@ -1,152 +1,109 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star, Filter, Plus, Trophy, TrendingUp, Shield, Clock } from "lucide-react";
-import { MarketCard } from "@/components/MarketCard";
+import { Search, Shield, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
-interface Market {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  status: "open" | "closed" | "resolved";
-  totalPool: number;
-  positionCount: number;
-  voterCount?: number;
-  closesAt: string;
-  topProjects: { projectId: string; totalStake: number }[];
+interface Agent {
+  address: string;
+  name: string;
+  category: string | null;
+  image: string | null;
+  trustScore: number;
+  totalJobs: number;
 }
 
-const categories = ["All", "DeFi", "AI Agents", "Infra", "Perp DEX"];
+const PAGE_SIZE = 25;
 
-export default function MarketsPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-[var(--text-secondary)] text-sm uppercase tracking-widest">Loading…</div>
-      </div>
-    }>
-      <MarketsContent />
-    </Suspense>
-  );
-}
-
-function MarketsContent() {
-  const searchParams = useSearchParams();
-  const agentParam = searchParams.get("agent");
-  const agentName = searchParams.get("name");
-  const [markets, setMarkets] = useState<Market[]>([]);
+export default function AgentExplorer() {
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "open" | "resolved">("all");
-  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
+  // Debounce search
   useEffect(() => {
-    fetchMarkets();
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
-  async function fetchMarkets() {
+  // Fetch agents
+  const fetchAgents = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await fetch("/api/v1/markets?status=all");
+      const q = debouncedQuery.length >= 2 ? debouncedQuery : "0x";
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`);
+      if (!res.ok) { setAgents([]); return; }
       const data = await res.json();
-      if (data.markets) {
-        setMarkets(data.markets);
-      }
-    } catch (err) {
-      console.error("Failed to fetch markets:", err);
+      const results = data.agents || [];
+      setAgents(results);
+      setHasMore(results.length >= PAGE_SIZE);
+    } catch {
+      setAgents([]);
     } finally {
       setLoading(false);
     }
-  }
+  }, [debouncedQuery, page]);
 
-  const filteredMarkets = markets.filter((m) => {
-    if (filter !== "all" && m.status !== filter) return false;
-    if (categoryFilter !== "All" && m.category !== categoryFilter.toLowerCase().replace(" ", "-")) return false;
-    return true;
-  });
+  useEffect(() => {
+    fetchAgents();
+  }, [fetchAgents]);
 
-  const openMarkets = filteredMarkets.filter((m) => m.status === "open");
-  const resolvedMarkets = filteredMarkets.filter((m) => m.status === "resolved");
-  const totalPool = markets.reduce((acc, m) => acc + m.totalPool, 0);
-  const totalPositions = markets.reduce((acc, m) => acc + m.positionCount, 0);
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-emerald-500";
+    if (score >= 60) return "text-blue-500";
+    if (score >= 40) return "text-amber-500";
+    return "text-rose-500";
+  };
+
+  const getVerdict = (score: number) => {
+    if (score >= 80) return { label: "Trusted", bg: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" };
+    if (score >= 60) return { label: "Low Risk", bg: "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400" };
+    if (score >= 40) return { label: "Caution", bg: "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" };
+    return { label: "Avoid", bg: "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400" };
+  };
 
   return (
     <div className="min-h-screen pb-20 relative">
       <main className="max-w-6xl mx-auto px-6 relative">
-        {/* Hero */}
-        <section className="text-center mb-20 pt-12">
+        {/* Header */}
+        <section className="text-center mb-16 pt-12">
           <motion.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            className="atmosphere-text font-black text-[var(--text-color)]"
+            className="text-6xl md:text-7xl font-black text-[var(--text-color)] tracking-tight"
           >
-            Opinion <br />
-            <span className="text-[var(--text-muted)]">Markets</span>
+            Agent <span className="text-[var(--text-muted)]">Explorer</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.8 }}
-            className="text-[var(--text-secondary)] text-lg md:text-xl max-w-2xl mx-auto font-medium mt-8"
+            className="text-[var(--text-secondary)] text-lg max-w-xl mx-auto font-medium mt-6"
           >
-            The decentralized truth layer. Rank, review, and stake on the top protocols in the ecosystem.
+            18,600+ agents scored. Search by name or address.
           </motion.p>
         </section>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
-          {[
-            { label: "Total Pool", value: `${totalPool.toLocaleString()} 🪲`, icon: TrendingUp },
-            { label: "Active Markets", value: markets.filter((m) => m.status === "open").length, icon: Trophy },
-            { label: "Total Positions", value: totalPositions, icon: Shield },
-            { label: "Resolved", value: markets.filter((m) => m.status === "resolved").length, icon: Clock },
-          ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="liquid-glass p-6 rounded-[2rem] hover-lift"
-            >
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">{stat.label}</p>
-              <p className="text-2xl font-bold text-[var(--text-color)]">{stat.value}</p>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center justify-center gap-4 mb-16">
-          {categories.map((cat, i) => (
-            <button
-              key={cat}
-              onClick={() => setCategoryFilter(cat)}
-              className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
-                categoryFilter === cat
-                  ? "bg-[var(--text-color)] text-[var(--bg-color)] shadow-lg shadow-black/5"
-                  : "bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-color)] hover:border-gray-200 dark:hover:border-white/20"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-          <div className="w-px h-8 bg-[var(--border-color)] mx-2" />
-          <div className="flex gap-2">
-            {(["all", "open", "resolved"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border ${
-                  filter === f
-                    ? "bg-[var(--text-color)] text-[var(--bg-color)] border-transparent"
-                    : "border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-color)]"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+        {/* Search */}
+        <div className="max-w-2xl mx-auto mb-16">
+          <div className="relative">
+            <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by agent name or 0x address..."
+              className="w-full pl-14 pr-6 py-5 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--text-color)] text-sm font-medium placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
+            />
           </div>
         </div>
 
@@ -154,117 +111,104 @@ function MarketsContent() {
         {loading && (
           <div className="flex flex-col items-center gap-3 py-16">
             <Shield className="w-8 h-8 text-[var(--text-secondary)] animate-pulse" />
-            <span className="text-xs text-[var(--text-secondary)] uppercase tracking-widest">Loading Markets...</span>
+            <span className="text-xs text-[var(--text-secondary)] uppercase tracking-widest">Searching agents...</span>
           </div>
         )}
 
-        {/* Agent stake banner */}
-        {!loading && agentParam && agentName && (
+        {/* Results Table */}
+        {!loading && agents.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="liquid-glass rounded-[2rem] p-6 flex items-center gap-3 mb-8"
+            className="liquid-glass rounded-[2.5rem] overflow-hidden"
           >
-            <Trophy className="w-5 h-5 text-[var(--text-color)] shrink-0" />
-            <p className="text-sm text-[var(--text-color)]">
-              Stake on <strong>{decodeURIComponent(agentName)}</strong> — pick a market below
-            </p>
-          </motion.div>
-        )}
-
-        {/* Markets - use MarketCard component for real data */}
-        {!loading && filteredMarkets.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="liquid-glass rounded-[2.5rem] border-2 border-dashed border-[var(--border-color)] p-16 flex flex-col items-center justify-center text-center"
-          >
-            <div className="w-20 h-20 bg-[var(--bg-color)] rounded-full flex items-center justify-center text-[var(--text-muted)] mb-8 shadow-sm">
-              <Plus size={40} />
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-4 px-8 py-5 border-b border-[var(--border-color)]">
+              <div className="col-span-1 text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">#</div>
+              <div className="col-span-5 text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Agent</div>
+              <div className="col-span-2 text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] text-right">Score</div>
+              <div className="col-span-2 text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] text-right">Jobs</div>
+              <div className="col-span-2 text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] text-right">Verdict</div>
             </div>
-            <h3 className="font-display font-bold text-2xl mb-3 text-[var(--text-color)]">No markets found</h3>
-            <p className="text-sm text-[var(--text-secondary)] mb-10 max-w-[240px] font-medium">Check back soon for new prediction markets.</p>
+
+            {/* Rows */}
+            {agents.map((agent, i) => {
+              const verdict = getVerdict(agent.trustScore);
+              const rank = page * PAGE_SIZE + i + 1;
+              return (
+                <Link
+                  key={agent.address}
+                  href={`/?search=${agent.address}`}
+                  className="grid grid-cols-12 gap-4 px-8 py-5 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--text-color)]/[0.02] transition-colors group cursor-pointer"
+                >
+                  <div className="col-span-1 flex items-center">
+                    <span className="text-sm font-bold text-[var(--text-muted)]">{rank}</span>
+                  </div>
+                  <div className="col-span-5 flex items-center gap-4 min-w-0">
+                    {agent.image ? (
+                      <img src={agent.image} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-[var(--border-color)] shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-[var(--text-color)] truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        {agent.name}
+                      </p>
+                      <p className="text-[10px] font-mono text-[var(--text-muted)] truncate">
+                        {agent.address.slice(0, 6)}...{agent.address.slice(-4)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="col-span-2 flex items-center justify-end">
+                    <span className={cn("text-lg font-black tabular-nums", getScoreColor(agent.trustScore))}>
+                      {agent.trustScore}
+                    </span>
+                  </div>
+                  <div className="col-span-2 flex items-center justify-end">
+                    <span className="text-sm font-bold text-[var(--text-color)] tabular-nums">
+                      {agent.totalJobs?.toLocaleString() ?? "—"}
+                    </span>
+                  </div>
+                  <div className="col-span-2 flex items-center justify-end">
+                    <span className={cn("px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider", verdict.bg)}>
+                      {verdict.label}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </motion.div>
         )}
 
-        {!loading && filteredMarkets.length > 0 && (
-          <div className="space-y-12">
-            {openMarkets.length > 0 && (
-              <div>
-                <div className="flex items-center gap-4 mb-8">
-                  <h2 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Active Markets</h2>
-                  <div className="flex-1 h-px bg-[var(--border-color)]" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {openMarkets.map((market, i) => (
-                    <motion.div
-                      key={market.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                    >
-                      <MarketCard
-                        id={market.id}
-                        title={market.title}
-                        description={market.description}
-                        category={market.category}
-                        status={market.status}
-                        totalPool={market.totalPool}
-                        positionCount={market.positionCount}
-                        voterCount={market.voterCount}
-                        closesAt={market.closesAt}
-                        topProjects={market.topProjects}
-                        agentParam={agentParam || undefined}
-                        agentName={agentName || undefined}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {resolvedMarkets.length > 0 && filter !== "open" && (
-              <div>
-                <div className="flex items-center gap-4 mb-8">
-                  <h2 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Resolved Markets</h2>
-                  <div className="flex-1 h-px bg-[var(--border-color)]" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {resolvedMarkets.map((market, i) => (
-                    <motion.div
-                      key={market.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                    >
-                      <MarketCard
-                        id={market.id}
-                        title={market.title}
-                        description={market.description}
-                        category={market.category}
-                        status={market.status}
-                        totalPool={market.totalPool}
-                        positionCount={market.positionCount}
-                        voterCount={market.voterCount}
-                        closesAt={market.closesAt}
-                        topProjects={market.topProjects}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
+        {/* Empty */}
+        {!loading && agents.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-[var(--text-secondary)] text-sm">No agents found. Try a different search.</p>
           </div>
         )}
 
-        {/* Footer Info */}
-        <div className="mt-16 pt-8 border-t border-[var(--border-color)]">
-          <div className="text-[10px] text-[var(--text-muted)] space-y-2 font-bold uppercase tracking-widest">
-            <p>Markets resolve every 2 weeks. Top 3 projects by trust score win.</p>
-            <p>Winners split 95% of the loser pool. 5% is burned.</p>
-            <p>Minimum stake: 50 Scarab</p>
+        {/* Pagination */}
+        {!loading && agents.length > 0 && (
+          <div className="flex items-center justify-center gap-6 mt-12">
+            <button
+              onClick={() => setPage(Math.max(0, page - 1))}
+              disabled={page === 0}
+              className="flex items-center gap-2 px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-color)] hover:border-[var(--text-color)]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={14} /> Prev
+            </button>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+              Page {page + 1}
+            </span>
+            <button
+              onClick={() => hasMore && setPage(page + 1)}
+              disabled={!hasMore}
+              className="flex items-center gap-2 px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-color)] hover:border-[var(--text-color)]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Next <ChevronRight size={14} />
+            </button>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
