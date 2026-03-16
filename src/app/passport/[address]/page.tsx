@@ -6,6 +6,7 @@ import { usePrivy, useWallets } from '@privy-io/react-auth'
 import Link from 'next/link'
 import { Award, Zap, Info } from "lucide-react";
 import { motion } from "framer-motion";
+import StatCard from "@/components/StatCard";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -178,7 +179,7 @@ export default function PassportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center">
+      <div className="pb-20 relative flex items-center justify-center min-h-[60vh]">
         
         <p className="text-[var(--text-muted)] text-xs font-medium animate-pulse">Loading passport…</p>
       </div>
@@ -187,7 +188,7 @@ export default function PassportPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center gap-3">
+      <div className="pb-20 relative flex items-center justify-center min-h-[60vh] gap-3">
         
         <div className="m-auto flex flex-col items-center gap-3">
           <p className="text-[var(--text-secondary)] font-medium text-sm">Invalid address</p>
@@ -217,40 +218,48 @@ export default function PassportPage() {
   const visibleAgents = showAllAgents ? unreviewedAgents : unreviewedAgents.slice(0, 10)
 
   return (
-    <div className="min-h-screen pb-20 relative">
-      <main className="max-w-5xl mx-auto px-6 relative">
+    <div className="pb-20 relative">
+      <main className="max-w-6xl mx-auto px-6 relative">
 
-        {/* ── Hero Section ──────────────────────────────────────────── */}
-        <section className="text-center mb-16 pt-12">
+        {/* Hero */}
+        <section className="mb-16 pt-12 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            className="atmosphere-text font-black"
+            className="atmosphere-text font-black text-[var(--text-color)]"
           >
-            Trust<br />Passport.
+            Passport
           </motion.h1>
-          <motion.div
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.8 }}
+            className="text-[var(--text-secondary)] text-xl max-w-2xl font-medium mx-auto mt-8"
+          >
+            {data?.displayName || fmt(data?.address)} · {trust.label}
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
             className="flex items-center justify-center gap-3 mt-6"
           >
             {isOwn && (
-              <span className="px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <span className="px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 Your Passport
               </span>
             )}
             <button
               onClick={handleCopy}
-              className="px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-color)] transition-all"
+              className="px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-color)] transition-all"
             >
               {copied ? '✓ Copied' : '⎘ Share'}
             </button>
           </motion.div>
         </section>
 
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="space-y-6">
 
           {/* ── Row 1: Hero Trust Passport Card ────────────────────────── */}
           <motion.div
@@ -260,12 +269,9 @@ export default function PassportPage() {
             className="relative liquid-glass rounded-[2.5rem] p-8 hover-lift"
           >
             <div className="relative">
-              {/* Address + trust badge row */}
+              {/* Address + edit row */}
               <div className="flex items-start justify-between mb-5">
                 <div>
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-1">
-                    Trust Passport
-                  </p>
                   {isEditing ? (
                     <div className="flex gap-2 items-center">
                       <input
@@ -317,38 +323,23 @@ export default function PassportPage() {
                 </span>
               </div>
 
-              {/* Stat pills */}
-              <div className="grid grid-cols-3 gap-3 mb-5">
-                <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] p-5 text-center">
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-1">REP</p>
-                  <p className="text-2xl font-bold" style={{ color: trust.color }}>
-                    {passport.reputationScore}
-                  </p>
-                </div>
-                <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] p-5 text-center">
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-1">REVIEWS</p>
-                  <p className="text-2xl font-bold text-[var(--text-color)]">
-                    {passport.totalReviews}
-                  </p>
-                </div>
-                <div className="liquid-glass border border-[var(--border-color)] rounded-[2rem] p-5 text-center">
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-1">🪲 SCARAB</p>
-                  <p className="text-2xl font-bold text-[var(--text-color)]">
-                    {data?.scarab?.balance ?? 0}
-                  </p>
-                </div>
-              </div>
-
               {/* Reputation progress bar */}
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">Reputation</span>
+                  <span className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-secondary)]">Reputation</span>
                   <span className="text-[10px] font-mono" style={{ color: trust.color }}>{passport.reputationScore} pts</span>
                 </div>
                 <RepBar score={passport.reputationScore} />
               </div>
             </div>
           </motion.div>
+
+          {/* ── Stat Cards (same pattern as analytics) ─────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-4">
+            <StatCard label="Reputation" value={passport.reputationScore} delay={0.3} />
+            <StatCard label="Reviews" value={passport.totalReviews} delay={0.4} />
+            <StatCard label="🪲 Scarab" value={data?.scarab?.balance ?? 0} delay={0.5} />
+          </div>
 
           {/* ── Daily Scarab Claim ─────────────────────────────────────── */}
           {isOwn && <ScarabClaim walletAddress={address} />}
