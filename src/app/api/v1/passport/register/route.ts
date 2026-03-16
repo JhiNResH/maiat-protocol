@@ -64,7 +64,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      // Already registered — return existing passport
+      // Already registered - update displayName if empty
+      if (!existingUser.displayName && cleanEnsName) {
+        const nameTaken = await prisma.user.findFirst({
+          where: { displayName: { equals: cleanEnsName, mode: "insensitive" } },
+        });
+        if (!nameTaken) {
+          await prisma.user.update({
+            where: { address: normalizedAddress },
+            data: { displayName: cleanEnsName },
+          });
+        }
+      }
+
       const reputation = await getUserReputation(normalizedAddress);
       const scarab = await prisma.scarabBalance.findUnique({
         where: { address: normalizedAddress },
