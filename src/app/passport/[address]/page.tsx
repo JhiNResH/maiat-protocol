@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import Link from 'next/link'
 import { Award, Zap, Info } from "lucide-react";
+import { motion } from "framer-motion";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -238,8 +239,11 @@ export default function PassportPage() {
           </div>
 
           {/* ── Row 1: Hero Trust Passport Card ────────────────────────── */}
-          <div
-            className="relative rounded-[2rem] border border-[var(--border-color)] liquid-glass p-6"
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="relative liquid-glass rounded-[2.5rem] p-8"
           >
             <div className="relative">
               {/* Address + trust badge row */}
@@ -330,13 +334,17 @@ export default function PassportPage() {
                 <RepBar score={passport.reputationScore} />
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* ── Daily Scarab Claim ─────────────────────────────────────── */}
           {isOwn && <ScarabClaim walletAddress={address} />}
 
           {/* ── Row 2: Agents | Market Positions ────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Agents You Can Review */}
             <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
@@ -407,28 +415,31 @@ export default function PassportPage() {
 
             {/* Market Positions */}
             <MarketPositions address={address} />
-          </div>
+          </motion.div>
 
           {/* ── Row 3: Perks | Review History ───────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Level Perks */}
             <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
               <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
                 Level Perks
               </p>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {perks.map((p, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 text-[11px] font-mono px-3 py-1.5 rounded-lg border"
+                    className="flex items-center gap-3 text-sm font-medium px-5 py-3 rounded-2xl"
                     style={{
                       color: trust.color,
-                      borderColor: trust.border,
-                      backgroundColor: `${trust.color}0a`,
+                      backgroundColor: `${trust.color}10`,
                     }}
                   >
-                    <span style={{ color: trust.color }}>✓</span>
+                    <span className="text-base" style={{ color: trust.color }}>✓</span>
                     <span>{p}</span>
                   </div>
                 ))}
@@ -491,7 +502,7 @@ export default function PassportPage() {
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* ── CTA (if not own wallet) ──────────────────────────────────── */}
           {!isOwn && (
