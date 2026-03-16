@@ -385,7 +385,7 @@ export default function PassportPage() {
                       return (
                         <Link
                           key={agent.address}
-                          href={`/review/${agent.address}`}
+                          href={`/verify/${agent.address}`}
                           className="flex items-center gap-2 liquid-glass border border-[var(--border-color)] rounded-lg px-2 py-1.5 hover:border-emerald-500/20 hover:bg-emerald-500/5 transition-all"
                         >
                           {agent.logo ? (
@@ -474,7 +474,7 @@ export default function PassportPage() {
                 <div className="flex flex-col items-center justify-center py-6 gap-2">
                   <p className="text-[var(--text-muted)] text-[10px] font-medium">No reviews yet.</p>
                   {isOwn && (
-                    <Link href="/review" className="text-[10px] text-emerald-500 font-bold hover:underline">
+                    <Link href="/leaderboard" className="text-[10px] text-emerald-500 font-bold hover:underline">
                       Leave your first review →
                     </Link>
                   )}
@@ -485,7 +485,7 @@ export default function PassportPage() {
                     <div key={r.id} className="liquid-glass border border-[var(--border-color)] rounded-lg px-2.5 py-2 hover:border-emerald-500/20 transition-colors">
                       <div className="flex items-center justify-between">
                         <Link
-                          href={`/review/${r.address}`}
+                          href={`/verify/${r.address}`}
                           className="text-[10px] text-[var(--text-secondary)] font-medium hover:text-[var(--text-color)] transition-colors"
                         >
                           {r.name || fmt(r.address)}
