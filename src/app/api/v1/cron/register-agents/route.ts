@@ -44,6 +44,18 @@ export async function POST(request: NextRequest) {
             where: { address: user.address },
             data: { erc8004AgentId: numId },
           });
+        } else if (numId === null) {
+          // Likely already registered — mark with -1 to skip in future runs
+          await prisma.user.update({
+            where: { address: user.address },
+            data: { erc8004AgentId: -1 },
+          });
+        } else if (numId === -1) {
+          // tx sent but pending — mark as pending
+          await prisma.user.update({
+            where: { address: user.address },
+            data: { erc8004AgentId: -1 },
+          });
         }
 
         results.push({ address: user.address, agentId: numId });
