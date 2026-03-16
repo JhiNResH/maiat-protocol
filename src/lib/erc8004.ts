@@ -275,12 +275,8 @@ export async function registerAgent(walletAddress: string): Promise<bigint | nul
   }
   const adminKey = rawKey.startsWith('0x') ? rawKey : `0x${rawKey}`
 
-  // Check if already registered
-  const existing = await lookupAgentId(walletAddress)
-  if (existing !== null) {
-    return existing
-  }
-
+  // Skip full log scan (too slow for serverless) — just try to register.
+  // If already registered, the contract will revert and we catch it.
   const account = privateKeyToAccount(adminKey as `0x${string}`)
   const walletClient = createWalletClient({
     account,
@@ -291,22 +287,23 @@ export async function registerAgent(walletAddress: string): Promise<bigint | nul
   const checksummedAddress = getAddress(walletAddress)
   const agentURI = `https://app.maiat.io/agent/${checksummedAddress}`
 
-  const txHash = await walletClient.writeContract({
-    address: IDENTITY_REGISTRY,
-    abi: IDENTITY_REGISTRY_WRITE_ABI,
-    functionName: 'register',
-    args: [agentURI],
-  })
+  try {
+    const txHash = await walletClient.writeContract({
+      address: IDENTITY_REGISTRY,
+      abi: IDENTITY_REGISTRY_WRITE_ABI,
+      functionName: 'register',
+      args: [agentURI],
+    })
 
-  // Wait for the tx and scan for the new agentId
-  await withFallback(async (client) => {
-    await client.waitForTransactionReceipt({ hash: txHash })
-  })
+    console.log(`[erc8004] ✅ register tx sent: ${txHash} for ${checksummedAddress}`)
 
-  // Bust cache and re-lookup
-  agentIdCache.delete(walletAddress.toLowerCase())
-  const newAgentId = await lookupAgentId(walletAddress)
-  return newAgentId
+    // Fire-and-forget: don't wait for receipt (Vercel timeout is too short)
+    // Return a sentinel value to indicate tx was sent
+    return BigInt(-1) // -1 = tx sent, agentId pending confirmation
+  } catch (txErr: any) {
+    console.error(`[erc8004] register tx failed:`, txErr.shortMessage || txErr.message)
+    throw txErr
+  }
 }
 
 /**

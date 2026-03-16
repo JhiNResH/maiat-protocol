@@ -239,8 +239,11 @@ export async function POST(request: NextRequest) {
       // Agent only → ERC-8004 registration + KYA code
       try {
         const registeredId = await registerAgent(normalizedAddress);
-        if (registeredId !== null) {
+        if (registeredId !== null && registeredId !== BigInt(-1)) {
           erc8004AgentId = Number(registeredId);
+        } else if (registeredId === BigInt(-1)) {
+          // tx sent but not yet confirmed — mark as pending
+          erc8004AgentId = -1; // -1 = pending on-chain confirmation
         }
       } catch (e: any) {
         console.warn("[passport/register] ERC-8004 registerAgent failed (non-blocking):", e.message);
