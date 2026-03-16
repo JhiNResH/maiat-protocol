@@ -19,7 +19,7 @@ interface Market {
   topProjects: { projectId: string; totalStake: number }[];
 }
 
-const categories = ["All", "DeFi", "AI Agents", "Infra", "Perp DEX"];
+const categories = ["All", "AI Agents", "DeFi", "Mixed"];
 
 export default function MarketsPage() {
   return (
@@ -81,18 +81,17 @@ function MarketsContent() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            className="atmosphere-text font-black text-[var(--text-color)]"
+            className="text-6xl md:text-7xl font-black text-[var(--text-color)] tracking-tight"
           >
-            Opinion <br />
-            <span className="text-[var(--text-muted)]">Markets</span>
+            Opinion <span className="text-[var(--text-muted)]">Markets</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.8 }}
-            className="text-[var(--text-secondary)] text-lg md:text-xl max-w-2xl mx-auto font-medium mt-8"
+            className="text-[var(--text-secondary)] text-lg max-w-xl mx-auto font-medium mt-6"
           >
-            The decentralized truth layer. Rank, review, and stake on the top protocols in the ecosystem.
+            Stake Scarab on the agents you trust. Top picks win the pool.
           </motion.p>
         </section>
 
@@ -109,10 +108,10 @@ function MarketsContent() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="liquid-glass p-6 rounded-[2rem] hover-lift"
+              className="liquid-glass p-8 rounded-[2.5rem] hover-lift"
             >
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">{stat.label}</p>
-              <p className="text-2xl font-bold text-[var(--text-color)]">{stat.value}</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-3">{stat.label}</p>
+              <p className="text-3xl font-black text-[var(--text-color)]">{stat.value}</p>
             </motion.div>
           ))}
         </div>
@@ -260,9 +259,9 @@ function MarketsContent() {
         {/* Footer Info */}
         <div className="mt-16 pt-8 border-t border-[var(--border-color)]">
           <div className="text-[10px] text-[var(--text-muted)] space-y-2 font-bold uppercase tracking-widest">
-            <p>Markets resolve every 2 weeks. Top 3 projects by trust score win.</p>
-            <p>Winners split 95% of the loser pool. 5% is burned.</p>
-            <p>Minimum stake: 50 Scarab</p>
+            <p>Markets resolve every 2 weeks. Top 3 agents by stake-weighted score win.</p>
+            <p>Winners split 95% of the pool. 5% burned.</p>
+            <p>Minimum stake: 50 🪲 Scarab</p>
           </div>
         </div>
       </main>
