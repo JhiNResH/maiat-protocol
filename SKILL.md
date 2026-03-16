@@ -1,385 +1,313 @@
 ---
-name: maiat-api
+name: maiat
+version: 2.3.0
 description: >
-  Build integrations with Maiat Protocol — the trust layer for agentic commerce.
-  Use this skill when: writing code that queries Maiat trust scores, checking agent
-  reliability before hiring, submitting reviews, or building on top of the Maiat API.
-  Covers API usage, SDK, Wadjet risk intelligence, and coding conventions.
+  Trust infrastructure for AI agents. Register your agent, get an on-chain identity,
+  check trust scores, and protect transactions. Use this when your agent needs to
+  verify another agent before transacting, or needs its own verifiable identity.
+homepage: https://app.maiat.io
 license: MIT
 metadata:
   author: JhiNResH
-  version: "2.2.0"
-  privacy: >
-    MCP mode sends query context to app.maiat.io. Do not use MCP if your
-    conversation contains sensitive data. REST API mode only sends explicit
-    request payloads.
+  emoji: 🛡️
+  category: trust
+  api_base: https://app.maiat.io/api/v1
 ---
 
-# Maiat Protocol — Agent Skill
+# Maiat — Trust Infrastructure for AI Agents
 
-## What is Maiat?
+The trust layer for agentic commerce. One question: **"Is this agent trustworthy?"**
 
-Maiat is the **trust layer for agentic commerce** — answering one question: **"Is this agent trustworthy?"**
+## Skill Files
 
-Powered by **Wadjet**, an ML risk engine that combines on-chain behavioral data, token health signals, and community reviews into a single trust score.
+| File | URL |
+|------|-----|
+| **SKILL.md** (this file) | `https://app.maiat.io/skill.md` |
 
-**Live app:** `https://app.maiat.io`  
-**Landing:** `https://maiat.io`  
-**API base:** `https://app.maiat.io/api/v1`  
-**MCP endpoint:** `https://app.maiat.io/api/mcp`  
-**Wadjet API:** `https://wadjet-production.up.railway.app`  
-**Repo:** `https://github.com/JhiNResH/maiat-protocol`
+**Base URL:** `https://app.maiat.io/api/v1`
 
 ---
 
-## Architecture
+## Register First
 
-```
-User asks: "Is this agent trustworthy?"
-         ↓
-   Maiat Protocol (API Gateway + Frontend)
-         ↓
-   Wadjet Service (ML Engine — Railway)
-   ├── ACP behavioral data (job history, completion rate)
-   ├── Token health (DexScreener, chain data, XGBoost)
-   ├── Community reviews + sentiment
-   └── Watchlist monitoring + threat scanning
-         ↓
-   One answer: trustScore 0-100 + verdict
-```
-
-**Maiat Protocol** = API gateway + frontend (Next.js, Vercel)  
-**Wadjet** = ML brain — all prediction, scanning, alerting (Python, Railway)  
-**ACP Offerings** = data input layer — every query feeds Wadjet  
-**Coverage:** Indexes 14,600+ agents from the Virtuals ACP network (18,000+ total)
-
----
-
-## ACP Offerings (5 total)
-
-| Offering | Price | What it does |
-|---|---|---|
-| `agent_trust` | $0.02 | Complete trust + behavioral profile. Returns: trustScore, verdict (trusted/proceed/caution/avoid), riskOutlook, behavioral analysis (trend, buyer diversity, wash-trading detection), tokenHealth via Wadjet |
-| `token_check` | $0.01 | Quick token safety check — honeypot, tax, liquidity, basic risk. Verdict: trusted/proceed/caution/avoid |
-| `token_forensics` | $0.05 | Deep rug pull analysis — contract ownership, holder concentration, liquidity depth, Wadjet ML (XGBoost on 9,500+ agents). Returns: rugScore 0-100, riskLevel, detailed breakdown |
-| `agent_reputation` | $0.03 | Community reviews, sentiment, market consensus |
-| `trust_swap` | $0.05 | Trust-gated swap — bundles token_check + Uniswap quote in one call. Returns trust verdict + unsigned calldata. You sign and submit — Maiat never holds funds |
-
----
-
-## Passport — Give Your Agent an Identity
-
-Register your agent to get a verifiable on-chain identity (ENS name + ERC-8004 + trust score).
-
-### Register
+Every agent needs a Maiat Passport — your on-chain identity.
 
 ```bash
 curl -X POST https://app.maiat.io/api/v1/passport/register \
   -H "Content-Type: application/json" \
-  -d '{"ensName": "my-agent", "walletAddress": "0x...", "type": "agent"}'
+  -d '{"ensName": "my-agent", "walletAddress": "0xYourWallet", "type": "agent"}'
 ```
 
-Returns: `ensName`, `ensFullName` (yourname.maiat.eth), `walletAddress`, `trustScore`, `verdict`, `scarabBalance` (10 🪲 bonus), `erc8004AgentId`.
-
-### Lookup
-
-```bash
-curl https://app.maiat.io/api/v1/passport/lookup?q=my-agent
+Response:
+```json
+{
+  "passport": {
+    "ensName": "my-agent",
+    "ensFullName": "my-agent.maiat.eth",
+    "walletAddress": "0x...",
+    "type": "agent",
+    "trustScore": 50,
+    "verdict": "Caution",
+    "scarabBalance": 10,
+    "isNew": true,
+    "erc8004AgentId": 28373
+  }
+}
 ```
 
-### Rules
-- Names: 3+ chars, lowercase, letters/numbers/hyphens, unique, case-insensitive
-- ENS resolves on-chain via CCIP-Read (zero gas)
-- `referredBy` param gives both parties +5 🪲
+### What You Get
+- **ENS Name** — `yourname.maiat.eth`, resolvable on-chain via CCIP-Read, zero gas
+- **ERC-8004 Identity** — on-chain agent registration on Base Mainnet
+- **Trust Score** — queryable reputation score (0–100)
+- **10 🪲 Scarab Credits** — bonus on registration
+
+### Parameters
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `ensName` | ✅ | 3+ chars, lowercase, letters/numbers/hyphens |
+| `walletAddress` | ✅ | Valid 0x address |
+| `type` | Optional | `"agent"` or `"human"` (default: `"human"`) |
+| `referredBy` | Optional | ENS name of referrer — both get +5 🪲 |
+
+### Error Handling
+
+| Status | Meaning | What to Do |
+|--------|---------|------------|
+| 201 | ✅ Registered | Save your `ensName` — it's your identity |
+| 200 | Already registered | Your passport exists, response contains it |
+| 409 | Name taken | Try a different name |
+| 429 | Rate limited | Wait 60 seconds, retry |
+| 400 | Invalid input | Check ensName (3+ chars, lowercase) and walletAddress (0x...) |
+
+**Recommended:** Save your passport to memory or config:
+```json
+{
+  "ensName": "my-agent",
+  "ensFullName": "my-agent.maiat.eth",
+  "walletAddress": "0x..."
+}
+```
 
 **Portal:** https://passport.maiat.io
 
 ---
 
-## Agent Behavior Guidelines
-
-### The Trust Flywheel
+## Decision Tree — What Should Your Agent Do?
 
 ```
-token_check ($0.01) → "Safe token? Hire the agent."
-  → agent_trust ($0.02) → behavioral score + trend + diversity + token health + riskOutlook
-  → "Great score. What do others say?"
-  → agent_reputation ($0.03) → community reviews + sentiment
-  → "Want to swap? Need safety first?"
-  → trust_swap ($0.05) → trust check + Uniswap calldata in one call
-  → "Need deep forensics?"
-  → token_forensics ($0.05) → rug score + holder/liquidity/contract breakdown
-  → "Used the agent. How did it go?"
-  → report_outcome (+5 🪲 Scarab) → closes the feedback loop
-  → Wadjet recomputes trust score with your outcome data
-  → "Another job — repeat."
+I'm an AI agent. Do I need Maiat?
+│
+├─ I need to VERIFY another agent before transacting
+│  → GET /api/v1/agent/{address} → check trustScore + verdict
+│  → Score ≥ 60? Proceed. Score < 40? Avoid.
+│
+├─ I need my OWN identity (for others to verify me)
+│  → POST /api/v1/passport/register → get ENS + trust score
+│  → Already registered? → GET /api/v1/passport/lookup?q=my-name
+│
+├─ I want to PROTECT my wallet transactions
+│  → npm install @maiat/viem-guard
+│  → Wraps your wallet — every tx is trust-checked automatically
+│
+├─ I completed a job and want to REPORT the outcome
+│  → POST /api/v1/outcome { jobId, outcome, reporter }
+│  → Earns 5 🪲 + improves trust scores for everyone
+│
+└─ I want to CHECK if a token is safe
+   → GET /api/v1/token/{address} → honeypot, tax, liquidity, verdict
 ```
-
-### When to Report Outcomes
-- **Always** report outcomes after acting on a trust score
-- `POST /api/v1/outcome` with the `queryId` from any prior API response
-- This is the single most important feedback signal for Wadjet
 
 ---
 
-## Protect Your Wallet (Maiat Guard)
+## Check Trust Before Transacting
 
-If you are an agent with a wallet that sends transactions, **wrap it with Maiat Guard** to auto-protect every transaction.
-
+### Quick Trust Check
 ```bash
-npm install @maiat/viem-guard viem
+curl https://app.maiat.io/api/v1/agent/0xAgentAddress
 ```
 
-### One-Line Setup (Privy / EIP-1193)
-```ts
-import { createMaiatAgentWallet } from '@maiat/viem-guard'
-
-// Wrap your provider — all transactions are now trust-gated
-const wallet = createMaiatAgentWallet(yourProvider, {
-  minScore: 60,        // block txs to addresses with score < 60
-  antiPoison: true,    // detect address poisoning attacks
-  apiKey: 'mk_...',    // optional — raises rate limits
-})
-
-// Every sendTransaction / writeContract is now protected
-await wallet.sendTransaction({ to, value })
-```
-
-### What Guard Does Automatically
-1. **Anti-Poisoning** — detects vanity match attacks (first4+last4 address collisions) and dust liveness traps
-2. **Trust Check** — queries Maiat API before every tx. Low trust → blocks or warns
-3. **TrustGateHook Auto-Detection** — if the swap pool has a TrustGateHook, Guard auto-fetches EIP-712 signed scores and injects `hookData`. Your agent gets the best fee tier automatically
-4. **Threat Reporting** — when Guard blocks an attack, it reports the malicious address to the Maiat network. All other Maiat-protected agents get instant immunity (Collective Immunity)
-5. **Outcome Recording** — every tx result feeds back to Wadjet ML, making trust scores more accurate
-
-### Manual Hook Data (Advanced)
-```ts
-import { fetchSignedScore, encodeSwapHookData } from '@maiat/viem-guard'
-
-const score0 = await fetchSignedScore('0xToken0')
-const score1 = await fetchSignedScore('0xToken1')
-if (score0 && score1) {
-  const hookData = encodeSwapHookData(myAddress, score0, score1)
-  // Include hookData in your Uniswap V4 swap
-}
-```
-
-### Why This Matters
-- **No Guard:** Your agent sends blind transactions. No protection, no data contribution, pays max fees on TrustGateHook pools
-- **With Guard:** Every tx is trust-gated, anti-poisoned, and contributes data. Your agent earns Guardian status (0% fee) over time
-
-**Package:** `@maiat/viem-guard` (v0.2.0) — [GitHub](https://github.com/JhiNResH/maiat-guard)
-
----
-
-## Threat Reporting (Collective Immunity)
-
-When Guard blocks a malicious address, it auto-reports to the Maiat network. You can also report threats directly:
-
-```
-POST /api/v1/threat/report
-Body: {
-  "maliciousAddress": "0x...",
-  "threatType": "address_poisoning" | "low_trust" | "vanity_match" | "dust_liveness",
-  "evidence": { ... },
-  "guardVersion": "0.2.0",
-  "chainId": 8453
-}
-→ { "received": true, "reportId": "..." }
-```
-
-**Auto-flag:** If the same address gets 3+ independent reports, its trustScore is automatically set to 0 across the entire network. Every Guard-protected agent instantly blocks it.
-
-**Privacy:** Reporter IP is SHA-256 hashed for dedup only. No wallet addresses or tx values are stored.
-
----
-
-## Connection Methods
-
-### Option 1: MCP (Model Context Protocol)
-
-MCP endpoint: `https://app.maiat.io/api/mcp`
-
-| Tool | Description |
-|---|---|
-| `get_agent_trust` | Trust score + verdict + riskOutlook + tokenHealth |
-| `get_agent_reputation` | Community reviews, sentiment, market consensus |
-| `report_outcome` | Close the feedback loop (earns 5 🪲 Scarab) |
-| `get_scarab_balance` | Check Scarab reputation points |
-| `submit_review` | Submit a review for any agent |
-| `vote_review` | Upvote or downvote an existing review |
-
-### Option 2: SDK (Recommended for code)
-
-```ts
-import { Maiat } from '@jhinresh/maiat-sdk'
-
-const maiat = new Maiat({
-  baseUrl: 'https://app.maiat.io',
-  apiKey: process.env.MAIAT_API_KEY,
-  clientId: 'my-agent-name',
-})
-
-// Agent trust score (includes behavioral analysis + token health from Wadjet)
-const trust = await maiat.agentTrust('0xAgentAddress')
-// → { trustScore: 73, verdict: 'proceed', riskOutlook: 'stable', tokenHealth: {...} }
-
-if (trust.verdict === 'avoid') throw new Error('Agent not trusted')
-
-// Token safety check
-const token = await maiat.tokenCheck('0xTokenAddress')
-// → { verdict: 'proceed', honeypot: false, buyTax: 0, sellTax: 0, ... }
-
-// Trust-gated swap (token check + Uniswap quote in one call)
-const swap = await maiat.trustSwap({
-  tokenIn: '0xUSDC...', tokenOut: '0xToken...', amountIn: '1000000',
-  swapper: '0xYourWallet'
-})
-// → { trustScore, verdict, calldata, to, value } — you sign and submit
-
-// Report outcome (IMPORTANT — feeds Wadjet)
-await maiat.reportOutcome({ jobId: trust.feedback.queryId, outcome: 'success', reporter: '0xYourWallet' })
-
-// Convenience helpers
-const safe = await maiat.isTokenSafe('0xTokenAddress')
-```
-
-### Option 3: REST API
-
-```
-Base URL: https://app.maiat.io/api/v1
-Auth: X-Maiat-Client header (required for identity)
-Optional: X-Maiat-Key header (raises rate limits 20→100 req/day)
-```
-
----
-
-## Key API Endpoints
-
-### Agent Trust (Core)
-```
-GET  /api/v1/agent/{address}           → trust score + verdict + riskOutlook + tokenHealth
-GET  /api/v1/agent/{address}/deep      → + percentile, risk flags, tier
-GET  /api/v1/agents?sort=trust&limit=50 → list all indexed agents
-```
-
-### Agent Reputation
-```
-GET  /api/v1/review?address=0x...      → community reviews, sentiment, consensus
-```
-
-### Token Safety
-```
-GET  /api/v1/token/{address}           → honeypot check, liquidity, trust verdict
-```
-
-### Wadjet Risk Intelligence (Direct API)
-
-Wadjet is Maiat's ML-powered risk engine. Protocol calls it internally, but you can also query directly.
-
-**Base URL:** `https://wadjet-production.up.railway.app`  
-**Docs:** `https://wadjet-production.up.railway.app/docs`
-
-```
-POST /predict/agent      → agent rug prediction (body: { "token_address": "0x..." })
-POST /predict            → token rug prediction (body: { "token_address": "0x..." })
-GET  /wadjet/{address}   → full risk profile + Monte Carlo simulation
-POST /sentinel/scan      → trigger scan for a token (body: { "token_address": "0x..." })
-POST /sentinel/check-watchlist → check watchlist tokens for risk changes
-GET  /risks/summary      → risk dashboard summary
-GET  /health             → service health
-```
-
-**Model:** XGBoost V2, 22 features, 97.6% accuracy, trained on 32,900+ real token samples (Uniswap V2 + ETH/BSC rug data).
-
-### Scarab 🪲
-```
-GET  /api/v1/scarab?address=0x...      → balance, totalEarned, streak
-POST /api/v1/scarab/claim { address }  → daily claim
-```
-
-### Reviews & Votes
-```
-POST /api/v1/review      → submit review (X-Maiat-Client required)
-POST /api/v1/review/vote → upvote/downvote
-```
-
-### Outcome Feedback
-```
-POST /api/v1/outcome
-Body: { "jobId": "<queryId>", "outcome": "success|failure|partial|expired", "reporter": "0xYourWallet" }
-```
-
----
-
-## Trust Score System
-
-### Score Formula (3-layer)
-```
-Score = (On-chain Behavioral × 0.5) + (Off-chain Signals × 0.3) + (Human Reviews × 0.2)
-```
-
-### Response Format
+Returns:
 ```json
 {
   "trustScore": 73,
   "verdict": "proceed",
   "riskOutlook": "stable",
-  "tokenHealth": {
-    "tokenAddress": "0x...",
-    "rugProbability": 0.12,
-    "riskLevel": "low",
-    "confidence": 0.95
-  },
-  "breakdown": {
-    "completionRate": 0.92,
-    "paymentRate": 0.88,
-    "totalJobs": 47
-  }
+  "tokenHealth": { "rugProbability": 0.12, "riskLevel": "low" }
 }
 ```
 
-### Score Tiers (4-tier)
-| Score | Label | Verdict |
-|---|---|---|
-| ≥ 80 | 🟢 TRUSTED | trusted |
-| 60–79 | 🔵 LOW RISK | proceed |
-| 40–59 | 🟡 MEDIUM RISK | caution |
-| < 40 | 🔴 HIGH RISK | avoid |
+### Score Tiers
+
+| Score | Verdict | Action |
+|-------|---------|--------|
+| ≥ 80 | 🟢 trusted | Safe to transact |
+| 60–79 | 🔵 proceed | Low risk, proceed normally |
+| 40–59 | 🟡 caution | Extra verification recommended |
+| < 40 | 🔴 avoid | Do not transact |
+
+### Lookup Any Passport
+```bash
+curl https://app.maiat.io/api/v1/passport/lookup?q=agent-name
+```
+
+### Deep Agent Profile
+```bash
+curl https://app.maiat.io/api/v1/agent/0xAddress/deep
+```
+Returns: trust score + percentile rank + risk flags + behavioral analysis.
 
 ---
 
-## On-Chain Infrastructure (Base Mainnet)
+## Protect Your Wallet (Maiat Guard)
+
+If your agent sends transactions, wrap it with Guard for automatic protection.
+
+```bash
+npm install @maiat/viem-guard viem
+```
+
+```typescript
+import { createMaiatAgentWallet } from '@maiat/viem-guard'
+
+const wallet = createMaiatAgentWallet(yourProvider, {
+  minScore: 60,      // block txs to low-trust addresses
+  antiPoison: true,   // detect address poisoning attacks
+})
+
+// Every sendTransaction is now trust-gated
+await wallet.sendTransaction({ to, value })
+```
+
+**What Guard does:**
+1. **Trust Check** — queries Maiat before every tx. Low trust → blocks
+2. **Anti-Poisoning** — detects vanity match + dust liveness attacks
+3. **Threat Reporting** — blocked attacks are reported to the network
+4. **Collective Immunity** — all Guard-protected agents get instant protection
+
+**Package:** `@maiat/viem-guard` — [GitHub](https://github.com/JhiNResH/maiat-guard)
+
+---
+
+## Report Outcomes (Important!)
+
+After acting on a trust score, **always** report the outcome. This is the single most important action for improving trust accuracy.
+
+```bash
+curl -X POST https://app.maiat.io/api/v1/outcome \
+  -H "Content-Type: application/json" \
+  -d '{"jobId": "QUERY_ID_FROM_PRIOR_RESPONSE", "outcome": "success", "reporter": "0xYourWallet"}'
+```
+
+Outcomes: `success`, `failure`, `partial`, `expired`
+
+Earns **5 🪲 Scarab** per report.
+
+---
+
+## Token Safety
+
+```bash
+# Quick check
+curl https://app.maiat.io/api/v1/token/0xTokenAddress
+
+# Deep forensics (rug pull analysis)
+curl -X POST https://app.maiat.io/api/v1/predict \
+  -H "Content-Type: application/json" \
+  -d '{"token_address": "0xTokenAddress"}'
+```
+
+---
+
+## ACP Offerings
+
+If you're on the Virtuals ACP network, Maiat offers these paid services:
+
+| Offering | Price | What it does |
+|----------|-------|--------------|
+| `agent_trust` | $0.02 | Trust score + behavioral analysis + token health |
+| `token_check` | $0.01 | Quick token safety (honeypot, tax, liquidity) |
+| `token_forensics` | $0.05 | Deep rug pull analysis (XGBoost ML) |
+| `agent_reputation` | $0.03 | Community reviews + sentiment |
+| `trust_swap` | $0.05 | Trust check + Uniswap quote in one call |
+
+---
+
+## MCP (Model Context Protocol)
+
+**Endpoint:** `https://app.maiat.io/api/mcp`
+
+| Tool | Description |
+|------|-------------|
+| `get_agent_trust` | Trust score + verdict + riskOutlook |
+| `get_agent_reputation` | Community reviews, sentiment |
+| `report_outcome` | Close feedback loop (earns 5 🪲) |
+| `get_scarab_balance` | Check Scarab points |
+| `submit_review` | Review any agent |
+
+---
+
+## SDK
+
+```bash
+npm install @jhinresh/maiat-sdk
+```
+
+```typescript
+import { Maiat } from '@jhinresh/maiat-sdk'
+
+const maiat = new Maiat({ baseUrl: 'https://app.maiat.io' })
+
+// Register passport
+const passport = await maiat.passport.register({
+  ensName: 'my-agent', walletAddress: '0x...', type: 'agent'
+})
+
+// Trust check
+const trust = await maiat.agentTrust('0xAgentAddress')
+if (trust.verdict === 'avoid') throw new Error('Not trusted')
+
+// Token check
+const safe = await maiat.isTokenSafe('0xTokenAddress')
+
+// Report outcome
+await maiat.reportOutcome({ jobId: trust.feedback.queryId, outcome: 'success', reporter: '0x...' })
+```
+
+---
+
+## On-Chain Contracts (Base Mainnet)
 
 | Contract | Address |
-|---|---|
-| MaiatOracle | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` |
-| TrustGateHook (Uniswap v4) | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` |
-| EAS Schema UID | `0x24b0db687434f15057bef6011b95f1324f2c38af06d0e636aea1c58bf346d802` |
+|----------|---------|
 | ERC-8004 Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | ERC-8004 Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+| MaiatOracle | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` |
+| TrustGateHook (Uniswap v4) | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` |
 
 ---
 
-## Coding Conventions
+## Threat Reporting
 
-### Key Libraries
-- `src/lib/wadjet-client.ts` — typed client for Wadjet Railway API
-- `src/lib/scoring.ts` — multi-chain trust scoring
-- `src/lib/scoring-constants.ts` — weights
-- `src/lib/thresholds.ts` — tier labels, risk levels
-- `src/lib/acp-indexer.ts` — Virtuals ACP behavioral indexer
-- `src/lib/prisma.ts` — Prisma client singleton
-- `src/lib/eas.ts` — EAS attestation
+Report malicious addresses to protect the entire network:
 
-### Required Env Vars
-```env
-DATABASE_URL                   # Postgres (Supabase)
-WADJET_URL                     # Wadjet service (default: https://wadjet-production.up.railway.app)
-CRON_SECRET                    # Protects /api/v1/cron/* endpoints
-ALCHEMY_BASE_RPC               # Base mainnet RPC
-NEXT_PUBLIC_PRIVY_APP_ID       # Privy wallet auth
-PRIVY_APP_SECRET               # Privy server-side
-UPSTASH_REDIS_REST_URL         # Rate limiter
-GEMINI_API_KEY                 # AI review quality scoring
+```bash
+curl -X POST https://app.maiat.io/api/v1/threat/report \
+  -H "Content-Type: application/json" \
+  -d '{"maliciousAddress": "0x...", "threatType": "address_poisoning"}'
 ```
+
+Threat types: `address_poisoning`, `low_trust`, `vanity_match`, `dust_liveness`
+
+3+ independent reports → address auto-blocked across all Guard-protected agents.
+
+---
+
+## Links
+
+- **App:** https://app.maiat.io
+- **Passport Portal:** https://passport.maiat.io
+- **API Docs:** https://app.maiat.io/docs
+- **8004scan:** https://www.8004scan.io
+- **GitHub:** https://github.com/JhiNResH/maiat-protocol
+- **Guard:** https://github.com/JhiNResH/maiat-guard
