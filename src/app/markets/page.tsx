@@ -17,6 +17,7 @@ interface Market {
   voterCount?: number;
   closesAt: string;
   topProjects: { projectId: string; totalStake: number }[];
+  projectNames?: Record<string, string>;
 }
 
 const categories = ["All", "AI Agents"];
@@ -213,6 +214,7 @@ function MarketsContent() {
                         voterCount={market.voterCount}
                         closesAt={market.closesAt}
                         topProjects={market.topProjects}
+                        projectNames={market.projectNames}
                         agentParam={agentParam || undefined}
                         agentName={agentName || undefined}
                       />
@@ -247,6 +249,7 @@ function MarketsContent() {
                         voterCount={market.voterCount}
                         closesAt={market.closesAt}
                         topProjects={market.topProjects}
+                        projectNames={market.projectNames}
                       />
                     </motion.div>
                   ))}
