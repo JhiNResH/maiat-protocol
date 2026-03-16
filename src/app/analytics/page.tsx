@@ -225,7 +225,7 @@ export default function AnalyticsPage() {
           <StatCard
             label="Unique Callers"
             value={overview.uniqueCallers7d.toLocaleString()}
-            change={`${overview.uniqueBuyers} buyers`}
+            change=""
             changeType="neutral"
             delay={0.1}
           />
