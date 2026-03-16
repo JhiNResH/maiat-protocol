@@ -164,7 +164,7 @@ function AgentDetailContent() {
       <div className="text-center space-y-6">
         <div className="text-6xl animate-pulse opacity-20">🪲</div>
         <p className="text-[var(--text-muted)] font-bold uppercase tracking-widest">Project Not Found</p>
-        <Link href="/monitor" className="inline-block text-emerald-500 border border-emerald-500/30 px-6 py-2 rounded-2xl hover:bg-emerald-500/10 transition-all uppercase text-[10px] font-bold tracking-widest">← Back to Explorer</Link>
+        <Link href="/leaderboard" className="inline-block text-emerald-500 border border-emerald-500/30 px-6 py-2 rounded-2xl hover:bg-emerald-500/10 transition-all uppercase text-[10px] font-bold tracking-widest">← Back to Leaderboard</Link>
       </div>
     </div>
   )
@@ -193,7 +193,7 @@ function AgentDetailContent() {
             transition={{ duration: 0.4 }}
             className="flex items-center justify-center gap-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-6"
           >
-            <Link href="/monitor" className="hover:text-emerald-500 transition-colors">Explorer</Link>
+            <Link href="/leaderboard" className="hover:text-emerald-500 transition-colors">Leaderboard</Link>
             <span className="opacity-30">/</span>
             <span className="text-[var(--text-secondary)]">Project Details</span>
             <span className="opacity-30">/</span>
@@ -369,10 +369,10 @@ function AgentDetailContent() {
               )}
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Link 
-                  href={`/monitor/agent/${(agent.name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}/${address}`}
+                  href={`/agent/${(agent.name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}/${address}`}
                   className="w-full py-2.5 bg-black/[0.03] dark:bg-white/[0.03] border border-[var(--border-color)] rounded-2xl text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-color)] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
                 >
-                  <Radar size={14} /> Monitor
+                  <Radar size={14} /> Details
                 </Link>
                 <Link 
                   href={`/markets?agent=${address}&name=${encodeURIComponent(agent?.name || '')}`}

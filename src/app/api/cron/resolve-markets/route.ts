@@ -149,7 +149,14 @@ async function resolveMarket(market: MarketWithPositions) {
 
   // 3. Rank by trustScore DESC → dynamic winner count
   // 2-3 agents → 1 winner, 4-5 → 2 winners, 6+ → 3 winners
-  const ranked = [...projects].sort((a, b) => (b.trustScore ?? 0) - (a.trustScore ?? 0));
+      // Winner = most staked agent (opinion market = popularity vote)
+    // Tiebreak by trust score
+    const ranked = [...projects].sort((a, b) => {
+      const stakeA = market.positions.filter(p => p.projectId === a.id).reduce((s, p) => s + p.amount, 0);
+      const stakeB = market.positions.filter(p => p.projectId === b.id).reduce((s, p) => s + p.amount, 0);
+      if (stakeB !== stakeA) return stakeB - stakeA;
+      return (b.trustScore ?? 0) - (a.trustScore ?? 0);
+    });
   const uniqueAgents = ranked.length;
   const winnerCount = uniqueAgents <= 1 ? 1 : Math.min(Math.floor(uniqueAgents / 2), 3);
   const winnerIds = ranked.slice(0, winnerCount).map((p) => p.id);
