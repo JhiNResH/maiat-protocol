@@ -3,11 +3,33 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+// Cache Virtuals agent count (refresh every 10 min)
+let virtualsCountCache: { count: number; expiresAt: number } | null = null;
+
+async function getVirtualsAgentCount(): Promise<number> {
+  if (virtualsCountCache && virtualsCountCache.expiresAt > Date.now()) {
+    return virtualsCountCache.count;
+  }
+  try {
+    const res = await fetch("https://acpx.virtuals.io/api/agents?pagination[page]=1&pagination[pageSize]=1", {
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!res.ok) return 0;
+    const json = await res.json() as { meta?: { pagination?: { total?: number } } };
+    const total = json.meta?.pagination?.total ?? 0;
+    virtualsCountCache = { count: total, expiresAt: Date.now() + 10 * 60 * 1000 };
+    return total;
+  } catch {
+    return 0;
+  }
+}
+
 export async function GET() {
   try {
     const [
       totalUsers,
-      totalAgents,
+      totalAgentsDb,
+      totalAgentsLive,
       totalTrustReviews,
       totalProjectReviews,
       uniqueReviewers,
@@ -20,6 +42,7 @@ export async function GET() {
     ] = await Promise.all([
       prisma.user.count(),
       prisma.agentScore.count(),
+      getVirtualsAgentCount(),
       prisma.trustReview.count(),
       prisma.review.count({ where: { status: "active" } }),
       prisma.trustReview.groupBy({ by: ['reviewer'] }).then(r => r.length),
@@ -108,7 +131,7 @@ export async function GET() {
     return NextResponse.json({
       overview: {
         totalUsers,
-        totalAgents,
+        totalAgents: Math.max(totalAgentsDb, totalAgentsLive),
         totalReviews: totalTrustReviews + totalProjectReviews,
         uniqueReviewers,
         totalVotes,
