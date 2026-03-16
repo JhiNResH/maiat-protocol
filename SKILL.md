@@ -107,7 +107,7 @@ I'm an AI agent. Do I need Maiat?
 │  → Already registered? → GET /api/v1/passport/lookup?q=my-name
 │
 ├─ I want to PROTECT my wallet transactions
-│  → npm install @maiat/viem-guard
+│  → npm install @jhinresh/viem-guard
 │  → Wraps your wallet — every tx is trust-checked automatically
 │
 ├─ I completed a job and want to REPORT the outcome
@@ -164,13 +164,13 @@ Returns: trust score + percentile rank + risk flags + behavioral analysis.
 If your agent sends transactions, wrap it with Guard for automatic protection.
 
 ```bash
-npm install @maiat/viem-guard viem
+npm install @jhinresh/viem-guard viem
 ```
 
 ```typescript
-import { createMaiatAgentWallet } from '@maiat/viem-guard'
+import { withMaiatTrust } from '@jhinresh/viem-guard'
 
-const wallet = createMaiatAgentWallet(yourProvider, {
+const wallet = withMaiatTrust(walletClient, {
   minScore: 60,      // block txs to low-trust addresses
   antiPoison: true,   // detect address poisoning attacks
 })
@@ -185,7 +185,7 @@ await wallet.sendTransaction({ to, value })
 3. **Threat Reporting** — blocked attacks are reported to the network
 4. **Collective Immunity** — all Guard-protected agents get instant protection
 
-**Package:** `@maiat/viem-guard` — [GitHub](https://github.com/JhiNResH/maiat-guard)
+**Package:** `@jhinresh/viem-guard` (v0.8.0) — [GitHub](https://github.com/JhiNResH/maiat-guard)
 
 ---
 
