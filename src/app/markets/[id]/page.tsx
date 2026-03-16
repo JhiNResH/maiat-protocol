@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import Link from "next/link";
 import { 
-  ArrowLeft, Shield, TrendingUp, Users, Clock, Zap, AlertTriangle, 
-  ChevronRight, CheckCircle, Info, ExternalLink, Trophy
+  ArrowLeft, Shield, TrendingUp, Users, Clock, AlertTriangle, 
+  Info
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import useSWR from "swr";
 
 interface ProjectStanding {
@@ -36,7 +37,11 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function MarketDetailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center font-mono text-[#3b82f6]">LOADING SECTOR…</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Shield className="w-8 h-8 text-[var(--text-secondary)] animate-pulse" />
+      </div>
+    }>
       <MarketDetailContent />
     </Suspense>
   )
@@ -51,7 +56,6 @@ function MarketDetailContent() {
   const prefillName = searchParams.get("name");
   const { authenticated, user, login } = usePrivy();
   const { wallets } = useWallets();
-  // Prefer external wallet (MetaMask etc.) over Privy embedded wallet
   const externalWallet = wallets.find(w => w.walletClientType !== 'privy');
   const walletAddress = externalWallet?.address ?? user?.wallet?.address;
 
@@ -90,7 +94,6 @@ function MarketDetailContent() {
 
   const { data: scarab } = useSWR(walletAddress ? `/api/v1/scarab?address=${walletAddress}` : null, fetcher);
 
-  // Auto-fill agent from URL params (e.g. from agent page "Stake" button)
   useEffect(() => {
     if (prefillAgent && !selectedProjectId) {
       setSelectedProjectId(prefillAgent);
@@ -98,7 +101,6 @@ function MarketDetailContent() {
     }
   }, [prefillAgent, prefillName]);
 
-  // Agent search for staking on new agents
   useEffect(() => {
     if (agentSearch.length < 2) { setSearchResults([]); return; }
     const timer = setTimeout(async () => {
@@ -151,80 +153,120 @@ function MarketDetailContent() {
     }
   }
 
+  function formatTimeRemaining(closesAt: string) {
+    const diff = new Date(closesAt).getTime() - Date.now();
+    if (diff <= 0) return 'ENDED';
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (days > 0) return `${days}d ${hours}h`;
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  }
+
   if (loading) return (
-    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
-      <p className="font-mono text-[#666666] text-xs animate-pulse tracking-[0.3em]">
-        // SYNCING MARKET DATA…
-      </p>
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-xs text-[var(--text-secondary)] uppercase tracking-widest animate-pulse">Loading market...</p>
     </div>
   );
 
   if (!market) return (
-    <div className="min-h-screen bg-[var(--bg-page)] flex flex-col items-center justify-center gap-4">
-      <AlertTriangle className="text-red-500 w-10 h-10" />
-      <p className="font-mono text-[#E5E5E5] text-sm">MARKET NOT FOUND</p>
-      <Link href="/markets" className="text-[#3b82f6] text-xs font-mono hover:underline">← back to markets</Link>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <AlertTriangle className="text-rose-500 w-10 h-10" />
+      <p className="text-sm font-bold text-[var(--text-color)]">Market not found</p>
+      <Link href="/markets" className="text-xs font-bold text-emerald-500 hover:underline">← Back to markets</Link>
     </div>
   );
 
+  const isActive = market.status === 'open' && formatTimeRemaining(market.closesAt) !== 'ENDED';
+
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[#E5E5E5] font-['JetBrains_Mono',monospace]">
-      <main className="max-w-5xl mx-auto px-4 py-8">
+    <div className="min-h-screen pb-20">
+      <main className="max-w-5xl mx-auto px-6 pt-8">
         
         {/* Navigation */}
-        <div className="flex items-center justify-between mb-8">
-          <Link href="/markets" className="flex items-center gap-2 text-[10px] font-mono text-[#666666] hover:text-[#999] uppercase tracking-widest transition-colors">
-            <ArrowLeft size={14} /> Back to Markets
+        <div className="flex items-center justify-between mb-12">
+          <Link href="/markets" className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--text-color)] uppercase tracking-widest transition-colors">
+            <ArrowLeft size={14} /> Back
           </Link>
-          <div className="flex items-center gap-3">
-            <span className={`px-2 py-0.5 rounded text-[9px] font-bold font-mono uppercase tracking-wider border ${market.status === 'open' ? 'bg-[#10b981]/10 border-[#10b981]/30 text-[#10b981]' : 'bg-[#666666]/10 border-[#666666]/30 text-[#666666]'}`}>
-              {market.status}
-            </span>
-          </div>
+          <span className={cn(
+            "px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest",
+            isActive
+              ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+              : 'bg-[var(--card-bg)] text-[var(--text-muted)]'
+          )}>
+            {market.status}
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Market Info */}
-          <div className="lg:col-span-7 space-y-8">
+          <div className="lg:col-span-7 space-y-10">
             <div className="space-y-4">
-              <h1 className="text-2xl font-bold tracking-tight text-white uppercase">{market.title}</h1>
-              <p className="text-sm text-[#666666] leading-relaxed italic border-l-2 border-[#3b82f6]/20 pl-4">
+              <h1 className="text-4xl font-black tracking-tight text-[var(--text-color)]">{market.title}</h1>
+              <p className="text-sm text-[var(--text-secondary)] leading-relaxed font-medium">
                 {market.description}
               </p>
             </div>
 
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="liquid-glass p-6 rounded-[2rem]">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">Pool</p>
+                <p className="text-xl font-black text-[var(--text-color)]">{market.totalPool.toLocaleString()} 🪲</p>
+              </div>
+              <div className="liquid-glass p-6 rounded-[2rem]">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">Positions</p>
+                <p className="text-xl font-black text-[var(--text-color)]">{market.positionCount}</p>
+              </div>
+              <div className="liquid-glass p-6 rounded-[2rem]">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">Closes</p>
+                <p className={cn("text-xl font-black", isActive ? 'text-emerald-500' : 'text-[var(--text-muted)]')}>
+                  {formatTimeRemaining(market.closesAt)}
+                </p>
+              </div>
+            </div>
+
             {/* Positions List */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-[10px] font-mono text-[#666666] uppercase tracking-widest mb-4">
-                <Users size={14} /> // Current Market Positions
+              <div className="flex items-center gap-3">
+                <Users size={16} className="text-[var(--text-muted)]" />
+                <h2 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Current Positions</h2>
+                <div className="flex-1 h-px bg-[var(--border-color)]" />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {(market.projectStandings ?? []).map(standing => {
                   const shareOfPool = market.totalPool > 0 ? (standing.totalStake / market.totalPool * 100) : 0;
                   return (
                     <div 
                       key={standing.projectId}
                       onClick={() => setSelectedProjectId(standing.projectId)}
-                      className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer group ${selectedProjectId === standing.projectId ? 'bg-[#3b82f6]/5 border-[#3b82f6]/40 shadow-[0_0_20px_rgba(59,130,246,0.05)]' : 'bg-[var(--bg-surface)] border-[var(--border-default)] hover:border-[var(--border-default)]'}`}
+                      className={cn(
+                        "flex items-center justify-between p-6 rounded-[2rem] border transition-all cursor-pointer group",
+                        selectedProjectId === standing.projectId
+                          ? 'liquid-glass border-emerald-500/30 shadow-lg shadow-emerald-500/5'
+                          : 'bg-[var(--card-bg)] border-[var(--border-color)] hover:border-emerald-500/20'
+                      )}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-[var(--border-default)] bg-[var(--bg-page)] p-1">
-                          <img src={standing.image || `https://api.dicebear.com/7.x/bottts/svg?seed=${standing.projectId}&backgroundColor=transparent`} alt="" className="w-full h-full object-cover rounded" />
+                        <div className="w-11 h-11 rounded-2xl overflow-hidden border border-[var(--border-color)] bg-[var(--card-bg)] p-1">
+                          <img src={standing.image || `https://api.dicebear.com/7.x/bottts/svg?seed=${standing.projectId}&backgroundColor=transparent`} alt="" className="w-full h-full object-cover rounded-xl" />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-white group-hover:text-[#3b82f6] transition-colors">{standing.projectName}</p>
-                          <p className="text-[10px] font-mono text-[#666666]">{shareOfPool.toFixed(1)}% of pool · {standing.voterCount} voter{standing.voterCount !== 1 ? 's' : ''}</p>
+                          <p className="text-sm font-bold text-[var(--text-color)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{standing.projectName}</p>
+                          <p className="text-[10px] font-bold text-[var(--text-muted)]">{shareOfPool.toFixed(1)}% of pool · {standing.voterCount} voter{standing.voterCount !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold font-mono text-white">{standing.totalStake.toLocaleString()} 🪲</p>
-                        <p className="text-[9px] font-mono text-[#3b82f6]">Trust: {standing.trustScore}/100</p>
+                        <p className="text-sm font-bold text-[var(--text-color)]">{standing.totalStake.toLocaleString()} 🪲</p>
+                        <p className="text-[10px] font-bold text-emerald-500">Trust: {standing.trustScore}</p>
                       </div>
                     </div>
                   );
                 })}
                 {(market.projectStandings ?? []).length === 0 && (
-                  <p className="text-[10px] font-mono text-[#666666] text-center py-8">No positions yet — be the first to stake</p>
+                  <div className="liquid-glass rounded-[2.5rem] p-12 text-center">
+                    <p className="text-sm text-[var(--text-muted)] font-medium">No positions yet — be the first to stake</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -232,26 +274,26 @@ function MarketDetailContent() {
 
           {/* Stake Interface */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 sticky top-8">
-              <div className="flex items-center gap-2 mb-6">
-                <TrendingUp size={16} className="text-[#3b82f6]" />
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[#666666]">Execute Position</h3>
+            <div className="liquid-glass rounded-[2.5rem] p-8 sticky top-8">
+              <div className="flex items-center gap-3 mb-8">
+                <TrendingUp size={18} className="text-emerald-500" />
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Stake Position</h3>
               </div>
 
               <div className="space-y-6">
                 {/* Agent Search */}
                 <div className="space-y-3">
-                  <div className="text-[10px] font-mono text-[#666666] uppercase">Search Agent to Stake On</div>
+                  <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Search Agent</p>
                   <input
                     type="text"
                     value={agentSearch}
                     onChange={(e) => setAgentSearch(e.target.value)}
                     placeholder="Search by name or address..."
-                    className="w-full bg-[var(--bg-page)] border border-[var(--border-default)] rounded-xl py-2.5 px-4 text-xs font-mono focus:outline-none focus:border-[#3b82f6]/50 transition-all text-white placeholder-[#444]"
+                    className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl py-3 px-5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all text-[var(--text-color)] placeholder:text-[var(--text-muted)]"
                   />
-                  {searching && <p className="text-[9px] font-mono text-[#666] animate-pulse">Searching...</p>}
+                  {searching && <p className="text-[9px] text-[var(--text-muted)] animate-pulse">Searching...</p>}
                   {searchResults.length > 0 && (
-                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
                       {searchResults.map((agent) => (
                         <div
                           key={agent.walletAddress}
@@ -260,84 +302,83 @@ function MarketDetailContent() {
                             setAgentSearch(agent.name);
                             setSearchResults([]);
                           }}
-                          className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--border-default)] hover:border-[#3b82f6]/40 cursor-pointer transition-all bg-[var(--bg-page)] hover:bg-[#3b82f6]/5"
+                          className="flex items-center justify-between p-3 rounded-2xl border border-[var(--border-color)] hover:border-emerald-500/30 cursor-pointer transition-all bg-[var(--card-bg)]"
                         >
-                          <div className="flex items-center gap-2">
-                            <img src={agent.profilePic || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.walletAddress}&backgroundColor=transparent`} alt="" className="w-6 h-6 rounded" />
-                            <span className="text-xs font-mono text-white">{agent.name}</span>
+                          <div className="flex items-center gap-3">
+                            <img src={agent.profilePic || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.walletAddress}&backgroundColor=transparent`} alt="" className="w-7 h-7 rounded-xl" />
+                            <span className="text-xs font-bold text-[var(--text-color)]">{agent.name}</span>
                           </div>
-                          <span className="text-[9px] font-mono text-[#3b82f6]">Trust: {agent.trustScore}</span>
+                          <span className="text-[9px] font-bold text-emerald-500">Trust: {agent.trustScore}</span>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
+                {/* Amount */}
                 <div className="space-y-3">
-                  <div className="flex justify-between text-[10px] font-mono text-[#666666] uppercase">
-                    <span>Stake Amount</span>
-                    <span>Available: {scarab?.balance ?? 0} 🪲</span>
+                  <div className="flex justify-between">
+                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Amount</p>
+                    <p className="text-[10px] font-bold text-[var(--text-muted)]">Balance: {scarab?.balance ?? 0} 🪲</p>
                   </div>
                   <div className="relative">
                     <input 
                       type="number" 
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full bg-[var(--bg-page)] border border-[var(--border-default)] rounded-xl py-3 pl-4 pr-12 text-sm font-mono focus:outline-none focus:border-[#3b82f6]/50 transition-all"
+                      placeholder="0"
+                      className="w-full bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl py-4 pl-5 pr-12 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all text-[var(--text-color)]"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#666666]">🪲</span>
+                    <span className="absolute right-5 top-1/2 -translate-y-1/2 text-sm">🪲</span>
                   </div>
                 </div>
 
-                <div className="bg-[var(--bg-page)] border border-[var(--border-default)] rounded-xl p-4 space-y-2">
-                  <div className="flex justify-between text-[10px] font-mono">
-                    <span className="text-[#666666]">Target Agent</span>
-                    <span className="text-white truncate max-w-[150px]">
+                {/* Summary */}
+                <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl p-5 space-y-3">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-bold text-[var(--text-muted)]">Target</span>
+                    <span className="font-bold text-[var(--text-color)] truncate max-w-[160px]">
                       {market.projectStandings?.find(p => p.projectId === selectedProjectId)?.projectName 
                         || agentSearch 
-                        || 'Search or select above'}
+                        || 'Select above'}
                     </span>
                   </div>
-                  <div className="flex justify-between text-[10px] font-mono">
-                    <span className="text-[#666666]">Selected ID</span>
-                    <span className="text-[#666] truncate max-w-[150px] text-[8px]">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-bold text-[var(--text-muted)]">ID</span>
+                    <span className="font-mono text-[10px] text-[var(--text-muted)] truncate max-w-[160px]">
                       {selectedProjectId ? `${selectedProjectId.slice(0, 8)}...${selectedProjectId.slice(-6)}` : '—'}
                     </span>
                   </div>
                 </div>
 
+                {/* Submit */}
                 <button 
                   onClick={handleStake}
                   disabled={staking || !selectedProjectId || !amount}
-                  className="w-full py-3.5 bg-[#3b82f6] hover:bg-[#2563eb] disabled:opacity-50 disabled:hover:bg-[#3b82f6] text-white font-bold text-xs rounded-xl transition-all uppercase tracking-widest shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                  className="w-full py-4 bg-[var(--text-color)] hover:opacity-90 disabled:opacity-30 text-[var(--bg-color)] font-bold text-xs rounded-2xl transition-all uppercase tracking-widest shadow-xl active:scale-[0.98]"
                 >
-                  {staking ? "Syncing Transaction…" : "Commit Stake"}
+                  {staking ? "Processing..." : "Stake"}
                 </button>
 
                 {stakeMsg && (
-                  <p className={`text-center text-[10px] font-mono uppercase tracking-wide ${stakeMsg.ok ? 'text-[#10b981]' : 'text-red-400'}`}>
+                  <p className={cn(
+                    "text-center text-xs font-bold",
+                    stakeMsg.ok ? 'text-emerald-500' : 'text-rose-500'
+                  )}>
                     {stakeMsg.text}
                   </p>
                 )}
               </div>
 
-              <div className="mt-8 pt-6 border-t border-[var(--border-default)] space-y-4">
+              <div className="mt-8 pt-6 border-t border-[var(--border-color)]">
                 <div className="flex items-start gap-3">
-                  <Info size={14} className="text-[#3b82f6] shrink-0" />
-                  <p className="text-[10px] text-[#666666] leading-relaxed">
-                    Staking requires a minimum of 10 Scarab. Positions are locked until market resolution.
+                  <Info size={14} className="text-[var(--text-muted)] shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-[var(--text-muted)] leading-relaxed font-medium">
+                    Minimum 10 Scarab. Positions locked until market resolution.
                   </p>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Market Rules Footer */}
-        <div className="mt-12 pt-6 border-t border-[var(--border-default)] opacity-50">
-          <div className="text-[9px] font-mono text-[#666666] uppercase tracking-[0.2em] text-center">
-            Maiat Market Protocol // Resolution Epoch: 14 Days // Network: Mainnet
           </div>
         </div>
       </main>
