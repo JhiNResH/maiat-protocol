@@ -33,7 +33,7 @@ export async function getUserReputation(walletAddress: string): Promise<UserRepu
   const scarab = await prisma.scarabBalance.findUnique({ where: { address } })
 
   // Check AgentScore for ACP trust data
-  const agentScore = await prisma.agentScore.findFirst({ where: { address } })
+  const agentScore = await prisma.agentScore.findFirst({ where: { walletAddress: address } })
   const userRepScore = user?.reputationScore ?? 0
   const acpTrustScore = agentScore?.trustScore ?? 0
   const reputationScore = Math.max(userRepScore, acpTrustScore)
