@@ -51,16 +51,31 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Batch lookup agent names from raw_metrics JSON
+    // Batch lookup agent names from agent_scores + legacy project table
     const agentNames: Record<string, string> = {};
     if (allProjectIds.size > 0) {
+      const ids = [...allProjectIds];
+
+      // 1. Check agent_scores (wallet addresses → rawMetrics.name)
       const agents = await prisma.agentScore.findMany({
-        where: { walletAddress: { in: [...allProjectIds] } },
+        where: { walletAddress: { in: ids } },
         select: { walletAddress: true, rawMetrics: true },
       });
       for (const a of agents) {
         const raw = a.rawMetrics as any;
         if (raw?.name) agentNames[a.walletAddress] = raw.name;
+      }
+
+      // 2. Check legacy project table for any unresolved IDs
+      const unresolved = ids.filter(id => !agentNames[id]);
+      if (unresolved.length > 0) {
+        const projects = await prisma.project.findMany({
+          where: { id: { in: unresolved } },
+          select: { id: true, name: true },
+        });
+        for (const p of projects) {
+          if (p.name) agentNames[p.id] = p.name;
+        }
       }
     }
 
