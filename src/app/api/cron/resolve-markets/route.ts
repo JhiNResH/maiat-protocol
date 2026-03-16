@@ -147,9 +147,12 @@ async function resolveMarket(market: MarketWithPositions) {
     ...legacyProjects.map(p => ({ id: p.id, name: p.id, trustScore: p.trustScore })),
   ];
 
-  // 3. Rank by trustScore DESC → top 3 are winners
+  // 3. Rank by trustScore DESC → dynamic winner count
+  // 2-3 agents → 1 winner, 4-5 → 2 winners, 6+ → 3 winners
   const ranked = [...projects].sort((a, b) => (b.trustScore ?? 0) - (a.trustScore ?? 0));
-  const winnerIds = ranked.slice(0, 3).map((p) => p.id);
+  const uniqueAgents = ranked.length;
+  const winnerCount = uniqueAgents <= 1 ? 1 : Math.min(Math.floor(uniqueAgents / 2), 3);
+  const winnerIds = ranked.slice(0, winnerCount).map((p) => p.id);
   const winnerSet = new Set(winnerIds);
 
   // 4. Calculate pools
