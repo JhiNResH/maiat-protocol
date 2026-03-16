@@ -40,6 +40,23 @@ export declare function maiatFunctionConfigs(config?: MaiatVirtualsConfig): {
         to: string;
         action?: string;
     }>;
+    checkTokenConfig: GameFunctionConfig<{
+        address: string;
+        chain?: string;
+    }>;
+    trustSwapConfig: GameFunctionConfig<{
+        swapper: string;
+        tokenIn: string;
+        tokenOut: string;
+        amount: string;
+        slippage?: string;
+    }>;
+    reportOutcomeConfig: GameFunctionConfig<{
+        jobId: string;
+        outcome: string;
+        reporter?: string;
+        note?: string;
+    }>;
 };
 /**
  * Create a GAME-compatible worker with Maiat trust functions.

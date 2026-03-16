@@ -10,7 +10,7 @@ export interface MaiatElizaConfig {
 export declare function maiatPlugin(config?: MaiatElizaConfig): {
     name: string;
     description: string;
-    actions: {
+    actions: ({
         name: string;
         description: string;
         examples: string[];
@@ -22,7 +22,55 @@ export declare function maiatPlugin(config?: MaiatElizaConfig): {
             text: string;
             data: import("@jhinresh/maiat-sdk").AgentTrustResult;
         }>;
-    }[];
+    } | {
+        name: string;
+        description: string;
+        examples: string[];
+        validate: (message: string) => Promise<boolean>;
+        handler: (message: string) => Promise<{
+            text: string;
+            data?: undefined;
+        } | {
+            text: string;
+            data: import("@jhinresh/maiat-sdk").TokenCheckResult;
+        }>;
+    } | {
+        name: string;
+        description: string;
+        examples: string[];
+        validate: (message: string) => Promise<boolean>;
+        handler: (message: string) => Promise<{
+            text: string;
+            data?: undefined;
+        } | {
+            text: string;
+            data: import("@jhinresh/maiat-sdk").TrustSwapResult;
+        }>;
+    } | {
+        name: string;
+        description: string;
+        examples: string[];
+        validate: (_message: string) => Promise<boolean>;
+        handler: (message: string) => Promise<{
+            text: string;
+            data?: undefined;
+        } | {
+            text: string;
+            data: import("@jhinresh/maiat-sdk").OutcomeResult;
+        }>;
+    } | {
+        name: string;
+        description: string;
+        examples: string[];
+        validate: (message: string) => Promise<boolean>;
+        handler: (message: string) => Promise<{
+            text: string;
+            data?: undefined;
+        } | {
+            text: string;
+            data: import("@jhinresh/maiat-sdk").DeepAnalysisResult;
+        }>;
+    })[];
     evaluators: {
         name: string;
         description: string;
@@ -30,13 +78,6 @@ export declare function maiatPlugin(config?: MaiatElizaConfig): {
             address?: string;
         }) => Promise<{
             pass: boolean;
-            reason: string;
-            score?: undefined;
-            verdict?: undefined;
-        } | {
-            pass: boolean;
-            score: number;
-            verdict: "proceed" | "caution" | "avoid";
             reason: string;
         }>;
     }[];
