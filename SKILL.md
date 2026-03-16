@@ -67,6 +67,35 @@ User asks: "Is this agent trustworthy?"
 
 ---
 
+## Passport — Give Your Agent an Identity
+
+Register your agent to get a verifiable on-chain identity (ENS name + ERC-8004 + trust score).
+
+### Register
+
+```bash
+curl -X POST https://app.maiat.io/api/v1/passport/register \
+  -H "Content-Type: application/json" \
+  -d '{"ensName": "my-agent", "walletAddress": "0x...", "type": "agent"}'
+```
+
+Returns: `ensName`, `ensFullName` (yourname.maiat.eth), `walletAddress`, `trustScore`, `verdict`, `scarabBalance` (10 🪲 bonus), `erc8004AgentId`.
+
+### Lookup
+
+```bash
+curl https://app.maiat.io/api/v1/passport/lookup?q=my-agent
+```
+
+### Rules
+- Names: 3+ chars, lowercase, letters/numbers/hyphens, unique, case-insensitive
+- ENS resolves on-chain via CCIP-Read (zero gas)
+- `referredBy` param gives both parties +5 🪲
+
+**Portal:** https://passport.maiat.io
+
+---
+
 ## Agent Behavior Guidelines
 
 ### The Trust Flywheel
