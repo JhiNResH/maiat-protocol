@@ -182,7 +182,7 @@ function LeaderboardPage() {
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
             className="atmosphere-text font-black text-[var(--text-color)]"
           >
-            Leaderboard
+            Leader<br />board.
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
