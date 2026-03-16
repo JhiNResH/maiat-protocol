@@ -20,7 +20,7 @@ import { PrismaClient } from "@prisma/client";
 
 const LIST_URL = "https://acpx.virtuals.io/api/agents";
 const SEARCH_URL = "https://acpx.virtuals.io/api/agents/v5/search";
-const PAGE_SIZE = 25;   // API max per page
+const PAGE_SIZE = 100;  // API supports up to 100
 const MAX_PAGES = 900;  // safety cap — covers ~22,500 agents
 
 // ─── Known Titan Agents (seed list) ───────────────────────────────────────────
@@ -420,9 +420,18 @@ export async function fetchAllAgents(verbose = false): Promise<AcpAgent[]> {
       if (agents.length < PAGE_SIZE) break; // last page
     } catch (e) {
       if (verbose) console.log(`⚠️  page ${page} failed: ${(e as Error).message}`);
-      break;
+      // Retry once, then skip page (don't stop entire indexing)
+      await new Promise((r) => setTimeout(r, 1000));
+      try {
+        const retry = await fetchAgentsPage(page);
+        for (const a of retry) {
+          if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
+            seen.set(a.walletAddress.toLowerCase(), a);
+          }
+        }
+      } catch { /* skip this page */ }
     }
-    await new Promise((r) => setTimeout(r, 200)); // rate limit
+    await new Promise((r) => setTimeout(r, 100)); // rate limit
   }
 
   const paginationCount = seen.size;
