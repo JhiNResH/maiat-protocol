@@ -296,12 +296,15 @@ export async function registerAgent(walletAddress: string): Promise<bigint | nul
     })
 
     console.log(`[erc8004] ✅ register tx sent: ${txHash} for ${checksummedAddress}`)
-
-    // Fire-and-forget: don't wait for receipt (Vercel timeout is too short)
-    // Return a sentinel value to indicate tx was sent
     return BigInt(-1) // -1 = tx sent, agentId pending confirmation
   } catch (txErr: any) {
-    console.error(`[erc8004] register tx failed:`, txErr.shortMessage || txErr.message)
+    const errMsg = txErr.shortMessage || txErr.message || ''
+    // "already registered" or gas estimation revert = already on-chain, not a real error
+    if (errMsg.includes('revert') || errMsg.includes('gas required exceeds allowance')) {
+      console.log(`[erc8004] agent ${checksummedAddress} likely already registered (${errMsg})`)
+      return null // null = skip, already registered
+    }
+    console.error(`[erc8004] register tx failed:`, errMsg)
     throw txErr
   }
 }
