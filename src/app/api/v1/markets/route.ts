@@ -51,15 +51,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Batch lookup agent names
+    // Batch lookup agent names from raw_metrics JSON
     const agentNames: Record<string, string> = {};
     if (allProjectIds.size > 0) {
       const agents = await prisma.agentScore.findMany({
         where: { walletAddress: { in: [...allProjectIds] } },
-        select: { walletAddress: true, name: true },
+        select: { walletAddress: true, rawMetrics: true },
       });
       for (const a of agents) {
-        if (a.name) agentNames[a.walletAddress] = a.name;
+        const raw = a.rawMetrics as any;
+        if (raw?.name) agentNames[a.walletAddress] = raw.name;
       }
     }
 
