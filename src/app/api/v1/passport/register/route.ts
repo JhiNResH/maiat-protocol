@@ -215,37 +215,40 @@ export async function POST(request: NextRequest) {
       console.warn("[passport/register] NameStone ENS registration failed (non-blocking):", e.message);
     }
 
-    // --- ERC-8004 Registration (non-blocking) ---
+    // --- On-chain identity (type-specific) ---
     let erc8004AgentId: number | null = null;
     let kyaCode: string | null = null;
-    try {
-      const registeredId = await registerAgent(normalizedAddress);
-      if (registeredId !== null) {
-        erc8004AgentId = Number(registeredId);
-      }
-    } catch (e: any) {
-      console.warn("[passport/register] ERC-8004 registerAgent failed (non-blocking):", e.message);
-    }
-
-    // --- Generate KYA Code (non-blocking) ---
-    try {
-      kyaCode = await getKYACode(normalizedAddress);
-    } catch (e: any) {
-      console.warn("[passport/register] getKYACode failed (non-blocking):", e.message);
-    }
-
-    // --- SBT Mint (non-blocking) ---
     let sbtMinted = false;
     let sbtTxHash: string | null = null;
-    try {
-      const mintResult = await mintPassportSBT(normalizedAddress);
-      sbtMinted = mintResult.minted;
-      sbtTxHash = mintResult.txHash;
-      if (mintResult.skipped) {
-        console.log("[passport/register] SBT mint skipped:", mintResult.reason);
+
+    if (userType === 'agent') {
+      // Agent → ERC-8004 registration + KYA code
+      try {
+        const registeredId = await registerAgent(normalizedAddress);
+        if (registeredId !== null) {
+          erc8004AgentId = Number(registeredId);
+        }
+      } catch (e: any) {
+        console.warn("[passport/register] ERC-8004 registerAgent failed (non-blocking):", e.message);
       }
-    } catch (e: any) {
-      console.warn("[passport/register] SBT mint failed (non-blocking):", e.message);
+
+      try {
+        kyaCode = await getKYACode(normalizedAddress);
+      } catch (e: any) {
+        console.warn("[passport/register] getKYACode failed (non-blocking):", e.message);
+      }
+    } else {
+      // Human → SBT passport mint
+      try {
+        const mintResult = await mintPassportSBT(normalizedAddress);
+        sbtMinted = mintResult.minted;
+        sbtTxHash = mintResult.txHash;
+        if (mintResult.skipped) {
+          console.log("[passport/register] SBT mint skipped:", mintResult.reason);
+        }
+      } catch (e: any) {
+        console.warn("[passport/register] SBT mint failed (non-blocking):", e.message);
+      }
     }
 
     return NextResponse.json({
