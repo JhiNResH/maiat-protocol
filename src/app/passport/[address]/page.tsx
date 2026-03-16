@@ -257,7 +257,7 @@ export default function PassportPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative liquid-glass rounded-[2.5rem] p-8"
+            className="relative liquid-glass rounded-[2.5rem] p-8 hover-lift"
           >
             <div className="relative">
               {/* Address + trust badge row */}
@@ -361,7 +361,7 @@ export default function PassportPage() {
             className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Agents You Can Review */}
-            <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
+            <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">
                   Agents You Can Review
@@ -439,7 +439,7 @@ export default function PassportPage() {
             className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Level Perks */}
-            <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
+            <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
               <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
                 Level Perks
               </p>
@@ -467,7 +467,7 @@ export default function PassportPage() {
             </div>
 
             {/* Review History */}
-            <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
+            <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">
                   Review History
@@ -572,7 +572,7 @@ function MarketPositions({ address }: { address: string }) {
   }, [address])
 
   if (loading) return (
-    <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
+    <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
       <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] animate-pulse">
         Loading positions…
       </p>
@@ -580,7 +580,7 @@ function MarketPositions({ address }: { address: string }) {
   )
 
   if (positions.length === 0) return (
-    <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
+    <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
       <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
         Market Positions
       </p>
@@ -607,7 +607,7 @@ function MarketPositions({ address }: { address: string }) {
   )
 
   return (
-    <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8">
+    <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
       <div className="flex items-center justify-between mb-3">
         <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">
           Market Positions
@@ -703,7 +703,7 @@ function ScarabClaim({ walletAddress }: { walletAddress: string }) {
   }
 
   return (
-    <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-6">
+    <div className="liquid-glass rounded-[2.5rem] p-6 hover-lift">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">🪲 DAILY SCARAB</p>
