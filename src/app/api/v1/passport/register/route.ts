@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserReputation } from "@/lib/reputation";
 import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
-import { registerAgent, getKYACode, getAgentId } from "@/lib/erc8004";
+import { registerAgent, getAgentId } from "@/lib/erc8004";
+import { generateKyaCode } from "@/lib/kya";
 import { setEnsSubname } from "@/lib/namestone";
 
 const rateLimiter = createRateLimiter("passport:register", 10, 60);
@@ -87,10 +88,21 @@ export async function POST(request: NextRequest) {
       let kyaCode: string | null = null;
       try {
         erc8004AgentId = await getAgentId(normalizedAddress);
-        kyaCode = await getKYACode(normalizedAddress);
       } catch (e: any) {
         console.warn("[passport/register] ERC-8004 lookup failed (existing user):", e.message);
       }
+
+      // Look up existing KYA code from DB
+      try {
+        const existingKya = await prisma.kyaCode.findFirst({
+          where: { agentAddress: normalizedAddress },
+        });
+        if (existingKya) kyaCode = existingKya.code;
+      } catch (e: any) {
+        console.warn("[passport/register] KYA lookup failed (existing user):", e.message);
+      }
+
+      const existingKyaShareUrl = kyaCode ? `https://passport.maiat.io/verify/${kyaCode}` : null;
 
       return NextResponse.json({
         passport: {
@@ -105,9 +117,15 @@ export async function POST(request: NextRequest) {
           isNew: false,
           erc8004AgentId,
           kyaCode,
-          sbtMinted: false,
-          sbtTxHash: null,
         },
+        ...(kyaCode ? {
+          kya: {
+            code: kyaCode,
+            shareUrl: existingKyaShareUrl,
+            tweetTemplate: `I trust ${cleanEnsName}.maiat.eth 🛡️ #MaiatVerified ${kyaCode}\n${existingKyaShareUrl}`,
+            instruction: "Ask your users to visit the shareUrl and tweet the template to endorse you. Each endorsement gives +5 trust and rewards the endorser with 5 Scarab.",
+          },
+        } : {}),
       }, { status: 200, headers: CORS_HEADERS });
     }
 
@@ -228,13 +246,44 @@ export async function POST(request: NextRequest) {
         console.warn("[passport/register] ERC-8004 registerAgent failed (non-blocking):", e.message);
       }
 
+      // KYA code — DB-backed, so verify page works
       try {
-        kyaCode = await getKYACode(normalizedAddress);
+        const existingKya = await prisma.kyaCode.findFirst({
+          where: { agentAddress: normalizedAddress },
+        });
+        if (existingKya) {
+          kyaCode = existingKya.code;
+        } else {
+          // Generate unique code
+          for (let attempt = 0; attempt < 10; attempt++) {
+            const candidate = generateKyaCode();
+            const collision = await prisma.kyaCode.findUnique({ where: { code: candidate } });
+            if (!collision) {
+              kyaCode = candidate;
+              break;
+            }
+          }
+          if (kyaCode) {
+            await prisma.kyaCode.create({
+              data: {
+                code: kyaCode,
+                agentAddress: normalizedAddress,
+                agentName: cleanEnsName,
+              },
+            });
+          }
+        }
       } catch (e: any) {
-        console.warn("[passport/register] getKYACode failed (non-blocking):", e.message);
+        console.warn("[passport/register] KYA code generation failed (non-blocking):", e.message);
       }
     }
     // Human → no on-chain mint needed (ENS + DB only, zero gas)
+
+    // Build KYA share info for agents
+    const kyaShareUrl = kyaCode ? `https://passport.maiat.io/verify/${kyaCode}` : null;
+    const kyaTweetTemplate = kyaCode
+      ? `I trust ${cleanEnsName}.maiat.eth 🛡️ #MaiatVerified ${kyaCode}\n${kyaShareUrl}`
+      : null;
 
     return NextResponse.json({
       passport: {
@@ -252,6 +301,14 @@ export async function POST(request: NextRequest) {
         kyaCode,
         ensRegistered,
       },
+      ...(userType === 'agent' && kyaCode ? {
+        kya: {
+          code: kyaCode,
+          shareUrl: kyaShareUrl,
+          tweetTemplate: kyaTweetTemplate,
+          instruction: "Ask your users to visit the shareUrl and tweet the template to endorse you. Each endorsement gives +5 trust and rewards the endorser with 5 Scarab.",
+        },
+      } : {}),
     }, { status: 201, headers: CORS_HEADERS });
 
   } catch (err) {
