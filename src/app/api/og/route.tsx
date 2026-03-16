@@ -24,10 +24,16 @@ export async function GET(req: NextRequest) {
   ).then((res) => res.arrayBuffer())
 
   // Fetch the actual Maiat logo from GitHub (can't self-fetch in edge runtime)
+  // Note: Buffer is not available in edge runtime — use Uint8Array + btoa
   const logoData = await fetch(
     'https://raw.githubusercontent.com/JhiNResH/maiat-protocol/master/public/maiat-logo.jpg'
   ).then((res) => res.arrayBuffer())
-  const logoBase64 = `data:image/jpeg;base64,${Buffer.from(logoData).toString('base64')}`
+  const logoBytes = new Uint8Array(logoData)
+  let logoBinary = ''
+  for (let i = 0; i < logoBytes.byteLength; i++) {
+    logoBinary += String.fromCharCode(logoBytes[i])
+  }
+  const logoBase64 = `data:image/jpeg;base64,${btoa(logoBinary)}`
 
   // Score arc
   const pct = score / 100
