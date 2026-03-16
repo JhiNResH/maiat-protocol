@@ -4,6 +4,7 @@ import { getUserReputation } from "@/lib/reputation";
 import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
 import { registerAgent, getKYACode, getAgentId } from "@/lib/erc8004";
 import { mintPassportSBT } from "@/lib/passport";
+import { setEnsSubname } from "@/lib/namestone";
 
 const rateLimiter = createRateLimiter("passport:register", 10, 60);
 
@@ -202,6 +203,18 @@ export async function POST(request: NextRequest) {
 
     const reputation = await getUserReputation(normalizedAddress);
 
+    // --- ENS Subname via NameStone (non-blocking) ---
+    let ensRegistered = false;
+    try {
+      const ensResult = await setEnsSubname(cleanEnsName, normalizedAddress, {
+        description: `Maiat Passport — ${userType}`,
+        url: `https://app.maiat.io/passport/${normalizedAddress}`,
+      });
+      ensRegistered = ensResult.success;
+    } catch (e: any) {
+      console.warn("[passport/register] NameStone ENS registration failed (non-blocking):", e.message);
+    }
+
     // --- ERC-8004 Registration (non-blocking) ---
     let erc8004AgentId: number | null = null;
     let kyaCode: string | null = null;
@@ -251,6 +264,7 @@ export async function POST(request: NextRequest) {
         kyaCode,
         sbtMinted,
         sbtTxHash,
+        ensRegistered,
       },
     }, { status: 201, headers: CORS_HEADERS });
 
