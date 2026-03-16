@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
           ensName: cleanName,
           ensFullName: `${cleanName}.maiat.eth`,
           walletAddress: user.address,
+          type: user.type ?? 'human',
           trustScore: reputation.reputationScore,
           verdict: getVerdict(reputation.reputationScore),
           totalQueries: reputation.totalReviews,

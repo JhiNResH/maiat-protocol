@@ -13,6 +13,7 @@ model User {
   id              String   @id @default(cuid())
   address         String   @unique
   displayName     String?
+  type            String   @default("human") // "human" | "agent"
   avatarUrl       String?
   reputationScore Int      @default(0)
   totalReviews    Int      @default(0)

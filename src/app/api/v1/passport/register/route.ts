@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
           ensName: cleanEnsName,
           ensFullName: fullEnsName,
           walletAddress: normalizedAddress,
+          type: existingUser.type ?? 'human',
           trustScore: reputation.reputationScore,
           verdict: getVerdict(reputation.reputationScore),
           totalQueries: reputation.totalReviews,
@@ -123,10 +124,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user
+    const userType = (type === 'agent') ? 'agent' : 'human';
     const user = await prisma.user.create({
       data: {
         address: normalizedAddress,
         displayName: cleanEnsName,
+        type: userType,
       },
     });
 
@@ -192,6 +195,7 @@ export async function POST(request: NextRequest) {
         ensName: cleanEnsName,
         ensFullName: fullEnsName,
         walletAddress: normalizedAddress,
+        type: userType,
         trustScore: reputation.reputationScore,
         verdict: getVerdict(reputation.reputationScore),
         totalQueries: 0,
