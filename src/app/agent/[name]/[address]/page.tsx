@@ -9,8 +9,10 @@ import {
   Globe, TrendingUp, DollarSign, Clock, User, SquarePen, BarChart3
 } from 'lucide-react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { ReviewForm } from '@/components/ReviewForm'
 import { ReviewList } from '@/components/ReviewList'
+import StatCard from '@/components/StatCard'
 import useSWR from 'swr'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -55,7 +57,7 @@ function riskBg(risk: string) {
   if (risk === 'LOW') return 'bg-[#10b981]/10 border-[#10b981]/30 text-[#10b981]'
   if (risk === 'MEDIUM') return 'bg-[#f59e0b]/10 border-[#f59e0b]/30 text-[#f59e0b]'
   if (risk === 'HIGH') return 'bg-[#ef4444]/10 border-[#ef4444]/30 text-[#ef4444]'
-  return 'bg-slate-500/10 border-slate-500/30 text-slate-400'
+  return 'bg-[var(--text-muted)]/10 border-[var(--text-muted)]/30 text-[var(--text-muted)]'
 }
 
 function scoreColor(s: number) {
@@ -68,7 +70,7 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map(i => (
-        <Star key={i} size={12} className={i <= Math.round(rating) ? 'fill-[#d4a017] text-[#d4a017]' : 'text-[#2a2a2e]'} />
+        <Star key={i} size={12} className={i <= Math.round(rating) ? 'fill-emerald-500 text-emerald-500' : 'text-[var(--border-color)]'} />
       ))}
     </div>
   )
@@ -80,7 +82,7 @@ function ScoreBar({ label, value, max, icon }: { label: string; value: number; m
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between text-[10px]">
-        <div className="flex items-center gap-2 text-[#818384] font-mono uppercase tracking-widest">
+        <div className="flex items-center gap-2 text-[var(--text-muted)] font-mono uppercase tracking-widest">
           {icon}
           <span>{label}</span>
         </div>
@@ -99,7 +101,14 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function AgentDetailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center text-[#d4a017] font-mono uppercase tracking-widest">Loading...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-[var(--text-muted)] font-mono text-sm uppercase tracking-widest">Loading...</span>
+        </div>
+      </div>
+    }>
       <AgentDetailContent />
     </Suspense>
   )
@@ -142,20 +151,20 @@ function AgentDetailContent() {
   }
 
   if (agentLoading) return (
-    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 border-2 border-[#d4a017] border-t-transparent rounded-full animate-spin" />
-        <span className="text-[#818384] font-mono text-sm uppercase tracking-widest">Loading Project...</span>
+        <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <span className="text-[var(--text-muted)] font-mono text-sm uppercase tracking-widest">Loading Project...</span>
       </div>
     </div>
   )
 
   if (!agent) return (
-    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center font-mono">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="text-center space-y-6">
         <div className="text-6xl animate-pulse opacity-20">🪲</div>
-        <p className="text-slate-500 font-bold uppercase tracking-widest">Project Not Found</p>
-        <Link href="/monitor" className="inline-block text-[#d4a017] border border-[#d4a017]/30 px-6 py-2 rounded-xl hover:bg-[#d4a017]/10 transition-all uppercase text-[10px] font-bold tracking-widest">← Back to Explorer</Link>
+        <p className="text-[var(--text-muted)] font-bold uppercase tracking-widest">Project Not Found</p>
+        <Link href="/monitor" className="inline-block text-emerald-500 border border-emerald-500/30 px-6 py-2 rounded-2xl hover:bg-emerald-500/10 transition-all uppercase text-[10px] font-bold tracking-widest">← Back to Explorer</Link>
       </div>
     </div>
   )
@@ -172,24 +181,70 @@ function AgentDetailContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[#d7dadc] font-['JetBrains_Mono',monospace] antialiased selection:bg-[#d4a017]/30">
-      <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col gap-8">
+    <div className="pb-20 relative">
+      <main className="max-w-6xl mx-auto px-6 relative">
 
-        {/* ── Breadcrumb ── */}
-        <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">
-          <Link href="/monitor" className="hover:text-[#d4a017] transition-colors">Explorer</Link>
-          <span className="opacity-30">/</span>
-          <span className="text-slate-400">Project Details</span>
-          <span className="opacity-30">/</span>
-          <span className="text-[#d4a017]">{agent.name}</span>
-        </div>
+        {/* ── Hero Section ── */}
+        <section className="mb-12 pt-12 text-center">
+          {/* Breadcrumb */}
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="flex items-center justify-center gap-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-6"
+          >
+            <Link href="/monitor" className="hover:text-emerald-500 transition-colors">Explorer</Link>
+            <span className="opacity-30">/</span>
+            <span className="text-[var(--text-secondary)]">Project Details</span>
+            <span className="opacity-30">/</span>
+            <span className="text-emerald-500">{agent.name}</span>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="atmosphere-text font-black text-[var(--text-color)]"
+          >
+            {agent.name}
+          </motion.h1>
+
+          {agent.description && (
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="text-[var(--text-secondary)] text-xl max-w-2xl font-medium mx-auto mt-8"
+            >
+              {agent.description}
+            </motion.p>
+          )}
+        </section>
+
+        {/* ── Stat Cards Row ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+        >
+          <StatCard label="Trust Score" value={(score * 10).toFixed(0)} delay={0.3} />
+          <StatCard label="Reviews" value={reviews.length} delay={0.35} />
+          <StatCard label="Transactions" value={agent.breakdown?.totalJobs?.toLocaleString() || '0'} delay={0.4} />
+          <StatCard label="Scarab Balance" value={scarab?.balance ?? '0'} delay={0.45} />
+        </motion.div>
 
         {/* ── Hero Card ── */}
-        <div className="glass-card rounded-2xl p-8 relative overflow-hidden group">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.35 }}
+          className="liquid-glass rounded-[2.5rem] p-8 relative overflow-hidden group mb-8 hover-lift"
+        >
           <div className="flex flex-col lg:flex-row items-start gap-10 relative z-10">
             {/* Avatar */}
             <div className="relative shrink-0">
-              <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-page)] flex items-center justify-center text-3xl font-black text-white">
+              <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[var(--border-color)] flex items-center justify-center text-3xl font-black text-[var(--text-color)]">
                 {agent.logo ? (
                   <img src={agent.logo} alt={agent.name} className="w-full h-full object-cover" />
                 ) : (
@@ -202,9 +257,8 @@ function AgentDetailContent() {
             <div className="flex-1 min-w-0 space-y-6">
               <div>
                 <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-black">{agent.name}</h1>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#272729] text-[#d4a017]">BASE</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/5 text-emerald-500">BASE</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${riskBg(risk)}`}>
                       {risk} RISK
                     </span>
@@ -220,48 +274,46 @@ function AgentDetailContent() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-[#818384]">
+                  <div className="flex items-center gap-2 text-[var(--text-muted)]">
                     <span className="text-xs font-mono">{truncate(address)}</span>
-                    <button onClick={copy} className="hover:text-[#d4a017] transition-colors">
+                    <button onClick={copy} className="hover:text-emerald-500 transition-colors">
                       {copied ? <CheckCircle size={14} className="text-emerald-500" /> : <Copy size={14} />}
                     </button>
                   </div>
                   <a href={`https://basescan.org/address/${address}`} target="_blank" rel="noopener noreferrer"
-                    className="text-[#818384] hover:text-[#d4a017] transition-colors">
+                    className="text-[var(--text-muted)] hover:text-emerald-500 transition-colors">
                     <ExternalLink size={14} />
                   </a>
                 </div>
               </div>
-
-              {/* DESCRIPTION */}
-              {agent.description && (
-                <p className="text-sm text-[#adadb0] leading-relaxed max-w-3xl">
-                  {agent.description}
-                </p>
-              )}
             </div>
 
             {/* Score Display */}
-            <div className="shrink-0 w-full lg:w-auto flex flex-col items-center justify-center glass-card rounded-2xl px-10 py-8 text-center space-y-2">
+            <div className="shrink-0 w-full lg:w-auto flex flex-col items-center justify-center liquid-glass rounded-[2.5rem] px-10 py-8 text-center space-y-2">
               <span className="text-4xl font-black" style={{ color: scoreColor(score) }}>{(score * 10).toFixed(0)}</span>
-              <span className="text-[10px] text-[#818384] font-mono uppercase tracking-widest">Trust Score</span>
+              <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest">Trust Score</span>
               <div className="flex flex-col items-center gap-1 mt-2">
                 <StarRating rating={score / 2} />
-                <span className="text-[10px] text-[#818384]">{reviews.length} reviews</span>
+                <span className="text-[10px] text-[var(--text-muted)]">{reviews.length} reviews</span>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* ── Data Grid ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.45 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+        >
           {/* Stats Column */}
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Score breakdown */}
-            <div className="glass-card rounded-2xl p-6 space-y-6">
+            <div className="liquid-glass rounded-[2.5rem] p-6 space-y-6 hover-lift">
               <div className="flex items-center gap-3">
-                <Shield className="w-4 h-4 text-[#d4a017]" />
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[#adadb0]">Score Breakdown</h3>
+                <Shield className="w-4 h-4 text-emerald-500" />
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">Score Breakdown</h3>
               </div>
               <div className="space-y-5">
                 <ScoreBar label="On-Chain History" value={Math.min(4.0, agent.breakdown?.completionRate * 4.0 || estimatedBreakdown.onchainHistory)} max={4.0} icon={<Activity size={12} />} />
@@ -272,10 +324,10 @@ function AgentDetailContent() {
             </div>
 
             {/* On-chain Details */}
-            <div className="glass-card rounded-2xl p-6 space-y-6 flex flex-col">
+            <div className="liquid-glass rounded-[2.5rem] p-6 space-y-6 flex flex-col hover-lift">
               <div className="flex items-center gap-3">
-                <Activity className="w-4 h-4 text-[#d4a017]" />
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[#adadb0]">On-Chain Details</h3>
+                <Activity className="w-4 h-4 text-emerald-500" />
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">On-Chain Details</h3>
               </div>
               <div className="grid grid-cols-2 gap-4 flex-1">
                 {[
@@ -284,31 +336,31 @@ function AgentDetailContent() {
                   { label: 'Revenue', val: agent.breakdown?.revenue ? formatCompact(agent.breakdown.revenue) : '—' },
                   { label: 'Type', val: 'ACP Agent' },
                 ].map((s, i) => (
-                  <div key={i} className="bg-[var(--bg-surface)] rounded-xl p-4 space-y-1">
-                    <div className="text-[9px] text-[#818384] font-mono uppercase tracking-wider">{s.label}</div>
-                    <div className="text-sm font-bold text-[#d7dadc]">{s.val}</div>
+                  <div key={i} className="liquid-glass rounded-2xl p-4 space-y-1">
+                    <div className="text-[9px] text-[var(--text-muted)] font-mono uppercase tracking-wider">{s.label}</div>
+                    <div className="text-sm font-bold text-[var(--text-color)]">{s.val}</div>
                   </div>
                 ))}
               </div>
               {/* ERC-8004 Identity Section */}
               {erc8004?.registered && (
-                <div className="bg-[#10b981]/5 border border-[#10b981]/20 rounded-xl p-4 space-y-2">
+                <div className="bg-[#10b981]/5 border border-[#10b981]/20 rounded-2xl p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold text-[#10b981] uppercase tracking-widest">ERC-8004 Identity</span>
-                      <span className="text-[9px] font-mono text-[#818384]">#{erc8004.agentId}</span>
+                      <span className="text-[9px] font-mono text-[var(--text-muted)]">#{erc8004.agentId}</span>
                     </div>
                     <CheckCircle size={12} className="text-[#10b981]" />
                   </div>
                   {erc8004.reputation && (
                     <div className="flex items-center gap-4 text-[10px]">
                       <div>
-                        <span className="text-[#818384]">Reputation: </span>
+                        <span className="text-[var(--text-muted)]">Reputation: </span>
                         <span className="font-bold text-[#10b981]">{erc8004.reputation.normalizedScore}/100</span>
                       </div>
                       <div>
-                        <span className="text-[#818384]">Reviews: </span>
-                        <span className="font-bold text-[#d7dadc]">{erc8004.reputation.count}</span>
+                        <span className="text-[var(--text-muted)]">Reviews: </span>
+                        <span className="font-bold text-[var(--text-color)]">{erc8004.reputation.count}</span>
                       </div>
                     </div>
                   )}
@@ -317,13 +369,13 @@ function AgentDetailContent() {
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Link 
                   href={`/monitor/agent/${(agent.name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}/${address}`}
-                  className="w-full py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-[10px] font-bold text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                  className="w-full py-2.5 bg-white/[0.03] border border-white/5 rounded-2xl text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-color)] hover:bg-white/[0.08] transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
                 >
                   <Radar size={14} /> Monitor
                 </Link>
                 <Link 
                   href={`/markets?agent=${address}&name=${encodeURIComponent(agent?.name || '')}`}
-                  className="w-full py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[10px] font-bold text-blue-400 hover:bg-blue-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                  className="w-full py-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[10px] font-bold text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
                 >
                   <BarChart3 size={14} /> Stake on Markets
                 </Link>
@@ -333,28 +385,28 @@ function AgentDetailContent() {
 
           {/* Scarab Column */}
           <div className="space-y-6">
-            <div className="bg-[#d4a017]/8 border border-[#d4a017]/25 rounded-2xl p-6 space-y-4">
+            <div className="liquid-glass rounded-[2.5rem] p-6 space-y-4 hover-lift">
               <div className="flex items-center justify-between">
                 <span className="text-2xl">🪲</span>
                 <div className="text-right">
-                  <div className="text-2xl font-black text-[#d4a017] leading-none">{scarab?.balance ?? '0'}</div>
-                  <div className="text-[9px] text-[#818384] font-mono uppercase tracking-widest">your balance</div>
+                  <div className="text-2xl font-black text-emerald-500 leading-none">{scarab?.balance ?? '0'}</div>
+                  <div className="text-[9px] text-[var(--text-muted)] font-mono uppercase tracking-widest">your balance</div>
                 </div>
               </div>
-              <p className="text-[10px] text-[#818384] leading-relaxed">
-                Costs <strong className="text-[#d7dadc]">2 🪲</strong> to submit · Quality reviews earn up to <strong className="text-[#d7dadc]">+10 🪲</strong> back
+              <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
+                Costs <strong className="text-[var(--text-color)]">2 🪲</strong> to submit · Quality reviews earn up to <strong className="text-[var(--text-color)]">+10 🪲</strong> back
               </p>
             </div>
 
             {/* Risk + Sentiment Card */}
-            <div className="glass-card rounded-2xl p-6 space-y-5">
+            <div className="liquid-glass rounded-[2.5rem] p-6 space-y-5 hover-lift">
               {/* Risk Assessment */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[10px] font-bold text-[#adadb0] uppercase tracking-widest">Risk Assessment</div>
+                  <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Risk Assessment</div>
                   <div className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${
                     risk === 'LOW' ? 'text-[#10b981] bg-[#10b981]/10 border-[#10b981]/20' :
-                    risk === 'MEDIUM' ? 'text-[#d4a017] bg-[#d4a017]/10 border-[#d4a017]/20' :
+                    risk === 'MEDIUM' ? 'text-[#f59e0b] bg-[#f59e0b]/10 border-[#f59e0b]/20' :
                     'text-[#ef4444] bg-[#ef4444]/10 border-[#ef4444]/20'
                   }`}>
                     {risk === 'LOW' ? '🟢 PROCEED' : risk === 'MEDIUM' ? '🟡 CAUTION' : '🔴 AVOID'}
@@ -362,9 +414,9 @@ function AgentDetailContent() {
                 </div>
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="text-2xl font-black" style={{ color: scoreColor(score) }}>{(score * 10).toFixed(0)}</span>
-                  <span className="text-[10px] text-[#818384] font-mono">/100</span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-mono">/100</span>
                 </div>
-                <p className="text-[10px] text-[#818384] leading-relaxed">
+                <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
                   {score >= 9 ? 'Elite tier agent. Extensive on-chain history with zero risk flags.' :
                    score >= 7 ? 'Reliable agent. Solid behavioral history and clean record.' :
                    score >= 4 ? 'Exercise caution. Limited history or minor risk signals detected.' :
@@ -372,7 +424,7 @@ function AgentDetailContent() {
                 </p>
               </div>
 
-              <div className="h-px bg-[#2a2a2e]" />
+              <div className="h-px bg-[var(--border-color)]" />
 
               {/* Wadjet Rug Prediction */}
               {rugData?.prediction && (() => {
@@ -381,7 +433,7 @@ function AgentDetailContent() {
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <div className="text-[10px] font-bold text-[#adadb0] uppercase tracking-widest">Wadjet Risk Intel</div>
+                      <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Wadjet Risk Intel</div>
                       <div style={{ color: col, background: `${col}15`, border: `1px solid ${col}30` }} className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
                         {p.riskLevel}
                       </div>
@@ -391,9 +443,9 @@ function AgentDetailContent() {
                         <div style={{ width: `${p.rugScore}%`, background: `linear-gradient(90deg, ${col}80, ${col})` }} className="h-full rounded-full" />
                       </div>
                       <span style={{ color: col }} className="text-lg font-black font-mono">{p.rugScore}</span>
-                      <span className="text-[10px] text-[#818384]">/100</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">/100</span>
                     </div>
-                    <p className="text-[10px] text-[#818384] leading-relaxed mb-3">{p.summary}</p>
+                    <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mb-3">{p.summary}</p>
                     {p.signals.filter((s: any) => s.severity !== 'info').slice(0, 4).length > 0 && (
                       <div className="space-y-1.5">
                         {p.signals.filter((s: any) => s.severity !== 'info').slice(0, 4).map((s: any) => (
@@ -401,43 +453,43 @@ function AgentDetailContent() {
                             <span style={{ color: s.severity === 'danger' ? '#ef4444' : '#f59e0b' }}>
                               {s.severity === 'danger' ? '⚠' : '◆'}
                             </span>
-                            <span className="text-[#818384] flex-1">{s.name}</span>
-                            <span className="text-[#4a4a4e] font-mono">{s.value}</span>
+                            <span className="text-[var(--text-muted)] flex-1">{s.name}</span>
+                            <span className="text-[var(--text-muted)] font-mono">{s.value}</span>
                           </div>
                         ))}
                       </div>
                     )}
-                    <div className="mt-2 text-[8px] text-[#4a4a4e] font-mono">Powered by Wadjet · {rugData.meta?.model}</div>
+                    <div className="mt-2 text-[8px] text-[var(--text-muted)] font-mono">Powered by Wadjet · {rugData.meta?.model}</div>
                   </div>
                 );
               })()}
 
-              <div className="h-px bg-[#2a2a2e]" />
+              <div className="h-px bg-[var(--border-color)]" />
 
               {/* Community Sentiment */}
               <div>
-                <div className="text-[10px] font-bold text-[#adadb0] uppercase tracking-widest mb-3">Community Sentiment</div>
+                <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3">Community Sentiment</div>
                 {reviews.length === 0 ? (
-                  <p className="text-[10px] text-[#4a4a4e] font-mono">No reviews yet</p>
+                  <p className="text-[10px] text-[var(--text-muted)] font-mono">No reviews yet</p>
                 ) : (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-black text-[#d7dadc]">
+                        <span className="text-lg font-black text-[var(--text-color)]">
                           {(reviewData?.averageRating / 2).toFixed(1)}
                         </span>
                         <div className="flex gap-0.5">
                           {[1,2,3,4,5].map(i => (
-                            <Star key={i} size={10} className={i <= Math.round(reviewData?.averageRating / 2) ? 'fill-[#d4a017] text-[#d4a017]' : 'text-[#2a2a2e]'} />
+                            <Star key={i} size={10} className={i <= Math.round(reviewData?.averageRating / 2) ? 'fill-emerald-500 text-emerald-500' : 'text-[var(--border-color)]'} />
                           ))}
                         </div>
                       </div>
-                      <span className="text-[10px] text-[#818384] font-mono">{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-mono">{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                         reviewData?.averageRating >= 7 ? 'text-[#10b981] bg-[#10b981]/10 border-[#10b981]/20' :
-                        reviewData?.averageRating >= 4 ? 'text-[#d4a017] bg-[#d4a017]/10 border-[#d4a017]/20' :
+                        reviewData?.averageRating >= 4 ? 'text-[#f59e0b] bg-[#f59e0b]/10 border-[#f59e0b]/20' :
                         'text-[#ef4444] bg-[#ef4444]/10 border-[#ef4444]/20'
                       }`}>
                         {reviewData?.averageRating >= 7 ? '👍 Positive' : reviewData?.averageRating >= 4 ? '🤔 Mixed' : '👎 Negative'}
@@ -449,25 +501,30 @@ function AgentDetailContent() {
             </div>
 
           </div>
-        </div>
+        </motion.div>
 
         {/* ── Community Reviews ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-12 border-t border-[var(--border-default)]">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.55 }}
+          className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-12 border-t border-[var(--border-color)]"
+        >
           {/* List — shared ReviewList with upvote/downvote */}
           <div className="lg:col-span-7 space-y-8">
             <div className="flex items-center gap-2 mb-4">
-              <MessageSquare className="w-4 h-4 text-[#d4a017]" />
-              <h2 className="text-xs font-bold uppercase tracking-widest text-[#adadb0]">Community Reviews</h2>
+              <MessageSquare className="w-4 h-4 text-emerald-500" />
+              <h2 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">Community Reviews</h2>
             </div>
             <ReviewList address={address} />
           </div>
 
           {/* Form */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="glass-card rounded-2xl p-8 sticky top-24">
+            <div className="liquid-glass rounded-[2.5rem] p-8 sticky top-24 hover-lift">
               <div className="flex items-center gap-2 mb-6">
-                <Trophy className="w-4 h-4 text-[#d4a017]" />
-                <h2 className="text-xs font-bold uppercase tracking-widest text-[#adadb0]">Leave a Review</h2>
+                <Trophy className="w-4 h-4 text-emerald-500" />
+                <h2 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">Leave a Review</h2>
               </div>
               <ReviewForm
                 projectId={address}
@@ -476,15 +533,9 @@ function AgentDetailContent() {
               />
             </div>
           </div>
-        </div>
+        </motion.div>
 
-      </div>
-
-      <footer className="mt-20 border-t border-[var(--border-default)] py-12 text-center">
-        <div className="text-[10px] font-mono text-[#818384] tracking-[0.4em] uppercase">
-          Maiat Protocol // Behavioral Oracle System
-        </div>
-      </footer>
+      </main>
     </div>
   )
 }
