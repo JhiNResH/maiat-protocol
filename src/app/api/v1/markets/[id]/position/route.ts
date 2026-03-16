@@ -97,44 +97,40 @@ export async function POST(
       );
     }
 
-    // Check project exists (Project table OR AgentScore table)
+    // Validate projectId must be a wallet address (no legacy project IDs)
+    if (!isAddress(projectId)) {
+      return NextResponse.json(
+        { error: "projectId must be a valid wallet address", detail: `Got: ${projectId}` },
+        { status: 400, headers: CORS_HEADERS }
+      );
+    }
+
+    // Normalize to checksummed address
+    projectId = getAddress(projectId);
+
+    // Check agent exists in trust oracle
     let projectName = projectId;
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { id: true, name: true, slug: true },
+    const agent = await prisma.agentScore.findFirst({
+      where: { walletAddress: { equals: projectId, mode: 'insensitive' } },
+      select: { walletAddress: true, trustScore: true, rawMetrics: true },
     });
 
-    if (project) {
-      projectName = project.name ?? projectId;
-    } else if (isAddress(projectId)) {
-      // Also accept agent wallet addresses from AgentScore
-      const agent = await prisma.agentScore.findFirst({
-        where: { walletAddress: { equals: getAddress(projectId), mode: 'insensitive' } },
-        select: { walletAddress: true, trustScore: true },
-      });
-      if (agent) {
-        projectName = agent.walletAddress;
-      } else {
-        return NextResponse.json(
-          { error: "Agent not found in trust oracle", detail: `Address: ${projectId}` },
-          { status: 404, headers: CORS_HEADERS }
-        );
-      }
-    } else {
+    if (!agent) {
       return NextResponse.json(
-        { error: "Project not found", detail: `Project ID: ${projectId}` },
+        { error: "Agent not found in trust oracle", detail: `Address: ${projectId}` },
         { status: 404, headers: CORS_HEADERS }
       );
     }
 
+    const rawMetrics = agent.rawMetrics as any;
+    if (rawMetrics?.name) projectName = rawMetrics.name;
+
     // ── Market constraints: "New Agent" markets only accept agents < 60 days old ──
-    if (market.title.toLowerCase().includes('new agent') && isAddress(projectId)) {
-      const agentScore = await prisma.agentScore.findFirst({
-        where: { walletAddress: { equals: getAddress(projectId), mode: 'insensitive' } },
-        select: { createdAt: true },
-      });
-      if (agentScore?.createdAt) {
-        const ageDays = (Date.now() - new Date(agentScore.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (market.title.toLowerCase().includes('new agent')) {
+      const raw = rawMetrics as any;
+      const createdStr = raw?.createdAt || raw?.created_at;
+      if (createdStr) {
+        const ageDays = (Date.now() - new Date(createdStr).getTime()) / (1000 * 60 * 60 * 24);
         if (ageDays > 60) {
           return NextResponse.json(
             { error: "This market is for new agents only (< 60 days old)", detail: `Agent is ${Math.floor(ageDays)} days old` },
