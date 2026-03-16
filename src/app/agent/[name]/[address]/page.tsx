@@ -195,7 +195,7 @@ function AgentDetailContent() {
           >
             <Link href="/leaderboard" className="hover:text-emerald-500 transition-colors">Leaderboard</Link>
             <span className="opacity-30">/</span>
-            <span className="text-[var(--text-secondary)]">Project Details</span>
+            <span className="text-[var(--text-secondary)]">Agent</span>
             <span className="opacity-30">/</span>
             <span className="text-emerald-500">{agent.name}</span>
           </motion.div>
@@ -239,7 +239,7 @@ function AgentDetailContent() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.35 }}
-          className="liquid-glass rounded-[2.5rem] p-8 relative overflow-hidden group mb-8 hover-lift"
+          className="liquid-glass rounded-[3rem] p-8 relative overflow-hidden group mb-8 hover-lift"
         >
           <div className="flex flex-col lg:flex-row items-start gap-10 relative z-10">
             {/* Avatar */}
@@ -290,7 +290,7 @@ function AgentDetailContent() {
             </div>
 
             {/* Score Display */}
-            <div className="shrink-0 w-full lg:w-auto flex flex-col items-center justify-center liquid-glass rounded-[2.5rem] px-10 py-8 text-center space-y-2">
+            <div className="shrink-0 w-full lg:w-auto flex flex-col items-center justify-center liquid-glass rounded-[3rem] px-10 py-8 text-center space-y-2">
               <span className="text-4xl font-black" style={{ color: scoreColor(score) }}>{(score * 10).toFixed(0)}</span>
               <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest">Trust Score</span>
               <div className="flex flex-col items-center gap-1 mt-2">
@@ -311,7 +311,7 @@ function AgentDetailContent() {
           {/* Stats Column */}
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Score breakdown */}
-            <div className="liquid-glass rounded-[2.5rem] p-6 space-y-6 hover-lift">
+            <div className="liquid-glass rounded-[3rem] p-6 space-y-6 hover-lift">
               <div className="flex items-center gap-3">
                 <Shield className="w-4 h-4 text-emerald-500" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">Score Breakdown</h3>
@@ -325,7 +325,7 @@ function AgentDetailContent() {
             </div>
 
             {/* On-chain Details */}
-            <div className="liquid-glass rounded-[2.5rem] p-6 space-y-6 flex flex-col hover-lift">
+            <div className="liquid-glass rounded-[3rem] p-6 space-y-6 flex flex-col hover-lift">
               <div className="flex items-center gap-3">
                 <Activity className="w-4 h-4 text-emerald-500" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">On-Chain Details</h3>
@@ -386,7 +386,7 @@ function AgentDetailContent() {
 
           {/* Scarab Column */}
           <div className="space-y-6">
-            <div className="liquid-glass rounded-[2.5rem] p-6 space-y-4 hover-lift">
+            <div className="liquid-glass rounded-[3rem] p-6 space-y-4 hover-lift">
               <div className="flex items-center justify-between">
                 <span className="text-2xl">🪲</span>
                 <div className="text-right">
@@ -400,7 +400,7 @@ function AgentDetailContent() {
             </div>
 
             {/* Risk + Sentiment Card */}
-            <div className="liquid-glass rounded-[2.5rem] p-6 space-y-5 hover-lift">
+            <div className="liquid-glass rounded-[3rem] p-6 space-y-5 hover-lift">
               {/* Risk Assessment */}
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -522,7 +522,7 @@ function AgentDetailContent() {
 
           {/* Form */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="liquid-glass rounded-[2.5rem] p-8 sticky top-24 hover-lift">
+            <div className="liquid-glass rounded-[3rem] p-8 sticky top-24 hover-lift">
               <div className="flex items-center gap-2 mb-6">
                 <Trophy className="w-4 h-4 text-emerald-500" />
                 <h2 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">Leave a Review</h2>
