@@ -185,6 +185,52 @@ contract MaiatPassportTest is Test {
         }
     }
 
+    // ─── MP-01: Soulbound approve overrides ───────────────────
+
+    function test_Approve_RevertsSoulbound() public {
+        _mint(user1);
+        vm.prank(user1);
+        vm.expectRevert(MaiatPassport.SoulboundTransfer.selector);
+        passport.approve(user2, 1);
+    }
+
+    function test_SetApprovalForAll_RevertsSoulbound() public {
+        vm.prank(user1);
+        vm.expectRevert(MaiatPassport.SoulboundTransfer.selector);
+        passport.setApprovalForAll(user2, true);
+    }
+
+    // ─── MP-02: trustScore bounds ──────────────────────────────
+
+    function test_UpdatePassport_RevertsScoreAbove100() public {
+        _mint(user1);
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(MaiatPassport.TrustScoreOutOfRange.selector, 101));
+        passport.updatePassport(user1, 101, 0, 0);
+    }
+
+    function test_UpdatePassport_Score100_Succeeds() public {
+        _mint(user1);
+        _update(user1, 100, 0, 0);
+        (uint256 score,,,) = passport.passportData(1);
+        assertEq(score, 100);
+    }
+
+    function test_UpdatePassport_Score0_Succeeds() public {
+        _mint(user1);
+        _update(user1, 0, 0, 0);
+        (uint256 score,,,) = passport.passportData(1);
+        assertEq(score, 0);
+    }
+
+    function testFuzz_UpdatePassport_ScoreAbove100_Reverts(uint256 score) public {
+        vm.assume(score > 100);
+        _mint(user1);
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(MaiatPassport.TrustScoreOutOfRange.selector, score));
+        passport.updatePassport(user1, score, 0, 0);
+    }
+
     // ─── Soulbound transfer ────────────────────────────────────
 
     function test_Transfer_RevertsSoulbound() public {
@@ -242,6 +288,7 @@ contract MaiatPassportTest is Test {
     }
 
     function testFuzz_UpdatePassport(uint256 score, uint256 reviews, uint256 attestations) public {
+        vm.assume(score <= 100); // MP-02: score bounded
         _mint(user1);
         _update(user1, score, reviews, attestations);
 

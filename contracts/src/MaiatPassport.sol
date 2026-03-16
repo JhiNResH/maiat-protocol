@@ -53,6 +53,8 @@ contract MaiatPassport is ERC721, AccessControl {
         return tokenId;
     }
 
+    error TrustScoreOutOfRange(uint256 score);
+
     function updatePassport(
         address holder,
         uint256 score,
@@ -60,6 +62,7 @@ contract MaiatPassport is ERC721, AccessControl {
         uint256 attestations
     ) external onlyRole(UPDATER_ROLE) {
         if (!hasPassport[holder]) revert NoPassport(holder);
+        if (score > 100) revert TrustScoreOutOfRange(score); // MP-02
         uint256 tokenId = passportOf[holder];
         passportData[tokenId] = PassportData({
             trustScore: score,
@@ -103,6 +106,16 @@ contract MaiatPassport is ERC721, AccessControl {
     }
 
     /// @dev Prevent all transfers except minting (from = address(0)) and burning (to = address(0))
+    /// @dev MP-01: Block approve to prevent misleading approvals on a soulbound token
+    function approve(address, uint256) public pure override {
+        revert SoulboundTransfer();
+    }
+
+    /// @dev MP-01: Block setApprovalForAll to prevent misleading approvals on a soulbound token
+    function setApprovalForAll(address, bool) public pure override {
+        revert SoulboundTransfer();
+    }
+
     function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
         address from = _ownerOf(tokenId);
         if (from != address(0) && to != address(0)) revert SoulboundTransfer();
