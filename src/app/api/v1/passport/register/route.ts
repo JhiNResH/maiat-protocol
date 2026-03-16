@@ -235,6 +235,8 @@ export async function POST(request: NextRequest) {
     // --- On-chain identity (type-specific) ---
     let erc8004AgentId: number | null = null;
     let kyaCode: string | null = null;
+    let _debugErc8004Error: string | null = null;
+    let _debugKyaError: string | null = null;
     if (userType === 'agent') {
       // Agent only → ERC-8004 registration + KYA code
       try {
@@ -243,6 +245,7 @@ export async function POST(request: NextRequest) {
           erc8004AgentId = Number(registeredId);
         }
       } catch (e: any) {
+        _debugErc8004Error = e.message;
         console.warn("[passport/register] ERC-8004 registerAgent failed (non-blocking):", e.message);
       }
 
@@ -274,6 +277,7 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (e: any) {
+        _debugKyaError = e.message;
         console.warn("[passport/register] KYA code generation failed (non-blocking):", e.message);
       }
     }
@@ -301,6 +305,7 @@ export async function POST(request: NextRequest) {
         kyaCode,
         ensRegistered,
       },
+      _debug: { erc8004Error: _debugErc8004Error, kyaError: _debugKyaError },
       ...(userType === 'agent' && kyaCode ? {
         kya: {
           code: kyaCode,
