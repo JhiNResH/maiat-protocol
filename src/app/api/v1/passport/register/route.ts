@@ -239,10 +239,7 @@ export async function POST(request: NextRequest) {
     let erc8004AgentId: number | null = null;
     let kyaCode: string | null = null;
     if (userType === 'agent') {
-      // ERC-8004: fire-and-forget (don't block response — tx takes too long)
-      registerAgent(normalizedAddress)
-        .then(id => console.log(`[passport/register] ERC-8004 tx sent for ${normalizedAddress}, id=${id}`))
-        .catch(e => console.warn("[passport/register] ERC-8004 failed:", e.shortMessage || e.message));
+      // ERC-8004: handled async by /api/v1/cron/register-agents (too slow for serverless)
 
       // KYA code — DB-backed, so verify page works
       try {
