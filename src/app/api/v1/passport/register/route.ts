@@ -239,23 +239,10 @@ export async function POST(request: NextRequest) {
     let erc8004AgentId: number | null = null;
     let kyaCode: string | null = null;
     if (userType === 'agent') {
-      // Agent only → ERC-8004 registration + KYA code
-      let _erc8004Debug: string | null = null;
-      try {
-        const registeredId = await registerAgent(normalizedAddress);
-        if (registeredId !== null && registeredId !== BigInt(-1)) {
-          erc8004AgentId = Number(registeredId);
-          _erc8004Debug = `success:${registeredId}`;
-        } else if (registeredId === BigInt(-1)) {
-          erc8004AgentId = -1;
-          _erc8004Debug = "tx_sent_pending";
-        } else {
-          _erc8004Debug = "returned_null";
-        }
-      } catch (e: any) {
-        _erc8004Debug = `error:${e.shortMessage || e.message}`;
-        console.warn("[passport/register] ERC-8004 registerAgent failed (non-blocking):", e.message);
-      }
+      // ERC-8004: fire-and-forget (don't block response — tx takes too long)
+      registerAgent(normalizedAddress)
+        .then(id => console.log(`[passport/register] ERC-8004 tx sent for ${normalizedAddress}, id=${id}`))
+        .catch(e => console.warn("[passport/register] ERC-8004 failed:", e.shortMessage || e.message));
 
       // KYA code — DB-backed, so verify page works
       try {
@@ -311,7 +298,6 @@ export async function POST(request: NextRequest) {
         erc8004AgentId,
         kyaCode,
         ensRegistered,
-        _erc8004Debug,
       },
       ...(userType === 'agent' && kyaCode ? {
         kya: {
