@@ -108,7 +108,7 @@ export default function AnalyticsPage() {
   const [stats, setStats] = useState<ApiStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [engagement, setEngagement] = useState<EngagementStats | null>(null);
-  const [timeseries, setTimeseries] = useState<Array<{ date: string; count: number }>>([]);
+  const [timeseries, setTimeseries] = useState<Array<{ date: string; count: number; cumulative: number }>>([]);
 
   useEffect(() => {
     const fetchStats = () =>
@@ -147,10 +147,11 @@ export default function AnalyticsPage() {
     return () => clearInterval(t);
   }, []);
 
-  // Build chart data from timeseries (daily counts for last 30 days)
+  // Build chart data from timeseries (cumulative — always goes up)
   const chartData = timeseries.map((row) => ({
     name: row.date.slice(5), // MM-DD format
-    value: row.count,
+    value: row.cumulative,
+    daily: row.count,
   }));
 
   const pieData = stats
@@ -282,7 +283,7 @@ export default function AnalyticsPage() {
           transition={{ delay: 0.4 }}
           className="liquid-glass rounded-[3rem] border-white/40 p-12 mb-12 hover-lift"
         >
-          <h2 className="text-3xl font-bold text-[var(--text-color)] mb-12">Query Volume Over Time</h2>
+          <h2 className="text-3xl font-bold text-[var(--text-color)] mb-12">Total Queries</h2>
           {chartData.length === 0 ? (
             <div className="h-[300px] flex items-center justify-center">
               <p className="text-[var(--text-secondary)] font-medium">No data available</p>

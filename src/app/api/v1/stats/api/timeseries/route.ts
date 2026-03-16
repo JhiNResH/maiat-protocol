@@ -18,12 +18,18 @@ export async function GET() {
       ORDER BY date ASC
     `;
 
-    const data = rows.map((row) => ({
-      date: row.date instanceof Date
-        ? row.date.toISOString().slice(0, 10)
-        : String(row.date),
-      count: Number(row.count),
-    }));
+    let cumulative = 0;
+    const data = rows.map((row) => {
+      const daily = Number(row.count);
+      cumulative += daily;
+      return {
+        date: row.date instanceof Date
+          ? row.date.toISOString().slice(0, 10)
+          : String(row.date),
+        count: daily,
+        cumulative,
+      };
+    });
 
     return NextResponse.json({ data });
   } catch (err) {
