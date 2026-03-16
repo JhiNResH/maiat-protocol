@@ -6,6 +6,9 @@ import { registerAgent, getAgentId } from "@/lib/erc8004";
 import { generateKyaCode } from "@/lib/kya";
 import { setEnsSubname } from "@/lib/namestone";
 
+// Allow up to 30s for on-chain tx (Vercel Pro/Hobby default is 10s)
+export const maxDuration = 30;
+
 const rateLimiter = createRateLimiter("passport:register", 10, 60);
 
 const CORS_HEADERS = {
