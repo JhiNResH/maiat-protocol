@@ -23,9 +23,10 @@ export async function GET(req: NextRequest) {
     'https://github.com/rsms/inter/raw/master/fonts/static/Inter-Black.ttf'
   ).then((res) => res.arrayBuffer())
 
-  // Fetch the actual Maiat logo
-  const logoUrl = new URL('/maiat-logo.jpg', req.url).toString()
-  const logoData = await fetch(logoUrl).then((res) => res.arrayBuffer())
+  // Fetch the actual Maiat logo from GitHub (can't self-fetch in edge runtime)
+  const logoData = await fetch(
+    'https://raw.githubusercontent.com/JhiNResH/maiat-protocol/master/public/maiat-logo.jpg'
+  ).then((res) => res.arrayBuffer())
   const logoBase64 = `data:image/jpeg;base64,${Buffer.from(logoData).toString('base64')}`
 
   // Score arc
