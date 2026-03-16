@@ -266,10 +266,11 @@ export async function registerAgent(walletAddress: string): Promise<bigint | nul
   const { privateKeyToAccount } = await import('viem/accounts')
   const { base: baseChain } = await import('viem/chains')
 
-  const adminKey = process.env.MAIAT_ADMIN_PRIVATE_KEY || process.env.PRIVATE_KEY
-  if (!adminKey) {
+  const rawKey = process.env.MAIAT_ADMIN_PRIVATE_KEY || process.env.PRIVATE_KEY
+  if (!rawKey) {
     throw new Error('MAIAT_ADMIN_PRIVATE_KEY or PRIVATE_KEY not set')
   }
+  const adminKey = rawKey.startsWith('0x') ? rawKey : `0x${rawKey}`
 
   // Check if already registered
   const existing = await lookupAgentId(walletAddress)
