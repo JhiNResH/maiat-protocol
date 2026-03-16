@@ -5,7 +5,7 @@ export class MaiatTrustError extends Error {
     risk;
     minScore;
     constructor(address, score, risk, minScore) {
-        super(`Maiat: Transaction blocked — address ${address} has trust score ${score}/10 (${risk} risk), minimum required: ${minScore}`);
+        super(`Maiat: Transaction blocked — address ${address} has trust score ${score}/100 (${risk} risk), minimum required: ${minScore}`);
         this.address = address;
         this.score = score;
         this.risk = risk;
@@ -40,7 +40,7 @@ export class MaiatClient {
         // Map SDK result to plugin's internal TrustScoreResult type
         const result = {
             address: res.address,
-            score: res.trustScore / 10, // Plugin uses 0-10, SDK uses 0-100
+            score: res.trustScore,
             risk: res.verdict === 'avoid' ? 'CRITICAL' : (res.verdict === 'caution' ? 'MEDIUM' : 'LOW'),
             type: res.dataSource,
             flags: [],
@@ -61,7 +61,7 @@ export class MaiatClient {
         this.cache.set(cacheKey, { result, expiresAt: Date.now() + 5 * 60 * 1000 });
         return result;
     }
-    isSafe(score, minScore = 3.0) {
+    isSafe(score, minScore = 30) {
         return score >= minScore;
     }
     async submitReview(review) {
@@ -111,12 +111,12 @@ export class MaiatClient {
  */
 export function maiatTrustActions(config = {}) {
     const client = new MaiatClient(config);
-    const minScore = config.minScore ?? 3.0;
+    const minScore = config.minScore ?? 30;
     return [
         // --- Existing: Trust Check ---
         {
             name: "maiat_check_trust",
-            description: `Check the trust score of an on-chain address using Maiat. Returns a 0-10 score with risk assessment. Addresses scoring below ${minScore} are considered unsafe.`,
+            description: `Check the trust score of an on-chain address using Maiat. Returns a 0-100 score with risk assessment. Addresses scoring below ${minScore} are considered unsafe.`,
             schema: {
                 type: "object",
                 properties: {
@@ -139,8 +139,8 @@ export function maiatTrustActions(config = {}) {
                     details: result.details,
                     protocol: result.protocol,
                     recommendation: safe
-                        ? `✅ Address is trusted (${result.score}/10). Safe to proceed.`
-                        : `⚠️ Address has low trust (${result.score}/10, ${result.risk} risk). ${config.warnOnly ? "Proceeding with caution." : "Transaction blocked."}`,
+                        ? `✅ Address is trusted (${result.score}/100). Safe to proceed.`
+                        : `⚠️ Address has low trust (${result.score}/100, ${result.risk} risk). ${config.warnOnly ? "Proceeding with caution." : "Transaction blocked."}`,
                 };
             },
         },
@@ -303,6 +303,72 @@ export function maiatTrustActions(config = {}) {
                 };
             },
         },
+        // --- NEW: Trust Swap ---
+        {
+            name: "maiat_trust_swap",
+            description: "Get a trust-verified swap quote with calldata. Checks both tokens for safety before returning a Uniswap quote. Use this instead of raw DEX quotes.",
+            schema: {
+                type: "object",
+                properties: {
+                    swapper: { type: "string", description: "Wallet address executing the swap (0x...)" },
+                    tokenIn: { type: "string", description: "Token being sold (0x...)" },
+                    tokenOut: { type: "string", description: "Token being bought (0x...)" },
+                    amount: { type: "string", description: "Amount of tokenIn in wei" },
+                    slippage: { type: "number", description: "Slippage tolerance (e.g. 0.5 for 0.5%)" },
+                },
+                required: ["swapper", "tokenIn", "tokenOut", "amount"],
+            },
+            handler: async (params) => {
+                const result = await client.sdk.trustSwap({
+                    swapper: params.swapper,
+                    tokenIn: params.tokenIn,
+                    tokenOut: params.tokenOut,
+                    amount: params.amount,
+                    slippage: params.slippage,
+                });
+                return result;
+            },
+        },
+        // --- NEW: Deep Analysis ---
+        {
+            name: "maiat_deep_analysis",
+            description: "Get deep trust analysis for an agent address. Returns detailed breakdown with percentile rankings, risk signals, and behavioral patterns.",
+            schema: {
+                type: "object",
+                properties: {
+                    address: { type: "string", description: "Agent wallet address (0x...)" },
+                },
+                required: ["address"],
+            },
+            handler: async (params) => {
+                const result = await client.sdk.deep(params.address);
+                return result;
+            },
+        },
+        // --- NEW: Report Outcome ---
+        {
+            name: "maiat_report_outcome",
+            description: "Report the outcome of a job back to the Maiat trust oracle. Call after completing, failing, or observing an expired job. Earns Scarab rewards.",
+            schema: {
+                type: "object",
+                properties: {
+                    jobId: { type: "string", description: "The job ID to report outcome for" },
+                    outcome: { type: "string", description: "Outcome: success, failure, partial, or expired" },
+                    reporter: { type: "string", description: "Address of the reporter (optional)" },
+                    note: { type: "string", description: "Free-form note about the outcome (optional)" },
+                },
+                required: ["jobId", "outcome"],
+            },
+            handler: async (params) => {
+                const result = await client.sdk.reportOutcome({
+                    jobId: params.jobId,
+                    outcome: params.outcome,
+                    reporter: params.reporter,
+                    note: params.note,
+                });
+                return result;
+            },
+        },
     ];
 }
 // ═══════════════════════════════════════════
@@ -317,7 +383,7 @@ export function maiatTrustActions(config = {}) {
  *
  * const plugin = maiatTrustPlugin({
  *   minScore: 3.0,
- *   onBlocked: (addr, score) => console.log(`Blocked ${addr}: ${score}/10`)
+ *   onBlocked: (addr, score) => console.log(`Blocked ${addr}: ${score}/100`)
  * });
  *
  * // Use with AgentKit
@@ -327,7 +393,7 @@ export function maiatTrustActions(config = {}) {
 export function maiatTrustPlugin(config = {}) {
     return {
         name: "maiat-trust",
-        version: "0.2.0",
+        version: "0.8.0",
         actions: maiatTrustActions(config),
         client: new MaiatClient(config),
     };

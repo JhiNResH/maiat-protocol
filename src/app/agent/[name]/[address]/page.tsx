@@ -82,7 +82,7 @@ function ScoreBar({ label, value, max, icon }: { label: string; value: number; m
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between text-[10px]">
-        <div className="flex items-center gap-2 text-[var(--text-muted)] font-mono uppercase tracking-widest">
+        <div className="flex items-center gap-2 text-[var(--text-secondary)] uppercase tracking-widest">
           {icon}
           <span>{label}</span>
         </div>
@@ -257,7 +257,6 @@ function AgentDetailContent() {
             <div className="flex-1 min-w-0 space-y-6">
               <div>
                 <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-black text-[var(--text-color)]">{agent.name}</h1>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500">BASE</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${riskBg(risk)}`}>
@@ -311,7 +310,7 @@ function AgentDetailContent() {
           {/* Stats Column */}
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Score breakdown */}
-            <div className="liquid-glass rounded-[3rem] p-6 space-y-6 hover-lift">
+            <div className="liquid-glass rounded-[3rem] p-10 space-y-6 hover-lift">
               <div className="flex items-center gap-3">
                 <Shield className="w-4 h-4 text-emerald-500" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">Score Breakdown</h3>
@@ -325,7 +324,7 @@ function AgentDetailContent() {
             </div>
 
             {/* On-chain Details */}
-            <div className="liquid-glass rounded-[3rem] p-6 space-y-6 flex flex-col hover-lift">
+            <div className="liquid-glass rounded-[3rem] p-10 space-y-6 flex flex-col hover-lift">
               <div className="flex items-center gap-3">
                 <Activity className="w-4 h-4 text-emerald-500" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">On-Chain Details</h3>
@@ -337,7 +336,7 @@ function AgentDetailContent() {
                   { label: 'Revenue', val: agent.breakdown?.revenue ? formatCompact(agent.breakdown.revenue) : '—' },
                   { label: 'Type', val: 'ACP Agent' },
                 ].map((s, i) => (
-                  <div key={i} className="liquid-glass rounded-2xl p-4 space-y-1">
+                  <div key={i} className="bg-[var(--bg-color)] rounded-2xl p-4 space-y-1 border border-[var(--border-color)]">
                     <div className="text-[9px] text-[var(--text-muted)] font-mono uppercase tracking-wider">{s.label}</div>
                     <div className="text-sm font-bold text-[var(--text-color)]">{s.val}</div>
                   </div>
@@ -367,16 +366,10 @@ function AgentDetailContent() {
                   )}
                 </div>
               )}
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Link 
-                  href={`/agent/${(agent.name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}/${address}`}
-                  className="w-full py-2.5 bg-black/[0.03] dark:bg-white/[0.03] border border-[var(--border-color)] rounded-2xl text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-color)] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
-                >
-                  <Radar size={14} /> Details
-                </Link>
+              <div className="mt-4">
                 <Link 
                   href={`/markets?agent=${address}&name=${encodeURIComponent(agent?.name || '')}`}
-                  className="w-full py-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[10px] font-bold text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                  className="w-full py-3 bg-[var(--text-color)] text-[var(--bg-color)] rounded-2xl text-[10px] font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
                 >
                   <BarChart3 size={14} /> Stake on Markets
                 </Link>
@@ -386,7 +379,7 @@ function AgentDetailContent() {
 
           {/* Scarab Column */}
           <div className="space-y-6">
-            <div className="liquid-glass rounded-[3rem] p-6 space-y-4 hover-lift">
+            <div className="liquid-glass rounded-[3rem] p-10 space-y-4 hover-lift">
               <div className="flex items-center justify-between">
                 <span className="text-2xl">🪲</span>
                 <div className="text-right">
@@ -400,7 +393,7 @@ function AgentDetailContent() {
             </div>
 
             {/* Risk + Sentiment Card */}
-            <div className="liquid-glass rounded-[3rem] p-6 space-y-5 hover-lift">
+            <div className="liquid-glass rounded-[3rem] p-10 space-y-5 hover-lift">
               {/* Risk Assessment */}
               <div>
                 <div className="flex items-center justify-between mb-3">

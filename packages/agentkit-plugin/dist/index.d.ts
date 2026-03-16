@@ -1,3 +1,4 @@
+import { Maiat } from "@jhinresh/maiat-sdk";
 /**
  * @maiat/agentkit-plugin
  *
@@ -16,11 +17,11 @@
  * import { maiatTrustPlugin } from "@maiat/agentkit-plugin";
  *
  * const agent = new AgentKit({ ... });
- * agent.use(maiatTrustPlugin({ minScore: 3.0 }));
+ * agent.use(maiatTrustPlugin({ minScore: 30 }));
  * ```
  */
 export interface MaiatPluginConfig {
-    /** Minimum trust score (0-10) to allow transactions. Default: 3.0 */
+    /** Minimum trust score (0-100) to allow transactions. Default: 30 */
     minScore?: number;
     /** Maiat API base URL. Default: https://app.maiat.io */
     apiUrl?: string;
@@ -160,7 +161,7 @@ export declare class MaiatTrustError extends Error {
     constructor(address: string, score: number, risk: string, minScore: number);
 }
 export declare class MaiatClient {
-    private sdk;
+    sdk: Maiat;
     private cache;
     constructor(config?: Pick<MaiatPluginConfig, "apiUrl" | "apiKey" | "chain">);
     checkTrust(address: string, _chain?: string): Promise<TrustScoreResult>;
@@ -197,6 +198,15 @@ export declare function maiatTrustActions(config?: MaiatPluginConfig): ({
             tags?: undefined;
             wallet?: undefined;
             query?: undefined;
+            swapper?: undefined;
+            tokenIn?: undefined;
+            tokenOut?: undefined;
+            amount?: undefined;
+            slippage?: undefined;
+            jobId?: undefined;
+            outcome?: undefined;
+            reporter?: undefined;
+            note?: undefined;
         };
         required: string[];
     };
@@ -254,6 +264,15 @@ export declare function maiatTrustActions(config?: MaiatPluginConfig): ({
             tags?: undefined;
             wallet?: undefined;
             query?: undefined;
+            swapper?: undefined;
+            tokenIn?: undefined;
+            tokenOut?: undefined;
+            amount?: undefined;
+            slippage?: undefined;
+            jobId?: undefined;
+            outcome?: undefined;
+            reporter?: undefined;
+            note?: undefined;
         };
         required: string[];
     };
@@ -298,6 +317,15 @@ export declare function maiatTrustActions(config?: MaiatPluginConfig): ({
             value?: undefined;
             wallet?: undefined;
             query?: undefined;
+            swapper?: undefined;
+            tokenIn?: undefined;
+            tokenOut?: undefined;
+            amount?: undefined;
+            slippage?: undefined;
+            jobId?: undefined;
+            outcome?: undefined;
+            reporter?: undefined;
+            note?: undefined;
         };
         required: string[];
     };
@@ -328,6 +356,15 @@ export declare function maiatTrustActions(config?: MaiatPluginConfig): ({
             reviewer?: undefined;
             tags?: undefined;
             query?: undefined;
+            swapper?: undefined;
+            tokenIn?: undefined;
+            tokenOut?: undefined;
+            amount?: undefined;
+            slippage?: undefined;
+            jobId?: undefined;
+            outcome?: undefined;
+            reporter?: undefined;
+            note?: undefined;
         };
         required: string[];
     };
@@ -366,6 +403,15 @@ export declare function maiatTrustActions(config?: MaiatPluginConfig): ({
             reviewer?: undefined;
             tags?: undefined;
             query?: undefined;
+            swapper?: undefined;
+            tokenIn?: undefined;
+            tokenOut?: undefined;
+            amount?: undefined;
+            slippage?: undefined;
+            jobId?: undefined;
+            outcome?: undefined;
+            reporter?: undefined;
+            note?: undefined;
         };
         required: string[];
     };
@@ -405,6 +451,15 @@ export declare function maiatTrustActions(config?: MaiatPluginConfig): ({
             reviewer?: undefined;
             tags?: undefined;
             wallet?: undefined;
+            swapper?: undefined;
+            tokenIn?: undefined;
+            tokenOut?: undefined;
+            amount?: undefined;
+            slippage?: undefined;
+            jobId?: undefined;
+            outcome?: undefined;
+            reporter?: undefined;
+            note?: undefined;
         };
         required: string[];
     };
@@ -419,6 +474,136 @@ export declare function maiatTrustActions(config?: MaiatPluginConfig): ({
         avgRating: number;
         url: string;
     }>;
+} | {
+    name: string;
+    description: string;
+    schema: {
+        type: "object";
+        properties: {
+            swapper: {
+                type: string;
+                description: string;
+            };
+            tokenIn: {
+                type: string;
+                description: string;
+            };
+            tokenOut: {
+                type: string;
+                description: string;
+            };
+            amount: {
+                type: string;
+                description: string;
+            };
+            slippage: {
+                type: string;
+                description: string;
+            };
+            address?: undefined;
+            chain?: undefined;
+            to?: undefined;
+            value?: undefined;
+            rating?: undefined;
+            comment?: undefined;
+            reviewer?: undefined;
+            tags?: undefined;
+            wallet?: undefined;
+            query?: undefined;
+            jobId?: undefined;
+            outcome?: undefined;
+            reporter?: undefined;
+            note?: undefined;
+        };
+        required: string[];
+    };
+    handler: (params: {
+        swapper: string;
+        tokenIn: string;
+        tokenOut: string;
+        amount: string;
+        slippage?: number;
+    }) => Promise<import("@jhinresh/maiat-sdk").TrustSwapResult>;
+} | {
+    name: string;
+    description: string;
+    schema: {
+        type: "object";
+        properties: {
+            address: {
+                type: string;
+                description: string;
+            };
+            chain?: undefined;
+            to?: undefined;
+            value?: undefined;
+            rating?: undefined;
+            comment?: undefined;
+            reviewer?: undefined;
+            tags?: undefined;
+            wallet?: undefined;
+            query?: undefined;
+            swapper?: undefined;
+            tokenIn?: undefined;
+            tokenOut?: undefined;
+            amount?: undefined;
+            slippage?: undefined;
+            jobId?: undefined;
+            outcome?: undefined;
+            reporter?: undefined;
+            note?: undefined;
+        };
+        required: string[];
+    };
+    handler: (params: {
+        address: string;
+    }) => Promise<import("@jhinresh/maiat-sdk").DeepAnalysisResult>;
+} | {
+    name: string;
+    description: string;
+    schema: {
+        type: "object";
+        properties: {
+            jobId: {
+                type: string;
+                description: string;
+            };
+            outcome: {
+                type: string;
+                description: string;
+            };
+            reporter: {
+                type: string;
+                description: string;
+            };
+            note: {
+                type: string;
+                description: string;
+            };
+            address?: undefined;
+            chain?: undefined;
+            to?: undefined;
+            value?: undefined;
+            rating?: undefined;
+            comment?: undefined;
+            reviewer?: undefined;
+            tags?: undefined;
+            wallet?: undefined;
+            query?: undefined;
+            swapper?: undefined;
+            tokenIn?: undefined;
+            tokenOut?: undefined;
+            amount?: undefined;
+            slippage?: undefined;
+        };
+        required: string[];
+    };
+    handler: (params: {
+        jobId: string;
+        outcome: string;
+        reporter?: string;
+        note?: string;
+    }) => Promise<import("@jhinresh/maiat-sdk").OutcomeResult>;
 })[];
 /**
  * Create a Maiat trust plugin for AgentKit
@@ -429,7 +614,7 @@ export declare function maiatTrustActions(config?: MaiatPluginConfig): ({
  *
  * const plugin = maiatTrustPlugin({
  *   minScore: 3.0,
- *   onBlocked: (addr, score) => console.log(`Blocked ${addr}: ${score}/10`)
+ *   onBlocked: (addr, score) => console.log(`Blocked ${addr}: ${score}/100`)
  * });
  *
  * // Use with AgentKit
@@ -461,6 +646,15 @@ export declare function maiatTrustPlugin(config?: MaiatPluginConfig): {
                 tags?: undefined;
                 wallet?: undefined;
                 query?: undefined;
+                swapper?: undefined;
+                tokenIn?: undefined;
+                tokenOut?: undefined;
+                amount?: undefined;
+                slippage?: undefined;
+                jobId?: undefined;
+                outcome?: undefined;
+                reporter?: undefined;
+                note?: undefined;
             };
             required: string[];
         };
@@ -518,6 +712,15 @@ export declare function maiatTrustPlugin(config?: MaiatPluginConfig): {
                 tags?: undefined;
                 wallet?: undefined;
                 query?: undefined;
+                swapper?: undefined;
+                tokenIn?: undefined;
+                tokenOut?: undefined;
+                amount?: undefined;
+                slippage?: undefined;
+                jobId?: undefined;
+                outcome?: undefined;
+                reporter?: undefined;
+                note?: undefined;
             };
             required: string[];
         };
@@ -562,6 +765,15 @@ export declare function maiatTrustPlugin(config?: MaiatPluginConfig): {
                 value?: undefined;
                 wallet?: undefined;
                 query?: undefined;
+                swapper?: undefined;
+                tokenIn?: undefined;
+                tokenOut?: undefined;
+                amount?: undefined;
+                slippage?: undefined;
+                jobId?: undefined;
+                outcome?: undefined;
+                reporter?: undefined;
+                note?: undefined;
             };
             required: string[];
         };
@@ -592,6 +804,15 @@ export declare function maiatTrustPlugin(config?: MaiatPluginConfig): {
                 reviewer?: undefined;
                 tags?: undefined;
                 query?: undefined;
+                swapper?: undefined;
+                tokenIn?: undefined;
+                tokenOut?: undefined;
+                amount?: undefined;
+                slippage?: undefined;
+                jobId?: undefined;
+                outcome?: undefined;
+                reporter?: undefined;
+                note?: undefined;
             };
             required: string[];
         };
@@ -630,6 +851,15 @@ export declare function maiatTrustPlugin(config?: MaiatPluginConfig): {
                 reviewer?: undefined;
                 tags?: undefined;
                 query?: undefined;
+                swapper?: undefined;
+                tokenIn?: undefined;
+                tokenOut?: undefined;
+                amount?: undefined;
+                slippage?: undefined;
+                jobId?: undefined;
+                outcome?: undefined;
+                reporter?: undefined;
+                note?: undefined;
             };
             required: string[];
         };
@@ -669,6 +899,15 @@ export declare function maiatTrustPlugin(config?: MaiatPluginConfig): {
                 reviewer?: undefined;
                 tags?: undefined;
                 wallet?: undefined;
+                swapper?: undefined;
+                tokenIn?: undefined;
+                tokenOut?: undefined;
+                amount?: undefined;
+                slippage?: undefined;
+                jobId?: undefined;
+                outcome?: undefined;
+                reporter?: undefined;
+                note?: undefined;
             };
             required: string[];
         };
@@ -683,6 +922,136 @@ export declare function maiatTrustPlugin(config?: MaiatPluginConfig): {
             avgRating: number;
             url: string;
         }>;
+    } | {
+        name: string;
+        description: string;
+        schema: {
+            type: "object";
+            properties: {
+                swapper: {
+                    type: string;
+                    description: string;
+                };
+                tokenIn: {
+                    type: string;
+                    description: string;
+                };
+                tokenOut: {
+                    type: string;
+                    description: string;
+                };
+                amount: {
+                    type: string;
+                    description: string;
+                };
+                slippage: {
+                    type: string;
+                    description: string;
+                };
+                address?: undefined;
+                chain?: undefined;
+                to?: undefined;
+                value?: undefined;
+                rating?: undefined;
+                comment?: undefined;
+                reviewer?: undefined;
+                tags?: undefined;
+                wallet?: undefined;
+                query?: undefined;
+                jobId?: undefined;
+                outcome?: undefined;
+                reporter?: undefined;
+                note?: undefined;
+            };
+            required: string[];
+        };
+        handler: (params: {
+            swapper: string;
+            tokenIn: string;
+            tokenOut: string;
+            amount: string;
+            slippage?: number;
+        }) => Promise<import("@jhinresh/maiat-sdk").TrustSwapResult>;
+    } | {
+        name: string;
+        description: string;
+        schema: {
+            type: "object";
+            properties: {
+                address: {
+                    type: string;
+                    description: string;
+                };
+                chain?: undefined;
+                to?: undefined;
+                value?: undefined;
+                rating?: undefined;
+                comment?: undefined;
+                reviewer?: undefined;
+                tags?: undefined;
+                wallet?: undefined;
+                query?: undefined;
+                swapper?: undefined;
+                tokenIn?: undefined;
+                tokenOut?: undefined;
+                amount?: undefined;
+                slippage?: undefined;
+                jobId?: undefined;
+                outcome?: undefined;
+                reporter?: undefined;
+                note?: undefined;
+            };
+            required: string[];
+        };
+        handler: (params: {
+            address: string;
+        }) => Promise<import("@jhinresh/maiat-sdk").DeepAnalysisResult>;
+    } | {
+        name: string;
+        description: string;
+        schema: {
+            type: "object";
+            properties: {
+                jobId: {
+                    type: string;
+                    description: string;
+                };
+                outcome: {
+                    type: string;
+                    description: string;
+                };
+                reporter: {
+                    type: string;
+                    description: string;
+                };
+                note: {
+                    type: string;
+                    description: string;
+                };
+                address?: undefined;
+                chain?: undefined;
+                to?: undefined;
+                value?: undefined;
+                rating?: undefined;
+                comment?: undefined;
+                reviewer?: undefined;
+                tags?: undefined;
+                wallet?: undefined;
+                query?: undefined;
+                swapper?: undefined;
+                tokenIn?: undefined;
+                tokenOut?: undefined;
+                amount?: undefined;
+                slippage?: undefined;
+            };
+            required: string[];
+        };
+        handler: (params: {
+            jobId: string;
+            outcome: string;
+            reporter?: string;
+            note?: string;
+        }) => Promise<import("@jhinresh/maiat-sdk").OutcomeResult>;
     })[];
     client: MaiatClient;
 };
