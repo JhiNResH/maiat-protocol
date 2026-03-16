@@ -583,55 +583,105 @@ function MarketPositions({ address }: { address: string }) {
     </div>
   )
 
-  const totalStaked = positions.reduce((s, p) => s + p.amount, 0)
-
-  // Merge positions by project+market
+  // Merge positions by project+market, accumulate payout
   const merged = Object.values(
     positions.reduce<Record<string, any>>((acc, pos) => {
       const key = `${pos.projectName}__${pos.marketId}`
-      if (!acc[key]) acc[key] = { ...pos, totalAmount: 0, count: 0 }
+      if (!acc[key]) acc[key] = { ...pos, totalAmount: 0, totalPayout: 0, count: 0 }
       acc[key].totalAmount += pos.amount
+      acc[key].totalPayout += (pos.payout ?? 0)
       acc[key].count += 1
       return acc
     }, {})
   )
 
+  const activePositions = merged.filter(p => p.status !== 'resolved')
+  const resolvedPositions = merged.filter(p => p.status === 'resolved')
+  const activeStaked = activePositions.reduce((s: number, p: any) => s + p.totalAmount, 0)
+  const totalWinnings = resolvedPositions.reduce((s: number, p: any) => s + p.totalPayout, 0)
+
   return (
     <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">
           Market Positions
         </p>
-        <span className="text-[10px] text-emerald-500 font-bold border border-emerald-500/20 px-1.5 py-0.5 rounded">
-          {totalStaked} 🪲 staked
-        </span>
+        {activeStaked > 0 && (
+          <span className="text-[10px] text-emerald-500 font-bold border border-emerald-500/20 px-2 py-0.5 rounded-full">
+            {activeStaked} 🪲 active
+          </span>
+        )}
       </div>
-      <div className="space-y-1.5">
-        {merged.map((pos, i) => (
-          <Link
-            key={i}
-            href={`/markets/${pos.marketId}`}
-            className="flex items-center justify-between liquid-glass border border-[var(--border-color)] rounded-lg px-2.5 py-2 hover:border-emerald-500/20 hover:bg-emerald-500/5 transition-all"
-          >
-            <div className="min-w-0">
-              <p className="text-[var(--text-color)] text-[10px] font-bold truncate">{pos.projectName}</p>
-              <p className="text-[var(--text-muted)] text-[9px] font-medium truncate">{pos.marketTitle}</p>
-            </div>
-            <div className="text-right shrink-0 ml-2">
-              <p className="text-[var(--text-color)] text-[10px] font-bold">{pos.totalAmount} 🪲</p>
-              <p className={`text-[9px] font-medium ${
-                pos.status === 'resolved'
-                  ? (pos.payout && pos.payout > 0 ? 'text-emerald-400' : 'text-red-400')
-                  : 'text-[var(--text-muted)]'
-              }`}>
-                {pos.status === 'resolved'
-                  ? (pos.payout && pos.payout > 0 ? `+${pos.payout} 🪲` : 'Lost')
-                  : pos.status}
-              </p>
-            </div>
+
+      {/* Active positions */}
+      {activePositions.length > 0 && (
+        <div className="space-y-1.5 mb-4">
+          {activePositions.map((pos: any, i: number) => (
+            <Link
+              key={i}
+              href={`/markets/${pos.marketId}`}
+              className="flex items-center justify-between bg-[var(--bg-color)] border border-[var(--border-color)] rounded-2xl px-4 py-3 hover:border-emerald-500/20 transition-all"
+            >
+              <div className="min-w-0">
+                <p className="text-[var(--text-color)] text-xs font-bold truncate">{pos.projectName}</p>
+                <p className="text-[var(--text-muted)] text-[10px] truncate">{pos.marketTitle}</p>
+              </div>
+              <div className="text-right shrink-0 ml-2">
+                <p className="text-[var(--text-color)] text-xs font-bold">{pos.totalAmount} 🪲</p>
+                <p className="text-[10px] text-[var(--text-muted)]">staked</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Resolved positions */}
+      {resolvedPositions.length > 0 && (
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[9px] font-bold tracking-widest uppercase text-[var(--text-muted)]">Resolved</p>
+            {totalWinnings > 0 && (
+              <span className="text-[9px] font-bold text-emerald-500">+{totalWinnings} 🪲 earned</span>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            {resolvedPositions.map((pos: any, i: number) => (
+              <Link
+                key={i}
+                href={`/markets/${pos.marketId}`}
+                className="flex items-center justify-between bg-[var(--bg-color)] border border-[var(--border-color)] rounded-2xl px-4 py-3 opacity-80 hover:opacity-100 transition-all"
+              >
+                <div className="min-w-0">
+                  <p className="text-[var(--text-color)] text-xs font-bold truncate">{pos.projectName}</p>
+                  <p className="text-[var(--text-muted)] text-[10px] truncate">{pos.marketTitle}</p>
+                </div>
+                <div className="text-right shrink-0 ml-2">
+                  {pos.totalPayout > 0 ? (
+                    <>
+                      <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+{pos.totalPayout} 🪲</p>
+                      <p className="text-[10px] text-emerald-500">won 🏆</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs font-bold text-[var(--text-muted)]">{pos.totalAmount} 🪲</p>
+                      <p className="text-[10px] text-rose-500">lost</p>
+                    </>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {activePositions.length === 0 && resolvedPositions.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-4 gap-2">
+          <p className="text-[var(--text-muted)] text-[10px] font-medium">No positions yet.</p>
+          <Link href="/markets" className="text-[10px] text-emerald-500 font-bold hover:underline">
+            Browse markets →
           </Link>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
