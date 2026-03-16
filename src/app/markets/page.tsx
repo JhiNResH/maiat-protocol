@@ -19,7 +19,7 @@ interface Market {
   topProjects: { projectId: string; totalStake: number }[];
 }
 
-const categories = ["All", "AI Agents", "DeFi", "Mixed"];
+const categories = ["All", "AI Agents"];
 
 export default function MarketsPage() {
   return (
