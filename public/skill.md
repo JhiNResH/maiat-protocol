@@ -57,7 +57,7 @@ const { trustScore, verdict } = await res.json()
 | **REST API** | Any agent, any language | `fetch()` to `app.maiat.io/api/v1` — no auth required |
 | **MCP** | LLM agents (Claude, GPT) | Add `https://app.maiat.io/api/mcp` as MCP server |
 | **SDK** | TypeScript agents | `npm i @jhinresh/maiat-sdk` |
-| **Guard** | Agents with wallets | `npm i @maiat/viem-guard` — wraps every tx with trust check |
+| **Guard** | Agents with wallets | `npm i @jhinresh/viem-guard` — wraps every tx with trust check |
 
 **No API key needed.** All endpoints are open. Optional `X-Maiat-Client: your-agent-name` header for identity tracking.
 
@@ -148,13 +148,13 @@ Reporting earns **+5 🪲 Scarab** reputation points.
 If your agent sends transactions, **wrap it with Maiat Guard** to auto-protect every tx.
 
 ```bash
-npm install @maiat/viem-guard viem
+npm install @jhinresh/viem-guard viem
 ```
 
 ```ts
-import { createMaiatAgentWallet } from '@maiat/viem-guard'
+import { withMaiatTrust } from '@jhinresh/viem-guard'
 
-const wallet = createMaiatAgentWallet(yourProvider, {
+const wallet = withMaiatTrust(walletClient, {
   minScore: 60,        // block txs to addresses with score < 60
   antiPoison: true,    // detect address poisoning attacks
 })
@@ -170,7 +170,7 @@ await wallet.sendTransaction({ to, value })
 4. **Collective Immunity** — blocked threats are reported network-wide. All Guard users get instant protection
 5. **Outcome Recording** — every tx result feeds back to Wadjet ML
 
-**Package:** `@maiat/viem-guard` (v0.2.0) — [GitHub](https://github.com/JhiNResH/maiat-guard)
+**Package:** `@jhinresh/viem-guard` (v0.8.0) — [GitHub](https://github.com/JhiNResH/maiat-guard)
 
 ---
 
