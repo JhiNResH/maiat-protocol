@@ -2,7 +2,7 @@
 
 ## `POST /api/v1/threat/report`
 
-Called by **maiat-guard v0.2.0+** when it intercepts and blocks a malicious address.
+Called by **maiat-guard v0.8.0+** when it intercepts and blocks a malicious address.
 Stores the report in the protocol DB and auto-flags addresses with 3+ reports.
 
 ### Authentication
@@ -21,7 +21,7 @@ None required. Rate limited to **30 requests/minute per IP**.
     "accountAge": 3600,
     "dustOnly": true
   },
-  "guardVersion": "0.2.0",
+  "guardVersion": "0.8.0",
   "chainId": 8453,
   "timestamp": 1710000000
 }
