@@ -20,7 +20,7 @@ export default function Footer() {
               Trust infrastructure for AI agents. Verify, score, and gate autonomous transactions.
             </p>
             <div className="flex items-center gap-5">
-              <Link href="https://x.com/MaiatProtocol" target="_blank" className="w-10 h-10 rounded-full liquid-glass border-white/40 dark:border-white/10 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-color)] transition-all hover-lift">
+              <Link href="https://x.com/0xmaiat" target="_blank" className="w-10 h-10 rounded-full liquid-glass border-white/40 dark:border-white/10 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-color)] transition-all hover-lift">
                 <Twitter size={20} />
               </Link>
               <Link href="https://github.com/JhiNResH/maiat-protocol" target="_blank" className="w-10 h-10 rounded-full liquid-glass border-white/40 dark:border-white/10 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-color)] transition-all hover-lift">
