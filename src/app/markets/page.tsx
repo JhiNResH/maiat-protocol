@@ -82,9 +82,10 @@ function MarketsContent() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            className="text-6xl md:text-7xl font-black text-[var(--text-color)] tracking-tight"
+            className="atmosphere-text font-black"
           >
-            Opinion <span className="text-[var(--text-muted)]">Markets</span>
+            Opinion <br />
+            Markets.
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
