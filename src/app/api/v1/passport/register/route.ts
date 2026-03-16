@@ -240,15 +240,20 @@ export async function POST(request: NextRequest) {
     let kyaCode: string | null = null;
     if (userType === 'agent') {
       // Agent only → ERC-8004 registration + KYA code
+      let _erc8004Debug: string | null = null;
       try {
         const registeredId = await registerAgent(normalizedAddress);
         if (registeredId !== null && registeredId !== BigInt(-1)) {
           erc8004AgentId = Number(registeredId);
+          _erc8004Debug = `success:${registeredId}`;
         } else if (registeredId === BigInt(-1)) {
-          // tx sent but not yet confirmed — mark as pending
-          erc8004AgentId = -1; // -1 = pending on-chain confirmation
+          erc8004AgentId = -1;
+          _erc8004Debug = "tx_sent_pending";
+        } else {
+          _erc8004Debug = "returned_null";
         }
       } catch (e: any) {
+        _erc8004Debug = `error:${e.shortMessage || e.message}`;
         console.warn("[passport/register] ERC-8004 registerAgent failed (non-blocking):", e.message);
       }
 
@@ -306,6 +311,7 @@ export async function POST(request: NextRequest) {
         erc8004AgentId,
         kyaCode,
         ensRegistered,
+        _erc8004Debug,
       },
       ...(userType === 'agent' && kyaCode ? {
         kya: {
