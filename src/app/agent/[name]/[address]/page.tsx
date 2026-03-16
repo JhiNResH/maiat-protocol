@@ -88,7 +88,7 @@ function ScoreBar({ label, value, max, icon }: { label: string; value: number; m
         </div>
         <span className="font-bold font-mono" style={{ color }}>{(value ?? 0).toFixed(1)} / {max}</span>
       </div>
-      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+      <div className="h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden border border-black/5 dark:border-white/5">
         <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${pct}%`, backgroundColor: color }} />
       </div>
     </div>
@@ -258,7 +258,7 @@ function AgentDetailContent() {
               <div>
                 <div className="flex flex-wrap items-center gap-3 mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/5 text-emerald-500">BASE</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500">BASE</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${riskBg(risk)}`}>
                       {risk} RISK
                     </span>
@@ -369,7 +369,7 @@ function AgentDetailContent() {
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Link 
                   href={`/monitor/agent/${(agent.name || 'agent').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}/${address}`}
-                  className="w-full py-2.5 bg-white/[0.03] border border-white/5 rounded-2xl text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-color)] hover:bg-white/[0.08] transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                  className="w-full py-2.5 bg-black/[0.03] dark:bg-white/[0.03] border border-[var(--border-color)] rounded-2xl text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-color)] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
                 >
                   <Radar size={14} /> Monitor
                 </Link>
@@ -439,7 +439,7 @@ function AgentDetailContent() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                      <div className="flex-1 h-2 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
                         <div style={{ width: `${p.rugScore}%`, background: `linear-gradient(90deg, ${col}80, ${col})` }} className="h-full rounded-full" />
                       </div>
                       <span style={{ color: col }} className="text-lg font-black font-mono">{p.rugScore}</span>
