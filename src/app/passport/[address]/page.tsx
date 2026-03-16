@@ -217,32 +217,46 @@ export default function PassportPage() {
   const visibleAgents = showAllAgents ? unreviewedAgents : unreviewedAgents.slice(0, 10)
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
-      
+    <div className="min-h-screen pb-20 relative">
+      <main className="max-w-5xl mx-auto px-6 relative">
 
-      <main className="flex-1 pt-6 px-4 pb-16">
-        <div className="max-w-5xl mx-auto space-y-4">
-
-          {/* ── Top action bar ──────────────────────────────────────────── */}
-          <div className="flex items-center justify-end gap-2">
+        {/* ── Hero Section ──────────────────────────────────────────── */}
+        <section className="text-center mb-16 pt-12">
+          <motion.h1
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            className="atmosphere-text font-black"
+          >
+            Trust<br />Passport.
+          </motion.h1>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="flex items-center justify-center gap-3 mt-6"
+          >
             {isOwn && (
-              <span className="text-[10px] font-bold px-3 py-0.5 rounded-full border border-emerald-500/40 text-emerald-500">
-                YOUR PASSPORT
+              <span className="px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                Your Passport
               </span>
             )}
             <button
               onClick={handleCopy}
-              className="text-[10px] text-[var(--text-muted)] font-medium hover:text-[var(--text-color)] border border-[var(--border-color)] hover:border-emerald-500/20 px-2 py-1 rounded transition-colors"
+              className="px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-color)] transition-all"
             >
               {copied ? '✓ Copied' : '⎘ Share'}
             </button>
-          </div>
+          </motion.div>
+        </section>
+
+        <div className="max-w-5xl mx-auto space-y-6">
 
           {/* ── Row 1: Hero Trust Passport Card ────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="relative liquid-glass rounded-[2.5rem] p-8"
           >
             <div className="relative">
@@ -343,7 +357,7 @@ export default function PassportPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Agents You Can Review */}
@@ -421,7 +435,7 @@ export default function PassportPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Level Perks */}
@@ -517,6 +531,7 @@ export default function PassportPage() {
             </div>
           )}
 
+        </div>
         </div>
       </main>
     </div>
