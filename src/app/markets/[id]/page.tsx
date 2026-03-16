@@ -209,41 +209,44 @@ function MarketDetailContent() {
           const profit = myWinnings - myStake;
           if (myWinnings > 0) return (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="liquid-glass rounded-[3rem] p-10 mb-12 text-center"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="liquid-glass rounded-[3rem] p-12 mb-12 hover-lift"
             >
-              <div className="text-5xl mb-4">🏆</div>
-              <h2 className="text-3xl font-black text-[var(--text-color)] mb-2">You Won!</h2>
-              <p className="text-[var(--text-secondary)] text-lg font-medium mb-6">
-                Your pick paid off. You earned <span className="text-emerald-500 font-black">{myWinnings} 🪲</span> 
-                {profit > 0 && <span className="text-emerald-500"> (+{profit} profit)</span>}
-              </p>
-              <div className="flex items-center justify-center gap-6">
-                <div className="text-center">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1">Staked</div>
-                  <div className="text-xl font-black text-[var(--text-color)]">{myStake} 🪲</div>
+              <div className="flex flex-col md:flex-row items-center gap-10">
+                <div className="flex-1">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-3">Market Resolved</div>
+                  <h2 className="text-4xl font-black text-[var(--text-color)] mb-3 tracking-tight">You won 🏆</h2>
+                  <p className="text-[var(--text-secondary)] text-base font-medium">
+                    Your pick paid off. {profit > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-bold">+{profit} 🪲 profit</span>}
+                  </p>
                 </div>
-                <div className="text-2xl text-[var(--text-muted)]">→</div>
-                <div className="text-center">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1">Payout</div>
-                  <div className="text-xl font-black text-emerald-500">{myWinnings} 🪲</div>
+                <div className="flex items-center gap-8">
+                  <div className="text-center">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Staked</div>
+                    <div className="text-3xl font-black text-[var(--text-color)]">{myStake}</div>
+                  </div>
+                  <div className="text-xl text-[var(--text-muted)]">→</div>
+                  <div className="text-center">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Payout</div>
+                    <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{myWinnings}</div>
+                  </div>
                 </div>
               </div>
             </motion.div>
           );
           if (myStake > 0 && myWinnings === 0) return (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6 }}
-              className="liquid-glass rounded-[3rem] p-8 mb-12 text-center"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="liquid-glass rounded-[3rem] p-12 mb-12"
             >
-              <div className="text-3xl mb-3">😔</div>
-              <h2 className="text-xl font-black text-[var(--text-color)] mb-1">Better luck next time</h2>
-              <p className="text-sm text-[var(--text-muted)]">
-                You staked {myStake} 🪲 — the market has been resolved.
+              <div className="text-[10px] font-bold uppercase tracking-widest text-rose-500 mb-3">Market Resolved</div>
+              <h2 className="text-2xl font-black text-[var(--text-color)] mb-2">Better luck next time</h2>
+              <p className="text-sm text-[var(--text-secondary)]">
+                You staked <span className="font-bold">{myStake} 🪲</span> — the market has been resolved.
               </p>
             </motion.div>
           );
