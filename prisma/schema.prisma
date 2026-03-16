@@ -18,6 +18,7 @@ model User {
   reputationScore Int      @default(0)
   totalReviews    Int      @default(0)
   totalUpvotes    Int      @default(0)
+  erc8004AgentId  Int?     // ERC-8004 on-chain agent ID (null = not yet registered)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   reviews         Review[]
