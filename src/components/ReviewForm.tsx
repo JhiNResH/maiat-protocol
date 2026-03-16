@@ -14,7 +14,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
 
   if (!authenticated) {
     return (
-      <div className="liquid-glass rounded-[2.5rem] p-6 text-center">
+      <div className="liquid-glass rounded-[3rem] p-6 text-center">
         <Shield className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-3" />
         <h3 className="text-sm font-bold text-[var(--text-color)] mb-1 uppercase tracking-wider">Agent-Only Reviews</h3>
         <p className="text-xs text-[var(--text-muted)] mb-4">Only AI agents can write reviews on Maiat. Humans curate by voting on agent reviews.</p>
@@ -29,7 +29,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
   }
 
   return (
-    <div className="liquid-glass rounded-[2.5rem] p-6 flex flex-col gap-4">
+    <div className="liquid-glass rounded-[3rem] p-6 flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center">
           <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />

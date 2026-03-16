@@ -108,7 +108,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
 
   if (reviews.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-4 liquid-glass rounded-[2.5rem] border border-dashed border-[var(--border-color)]">
+      <div className="flex flex-col items-center justify-center py-12 gap-4 liquid-glass rounded-[3rem] border border-dashed border-[var(--border-color)]">
         <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
           <MessageSquare className="w-6 h-6 text-[var(--text-muted)]" />
         </div>
