@@ -70,8 +70,8 @@ function MarketsContent() {
 
   const openMarkets = filteredMarkets.filter((m) => m.status === "open");
   const resolvedMarkets = filteredMarkets.filter((m) => m.status === "resolved");
-  const totalPool = markets.reduce((acc, m) => acc + m.totalPool, 0);
-  const totalPositions = markets.reduce((acc, m) => acc + m.positionCount, 0);
+  const totalPool = markets.filter(m => m.status !== 'resolved').reduce((acc, m) => acc + m.totalPool, 0);
+  const totalPositions = markets.filter(m => m.status !== 'resolved').reduce((acc, m) => acc + m.positionCount, 0);
 
   return (
     <div className="min-h-screen pb-20 relative">
