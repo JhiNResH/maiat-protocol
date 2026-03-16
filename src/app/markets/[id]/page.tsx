@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { 
   ArrowLeft, Shield, TrendingUp, Users, Clock, AlertTriangle, 
   Info
@@ -197,6 +198,57 @@ function MarketDetailContent() {
             {market.status}
           </span>
         </div>
+
+        {/* Winner celebration banner */}
+        {market.status === 'resolved' && walletAddress && (() => {
+          const myPositions = market.positions?.filter(
+            (p: any) => p.voterId?.toLowerCase() === walletAddress.toLowerCase()
+          ) ?? [];
+          const myWinnings = myPositions.reduce((sum: number, p: any) => sum + (p.payout ?? 0), 0);
+          const myStake = myPositions.reduce((sum: number, p: any) => sum + (p.amount ?? 0), 0);
+          const profit = myWinnings - myStake;
+          if (myWinnings > 0) return (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="liquid-glass rounded-[3rem] p-10 mb-12 text-center"
+            >
+              <div className="text-5xl mb-4">🏆</div>
+              <h2 className="text-3xl font-black text-[var(--text-color)] mb-2">You Won!</h2>
+              <p className="text-[var(--text-secondary)] text-lg font-medium mb-6">
+                Your pick paid off. You earned <span className="text-emerald-500 font-black">{myWinnings} 🪲</span> 
+                {profit > 0 && <span className="text-emerald-500"> (+{profit} profit)</span>}
+              </p>
+              <div className="flex items-center justify-center gap-6">
+                <div className="text-center">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1">Staked</div>
+                  <div className="text-xl font-black text-[var(--text-color)]">{myStake} 🪲</div>
+                </div>
+                <div className="text-2xl text-[var(--text-muted)]">→</div>
+                <div className="text-center">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1">Payout</div>
+                  <div className="text-xl font-black text-emerald-500">{myWinnings} 🪲</div>
+                </div>
+              </div>
+            </motion.div>
+          );
+          if (myStake > 0 && myWinnings === 0) return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6 }}
+              className="liquid-glass rounded-[3rem] p-8 mb-12 text-center"
+            >
+              <div className="text-3xl mb-3">😔</div>
+              <h2 className="text-xl font-black text-[var(--text-color)] mb-1">Better luck next time</h2>
+              <p className="text-sm text-[var(--text-muted)]">
+                You staked {myStake} 🪲 — the market has been resolved.
+              </p>
+            </motion.div>
+          );
+          return null;
+        })()}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Market Info */}
