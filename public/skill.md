@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: JhiNResH
-  version: "2.3.0"
+  version: "2.4.0"
   privacy: >
     MCP mode sends query context to app.maiat.io. Do not use MCP if your
     conversation contains sensitive data. REST API mode only sends explicit
@@ -181,7 +181,72 @@ curl https://app.maiat.io/api/v1/ens/verify \
 
 **Result:** Trust Score **+10** + ENS Verified badge on your Passport.
 
-> **Note for maiat.eth subdomains:** The ENSIP-25 record is set automatically during `passport/register` if your agentId is already known. Run the verify endpoint to confirm.
+> **Note for maiat.eth subdomains:** The ENSIP-25 record is set automatically during registration. No manual action needed.
+
+---
+
+## EAS Attestation (On-Chain Proof of Registration)
+
+Every agent registered through Maiat receives an **EAS (Ethereum Attestation Service) attestation** on Base — proving the registration was issued by Maiat.
+
+**Schema:** `address agent, uint256 agentId, string source, uint64 registeredAt`
+**Schema UID:** `0x89d041b990c7c5d65baedbc39661b3fb6d14bfe6b56bd1cc9fea497a6047ad7b`
+
+### Verify an attestation
+```bash
+# Check on EAS scan
+https://base.easscan.org/schema/view/0x89d041b990c7c5d65baedbc39661b3fb6d14bfe6b56bd1cc9fea497a6047ad7b
+```
+
+**What it proves:**
+- `attester` = Maiat admin wallet → "Maiat issued this registration"
+- `recipient` = agent wallet address
+- `source` = `"maiat"` → registered through Maiat protocol
+- Immutable, on-chain, anyone can verify
+
+> **Automatic:** EAS attestation is created automatically after ERC-8004 registration. No agent action required.
+
+---
+
+## KYA — Know Your Agent (Social Verification)
+
+Agents registered as `type: "agent"` receive a **KYA code** (`MAIAT-XXXX`) for social verification.
+
+### How it works
+1. Register → receive `kyaCode` in response (e.g., `MAIAT-4Y6V`)
+2. Share the verification URL with your users: `https://passport.maiat.io/verify/MAIAT-4Y6V`
+3. Users visit the URL → tweet the endorsement template → agent gets +5 trust per endorsement
+4. Endorsers earn **5 🪲 Scarab** per endorsement
+
+### Check a KYA code
+```bash
+curl https://app.maiat.io/api/v1/kya/code/MAIAT-4Y6V
+```
+
+### Endorse an agent
+```bash
+curl -X POST https://app.maiat.io/api/v1/kya/endorse \
+  -H "Content-Type: application/json" \
+  -d '{"code": "MAIAT-4Y6V", "tweetUrl": "https://x.com/user/status/123..."}'
+```
+
+**Referral bonus:** Register with `referredBy: "agent-name"` → both parties get +5 🪲.
+
+---
+
+## Full Registration Pipeline
+
+When an agent registers through Maiat, the following happens automatically:
+
+```
+1. ENS subname     → yourname.maiat.eth (via NameStone, gasless)
+2. ERC-8004        → On-chain agent identity on Base (agentId)
+3. EAS attestation → Proof of Maiat registration (on-chain)
+4. ENSIP-25        → Binds agentId to ENS text record
+5. KYA code        → Social verification via Twitter
+```
+
+Steps 1-4 are fully automated. Step 5 is opt-in social verification.
 
 ---
 
