@@ -154,6 +154,10 @@ Any wallet or explorer can independently confirm the association.
 
 1. **Register your passport** (if not done) — `POST /api/v1/passport/register` → get `erc8004AgentId`
 
+   Check `erc8004Status` in the response:
+   - `registered` ✅ — proceed to step 2
+   - `pending` / `failed` — Privy gas sponsorship may not be configured; contact Maiat support or retry later
+
 2. **Check your text record key:**
 ```bash
 curl https://app.maiat.io/api/v1/ens/verify \
