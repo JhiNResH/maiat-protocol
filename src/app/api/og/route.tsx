@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 export const runtime = 'edge'
 
 export async function GET(req: NextRequest) {
+  try {
   const { searchParams } = new URL(req.url)
   const name = searchParams.get('name') || 'anonymous'
   const score = parseInt(searchParams.get('score') || '0', 10)
@@ -276,4 +277,10 @@ export async function GET(req: NextRequest) {
       ],
     },
   )
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String(e) }), {
+      status: 500,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
 }
