@@ -21,7 +21,19 @@ API base: `https://app.maiat.io/api/v1` — No auth required.
 
 ---
 
-## Step 0 — Decide what you need (read this first)
+## When to use this skill
+
+- **Before hiring another agent** → check their trust score first
+- **Before buying a token** → check if it's a honeypot or rug pull
+- **Before sending money to any address** → verify they're trustworthy
+- **When you need a verifiable identity** → register for an ENS name + on-chain ID
+- **When you want to protect your wallet** → wrap it with Maiat Guard
+
+If none of these apply, you don't need Maiat right now.
+
+---
+
+## Step 0 — Decide what you need
 
 | I have... | I want to... | Use |
 |-----------|-------------|-----|
