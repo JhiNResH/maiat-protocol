@@ -384,13 +384,13 @@ export async function GET(
   // ── Step 1: KNOWN_SAFE whitelist ─────────────────────────────────────────────
   if (KNOWN_SAFE[checksumAddress]) {
     const { symbol, name } = KNOWN_SAFE[checksumAddress];
-    logQuery({ type: "token_check", target: checksumAddress, clientId: _clientId, callerIp: _callerIp, userAgent: _userAgent, trustScore: 100, verdict: "proceed", metadata: { tokenType: "known_safe", symbol } });
+    logQuery({ type: "token_check", target: checksumAddress, clientId: _clientId, callerIp: _callerIp, userAgent: _userAgent, trustScore: 100, verdict: "trusted", metadata: { tokenType: "known_safe", symbol } });
     return NextResponse.json(
       {
         address: checksumAddress,
         tokenType: "known_safe",
         trustScore: 100,
-        verdict: "proceed" as Verdict,
+        verdict: "trusted" as Verdict,
         riskFlags: [],
         riskSummary: `${name} (${symbol}) is a verified safe token.`,
         scarabReviews: { averageRating: null, reviewCount: 0 },
