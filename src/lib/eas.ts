@@ -17,12 +17,14 @@ const SCHEMAS = {
   trustScore: "address agent, uint8 score, string verdict, uint256 timestamp",
   review: "address target, address reviewer, uint8 rating, string comment, bytes32 txHash",
   acpInteraction: "address buyer, address seller, string offering, uint256 fee, uint256 timestamp",
+  registration: "address agent, uint256 agentId, string source, uint64 registeredAt",
 } as const;
 
 // Schema UIDs from env (set after one-time registration)
 export const EAS_TRUST_SCORE_SCHEMA_UID = process.env.EAS_TRUST_SCORE_SCHEMA_UID || "";
 export const EAS_REVIEW_SCHEMA_UID = process.env.EAS_REVIEW_SCHEMA_UID || "";
 export const EAS_ACP_SCHEMA_UID = process.env.EAS_ACP_SCHEMA_UID || "";
+export const EAS_REGISTRATION_SCHEMA_UID = process.env.EAS_REGISTRATION_SCHEMA_UID || "";
 
 // A mock Schema UID for Maiat Receipts.
 // In reality, we would deploy a schema like:
@@ -161,7 +163,7 @@ function getEASSigner() {
   if (!privateKey) {
     throw new Error("[EAS] EAS_DEPLOYER_KEY (or MAIAT_ADMIN_PRIVATE_KEY fallback) is missing");
   }
-  const rpcUrl = process.env.ALCHEMY_BASE_SEPOLIA_RPC || process.env.ALCHEMY_BASE_RPC || "https://sepolia.base.org";
+  const rpcUrl = process.env.ALCHEMY_BASE_RPC || "https://base-rpc.publicnode.com";
   const provider = new ethers.JsonRpcProvider(rpcUrl);
   const signer = new ethers.Wallet(privateKey, provider);
   return signer;
@@ -345,5 +347,74 @@ export async function attestACPInteraction(
 
   const uid = await tx.wait();
   console.log("[EAS] ACPInteraction attestation UID:", uid);
+  return uid;
+}
+
+// ─── Registration Attestation ─────────────────────────────────────────────────
+
+/**
+ * Register the MaiatRegistration schema on Base Mainnet.
+ * One-time operation. Store the returned UID in EAS_REGISTRATION_SCHEMA_UID env var.
+ */
+export async function registerRegistrationSchema(): Promise<string> {
+  const signer = getEASSigner();
+  const schemaRegistry = new SchemaRegistry(BASE_SCHEMA_REGISTRY_ADDRESS);
+  schemaRegistry.connect(signer as any);
+
+  console.log("[EAS] Registering MaiatRegistration schema on Base Mainnet...");
+  const tx = await schemaRegistry.register({
+    schema: SCHEMAS.registration,
+    resolverAddress: "0x0000000000000000000000000000000000000000",
+    revocable: true,
+  });
+  const uid = await tx.wait();
+  console.log("[EAS] MaiatRegistration schema UID:", uid);
+  return uid as string;
+}
+
+/**
+ * Create an on-chain EAS attestation marking an agent as registered via Maiat.
+ * Called after successful ERC-8004 registration.
+ *
+ * Attester = Maiat admin wallet (proves Maiat issued this registration)
+ * Recipient = agent wallet address
+ */
+export async function attestRegistration(
+  agentAddress: string,
+  agentId: number | bigint,
+): Promise<string> {
+  if (!EAS_REGISTRATION_SCHEMA_UID) {
+    console.warn("[EAS] EAS_REGISTRATION_SCHEMA_UID not set. Skipping attestation.");
+    return "";
+  }
+
+  const signer = getEASSigner();
+  const eas = new EAS(BASE_EAS_CONTRACT_ADDRESS);
+  eas.connect(signer as any);
+
+  const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+  const schemaEncoder = new SchemaEncoder(SCHEMAS.registration);
+  const encodedData = schemaEncoder.encodeData([
+    { name: "agent", value: agentAddress, type: "address" },
+    { name: "agentId", value: BigInt(agentId), type: "uint256" },
+    { name: "source", value: "maiat", type: "string" },
+    { name: "registeredAt", value: BigInt(Math.floor(Date.now() / 1000)), type: "uint64" },
+  ]);
+
+  const tx = await eas.attest({
+    schema: EAS_REGISTRATION_SCHEMA_UID,
+    data: {
+      recipient: agentAddress,
+      expirationTime: 0n,
+      revocable: true,
+      refUID: ZERO_BYTES32,
+      data: encodedData,
+      value: 0n,
+    },
+  });
+
+  const uid = await tx.wait();
+  console.log(`[EAS] ✅ Registration attestation for agentId ${agentId}: ${uid}`);
   return uid;
 }
