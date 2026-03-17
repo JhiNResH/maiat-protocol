@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { registerAgent, lookupAgentId } from "@/lib/erc8004";
 import { attestRegistration } from "@/lib/eas";
+import { setEnsip25Record } from "@/lib/ensip25";
 
 export const maxDuration = 120;
 
@@ -67,6 +68,10 @@ export async function POST(request: NextRequest) {
           try { await attestRegistration(user.address, numId); } catch (e: any) {
             console.warn(`[cron/register] EAS attest failed for ${user.displayName}:`, e.message?.slice(0, 80));
           }
+          // ENSIP-25 text record (non-blocking)
+          try { await setEnsip25Record(user.displayName ?? '', user.address, numId); } catch (e: any) {
+            console.warn(`[cron/register] ENSIP-25 failed for ${user.displayName}:`, e.message?.slice(0, 80));
+          }
           console.log(`[cron/register] ${user.displayName} already on-chain: agentId ${numId}`);
           results.push({ address: user.address, displayName: user.displayName ?? '', agentId: numId });
           continue;
@@ -84,6 +89,10 @@ export async function POST(request: NextRequest) {
           // EAS attestation (non-blocking)
           try { await attestRegistration(user.address, numId); } catch (e: any) {
             console.warn(`[cron/register] EAS attest failed for ${user.displayName}:`, e.message?.slice(0, 80));
+          }
+          // ENSIP-25 text record (non-blocking)
+          try { await setEnsip25Record(user.displayName ?? '', user.address, numId); } catch (e: any) {
+            console.warn(`[cron/register] ENSIP-25 failed for ${user.displayName}:`, e.message?.slice(0, 80));
           }
           console.log(`[cron/register] ${user.displayName} registered: agentId ${numId}`);
         } else {
