@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
     // walletAddress is optional — if missing, Privy creates a server wallet
     let resolvedWallet = walletAddress;
     let privyWalletCreated = false;
+    let privyWalletId: string | undefined;
 
     if (!resolvedWallet) {
       // Create a Privy server wallet for this agent
@@ -68,8 +69,9 @@ export async function POST(request: NextRequest) {
         );
         const wallet = await privy.walletApi.create({ chainType: "ethereum" });
         resolvedWallet = wallet.address;
+        privyWalletId = wallet.id;
         privyWalletCreated = true;
-        console.log(`[passport/register] Created Privy wallet for ${cleanEnsName}: ${wallet.address}`);
+        console.log(`[passport/register] Created Privy wallet for ${cleanEnsName}: ${wallet.address} (id: ${wallet.id})`);
       } catch (e: any) {
         console.error("[passport/register] Privy wallet creation failed:", e.message, e.status, JSON.stringify(e.body || e.response?.data || ''));
         return NextResponse.json(
@@ -176,6 +178,7 @@ export async function POST(request: NextRequest) {
         address: normalizedAddress,
         displayName: cleanEnsName,
         type: userType,
+        ...(privyWalletId ? { privyWalletId } : {}),
       },
     });
 
@@ -256,7 +259,7 @@ export async function POST(request: NextRequest) {
       try {
         const erc8004Promise = (async () => {
           // registerAgent now waits for receipt and returns agentId directly
-          const regResult = await registerAgent(normalizedAddress);
+          const regResult = await registerAgent(normalizedAddress, privyWalletId);
           if (regResult !== null && regResult > 0n) return Number(regResult);
           return null;
         })();
@@ -264,6 +267,11 @@ export async function POST(request: NextRequest) {
         erc8004AgentId = await Promise.race([erc8004Promise, timeoutPromise]);
         if (erc8004AgentId) {
           console.log(`[passport/register] ERC-8004 registered: ${normalizedAddress}, agentId: ${erc8004AgentId}`);
+          // Persist agentId to DB
+          await prisma.user.update({
+            where: { address: normalizedAddress },
+            data: { erc8004AgentId },
+          }).catch(() => {});
         } else {
           console.log(`[passport/register] ERC-8004 skipped (timeout or already registered): ${normalizedAddress}`);
         }

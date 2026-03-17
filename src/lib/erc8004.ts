@@ -247,7 +247,7 @@ export type ERC8004Data = Awaited<ReturnType<typeof getERC8004Data>> | null;
 
 // ─── Write Operations (requires admin wallet) ────────────────────────────────
 
-// Identity Registry ABI for write operations
+// ERC-8004 Identity Registry ABI (standard)
 const IDENTITY_REGISTRY_WRITE_ABI = [
   {
     name: 'register',
@@ -259,47 +259,59 @@ const IDENTITY_REGISTRY_WRITE_ABI = [
 ] as const
 
 /**
- * Register an agent in the ERC-8004 IdentityRegistry.
- * Called server-side using MAIAT_ADMIN_PRIVATE_KEY.
- * Returns the new agentId on success, or null if the agent is already registered.
- * Throws on unexpected errors.
+ * Register an agent in the official ERC-8004 IdentityRegistry.
+ * Uses Privy server wallet API with gas sponsorship (paymaster).
+ * Agent's own wallet calls register() as msg.sender — zero gas cost.
+ * Returns the new agentId on success, or null if already registered.
  */
-export async function registerAgent(walletAddress: string): Promise<bigint | null> {
-  const { createWalletClient, http: viemHttp, getAddress } = await import('viem')
-  const { privateKeyToAccount } = await import('viem/accounts')
+export async function registerAgent(
+  walletAddress: string,
+  privyWalletId?: string,
+): Promise<bigint | null> {
+  const { getAddress, encodeFunctionData } = await import('viem')
   const { base: baseChain } = await import('viem/chains')
-
-  const rawKey = (process.env.MAIAT_ADMIN_PRIVATE_KEY || process.env.PRIVATE_KEY || '').trim()
-  if (!rawKey) {
-    throw new Error('MAIAT_ADMIN_PRIVATE_KEY or PRIVATE_KEY not set')
-  }
-  const adminKey = rawKey.startsWith('0x') ? rawKey : `0x${rawKey}`
-
-  // Skip full log scan (too slow for serverless) — just try to register.
-  // If already registered, the contract will revert and we catch it.
-  const account = privateKeyToAccount(adminKey as `0x${string}`)
-  const walletClient = createWalletClient({
-    account,
-    chain: baseChain,
-    transport: viemHttp(RPC_URLS[0]),
-  })
 
   const checksummedAddress = getAddress(walletAddress)
   const agentURI = `https://app.maiat.io/agent/${checksummedAddress}`
 
+  if (!privyWalletId) {
+    console.log(`[erc8004] no privyWalletId for ${checksummedAddress}, skipping on-chain register`)
+    return null
+  }
+
+  // Encode register(string agentURI) calldata
+  const calldata = encodeFunctionData({
+    abi: IDENTITY_REGISTRY_WRITE_ABI,
+    functionName: 'register',
+    args: [agentURI],
+  })
+
+  // Use Privy server wallet with gas sponsorship (paymaster)
   try {
-    const txHash = await walletClient.writeContract({
-      address: IDENTITY_REGISTRY,
-      abi: IDENTITY_REGISTRY_WRITE_ABI,
-      functionName: 'register',
-      args: [agentURI],
+    const { PrivyClient } = await import('@privy-io/server-auth')
+    const privy = new PrivyClient(
+      process.env.PRIVY_APP_ID!,
+      process.env.PRIVY_APP_SECRET!,
+    )
+
+    const { hash: txHash } = await privy.walletApi.ethereum.sendTransaction({
+      walletId: privyWalletId,
+      caip2: 'eip155:8453', // Base mainnet
+      transaction: {
+        to: IDENTITY_REGISTRY,
+        data: calldata,
+      },
+      sponsor: true, // Privy paymaster covers gas
     })
 
-    console.log(`[erc8004] ✅ register tx sent: ${txHash} for ${checksummedAddress}`)
+    console.log(`[erc8004] ✅ register tx sent via Privy (sponsored): ${txHash} for ${checksummedAddress}`)
 
     // Wait for receipt and extract agentId from Registered event
     const publicClient = createPublicClient({ chain: baseChain, transport: http(RPC_URLS[0]) })
-    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash, timeout: 15000 })
+    const receipt = await publicClient.waitForTransactionReceipt({
+      hash: txHash as `0x${string}`,
+      timeout: 15000,
+    })
 
     for (const log of receipt.logs) {
       try {
@@ -319,13 +331,12 @@ export async function registerAgent(walletAddress: string): Promise<bigint | nul
     return BigInt(-1) // tx confirmed but couldn't parse agentId
   } catch (txErr: any) {
     const errMsg = txErr.shortMessage || txErr.message || ''
-    // "already registered" or gas estimation revert = already on-chain, not a real error
-    if (errMsg.includes('revert') || errMsg.includes('gas required exceeds allowance')) {
+    if (errMsg.includes('revert') || errMsg.includes('already')) {
       console.log(`[erc8004] agent ${checksummedAddress} likely already registered (${errMsg})`)
-      return null // null = skip, already registered
+      return null
     }
     console.error(`[erc8004] register tx failed:`, errMsg)
-    throw txErr
+    return null // Don't throw — non-blocking for passport flow
   }
 }
 

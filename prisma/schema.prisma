@@ -19,6 +19,7 @@ model User {
   totalReviews    Int      @default(0)
   totalUpvotes    Int      @default(0)
   erc8004AgentId  Int?     // ERC-8004 on-chain agent ID (null = not yet registered)
+  privyWalletId   String?  // Privy server wallet ID for on-chain ops
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   reviews         Review[]
