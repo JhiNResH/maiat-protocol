@@ -253,29 +253,37 @@ export async function POST(request: NextRequest) {
 
     // --- On-chain identity (type-specific) ---
     let erc8004AgentId: number | null = null;
+    // ERC-01: Track registration status so failed/pending agents can be retried
+    let erc8004Status: 'registered' | 'pending' | 'failed' | 'skipped' = 'skipped';
     let kyaCode: string | null = null;
     if (userType === 'agent') {
       // ERC-8004: register on-chain with 20s timeout
       try {
         const erc8004Promise = (async () => {
-          // registerAgent now waits for receipt and returns agentId directly
           const regResult = await registerAgent(normalizedAddress, privyWalletId);
           if (regResult !== null && regResult > 0n) return Number(regResult);
           return null;
         })();
         const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000));
         erc8004AgentId = await Promise.race([erc8004Promise, timeoutPromise]);
+
         if (erc8004AgentId) {
+          erc8004Status = 'registered';
           console.log(`[passport/register] ERC-8004 registered: ${normalizedAddress}, agentId: ${erc8004AgentId}`);
-          // Persist agentId to DB
           await prisma.user.update({
             where: { address: normalizedAddress },
             data: { erc8004AgentId },
           }).catch(() => {});
+        } else if (!privyWalletId) {
+          erc8004Status = 'skipped'; // no wallet created
         } else {
-          console.log(`[passport/register] ERC-8004 skipped (timeout or already registered): ${normalizedAddress}`);
+          // ERC-01: timeout or already registered — mark as pending for retry
+          erc8004Status = 'pending';
+          console.log(`[passport/register] ERC-8004 pending (timeout or already registered): ${normalizedAddress}`);
         }
       } catch (e: any) {
+        // ERC-01: catch sponsorship or other errors, mark as failed
+        erc8004Status = 'failed';
         console.warn("[passport/register] ERC-8004 registration failed (non-blocking):", e.message);
       }
 
@@ -351,6 +359,7 @@ export async function POST(request: NextRequest) {
         referralApplied,
         privyWalletCreated,
         erc8004AgentId,
+        erc8004Status, // ERC-01: 'registered' | 'pending' | 'failed' | 'skipped'
         kyaCode,
         ensRegistered,
       },

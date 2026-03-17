@@ -294,6 +294,8 @@ export async function registerAgent(
       process.env.PRIVY_APP_SECRET!,
     )
 
+    // ERC-01: Detect if Privy sponsorship is configured before sending
+    // sponsor: true will fail silently if Privy Dashboard sponsorship is not enabled for Base (8453)
     const { hash: txHash } = await privy.walletApi.ethereum.sendTransaction({
       walletId: privyWalletId,
       caip2: 'eip155:8453', // Base mainnet
@@ -301,7 +303,14 @@ export async function registerAgent(
         to: IDENTITY_REGISTRY,
         data: calldata,
       },
-      sponsor: true, // Privy paymaster covers gas
+      sponsor: true, // Requires Privy Dashboard: Gas Sponsorship → Base (8453) enabled
+    }).catch((sponsorErr: any) => {
+      // ERC-01: If sponsorship fails, surface a clear error instead of silent null
+      const msg = sponsorErr?.message || String(sponsorErr)
+      if (msg.includes('sponsor') || msg.includes('paymaster') || msg.includes('gas')) {
+        throw new Error(`[erc8004] Privy gas sponsorship not configured for Base. Enable in Privy Dashboard → Policies → Gas Sponsorship → Add chain 8453. Error: ${msg}`)
+      }
+      throw sponsorErr
     })
 
     console.log(`[erc8004] ✅ register tx sent via Privy (sponsored): ${txHash} for ${checksummedAddress}`)
