@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { registerAgent, lookupAgentId } from "@/lib/erc8004";
+import { attestRegistration } from "@/lib/eas";
 
 export const maxDuration = 120;
 
@@ -62,6 +63,10 @@ export async function POST(request: NextRequest) {
             where: { address: user.address },
             data: { erc8004AgentId: numId },
           });
+          // EAS attestation (non-blocking)
+          try { await attestRegistration(user.address, numId); } catch (e: any) {
+            console.warn(`[cron/register] EAS attest failed for ${user.displayName}:`, e.message?.slice(0, 80));
+          }
           console.log(`[cron/register] ${user.displayName} already on-chain: agentId ${numId}`);
           results.push({ address: user.address, displayName: user.displayName ?? '', agentId: numId });
           continue;
@@ -76,6 +81,10 @@ export async function POST(request: NextRequest) {
             where: { address: user.address },
             data: { erc8004AgentId: numId },
           });
+          // EAS attestation (non-blocking)
+          try { await attestRegistration(user.address, numId); } catch (e: any) {
+            console.warn(`[cron/register] EAS attest failed for ${user.displayName}:`, e.message?.slice(0, 80));
+          }
           console.log(`[cron/register] ${user.displayName} registered: agentId ${numId}`);
         } else {
           // Failed — set back to -1 for next retry
