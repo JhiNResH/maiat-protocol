@@ -18,11 +18,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Find agents without on-chain registration
+    // Find agents without on-chain registration (null = never tried, -1 = failed/pending)
     const unregistered = await prisma.user.findMany({
       where: {
         type: "agent",
-        erc8004AgentId: null,
+        OR: [
+          { erc8004AgentId: null },
+          { erc8004AgentId: -1 },
+        ],
+        privyWalletId: { not: null }, // Only retry those with Privy wallets
       },
       take: 5, // batch of 5 to stay within timeout
       orderBy: { createdAt: "asc" },

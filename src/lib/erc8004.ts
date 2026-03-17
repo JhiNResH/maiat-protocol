@@ -293,7 +293,8 @@ export async function registerAgent(
       process.env.PRIVY_APP_SECRET!,
     )
 
-    // Privy sends tx as agent's wallet with gas sponsorship (no admin key needed)
+    // Privy sends tx as agent's wallet (wallet must have ETH for gas)
+    // NOTE: sponsor:true returns empty hash for contract calls — disabled
     const { hash: txHash } = await privy.walletApi.ethereum.sendTransaction({
       walletId: privyWalletId,
       caip2: 'eip155:8453', // Base mainnet
@@ -301,7 +302,6 @@ export async function registerAgent(
         to: IDENTITY_REGISTRY,
         data: calldata,
       },
-      sponsor: true,
     })
 
     if (!txHash) {
