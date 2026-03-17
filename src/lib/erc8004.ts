@@ -260,15 +260,15 @@ const IDENTITY_REGISTRY_WRITE_ABI = [
 
 /**
  * Register an agent in the official ERC-8004 IdentityRegistry.
- * Uses Privy server wallet API with gas sponsorship (paymaster).
- * Agent's own wallet calls register() as msg.sender — zero gas cost.
+ * Uses Privy server wallet — admin funds gas, then Privy sends the tx
+ * so agent's own wallet is msg.sender (correct on-chain identity).
  * Returns the new agentId on success, or null if already registered.
  */
 export async function registerAgent(
   walletAddress: string,
   privyWalletId?: string,
 ): Promise<bigint | null> {
-  const { getAddress, encodeFunctionData } = await import('viem')
+  const { getAddress, encodeFunctionData, parseEther } = await import('viem')
   const { base: baseChain } = await import('viem/chains')
 
   const checksummedAddress = getAddress(walletAddress)
@@ -286,7 +286,6 @@ export async function registerAgent(
     args: [agentURI],
   })
 
-  // Use Privy server wallet with gas sponsorship (paymaster)
   try {
     const { PrivyClient } = await import('@privy-io/server-auth')
     const privy = new PrivyClient(
@@ -294,8 +293,40 @@ export async function registerAgent(
       process.env.PRIVY_APP_SECRET!,
     )
 
-    // ERC-01: Detect if Privy sponsorship is configured before sending
-    // sponsor: true will fail silently if Privy Dashboard sponsorship is not enabled for Base (8453)
+    // Fund agent wallet with gas from admin wallet
+    const adminKey = (process.env.MAIAT_ADMIN_PRIVATE_KEY || '').trim()
+    if (adminKey) {
+      try {
+        const { createWalletClient, http: viemHttp } = await import('viem')
+        const { privateKeyToAccount } = await import('viem/accounts')
+        const adminAccount = privateKeyToAccount(
+          (adminKey.startsWith('0x') ? adminKey : `0x${adminKey}`) as `0x${string}`,
+        )
+        const adminWallet = createWalletClient({
+          account: adminAccount,
+          chain: baseChain,
+          transport: viemHttp(RPC_URLS[0]),
+        })
+        const publicClient = createPublicClient({ chain: baseChain, transport: http(RPC_URLS[0]) })
+        const balance = await publicClient.getBalance({ address: checksummedAddress })
+        if (balance < parseEther('0.00005')) {
+          const fundTx = await adminWallet.sendTransaction({
+            to: checksummedAddress,
+            value: parseEther('0.0003'),
+          })
+          console.log(`[erc8004] funded ${checksummedAddress} with 0.0003 ETH: ${fundTx}`)
+          await publicClient.waitForTransactionReceipt({ hash: fundTx, timeout: 15000 })
+        }
+      } catch (fundErr: any) {
+        console.warn(`[erc8004] gas funding failed: ${fundErr.message}`)
+        return null
+      }
+    } else {
+      console.log(`[erc8004] no MAIAT_ADMIN_PRIVATE_KEY, skipping on-chain register`)
+      return null
+    }
+
+    // Privy sends tx as agent's wallet (correct msg.sender for ERC-8004)
     const { hash: txHash } = await privy.walletApi.ethereum.sendTransaction({
       walletId: privyWalletId,
       caip2: 'eip155:8453', // Base mainnet
@@ -303,17 +334,14 @@ export async function registerAgent(
         to: IDENTITY_REGISTRY,
         data: calldata,
       },
-      sponsor: true, // Requires Privy Dashboard: Gas Sponsorship → Base (8453) enabled
-    }).catch((sponsorErr: any) => {
-      // ERC-01: If sponsorship fails, surface a clear error instead of silent null
-      const msg = sponsorErr?.message || String(sponsorErr)
-      if (msg.includes('sponsor') || msg.includes('paymaster') || msg.includes('gas')) {
-        throw new Error(`[erc8004] Privy gas sponsorship not configured for Base. Enable in Privy Dashboard → Policies → Gas Sponsorship → Add chain 8453. Error: ${msg}`)
-      }
-      throw sponsorErr
     })
 
-    console.log(`[erc8004] ✅ register tx sent via Privy (sponsored): ${txHash} for ${checksummedAddress}`)
+    if (!txHash) {
+      console.warn(`[erc8004] Privy returned empty tx hash for ${checksummedAddress}`)
+      return null
+    }
+
+    console.log(`[erc8004] ✅ register tx sent via Privy: ${txHash} for ${checksummedAddress}`)
 
     // Wait for receipt and extract agentId from Registered event
     const publicClient = createPublicClient({ chain: baseChain, transport: http(RPC_URLS[0]) })
