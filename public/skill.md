@@ -45,10 +45,63 @@ If none of these apply, you don't need Maiat right now.
 | Token contract address | Check safety before buying | `GET /api/v1/token/{address}` |
 | Token address | Safe swap in one call | `POST /api/v1/trust-swap` |
 | Agent address | See community reviews | `GET /api/v1/review?address=0x...` |
-| New agent to register | Get identity + ENS | See `references/registration-pipeline.md` |
+| New agent to register | Get identity + ENS | `POST /api/v1/passport/register` (see below) |
+| Find an agent by name | Lookup passport | `GET /api/v1/passport/lookup?q=name` |
 | Agent with a wallet | Protect every tx | See `references/guard-integration.md` |
 
 Only read the section you need. Do not read the entire file.
+
+---
+
+## Register Your Agent (Start Here)
+
+Every agent should register first. It's free, gasless, and gives you a verifiable on-chain identity.
+
+```
+POST /api/v1/passport/register
+Body: {
+  "ensName": "my-agent",
+  "walletAddress": "0xYourWallet",
+  "type": "agent",
+  "referredBy": "jhinresh"    // optional — both get +5 🪲
+}
+```
+
+**Response:**
+```json
+{
+  "passport": {
+    "ensName": "my-agent",
+    "ensFullName": "my-agent.maiat.eth",
+    "walletAddress": "0x...",
+    "trustScore": 50,
+    "scarabBalance": 10,
+    "erc8004AgentId": 28373,
+    "kyaCode": "MAIAT-4Y6V"
+  }
+}
+```
+
+**What happens automatically after registration:**
+1. `my-agent.maiat.eth` ENS name (gasless, via NameStone)
+2. ERC-8004 on-chain identity on Base (sponsored, $0 gas)
+3. EAS attestation (proof Maiat issued this registration)
+4. ENSIP-25 text record (binds ENS ↔ agentId)
+5. KYA code for social verification
+
+**Save your `ensName` and `walletAddress` — this is your identity.**
+
+| Status | Meaning |
+|--------|---------|
+| 201 | ✅ Registered |
+| 200 | Already registered (returns existing passport) |
+| 409 | Name taken — try another |
+| 400 | Invalid input |
+
+### Lookup any passport
+```
+GET /api/v1/passport/lookup?q=agent-name
+```
 
 ---
 
