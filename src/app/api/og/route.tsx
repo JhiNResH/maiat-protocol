@@ -9,256 +9,23 @@ export async function GET(req: NextRequest) {
     const name = searchParams.get('name') || 'anonymous'
     const score = parseInt(searchParams.get('score') || '0', 10)
     const type = searchParams.get('type') || 'human'
-    const shape = searchParams.get('shape') || 'og' // og | square | card
+    const shape = searchParams.get('shape') || 'og' // og=1200x630, square=500x500
 
-    const isSquare = shape === 'square' || shape === 'card'
+    const isSquare = shape === 'square'
     const width = isSquare ? 500 : 1200
     const height = isSquare ? 500 : 630
 
     const scoreColor = score >= 80 ? '#10b981' : score >= 50 ? '#eab308' : '#ef4444'
     const verdict = score >= 80 ? 'Trusted' : score >= 50 ? 'Caution' : 'Risky'
+    const verdictBg = score >= 80 ? 'rgba(16,185,129,0.12)' : score >= 50 ? 'rgba(234,179,8,0.12)' : 'rgba(239,68,68,0.12)'
+    const verdictBorder = score >= 80 ? 'rgba(16,185,129,0.25)' : score >= 50 ? 'rgba(234,179,8,0.25)' : 'rgba(239,68,68,0.25)'
 
-    // Score arc calculation
-    const pct = Math.min(score, 100) / 100
-
-    if (isSquare) {
-      // ─── Square Card (500x500) ─── Clean, premium dark card
-      return new ImageResponse(
-        (
-          <div style={{
-            width: '500px',
-            height: '500px',
-            display: 'flex',
-            background: '#0A0A0A',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
-            {/* Atmosphere glow — top right emerald */}
-            <div style={{
-              position: 'absolute',
-              top: '-120px',
-              right: '-80px',
-              width: '400px',
-              height: '400px',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(16,185,129,0.18) 0%, rgba(16,185,129,0.05) 40%, transparent 70%)',
-              display: 'flex',
-            }} />
-
-            {/* Atmosphere glow — bottom left blue */}
-            <div style={{
-              position: 'absolute',
-              bottom: '-140px',
-              left: '-100px',
-              width: '420px',
-              height: '420px',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(59,130,246,0.14) 0%, rgba(59,130,246,0.04) 40%, transparent 70%)',
-              display: 'flex',
-            }} />
-
-            {/* Subtle center glow */}
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '300px',
-              height: '300px',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255,255,255,0.02) 0%, transparent 60%)',
-              display: 'flex',
-            }} />
-
-            {/* Main content — centered */}
-            <div style={{
-              position: 'absolute',
-              inset: '0',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '40px',
-            }}>
-              {/* Diamond Logo */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '32px',
-              }}>
-                <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-                  {/* Outer hexagonal shield */}
-                  <path
-                    d="M32 4L56 18V46L32 60L8 46V18L32 4Z"
-                    fill="rgba(255,255,255,0.04)"
-                    stroke="rgba(255,255,255,0.15)"
-                    strokeWidth="1"
-                  />
-                  {/* Inner diamond */}
-                  <path
-                    d="M32 16L46 24V40L32 48L18 40V24L32 16Z"
-                    fill="rgba(255,255,255,0.06)"
-                    stroke="rgba(255,255,255,0.3)"
-                    strokeWidth="0.8"
-                  />
-                  {/* Center jewel */}
-                  <path
-                    d="M32 26L38 30V38L32 42L26 38V30L32 26Z"
-                    fill="rgba(255,255,255,0.12)"
-                    stroke="rgba(255,255,255,0.4)"
-                    strokeWidth="0.6"
-                  />
-                </svg>
-              </div>
-
-              {/* Score */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: '4px',
-                marginBottom: '16px',
-              }}>
-                <span style={{
-                  fontSize: '56px',
-                  fontWeight: 900,
-                  color: scoreColor,
-                  lineHeight: 1,
-                  letterSpacing: '-0.04em',
-                }}>
-                  {score}
-                </span>
-                <span style={{
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  color: 'rgba(255,255,255,0.15)',
-                  lineHeight: 1,
-                }}>
-                  /100
-                </span>
-              </div>
-
-              {/* Name */}
-              <div style={{
-                fontSize: '28px',
-                fontWeight: 900,
-                letterSpacing: '-0.03em',
-                color: '#ffffff',
-                lineHeight: 1,
-                marginBottom: '20px',
-                display: 'flex',
-              }}>
-                {name}.maiat.eth
-              </div>
-
-              {/* Badge row */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                {/* Trust verdict */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: score >= 80 ? 'rgba(16,185,129,0.1)' : score >= 50 ? 'rgba(234,179,8,0.1)' : 'rgba(239,68,68,0.1)',
-                  border: `1px solid ${score >= 80 ? 'rgba(16,185,129,0.2)' : score >= 50 ? 'rgba(234,179,8,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                  borderRadius: '100px',
-                  padding: '6px 14px',
-                }}>
-                  <div style={{
-                    width: '6px', height: '6px', borderRadius: '50%',
-                    background: scoreColor, display: 'flex',
-                    boxShadow: `0 0 8px ${scoreColor}`,
-                  }} />
-                  <span style={{
-                    fontSize: '11px', fontWeight: 700, color: scoreColor,
-                    letterSpacing: '0.05em', textTransform: 'uppercase' as const,
-                  }}>
-                    {verdict}
-                  </span>
-                </div>
-
-                {/* Type */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: '100px',
-                  padding: '6px 14px',
-                }}>
-                  <span style={{
-                    fontSize: '11px', fontWeight: 700,
-                    color: 'rgba(255,255,255,0.4)',
-                    letterSpacing: '0.05em', textTransform: 'uppercase' as const,
-                  }}>
-                    {type === 'agent' ? 'Agent' : 'Human'}
-                  </span>
-                </div>
-
-                {/* ENS verified */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: 'rgba(59,130,246,0.06)',
-                  border: '1px solid rgba(59,130,246,0.12)',
-                  borderRadius: '100px',
-                  padding: '6px 14px',
-                }}>
-                  <span style={{
-                    fontSize: '11px', fontWeight: 700,
-                    color: 'rgba(59,130,246,0.7)',
-                    letterSpacing: '0.05em',
-                  }}>
-                    ENS
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom watermark */}
-            <div style={{
-              position: 'absolute',
-              bottom: '20px',
-              left: '0',
-              right: '0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '16px',
-            }}>
-              <span style={{
-                fontSize: '8px', fontWeight: 700,
-                textTransform: 'uppercase' as const,
-                letterSpacing: '0.3em',
-                color: 'rgba(255,255,255,0.08)',
-              }}>
-                Maiat Protocol
-              </span>
-              <div style={{
-                width: '2px', height: '2px', borderRadius: '50%',
-                background: 'rgba(255,255,255,0.06)', display: 'flex',
-              }} />
-              <span style={{
-                fontSize: '8px', fontWeight: 700,
-                textTransform: 'uppercase' as const,
-                letterSpacing: '0.3em',
-                color: 'rgba(255,255,255,0.06)',
-              }}>
-                Base
-              </span>
-            </div>
-          </div>
-        ),
-        { width, height },
-      )
-    }
-
-    // ─── OG Rectangle (1200x630) ─── Light atmosphere style
-    const r = 56
-    const cx = 64
-    const cy = 64
+    // Score arc
+    const pct = score / 100
+    const r = isSquare ? 44 : 56
+    const cx = isSquare ? 52 : 64
+    const cy = isSquare ? 52 : 64
+    const svgSize = isSquare ? 104 : 128
     const startAngle = -Math.PI / 2
     const endAngle = startAngle + 2 * Math.PI * pct
     const x2 = cx + r * Math.cos(endAngle)
@@ -266,33 +33,165 @@ export async function GET(req: NextRequest) {
     const largeArc = pct > 0.5 ? 1 : 0
     const arcPath = `M ${cx} ${cy - r} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`
 
+    if (isSquare) {
+      // ─── Square Card (500x500) ─── Maiat liquid-glass dark style
+      return new ImageResponse(
+        (
+          <div style={{
+            width: '500px', height: '500px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#0A0A0A',
+            fontFamily: 'Inter, sans-serif',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            {/* Atmosphere gradients (simulated — no blur in Satori) */}
+            <div style={{
+              position: 'absolute', top: '-80px', right: '-40px',
+              width: '320px', height: '320px', borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)',
+              display: 'flex', opacity: 0.8,
+            }} />
+            <div style={{
+              position: 'absolute', bottom: '-100px', left: '-40px',
+              width: '300px', height: '300px', borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 65%)',
+              display: 'flex', opacity: 0.8,
+            }} />
+
+            {/* Glass card */}
+            <div style={{
+              width: '460px', height: '460px', borderRadius: '40px',
+              background: 'rgba(20, 20, 20, 0.6)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 0 60px rgba(0,0,0,0.4), inset 0 0 30px rgba(255,255,255,0.02)',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              position: 'relative',
+            }}>
+              {/* Content */}
+              <div style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: '20px',
+              }}>
+                {/* Trust gauge */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative', width: `${svgSize}px`, height: `${svgSize}px`,
+                }}>
+                  <svg width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
+                    <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2.5" />
+                    <path d={arcPath} fill="none" stroke={scoreColor} strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                  <div style={{
+                    position: 'absolute', top: '0', left: '0', right: '0', bottom: '0',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ fontSize: '32px', fontWeight: 900, color: scoreColor, lineHeight: 1 }}>
+                      {score}
+                    </span>
+                    <span style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.2)', marginTop: '2px' }}>
+                      /100
+                    </span>
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div style={{
+                  fontSize: '30px', fontWeight: 900, letterSpacing: '-0.04em',
+                  lineHeight: 1, color: '#ffffff', display: 'flex',
+                }}>
+                  {name}.maiat.eth
+                </div>
+
+                {/* Badges */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {/* Trust */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '5px',
+                    background: verdictBg, border: `1px solid ${verdictBorder}`,
+                    borderRadius: '16px', padding: '5px 14px',
+                  }}>
+                    <div style={{
+                      width: '5px', height: '5px', borderRadius: '50%',
+                      background: scoreColor, display: 'flex',
+                    }} />
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: scoreColor }}>
+                      {verdict}
+                    </span>
+                  </div>
+
+                  {/* Type */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                    background: 'rgba(212,160,23,0.08)',
+                    border: '1px solid rgba(212,160,23,0.15)',
+                    borderRadius: '16px', padding: '5px 14px',
+                  }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#d4a017' }}>
+                      {type === 'agent' ? '🤖 Agent' : '👤 Human'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom bar */}
+              <div style={{
+                position: 'absolute', bottom: '20px',
+                display: 'flex', alignItems: 'center', gap: '10px',
+              }}>
+                <span style={{
+                  fontSize: '7px', fontWeight: 700, textTransform: 'uppercase' as const,
+                  letterSpacing: '0.25em', color: 'rgba(255,255,255,0.12)',
+                }}>
+                  Maiat Protocol
+                </span>
+                <div style={{
+                  width: '2px', height: '2px', borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.08)', display: 'flex',
+                }} />
+                <span style={{
+                  fontSize: '7px', fontWeight: 700, textTransform: 'uppercase' as const,
+                  letterSpacing: '0.2em', color: 'rgba(255,255,255,0.08)',
+                }}>
+                  Base · ACP
+                </span>
+              </div>
+            </div>
+          </div>
+        ),
+        { width, height },
+      )
+    }
+
+    // ─── OG Rectangle (1200x630) ─── Light mode, atmosphere style
     return new ImageResponse(
       (
         <div style={{
           width: '1200px', height: '630px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: '#FDFDFB',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Inter, sans-serif',
           position: 'relative', overflow: 'hidden',
         }}>
           {/* Atmosphere */}
           <div style={{
-            position: 'absolute', top: '-100px', right: '80px',
+            position: 'absolute', top: '-100px', right: '100px',
             width: '500px', height: '500px', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)',
             display: 'flex',
           }} />
           <div style={{
-            position: 'absolute', bottom: '-80px', left: '120px',
+            position: 'absolute', bottom: '-80px', left: '150px',
             width: '400px', height: '400px', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 65%)',
+            background: 'radial-gradient(circle, rgba(59,130,246,0.05) 0%, transparent 65%)',
             display: 'flex',
           }} />
 
-          {/* Card */}
+          {/* Glass card */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: '56px',
-            background: 'rgba(255,255,255,0.9)',
+            display: 'flex', alignItems: 'center', gap: '48px',
+            background: 'rgba(255,255,255,0.85)',
             border: '1px solid rgba(0,0,0,0.06)',
             borderRadius: '32px', padding: '48px 64px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.02)',
@@ -307,96 +206,93 @@ export async function GET(req: NextRequest) {
                 <path d={arcPath} fill="none" stroke={scoreColor} strokeWidth="3.5" strokeLinecap="round" />
               </svg>
               <div style={{
-                position: 'absolute', inset: '0',
+                position: 'absolute', top: '0', left: '0', right: '0', bottom: '0',
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{
-                  fontSize: '40px', fontWeight: 900, color: scoreColor, lineHeight: 1,
-                  letterSpacing: '-0.04em',
-                }}>
+                <span style={{ fontSize: '40px', fontWeight: 900, color: scoreColor, lineHeight: 1 }}>
                   {score}
                 </span>
-                <span style={{
-                  fontSize: '11px', fontWeight: 700, color: 'rgba(0,0,0,0.15)', marginTop: '2px',
-                }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(0,0,0,0.2)', marginTop: '2px' }}>
                   /100
                 </span>
               </div>
             </div>
 
-            {/* Right */}
+            {/* Right side */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
               {/* Name */}
               <div style={{
                 fontSize: '48px', fontWeight: 900, letterSpacing: '-0.04em',
-                lineHeight: 1.1, color: '#000', marginBottom: '20px', display: 'flex',
+                lineHeight: 1.1, color: '#000000', marginBottom: '20px', display: 'flex',
               }}>
                 {name}.maiat.eth
               </div>
 
               {/* Badges */}
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                {/* Trust */}
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '6px',
-                  background: score >= 80 ? 'rgba(16,185,129,0.08)' : score >= 50 ? 'rgba(234,179,8,0.08)' : 'rgba(239,68,68,0.08)',
-                  border: `1px solid ${score >= 80 ? 'rgba(16,185,129,0.2)' : score >= 50 ? 'rgba(234,179,8,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                  borderRadius: '100px', padding: '8px 18px',
+                  background: verdictBg, border: `1px solid ${verdictBorder}`,
+                  borderRadius: '20px', padding: '8px 18px',
                 }}>
                   <div style={{
                     width: '7px', height: '7px', borderRadius: '50%',
                     background: scoreColor, display: 'flex',
                   }} />
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: scoreColor }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: scoreColor }}>
                     {verdict}
                   </span>
                 </div>
 
+                {/* Verified */}
                 <div style={{
-                  display: 'flex', alignItems: 'center',
+                  display: 'flex', alignItems: 'center', gap: '6px',
                   background: 'rgba(59,130,246,0.06)',
                   border: '1px solid rgba(59,130,246,0.12)',
-                  borderRadius: '100px', padding: '8px 18px',
+                  borderRadius: '20px', padding: '8px 18px',
                 }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#3b82f6' }}>
-                    ENS Verified
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#3b82f6' }}>
+                    ✓ Verified on ENS
                   </span>
                 </div>
 
+                {/* Type */}
                 <div style={{
-                  display: 'flex', alignItems: 'center',
+                  display: 'flex', alignItems: 'center', gap: '5px',
                   background: 'rgba(212,160,23,0.06)',
                   border: '1px solid rgba(212,160,23,0.1)',
-                  borderRadius: '100px', padding: '8px 18px',
+                  borderRadius: '20px', padding: '8px 18px',
                 }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#d4a017' }}>
-                    {type === 'agent' ? 'Agent' : 'Human'}
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#d4a017' }}>
+                    {type === 'agent' ? '🤖 Agent' : '👤 Human'}
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Bottom */}
+          {/* Bottom bar */}
           <div style={{
             position: 'absolute', bottom: '24px',
             display: 'flex', alignItems: 'center', gap: '20px',
           }}>
             <span style={{
-              fontSize: '9px', fontWeight: 700, letterSpacing: '0.3em',
-              color: 'rgba(0,0,0,0.12)', textTransform: 'uppercase' as const,
+              fontSize: '10px', fontWeight: 700, letterSpacing: '0.25em',
+              color: 'rgba(0,0,0,0.15)', textTransform: 'uppercase' as const,
             }}>
               Maiat Passport
             </span>
             <div style={{
               width: '3px', height: '3px', borderRadius: '50%',
-              background: 'rgba(0,0,0,0.06)', display: 'flex',
+              background: 'rgba(0,0,0,0.08)', display: 'flex',
             }} />
             <span style={{
-              fontSize: '9px', fontWeight: 700, letterSpacing: '0.2em',
-              color: 'rgba(0,0,0,0.06)',
+              fontSize: '10px', fontWeight: 700, letterSpacing: '0.15em',
+              color: 'rgba(0,0,0,0.08)',
             }}>
-              Built on Base
+              Built on Base · Powered by Virtuals ACP
             </span>
           </div>
         </div>
