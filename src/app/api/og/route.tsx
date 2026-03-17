@@ -11,8 +11,6 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get('type') || 'human'
 
     const scoreColor = score >= 80 ? '#10b981' : score >= 50 ? '#eab308' : '#ef4444'
-    const scoreBg = score >= 80 ? 'rgba(16,185,129,0.10)' : score >= 50 ? 'rgba(234,179,8,0.10)' : 'rgba(239,68,68,0.10)'
-    const scoreBorder = score >= 80 ? 'rgba(16,185,129,0.25)' : score >= 50 ? 'rgba(234,179,8,0.25)' : 'rgba(239,68,68,0.25)'
     const verdict = score >= 80 ? 'Trusted' : score >= 50 ? 'Caution' : 'Risky'
 
     // Maiat logo 64x64 inlined
@@ -37,35 +35,38 @@ export async function GET(req: NextRequest) {
             width: '1200px',
             height: '630px',
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#0A0A0A',
+            background: '#FDFDFB',
             fontFamily: 'Inter, sans-serif',
             position: 'relative',
             overflow: 'hidden',
           }}
         >
-          {/* Atmosphere gradients */}
+          {/* Subtle atmosphere */}
           <div style={{
-            position: 'absolute', top: '-200px', left: '300px',
-            width: '600px', height: '600px', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)',
+            position: 'absolute', top: '-100px', right: '100px',
+            width: '500px', height: '500px', borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)',
             display: 'flex',
           }} />
           <div style={{
-            position: 'absolute', bottom: '-150px', right: '100px',
-            width: '500px', height: '500px', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 60%)',
+            position: 'absolute', bottom: '-80px', left: '150px',
+            width: '400px', height: '400px', borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(59,130,246,0.05) 0%, transparent 65%)',
             display: 'flex',
           }} />
 
-          {/* Main content */}
+          {/* White card */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '56px',
-            position: 'relative',
+            gap: '48px',
+            background: 'rgba(255, 255, 255, 0.85)',
+            border: '1px solid rgba(0, 0, 0, 0.06)',
+            borderRadius: '32px',
+            padding: '48px 64px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.02)',
           }}>
             {/* Trust gauge */}
             <div style={{
@@ -75,9 +76,10 @@ export async function GET(req: NextRequest) {
               position: 'relative',
               width: '128px',
               height: '128px',
+              flexShrink: 0,
             }}>
               <svg width="128" height="128" viewBox="0 0 128 128">
-                <circle cx="64" cy="64" r="56" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="3" />
+                <circle cx="64" cy="64" r="56" fill="none" stroke="rgba(0,0,0,0.04)" strokeWidth="3" />
                 <path d={arcPath} fill="none" stroke={scoreColor} strokeWidth="3.5" strokeLinecap="round" />
               </svg>
               <div style={{
@@ -97,47 +99,46 @@ export async function GET(req: NextRequest) {
                 <span style={{
                   fontSize: '11px',
                   fontWeight: 700,
-                  color: 'rgba(255,255,255,0.2)',
+                  color: 'rgba(0,0,0,0.2)',
                   marginTop: '2px',
                 }}>/100</span>
               </div>
             </div>
 
-            {/* Logo + Name + Badges */}
+            {/* Right side: Logo + Name + Badges */}
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
+              alignItems: 'flex-start',
             }}>
               {/* Logo */}
               <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '16px',
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
                 overflow: 'hidden',
-                marginBottom: '20px',
-                border: '1px solid rgba(255,255,255,0.08)',
+                marginBottom: '16px',
+                border: '1px solid rgba(0,0,0,0.06)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
                 <img
                   src={logoBase64}
-                  width={64}
-                  height={64}
+                  width={48}
+                  height={48}
                   style={{ objectFit: 'cover' }}
                 />
               </div>
 
               {/* Name */}
               <div style={{
-                fontSize: '52px',
+                fontSize: '48px',
                 fontWeight: 900,
                 letterSpacing: '-0.04em',
                 lineHeight: 1.1,
-                color: '#ffffff',
-                marginBottom: '28px',
-                textAlign: 'center',
+                color: '#000000',
+                marginBottom: '20px',
                 display: 'flex',
               }}>
                 {name}.maiat.eth
@@ -146,25 +147,25 @@ export async function GET(req: NextRequest) {
               {/* Badges */}
               <div style={{
                 display: 'flex',
-                gap: '12px',
+                gap: '10px',
                 alignItems: 'center',
               }}>
                 {/* Trust badge */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  background: scoreBg,
-                  border: `1px solid ${scoreBorder}`,
-                  borderRadius: '24px',
-                  padding: '10px 22px',
+                  gap: '6px',
+                  background: score >= 80 ? 'rgba(16,185,129,0.08)' : score >= 50 ? 'rgba(234,179,8,0.08)' : 'rgba(239,68,68,0.08)',
+                  border: `1px solid ${score >= 80 ? 'rgba(16,185,129,0.2)' : score >= 50 ? 'rgba(234,179,8,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                  borderRadius: '20px',
+                  padding: '8px 18px',
                 }}>
                   <div style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
+                    width: '7px', height: '7px', borderRadius: '50%',
                     background: scoreColor, display: 'flex',
                   }} />
                   <span style={{
-                    fontSize: '15px', fontWeight: 700, color: scoreColor,
+                    fontSize: '14px', fontWeight: 700, color: scoreColor,
                   }}>
                     {verdict}
                   </span>
@@ -174,14 +175,14 @@ export async function GET(req: NextRequest) {
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '6px',
                   background: 'rgba(59,130,246,0.06)',
-                  border: '1px solid rgba(59,130,246,0.15)',
-                  borderRadius: '24px',
-                  padding: '10px 22px',
+                  border: '1px solid rgba(59,130,246,0.12)',
+                  borderRadius: '20px',
+                  padding: '8px 18px',
                 }}>
                   <span style={{
-                    fontSize: '15px', fontWeight: 700, color: '#3b82f6',
+                    fontSize: '14px', fontWeight: 700, color: '#3b82f6',
                   }}>
                     ✓ Verified on ENS
                   </span>
@@ -191,14 +192,14 @@ export async function GET(req: NextRequest) {
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '5px',
                   background: 'rgba(212,160,23,0.06)',
-                  border: '1px solid rgba(212,160,23,0.12)',
-                  borderRadius: '24px',
-                  padding: '10px 22px',
+                  border: '1px solid rgba(212,160,23,0.1)',
+                  borderRadius: '20px',
+                  padding: '8px 18px',
                 }}>
                   <span style={{
-                    fontSize: '15px', fontWeight: 700, color: '#d4a017',
+                    fontSize: '14px', fontWeight: 700, color: '#d4a017',
                   }}>
                     {type === 'agent' ? '🤖 Agent' : '👤 Human'}
                   </span>
@@ -210,34 +211,34 @@ export async function GET(req: NextRequest) {
           {/* Bottom bar */}
           <div style={{
             position: 'absolute',
-            bottom: '32px',
+            bottom: '24px',
             display: 'flex',
             alignItems: 'center',
-            gap: '24px',
+            gap: '20px',
           }}>
             <img
               src={logoBase64}
-              width={18}
-              height={18}
-              style={{ borderRadius: '4px', opacity: 0.4 }}
+              width={16}
+              height={16}
+              style={{ borderRadius: '3px', opacity: 0.3 }}
             />
             <span style={{
-              fontSize: '11px',
+              fontSize: '10px',
               fontWeight: 700,
-              color: 'rgba(255,255,255,0.15)',
+              color: 'rgba(0,0,0,0.15)',
               letterSpacing: '0.25em',
             }}>
               MAIAT PASSPORT
             </span>
             <div style={{
               width: '3px', height: '3px', borderRadius: '50%',
-              background: 'rgba(255,255,255,0.08)', display: 'flex',
+              background: 'rgba(0,0,0,0.08)', display: 'flex',
             }} />
             <span style={{
-              fontSize: '11px',
+              fontSize: '10px',
               fontWeight: 700,
-              color: 'rgba(255,255,255,0.08)',
-              letterSpacing: '0.2em',
+              color: 'rgba(0,0,0,0.08)',
+              letterSpacing: '0.15em',
             }}>
               Built on Base · Powered by Virtuals ACP
             </span>
