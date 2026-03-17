@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
           if (regResult !== null && regResult > 0n) return Number(regResult);
           return null;
         })();
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000));
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 45000));
         erc8004AgentId = await Promise.race([erc8004Promise, timeoutPromise]);
 
         if (erc8004AgentId) {
