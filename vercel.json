@@ -20,7 +20,7 @@
     },
     {
       "path": "/api/v1/cron/register-agents",
-      "schedule": "* * * * *"
+      "schedule": "0 */6 * * *"
     }
   ]
 }
