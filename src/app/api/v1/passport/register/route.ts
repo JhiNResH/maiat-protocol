@@ -6,6 +6,7 @@ import { registerAgent, getAgentId } from "@/lib/erc8004";
 import { generateKyaCode } from "@/lib/kya";
 import { setEnsSubname } from "@/lib/namestone";
 import { buildEnsip25Key } from "@/lib/ensip25";
+import { PrivyClient } from "@privy-io/server-auth";
 
 // Allow up to 30s for on-chain tx (Vercel Pro/Hobby default is 10s)
 export const maxDuration = 30;
@@ -52,15 +53,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!walletAddress || !isValidAddress(walletAddress)) {
+    const cleanEnsName = ensName.replace(/\.maiat\.eth$/, "");
+
+    // walletAddress is optional — if missing, Privy creates a server wallet
+    let resolvedWallet = walletAddress;
+    let privyWalletCreated = false;
+
+    if (!resolvedWallet) {
+      // Create a Privy server wallet for this agent
+      try {
+        const privy = new PrivyClient(
+          process.env.PRIVY_APP_ID!,
+          process.env.PRIVY_APP_SECRET!,
+        );
+        const wallet = await privy.walletApi.create({ chainType: "ethereum" });
+        resolvedWallet = wallet.address;
+        privyWalletCreated = true;
+        console.log(`[passport/register] Created Privy wallet for ${cleanEnsName}: ${wallet.address}`);
+      } catch (e: any) {
+        console.error("[passport/register] Privy wallet creation failed:", e.message);
+        return NextResponse.json(
+          { error: "Failed to create wallet. Please provide a walletAddress or try again." },
+          { status: 500, headers: CORS_HEADERS }
+        );
+      }
+    } else if (!isValidAddress(resolvedWallet)) {
       return NextResponse.json(
         { error: "Invalid wallet address." },
         { status: 400, headers: CORS_HEADERS }
       );
     }
 
-    const normalizedAddress = walletAddress.toLowerCase();
-    const cleanEnsName = ensName.replace(/\.maiat\.eth$/, "");
+    const normalizedAddress = resolvedWallet.toLowerCase();
     const fullEnsName = `${cleanEnsName}.maiat.eth`;
 
     // Check if address already registered
@@ -224,25 +248,6 @@ export async function POST(request: NextRequest) {
 
     const reputation = await getUserReputation(normalizedAddress);
 
-    // --- ENS Subname via NameStone (non-blocking) ---
-    let ensRegistered = false;
-    try {
-      // Build ENSIP-25 text record if agentId is known
-      const ensip25Record: Record<string, string> = {}
-      if (userType === 'agent' && erc8004AgentId) {
-        ensip25Record[buildEnsip25Key(erc8004AgentId)] = '1'
-      }
-
-      const ensResult = await setEnsSubname(cleanEnsName, normalizedAddress, {
-        description: `Maiat Passport — ${userType}`,
-        url: `https://app.maiat.io/passport/${normalizedAddress}`,
-        ...ensip25Record,
-      });
-      ensRegistered = ensResult.success;
-    } catch (e: any) {
-      console.warn("[passport/register] NameStone ENS registration failed (non-blocking):", e.message);
-    }
-
     // --- On-chain identity (type-specific) ---
     let erc8004AgentId: number | null = null;
     let kyaCode: string | null = null;
@@ -282,6 +287,25 @@ export async function POST(request: NextRequest) {
     }
     // Human → no on-chain mint needed (ENS + DB only, zero gas)
 
+    // --- ENS Subname via NameStone (non-blocking) ---
+    let ensRegistered = false;
+    try {
+      // Build ENSIP-25 text record if agentId is known
+      const ensip25Record: Record<string, string> = {};
+      if (userType === 'agent' && erc8004AgentId) {
+        ensip25Record[buildEnsip25Key(erc8004AgentId)] = '1';
+      }
+
+      const ensResult = await setEnsSubname(cleanEnsName, normalizedAddress, {
+        description: `Maiat Passport — ${userType}`,
+        url: `https://app.maiat.io/passport/${normalizedAddress}`,
+        ...ensip25Record,
+      });
+      ensRegistered = ensResult.success;
+    } catch (e: any) {
+      console.warn("[passport/register] NameStone ENS registration failed (non-blocking):", e.message);
+    }
+
     // Build KYA share info for agents
     const kyaShareUrl = kyaCode ? `https://passport.maiat.io/verify/${kyaCode}` : null;
     const kyaTweetTemplate = kyaCode
@@ -300,6 +324,7 @@ export async function POST(request: NextRequest) {
         scarabBalance: referralApplied ? 15 : 10,
         isNew: true,
         referralApplied,
+        privyWalletCreated,
         erc8004AgentId,
         kyaCode,
         ensRegistered,
