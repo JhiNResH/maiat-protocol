@@ -6,7 +6,7 @@ import { registerAgent, getAgentId } from "@/lib/erc8004";
 import { generateKyaCode } from "@/lib/kya";
 import { setEnsSubname } from "@/lib/namestone";
 import { buildEnsip25Key } from "@/lib/ensip25";
-import { PrivyClient } from "@privy-io/server-auth";
+import { PrivyClient } from "@privy-io/node";
 
 // Allow up to 30s for on-chain tx (Vercel Pro/Hobby default is 10s)
 export const maxDuration = 120; // Vercel Pro plan
@@ -63,11 +63,11 @@ export async function POST(request: NextRequest) {
     if (!resolvedWallet) {
       // Create a Privy server wallet for this agent
       try {
-        const privy = new PrivyClient(
-          process.env.PRIVY_APP_ID!,
-          process.env.PRIVY_APP_SECRET!,
-        );
-        const wallet = await privy.walletApi.create({ chainType: "ethereum" });
+        const privy = new PrivyClient({
+          appId: process.env.PRIVY_APP_ID!,
+          appSecret: process.env.PRIVY_APP_SECRET!,
+        });
+        const wallet = await privy.wallets().create({ chainType: "ethereum" });
         resolvedWallet = wallet.address;
         privyWalletId = wallet.id;
         privyWalletCreated = true;

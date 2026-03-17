@@ -16,18 +16,26 @@ const IDENTITY_REGISTRY_ADDRESS = '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432'
 /**
  * Build the ENSIP-25 interoperable address for the ERC-8004 registry.
  *
- * Format: ERC-7930 interoperable address
- * - 0x0001 = EVM namespace
- * - 00000114 = Base Mainnet chainId (8453 = 0x2105, encoded as 4 bytes = 00002105)
- *   Wait — Base chainId 8453 = 0x2105 → 00002105
- * - registry address (20 bytes, lowercase, no 0x)
+ * Format: ERC-7930 interoperable address (length-prefixed)
+ * - 0x0001 = EVM namespace (2 bytes)
+ * - 0000   = reserved/flags (2 bytes)
+ * - XX     = chainId byte length (1 byte)
+ * - ...    = chainId value (variable, minimal big-endian)
+ * - 14     = address byte length (1 byte, 0x14 = 20)
+ * - ...    = address (20 bytes)
+ *
+ * Reference: https://docs.ens.domains/ensip/25
+ * Ethereum example: 0x000100000101148004a169fb4a3325136eb29fa0ceb6d2e539a432
+ *   → 0001 + 0000 + 01(len) + 01(chainId=1) + 14(addrLen=20) + address
  */
 function buildRegistryInteropAddr(): string {
-  // Base Mainnet chainId: 8453 = 0x00002105 (4 bytes)
-  const chainIdHex = '00002105'
+  // Base Mainnet chainId: 8453 = 0x2105 (2 bytes minimal)
+  const chainIdHex = '2105' // minimal big-endian hex for 8453
+  const chainIdLen = (chainIdHex.length / 2).toString(16).padStart(2, '0') // '02'
   const registryHex = IDENTITY_REGISTRY_ADDRESS.slice(2).toLowerCase()
-  // ERC-7930: 0x0001 (evm) + chainId (4 bytes) + address (20 bytes)
-  return `0x0001${chainIdHex}${registryHex}`
+  const addrLen = '14' // 20 bytes = 0x14
+  // ERC-7930: 0x + type(2) + reserved(2) + chainIdLen(1) + chainId(N) + addrLen(1) + address(20)
+  return `0x0001${'0000'}${chainIdLen}${chainIdHex}${addrLen}${registryHex}`
 }
 
 const REGISTRY_INTEROP_ADDR = buildRegistryInteropAddr()
