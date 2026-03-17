@@ -42,13 +42,14 @@ export async function GET(
     const kyaCode = await prisma.kyaCode.findUnique({
       where: { code },
       include: {
-        verifications: {
-          orderBy: { verifiedAt: "desc" },
+        endorsements: {
+          orderBy: { createdAt: "desc" },
           take: 20,
           select: {
-            verifierAddress: true,
-            verifiedAt: true,
+            endorserAddress: true,
+            createdAt: true,
             scarabAwarded: true,
+            status: true,
           },
         },
       },
@@ -79,10 +80,12 @@ export async function GET(
       {
         code: kyaCode.code,
         agentAddress: kyaCode.agentAddress,
-        usageCount: kyaCode.usageCount,
+        agentName: kyaCode.agentName,
+        totalEndorsements: kyaCode.totalEndorsements,
+        trustBoost: kyaCode.trustBoost,
         createdAt: kyaCode.createdAt,
         agent: agentInfo,
-        recentVerifications: kyaCode.verifications,
+        recentEndorsements: kyaCode.endorsements,
       },
       {
         headers: {
