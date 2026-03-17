@@ -71,9 +71,9 @@ export async function POST(request: NextRequest) {
         privyWalletCreated = true;
         console.log(`[passport/register] Created Privy wallet for ${cleanEnsName}: ${wallet.address}`);
       } catch (e: any) {
-        console.error("[passport/register] Privy wallet creation failed:", e.message);
+        console.error("[passport/register] Privy wallet creation failed:", e.message, e.status, JSON.stringify(e.body || e.response?.data || ''));
         return NextResponse.json(
-          { error: "Failed to create wallet. Please provide a walletAddress or try again." },
+          { error: "Failed to create wallet. Please provide a walletAddress or try again.", detail: e.message },
           { status: 500, headers: CORS_HEADERS }
         );
       }
@@ -252,7 +252,22 @@ export async function POST(request: NextRequest) {
     let erc8004AgentId: number | null = null;
     let kyaCode: string | null = null;
     if (userType === 'agent') {
-      // ERC-8004: handled async by /api/v1/cron/register-agents (too slow for serverless)
+      // ERC-8004: register on-chain immediately
+      try {
+        const regResult = await registerAgent(normalizedAddress);
+        if (regResult !== null) {
+          // regResult is -1 (tx sent, agentId pending) or actual agentId
+          // Try to fetch the real agentId after registration
+          const fetchedId = await getAgentId(normalizedAddress);
+          if (fetchedId !== null) {
+            erc8004AgentId = Number(fetchedId);
+          }
+          console.log(`[passport/register] ERC-8004 registered: ${normalizedAddress}, agentId: ${erc8004AgentId}`);
+        }
+      } catch (e: any) {
+        // Non-blocking — agent still gets ENS + DB even if on-chain fails
+        console.warn("[passport/register] ERC-8004 registration failed (non-blocking):", e.message);
+      }
 
       // KYA code — DB-backed, so verify page works
       try {
