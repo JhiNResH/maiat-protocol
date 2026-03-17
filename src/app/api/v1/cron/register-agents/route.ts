@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     for (const user of unregistered) {
       try {
-        const agentId = await registerAgent(user.address);
+        const agentId = await registerAgent(user.address, user.privyWalletId ?? undefined);
         const numId = agentId !== null ? Number(agentId) : null;
 
         if (numId !== null && numId >= 0) {

@@ -253,38 +253,15 @@ export async function POST(request: NextRequest) {
 
     // --- On-chain identity (type-specific) ---
     let erc8004AgentId: number | null = null;
-    // ERC-01: Track registration status so failed/pending agents can be retried
+    // ERC-8004 registration is handled async by /api/v1/cron/register-agents
+    // This avoids Vercel function timeout (fund + confirm + register > 55s)
     let erc8004Status: 'registered' | 'pending' | 'failed' | 'skipped' = 'skipped';
     let kyaCode: string | null = null;
     if (userType === 'agent') {
-      // ERC-8004: register on-chain with 20s timeout
-      try {
-        const erc8004Promise = (async () => {
-          const regResult = await registerAgent(normalizedAddress, privyWalletId);
-          if (regResult !== null && regResult > 0n) return Number(regResult);
-          return null;
-        })();
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 45000));
-        erc8004AgentId = await Promise.race([erc8004Promise, timeoutPromise]);
-
-        if (erc8004AgentId) {
-          erc8004Status = 'registered';
-          console.log(`[passport/register] ERC-8004 registered: ${normalizedAddress}, agentId: ${erc8004AgentId}`);
-          await prisma.user.update({
-            where: { address: normalizedAddress },
-            data: { erc8004AgentId },
-          }).catch(() => {});
-        } else if (!privyWalletId) {
-          erc8004Status = 'skipped'; // no wallet created
-        } else {
-          // ERC-01: timeout or already registered — mark as pending for retry
-          erc8004Status = 'pending';
-          console.log(`[passport/register] ERC-8004 pending (timeout or already registered): ${normalizedAddress}`);
-        }
-      } catch (e: any) {
-        // ERC-01: catch sponsorship or other errors, mark as failed
-        erc8004Status = 'failed';
-        console.warn("[passport/register] ERC-8004 registration failed (non-blocking):", e.message);
+      if (privyWalletId) {
+        // Mark as pending — cron will pick up and register on-chain
+        erc8004Status = 'pending';
+        console.log(`[passport/register] ERC-8004 queued for cron: ${normalizedAddress}`);
       }
 
       // KYA code — DB-backed, so verify page works
