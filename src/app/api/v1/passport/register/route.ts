@@ -255,11 +255,9 @@ export async function POST(request: NextRequest) {
       // ERC-8004: register on-chain with 20s timeout
       try {
         const erc8004Promise = (async () => {
+          // registerAgent now waits for receipt and returns agentId directly
           const regResult = await registerAgent(normalizedAddress);
-          if (regResult !== null) {
-            const fetchedId = await getAgentId(normalizedAddress);
-            if (fetchedId !== null) return Number(fetchedId);
-          }
+          if (regResult !== null && regResult > 0n) return Number(regResult);
           return null;
         })();
         const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000));
