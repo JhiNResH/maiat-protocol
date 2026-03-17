@@ -9,7 +9,7 @@ import { buildEnsip25Key } from "@/lib/ensip25";
 import { PrivyClient } from "@privy-io/server-auth";
 
 // Allow up to 30s for on-chain tx (Vercel Pro/Hobby default is 10s)
-export const maxDuration = 30;
+export const maxDuration = 55;
 
 const rateLimiter = createRateLimiter("passport:register", 10, 60);
 
@@ -252,20 +252,24 @@ export async function POST(request: NextRequest) {
     let erc8004AgentId: number | null = null;
     let kyaCode: string | null = null;
     if (userType === 'agent') {
-      // ERC-8004: register on-chain immediately
+      // ERC-8004: register on-chain with 20s timeout
       try {
-        const regResult = await registerAgent(normalizedAddress);
-        if (regResult !== null) {
-          // regResult is -1 (tx sent, agentId pending) or actual agentId
-          // Try to fetch the real agentId after registration
-          const fetchedId = await getAgentId(normalizedAddress);
-          if (fetchedId !== null) {
-            erc8004AgentId = Number(fetchedId);
+        const erc8004Promise = (async () => {
+          const regResult = await registerAgent(normalizedAddress);
+          if (regResult !== null) {
+            const fetchedId = await getAgentId(normalizedAddress);
+            if (fetchedId !== null) return Number(fetchedId);
           }
+          return null;
+        })();
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000));
+        erc8004AgentId = await Promise.race([erc8004Promise, timeoutPromise]);
+        if (erc8004AgentId) {
           console.log(`[passport/register] ERC-8004 registered: ${normalizedAddress}, agentId: ${erc8004AgentId}`);
+        } else {
+          console.log(`[passport/register] ERC-8004 skipped (timeout or already registered): ${normalizedAddress}`);
         }
       } catch (e: any) {
-        // Non-blocking — agent still gets ENS + DB even if on-chain fails
         console.warn("[passport/register] ERC-8004 registration failed (non-blocking):", e.message);
       }
 
