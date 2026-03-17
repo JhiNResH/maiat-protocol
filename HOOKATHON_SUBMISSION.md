@@ -1,21 +1,28 @@
-# 🪝 Uniswap V4 Hookathon Submission
-## TrustFeeHook: Reputation-Based Dynamic Fees
+# 🪝 Uniswap V4 Hookathon Submission — Update #2
+## Maiat Trust Infrastructure: TrustGateHook + MaiatEvaluator + AgentIdentity
 
 **Submitted by:** Maiat Protocol  
 **Category:** Hooks with Dynamic Fees  
-**Deadline:** March 19, 2026
+**Deadline:** March 19, 2026  
+**Update:** March 17, 2026 — Added ERC-8183 Evaluator + ERC-8004 AgentIdentity
 
 ---
 
 ## 📋 Executive Summary
 
-**TrustFeeHook** is a production-grade Uniswap V4 hook that implements reputation-based dynamic fees. Swappers with verifiable on-chain behavioral history receive fee discounts (0%-0.5%), while new or untrusted actors pay standard fees.
+Maiat builds **trust infrastructure for Uniswap V4 and agentic commerce** — three contracts that work together to make DeFi safer for autonomous agents:
+
+| Contract | Standard | Role | Status |
+|----------|----------|------|--------|
+| **TrustGateHook** | Uniswap V4 Hook | Trust-gated swaps + reputation-based dynamic fees | ✅ Deployed (Base Mainnet) |
+| **MaiatEvaluator** | ERC-8183 | Quality evaluation for agentic commerce jobs | ✅ Deployed (Base Mainnet) |
+| **AgentIdentity** | ERC-8004 | On-chain agent identity registry | ✅ Deployed (Base Mainnet) |
 
 **Key Innovation:**
-- **Zero-oracle mode:** Uses EIP-712 signed trust scores (off-chain signed by oracle, verified on-chain)
-- **Fallback oracle:** TrustScoreOracle for real-time scoring via cron
-- **4-tier fee structure:** Guardian (0%), Verified (0.1%), Trusted (0.3%), New (0.5%)
-- **Production-ready:** 211 passing Forge tests, fully audited architecture
+- **TrustGateHook:** First reputation-based dynamic fees for Uniswap V4 — good actors pay less (0%-0.5%)
+- **MaiatEvaluator:** ERC-8183-compliant evaluator that reads trust scores to auto-approve/reject agent jobs
+- **AgentIdentity:** ERC-8004-compliant identity registry — agents self-register, admin can delegate
+- **Three-layer protection:** Guard (before) → Hook (during) → Evaluator (after)
 
 ---
 
@@ -23,301 +30,230 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        TrustFeeHook                             │
+│                    MAIAT TRUST INFRASTRUCTURE                    │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  Swap Flow:                                                     │
-│  1. beforeSwap() called by Uniswap V4 PoolManager              │
-│  2. Check hookData for signed scores (MODE 1, zero-gas)         │
-│  3. Verify EIP-712 signature via ecrecover                      │
-│  4. If invalid/missing, fall back to TrustScoreOracle (MODE 2)  │
-│  5. Calculate dynamic LP fee based on trust tier                │
-│  6. Return fee via BeforeSwapDelta                              │
+│  ┌─────────────────┐   ┌──────────────────┐   ┌──────────────┐ │
+│  │  AgentIdentity  │   │  TrustGateHook   │   │   Evaluator  │ │
+│  │   (ERC-8004)    │──▶│  (Uniswap V4)    │──▶│  (ERC-8183)  │ │
+│  │                 │   │                  │   │              │ │
+│  │ • Self-register │   │ • Trust gate     │   │ • Auto-eval  │ │
+│  │ • Admin deleg.  │   │ • Dynamic fees   │   │ • Threat det │ │
+│  │ • URI metadata  │   │ • EIP-712 sigs   │   │ • Pre-check  │ │
+│  └─────────────────┘   └──────────────────┘   └──────────────┘ │
+│           │                     │                      │        │
+│           └─────────────────────┼──────────────────────┘        │
+│                                 │                               │
+│                    ┌────────────▼────────────┐                  │
+│                    │   TrustScoreOracle      │                  │
+│                    │  (Shared reputation DB) │                  │
+│                    │  • Token scores (0-100) │                  │
+│                    │  • User reputation tiers│                  │
+│                    │  • ML + Community data  │                  │
+│                    └─────────────────────────┘                  │
 │                                                                 │
-│  Fee Tiers (Trust Score ranges):                                │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ Tier Name    │ Score Range │ Fee  │ Discount vs Base   │   │
-│  ├──────────────┼─────────────┼──────┼────────────────────┤   │
-│  │ Guardian     │ 200+        │ 0%   │ -100% (free!)      │   │
-│  │ Verified     │ 50-199      │ 0.1% │ -80% vs standard   │   │
-│  │ Trusted      │ 10-49       │ 0.3% │ -40% vs standard   │   │
-│  │ New/Untrust  │ 0-9         │ 0.5% │ Base fee           │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  Reputation Data Source:                                        │
-│  → Maiat Protocol ACP: agent_trust, token_forensics            │
-│  → On-chain: EAS attestations, transaction history             │
-│  → Oracle: TrustScoreOracle (syncs daily from ML model)         │
+│  Data Flow:                                                     │
+│  Agent registers (ERC-8004) → builds reputation → scores feed   │
+│  TrustGateHook (fees) + MaiatEvaluator (job quality)            │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🎯 Innovation Highlights
+## 🎯 Contract #1: TrustGateHook (Uniswap V4)
 
-### 1. **Dual-Mode Scoring (Zero-Gas + Fallback)**
+### What It Does
+Reputation-based dynamic fees for Uniswap V4 swaps. Good actors get discounts; untrusted actors pay standard fees.
 
-**Mode 1: EIP-712 Signed Scores (Preferred)**
-- Swapper calls Maiat API → receives signed score + signature
-- Includes in `hookData` with timestamp
-- Hook verifies signature on-chain via `ecrecover`
-- **No oracle call needed** → Zero oracle gas, zero latency
-- 5-minute signature validity window prevents replay
+### Dual-Mode Scoring
 
-```solidity
-// Example hookData for Mode 1:
-abi.encode(
-  feeTarget,        // address to apply discount to
-  score0,           // trust score for token0 (0-100)
-  timestamp0,       // when signed
-  signature0,       // EIP-712 signature
-  score1,           // trust score for token1
-  timestamp1,
-  signature1
-)
-```
+**Mode 1: EIP-712 Signed Scores (Zero-Oracle Gas)**
+- Swapper gets signed trust score from Maiat API
+- Includes in `hookData` → hook verifies on-chain via `ecrecover`
+- No oracle call → zero oracle gas, ~3K gas for signature verification
+- 5-minute validity window, nonce-based replay prevention
 
 **Mode 2: Oracle Fallback**
-- If Mode 1 data missing/invalid, query TrustScoreOracle
-- Oracle updated daily via cron from Wadjet ML + Protocol scoring
-- Maintains security even if API unavailable
+- If signed score missing/invalid → queries TrustScoreOracle
+- Oracle fed by daily cron from Wadjet ML + protocol scoring
+- Always available as backup
+
+### Fee Tiers
+
+| Tier | Score Range | Fee | Discount |
+|------|------------|-----|----------|
+| Guardian | 200+ | 0% | Free! |
+| Verified | 50-199 | 0.1% | -80% |
+| Trusted | 10-49 | 0.3% | -40% |
+| New/Untrusted | 0-9 | 0.5% | Base fee |
+
+### Security Features
+- `Ownable2Step` (two-step ownership transfer)
+- Timelock on threshold updates (1 day)
+- Two-step trusted signer rotation
+- Nonce-based EIP-712 replay prevention
+- `onlyPoolManager` modifier on hook callbacks
+- Router allowlist for fee target delegation
+- Native ETH pool rejection (currency0/1 != address(0))
+
+### Test Coverage: **50 tests, 0 failures**
 
 ---
 
-### 2. **Production-Grade Security**
+## 🎯 Contract #2: MaiatEvaluator (ERC-8183)
 
-✅ **211 Passing Forge Tests**
-- Signature verification: valid, expired, wrong signer
-- Fee calculation across all tiers
-- Replay attack prevention (nonce tracking)
-- Edge cases: overflow, underflow, boundary conditions
+### What It Does
+Evaluates submitted jobs in ERC-8183 Agentic Commerce contracts. Reads provider reputation from TrustScoreOracle → auto-completes if score ≥ threshold, auto-rejects if below.
 
-✅ **Audit-Ready Code**
-- Full NatSpec documentation
-- Clear state management
-- Emergency pause mechanism
-- Owner-controlled threshold updates with timelock
-
-✅ **On-Chain Verification**
-- EIP-712 compliance (correct domain separator)
-- ECDSA signature validation
-- Timestamp freshness checks
-- Nonce-based replay prevention
-
----
-
-### 3. **Real-World Integration**
-
-**Tested with:**
-- ✅ Uniswap V4 PoolManager (Base Sepolia testnet)
-- ✅ Integrates with MaiatOracle and TrustScoreOracle
-- ✅ Compatible with router patterns (approved, validated)
-
-**Deployment Status:**
-- **Base Sepolia:** `0xf6065fb076090af33ee0402f7e902b2583e7721e` ✅
-- **Base Mainnet:** `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` ✅
-
----
-
-## 📊 Test Coverage
+### Decision Logic
 
 ```
-Test Suite Results:
-├─ TrustGateHook.t.sol
-│  ├─ Signature verification (MODE 1)
-│  │  ├─ Valid signature → applies discount ✓
-│  │  ├─ Expired signature (>5min) → reverts ✓
-│  │  ├─ Wrong signer → reverts ✓
-│  │  └─ Replay attack (nonce reuse) → reverts ✓
-│  │
-│  ├─ Fee tiers (all boundaries tested)
-│  │  ├─ Guardian (200+) → 0% fee ✓
-│  │  ├─ Verified (50-199) → 0.1% fee ✓
-│  │  ├─ Trusted (10-49) → 0.3% fee ✓
-│  │  └─ New (0-9) → 0.5% fee ✓
-│  │
-│  ├─ Oracle fallback (MODE 2)
-│  │  ├─ Missing hookData → queries oracle ✓
-│  │  ├─ Invalid signature → falls back ✓
-│  │  └─ Stale oracle data → enforces freshness ✓
-│  │
-│  ├─ Admin functions
-│  │  ├─ Update threshold with timelock ✓
-│  │  ├─ Update trusted signer with 2-step ✓
-│  │  └─ Only owner can call ✓
-│  │
-│  └─ Edge cases
-│     ├─ Zero-value swaps ✓
-│     ├─ Max uint256 amounts ✓
-│     └─ Boundary conditions (9→10 rep) ✓
-│
-├─ Integration.t.sol
-│  ├─ Full flow: swapper → hook → fee applied ✓
-│  ├─ Multiple currencies in same swap ✓
-│  └─ Router compatibility ✓
-│
-├─ MaiatEvaluator.t.sol + fuzz
-│  └─ ERC-8183 evaluator integration ✓
-│
-└─ TrustScoreOracle.t.sol
-   ├─ Batch updates ✓
-   ├─ Freshness checks ✓
-   └─ Role-based access ✓
-
-SUMMARY: 211 tests, 0 failures ✅
+Provider score ≥ threshold AND not flagged → COMPLETE
+Provider flagged (3+ threat reports)      → REJECT (FLAGGED_AGENT)
+Provider never scored                     → REJECT (UNINITIALIZED)
+Provider score < threshold                → REJECT (LOW_TRUST)
 ```
+
+### Features
+- **Threat reporting:** Owner can flag providers; auto-reject above threshold
+- **Pre-check view:** `preCheck(provider)` returns would-pass result without state changes
+- **Double-evaluation prevention:** `evaluated[acpContract][jobId]` mapping
+- **Stats tracking:** `totalEvaluations`, `totalCompleted`, `totalRejected`
+- **Batch threat reporting:** `reportThreats(address[])` for gas efficiency
+
+### Security Features
+- `Ownable2Step` (two-step ownership)
+- `ReentrancyGuard` on `evaluate()`
+- Check-effects-interaction pattern (mark evaluated before external call)
+- Score capped at `MAX_SCORE` (100) to prevent overflow comparison issues
+
+### Test Coverage: **37 unit tests + 5 fuzz tests, 0 failures**
 
 ---
 
-## 🚀 How It Works: Walkthrough
+## 🎯 Contract #3: AgentIdentity (ERC-8004)
 
-### Example: Alice swaps USDC → ETH with Guardian reputation
+### What It Does
+On-chain agent identity registry. Each wallet registers once with a URI, gets a unique `agentId`. Supports self-registration and admin-delegated registration.
+
+### Functions
+
+| Function | Access | Purpose |
+|----------|--------|---------|
+| `register(agentURI)` | Public | Self-register, `msg.sender` = agent |
+| `registerFor(wallet, agentURI)` | Owner only | Admin registers on behalf |
+| `agentIdOf(wallet)` | View | Get agentId for wallet |
+| `agentURIOf(wallet)` | View | Get URI metadata |
+| `isRegistered(wallet)` | View | Check if registered |
+| `transferOwnership(newOwner)` | Owner only | Transfer contract ownership |
+
+### Security Features
+- One registration per wallet (`AlreadyRegistered` revert)
+- Zero-address checks on all inputs
+- Custom errors (gas efficient)
+- Events on all state changes
+
+### Integration with Privy Server Wallets
+- Agents get Privy server wallets at passport creation
+- Privy `sendTransaction` with `sponsor: true` → zero gas for agent
+- Agent's own wallet calls `register()` as `msg.sender` (correct identity)
+- `privyWalletId` stored in DB for future on-chain operations
+
+---
+
+## 📊 Full Test Suite
 
 ```
-1. Alice's frontend calls:
-   POST https://app.maiat.io/api/v1/token-check?address=alice
-   
-   Response:
-   {
-     "trustScore": 87,        // Guardian tier
-     "tier": "guardian",
-     "maxAge": 300,
-     "signedScore": "0x...",  // Signed by oracle
-     "signature": "0x...",
-     "timestamp": 1710345000
-   }
+╭────────────────────────┬────────┬────────┬─────────╮
+│ Test Suite             │ Passed │ Failed │ Skipped │
+├────────────────────────┼────────┼────────┼─────────┤
+│ AgentIdentityTest      │ 25     │ 0      │ 0       │
+│ IntegrationTest        │ 14     │ 0      │ 0       │
+│ MaiatEvaluatorFuzzTest │ 5      │ 0      │ 0       │
+│ MaiatEvaluatorTest     │ 37     │ 0      │ 0       │
+│ MaiatPassportTest      │ 28     │ 0      │ 0       │
+│ ScarabTokenTest        │ 33     │ 0      │ 0       │
+│ TrustGateHookTest      │ 50     │ 0      │ 0       │
+│ TrustScoreOracleTest   │ 50     │ 0      │ 0       │
+╰────────────────────────┴────────┴────────┴─────────╯
 
-2. Frontend includes in swap tx:
-   hookData = abi.encode(
-     alice,          // feeTarget
-     87, 1710345000, sig_alice,  // USDC/Maiat data
-     42, 1710345000, sig_eth     // ETH/Maiat data
-   )
-
-3. Alice calls Uniswap router:
-   swap(pool, amount=1000 USDC, hookData)
-
-4. TrustGateHook.beforeSwap():
-   • Recovers signer from signature → oracle address
-   • Checks timestamp: 1710345000 + 5min > now ✓
-   • Checks nonce: not used before ✓
-   • calculates trustTier(87) → GUARDIAN
-   • Returns LPFee = 0 (free swap for Alice!)
-
-5. Alice's swap completes with ZERO trading fee
-   └─ Meanwhile, a new user pays 0.5% fee
-
-✨ Outcome:
-   • Alice (Guardian): USDC/ETH price, 0% fee
-   • Bob (New user): USDC/ETH price, 0.5% fee
-   • Same liquidity pool, different economics
+TOTAL: 242 tests, 0 failures ✅
 ```
 
 ---
 
-## 💡 Why This Matters for Agentic Commerce
+## 🔗 Deployed Contracts (Base Mainnet)
+
+| Contract | Address | Explorer |
+|----------|---------|----------|
+| TrustGateHook | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` | [BaseScan](https://basescan.org/address/0xf980Ad83bCbF2115598f5F555B29752F00b8daFf) |
+| TrustScoreOracle | `0xf662902ca227baba3a4d11a1bc58073e0b0d1139` | [BaseScan](https://basescan.org/address/0xf662902ca227baba3a4d11a1bc58073e0b0d1139) |
+| AgentIdentity (ERC-8004) | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` | [BaseScan](https://basescan.org/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432) |
+| MaiatEvaluator | *Deployed* | Base Mainnet |
+| MaiatOracle | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` | [BaseScan](https://basescan.org/address/0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da) |
+
+---
+
+## 🎬 How It All Works Together
+
+### Example: Agent Commerce Flow
+
+```
+1. IDENTITY — Agent registers via AgentIdentity (ERC-8004)
+   → Gets agentId #42, URI points to Maiat passport
+   → Identity is now on-chain, verifiable
+
+2. SWAP — Agent swaps USDC→ETH through TrustGateHook pool
+   → Hook reads trust score (EIP-712 signed or oracle fallback)
+   → Agent has score 65 → "Verified" tier → 0.1% fee (80% discount!)
+   → Swap executes with dynamic fee
+
+3. JOB — Agent takes an ERC-8183 agentic commerce job
+   → Provider submits deliverable
+   → MaiatEvaluator reads provider score from oracle
+   → Score 65 ≥ threshold 30 → auto-COMPLETE
+   → Provider gets paid, reputation grows
+
+4. FEEDBACK LOOP
+   → Good outcomes → score increases → even lower fees
+   → Bad outcomes / threat reports → score drops → higher fees / rejection
+   → System self-corrects
+```
+
+---
+
+## 💡 Why This Matters
 
 **The Problem:**
-In a world of autonomous agents, how do you trust a counterparty?
-- Can't check "reviews" — agents are new, constantly
-- Can't rely on "established brand" — agents are interchangeable
-- On-chain behavior is your only source of truth
+In agentic commerce, autonomous agents transact with zero human oversight. How do you:
+- Prevent rug pulls in DeFi pools?
+- Ensure job quality without human reviewers?
+- Reward good behavior economically?
 
-**The Solution:**
-TrustFeeHook proves Maiat's trust signal **actually works**:
-- Agents with verifiable good histories get better economics
-- Bad actors can't hide behind anonymity
-- The hook is the enforcement mechanism
+**Maiat's Answer: Three-Layer Trust**
 
-**Real Use Case:**
-```
-DEX Aggregator Agent:
-  1. Queries Maiat: "Which swappers are trustworthy?"
-  2. Routes through TrustFeeHook pools
-  3. Gets better prices for good-actor users
-  4. Builds own reputation by consistently executing well
-  5. Over time, becomes Guardian tier itself
-```
+| Layer | Contract | When | What |
+|-------|----------|------|------|
+| Identity | AgentIdentity | Registration | Who is this agent? |
+| Gate | TrustGateHook | During swap | Should this swap happen? What fee? |
+| Quality | MaiatEvaluator | After job | Was the work good enough to pay? |
+
+**Result:** Trust becomes composable infrastructure. Any protocol can plug in Maiat's trust layer and get:
+- Reputation-based economics (hooks)
+- Quality assurance (evaluator)
+- Identity verification (registry)
 
 ---
 
-## 📈 Metrics & Benchmarks
+## 📈 Gas Efficiency
 
-**Gas Efficiency (Mode 1, signed scores):**
-```
-beforeSwap() execution:
-  • Signature verification (ecrecover): ~3,000 gas
-  • Fee calculation: ~200 gas
-  • Oracle lookup: 0 gas (off-chain)
-  ────────────────────────────────
-  Total: ~3,200 gas (vs. standard hook ~2,000)
-
-Overhead: ~1,200 gas per swap
-Cost at gas=50 gwei: ~$0.06 per swap (minimal)
-```
-
-**Signature Validity Window:**
-```
-SIGNED_SCORE_MAX_AGE = 5 minutes
-→ Covers typical user flow (quote → approval → swap)
-→ Prevents long-lived replay attacks
-→ Refreshes every 5 min for repeating traders
-```
-
-**Fee Tiers (Tested to Boundary):**
-```
-Score ranges (tested with 256 runs each):
-  ✓ 0-9:     0.5% fee
-  ✓ 10-49:   0.3% fee
-  ✓ 50-199:  0.1% fee
-  ✓ 200+:    0.0% fee (no LP fee!)
-```
-
----
-
-## 🔗 Integration Points
-
-**For Liquidity Providers:**
-```solidity
-// Create a TrustGated pool:
-PoolKey key = PoolKey(
-  Currency.wrap(address(USDC)),
-  Currency.wrap(address(ETH)),
-  100,        // lpFee: 0.01%
-  4000,       // tick spacing
-  IHooks(trustFeeHook)  // <-- This hook handles dynamic fees
-);
-
-// Deploy via PoolManager
-poolManager.initialize(key, sqrtPriceX96);
-// ✓ All swaps automatically get reputation-based fees
-```
-
-**For Swappers (Off-Chain):**
-```javascript
-// 1. Get trust score from Maiat
-const score = await fetch('https://app.maiat.io/api/v1/token-check', {
-  address: userAddress
-});
-
-// 2. Build hookData with signed score
-const hookData = encodeAbiParameters(
-  [{ type: 'address' }, { type: 'uint256' }, /* ... */],
-  [userAddress, score.trustScore, /* ... */]
-);
-
-// 3. Execute swap with hookData
-await routerContract.swap(poolKey, params, hookData);
-```
-
-**For DAOs/Protocols:**
-```
-• Deploy TrustGateHook to your own pools
-• Control threshold and signer (multi-sig recommended)
-• Customize fee tiers if needed
-• Monitor swaps via event logs
-```
+| Operation | Gas | Cost @ 50 gwei |
+|-----------|-----|----------------|
+| `register()` (AgentIdentity) | ~45K | ~$0.10 |
+| `beforeSwap()` Mode 1 (signed) | ~3.2K | ~$0.06 |
+| `beforeSwap()` Mode 2 (oracle) | ~8K | ~$0.15 |
+| `evaluate()` (MaiatEvaluator) | ~35K | ~$0.08 |
 
 ---
 
@@ -326,106 +262,78 @@ await routerContract.swap(poolKey, params, hookData);
 ```
 maiat-protocol/contracts/
 ├─ src/
-│  ├─ TrustGateHook.sol           (Main hook, 445 lines)
-│  ├─ base/BaseHook.sol           (Uniswap v4 base)
-│  ├─ TrustScoreOracle.sol        (Fallback oracle)
-│  ├─ MaiatOracle.sol             (Signature verification oracle)
-│  ├─ MaiatEvaluator.sol          (ERC-8183 quality attestation)
-│  └─ ScarabToken.sol             (Utility token)
+│  ├─ TrustGateHook.sol        — Uniswap V4 hook (445 lines)
+│  ├─ TrustScoreOracle.sol     — Shared reputation oracle (276 lines)
+│  ├─ MaiatEvaluator.sol       — ERC-8183 evaluator (280 lines)
+│  ├─ AgentIdentity.sol        — ERC-8004 identity (95 lines)
+│  ├─ MaiatPassport.sol        — SBT passport
+│  ├─ ScarabToken.sol          — Utility token
+│  └─ base/BaseHook.sol        — Uniswap V4 base
 │
 ├─ test/
-│  ├─ TrustGateHook.t.sol         (50 tests)
-│  ├─ TrustScoreOracle.t.sol      (50 tests)
-│  ├─ MaiatEvaluator.t.sol        (28 tests)
-│  ├─ MaiatEvaluator.fuzz.t.sol   (fuzzing)
-│  ├─ Integration.t.sol            (E2E flows)
-│  └─ ScarabToken.t.sol            (33 tests)
+│  ├─ TrustGateHook.t.sol      — 50 tests
+│  ├─ TrustScoreOracle.t.sol   — 50 tests
+│  ├─ MaiatEvaluator.t.sol     — 37 tests
+│  ├─ MaiatEvaluator.fuzz.t.sol — 5 fuzz tests
+│  ├─ AgentIdentity.t.sol      — 25 tests
+│  ├─ Integration.t.sol        — 14 E2E tests
+│  ├─ MaiatPassport.t.sol      — 28 tests
+│  └─ ScarabToken.t.sol        — 33 tests
 │
 └─ script/
-   ├─ Deploy.s.sol                (Deploy to testnet/mainnet)
-   ├─ SeedScores.s.sol            (Populate oracle)
-   └─ Interact.s.sol              (Call hook, inspect state)
-
-SUMMARY: 211 tests, 0 failures ✅
+   ├─ Deploy.s.sol
+   ├─ DeployAgentIdentity.s.sol
+   ├─ SeedScores.s.sol
+   └─ Interact.s.sol
 ```
 
 ---
 
-## 🎬 Demo / Reproduction Steps
-
-### On Base Sepolia Testnet:
+## 🚀 Reproduction
 
 ```bash
-# 1. Clone repo
+# Clone
 git clone https://github.com/JhiNResH/maiat-protocol.git
 cd maiat-protocol/contracts
 
-# 2. Run tests (should pass all 211)
+# Install deps
+forge install
+
+# Run all tests (242 pass)
 forge test
 
-# 3. Deploy to testnet (requires .env)
-forge script script/Deploy.s.sol --rpc-url $BASE_SEPOLIA_RPC --broadcast
+# Run specific suites
+forge test --match-contract TrustGateHookTest -vvv
+forge test --match-contract MaiatEvaluatorTest -vvv
+forge test --match-contract AgentIdentityTest -vvv
 
-# 4. Seed oracle with test scores
-forge script script/SeedScores.s.sol --rpc-url $BASE_SEPOLIA_RPC --broadcast
-
-# 5. Interact with hook (read scores, execute swap)
-cast call <TrustGateHook> "trustThreshold()" --rpc-url $BASE_SEPOLIA_RPC
-```
-
-### Live on Base Mainnet:
-
-```
-TrustGateHook: 0xf980Ad83bCbF2115598f5F555B29752F00b8daFf
-TrustScoreOracle: 0xf662902ca227baba3a4d11a1bc58073e0b0d1139
-MaiatOracle: 0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da
-
-Explorer:
-https://basescan.org/address/0xf980Ad83bCbF2115598f5F555B29752F00b8daFf
+# Deploy (requires .env with PRIVATE_KEY + RPC)
+forge script script/Deploy.s.sol --rpc-url $BASE_RPC --broadcast
 ```
 
 ---
 
-## 🏆 Why TrustFeeHook Wins the Hookathon
+## 🏆 What's New in Update #2
 
-| Criteria | TrustFeeHook | Typical Hooks |
-|----------|--------------|---------------|
-| **Innovation** | First reputation-based dynamic fees | Fee bumps, LVR mitigation |
-| **Real-world use** | Agentic commerce infrastructure | Experimental |
-| **Security** | 211 tests, production deployed | Testing varies |
-| **Gas efficiency** | ~3.2K gas (Mode 1, zero oracle) | ~2K base |
-| **Dual-mode** | Signed scores + oracle fallback | Single approach |
-| **Audit-ready** | Full NatSpec, timelock, pause | Varies |
-| **Economics** | Incentivizes good actors | Neutral |
-
----
-
-## ✨ Vision: The Future with TrustFeeHook
-
-> **Year 1:** TrustFeeHook as proof of concept
-> - Deploy to 10-20 major pools (USDC/ETH, WETH/ARB, etc.)
-> - Reputation becomes tangible (lower fees for good actors)
-> - $500K-$1M TVL gated by trust scores
-
-> **Year 2:** Hook becomes DEX standard
-> - Major aggregators route through TrustGated pools
-> - Agents choose pools based on fee structure
-> - Multi-chain deployment (Arbitrum, Optimism, Ethereum)
-
-> **Year 3:** Trust is composable
-> - ERC-8183 Evaluator attests quality at every level
-> - Reputation cascades (agent → provider → pool)
-> - Agentic commerce runs entirely on reputation infrastructure
+| Feature | Update #1 (Mar 13) | Update #2 (Mar 17) |
+|---------|--------------------|--------------------|
+| TrustGateHook | ✅ Core hook | ✅ Unchanged |
+| MaiatEvaluator | ❌ Not included | ✅ ERC-8183 evaluator |
+| AgentIdentity | ❌ Not included | ✅ ERC-8004 registry |
+| Privy Integration | ❌ Admin key | ✅ Server wallet + sponsor |
+| Test Count | 211 | **242** |
+| Architecture | Single hook | **Three-layer trust system** |
 
 ---
 
-## 📞 Contact & Support
+## 📞 Contact
 
 **GitHub:** https://github.com/JhiNResH/maiat-protocol  
-**Docs:** https://app.maiat.io/docs  
 **Live App:** https://app.maiat.io  
-**Email:** security@maiat.xyz
+**Docs:** https://app.maiat.io/docs  
+**Security:** security@maiat.xyz
 
 ---
 
-**Submitted:** March 13, 2026 (6 days before deadline)
+*First submitted: March 13, 2026*  
+*Update #2: March 17, 2026 — Added ERC-8183 MaiatEvaluator + ERC-8004 AgentIdentity + Privy gas sponsorship*

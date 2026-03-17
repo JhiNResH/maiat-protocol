@@ -17,7 +17,7 @@ pragma solidity 0.8.26;
  * - agentId auto-increment on real state
  */
 
-import {Test, console2} from "forge-std/Test.sol";
+import {Test, console2, Vm} from "forge-std/Test.sol";
 
 // ─── Minimal ERC-8004 Interface ───────────────────────────────────────────────
 
