@@ -262,6 +262,20 @@ npm run dev
 
 ---
 
+## Contributing
+
+Pull requests are welcome. For major changes, open an issue first.
+
+We use [Conventional Commits](https://www.conventionalcommits.org/) and squash-merge all PRs.
+
+## Contributors
+
+Thanks to everyone who has contributed to Maiat Protocol:
+
+[![Contributors](https://contrib.rocks/image?repo=JhiNResH/maiat-protocol)](https://github.com/JhiNResH/maiat-protocol/graphs/contributors)
+
+---
+
 ## License
 
 MIT
