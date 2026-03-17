@@ -259,16 +259,54 @@ const IDENTITY_REGISTRY_WRITE_ABI = [
 ] as const
 
 /**
+ * Poll Privy transaction status until hash is available.
+ * Sponsored txs are async — hash is not immediately returned.
+ */
+async function pollPrivyTxHash(
+  transactionId: string,
+  walletId: string,
+  maxAttempts = 20,
+  intervalMs = 2000,
+): Promise<string | null> {
+  const appId = process.env.PRIVY_APP_ID!
+  const appSecret = process.env.PRIVY_APP_SECRET!
+  const auth = Buffer.from(`${appId}:${appSecret}`).toString('base64')
+
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const res = await fetch(`https://api.privy.io/v1/transactions/${transactionId}`, {
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'privy-app-id': appId,
+        },
+      })
+      if (res.ok) {
+        const data = await res.json() as { transaction_hash?: string; status?: string }
+        if (data.transaction_hash) {
+          return data.transaction_hash
+        }
+        if (data.status === 'failed') {
+          console.error(`[erc8004] Sponsored tx ${transactionId} failed`)
+          return null
+        }
+      }
+    } catch {}
+    await new Promise(r => setTimeout(r, intervalMs))
+  }
+  console.warn(`[erc8004] Timed out polling tx ${transactionId}`)
+  return null
+}
+
+/**
  * Register an agent in the official ERC-8004 IdentityRegistry.
- * Uses Privy server wallet — admin funds gas, then Privy sends the tx
- * so agent's own wallet is msg.sender (correct on-chain identity).
+ * Uses Privy server wallet with gas sponsorship (async — polls for hash).
  * Returns the new agentId on success, or null if already registered.
  */
 export async function registerAgent(
   walletAddress: string,
   privyWalletId?: string,
 ): Promise<bigint | null> {
-  const { getAddress, encodeFunctionData, parseEther } = await import('viem')
+  const { getAddress, encodeFunctionData } = await import('viem')
   const { base: baseChain } = await import('viem/chains')
 
   const checksummedAddress = getAddress(walletAddress)
@@ -287,29 +325,39 @@ export async function registerAgent(
   })
 
   try {
-    const { PrivyClient } = await import('@privy-io/server-auth')
-    const privy = new PrivyClient(
-      process.env.PRIVY_APP_ID!,
-      process.env.PRIVY_APP_SECRET!,
-    )
-
-    // Privy sends tx as agent's wallet (wallet must have ETH for gas)
-    // NOTE: sponsor:true returns empty hash for contract calls — disabled
-    const { hash: txHash } = await privy.walletApi.ethereum.sendTransaction({
-      walletId: privyWalletId,
-      caip2: 'eip155:8453', // Base mainnet
-      transaction: {
-        to: IDENTITY_REGISTRY,
-        data: calldata,
-      },
+    const { PrivyClient } = await import('@privy-io/node')
+    const privy = new PrivyClient({
+      appId: process.env.PRIVY_APP_ID!,
+      appSecret: process.env.PRIVY_APP_SECRET!,
     })
 
-    if (!txHash) {
-      console.warn(`[erc8004] Privy returned empty tx hash for ${checksummedAddress}`)
-      return null
+    // Privy sends sponsored tx (gas paid by Privy paymaster, zero cost)
+    // Hash is async — returned via transaction_id polling
+    const result = await privy.wallets().ethereum().sendTransaction(privyWalletId, {
+      caip2: 'eip155:8453', // Base mainnet
+      params: {
+        transaction: {
+          to: IDENTITY_REGISTRY,
+          data: calldata,
+        },
+      },
+      sponsor: true,
+    })
+
+    const txId = result.transaction_id
+    let txHash = result.hash
+
+    if (!txHash && txId) {
+      console.log(`[erc8004] Sponsored tx queued (${txId}), polling for hash...`)
+      txHash = await pollPrivyTxHash(txId, privyWalletId) ?? undefined
     }
 
-    console.log(`[erc8004] ✅ register tx sent via Privy: ${txHash} for ${checksummedAddress}`)
+    if (!txHash) {
+      console.warn(`[erc8004] No tx hash for ${checksummedAddress} (txId: ${txId})`)
+      return BigInt(-1) // Mark as pending for retry
+    }
+
+    console.log(`[erc8004] ✅ register tx confirmed: ${txHash} for ${checksummedAddress}`)
 
     // Wait for receipt and extract agentId from Registered event
     const publicClient = createPublicClient({ chain: baseChain, transport: http(RPC_URLS[0]) })
