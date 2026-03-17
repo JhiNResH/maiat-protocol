@@ -296,7 +296,27 @@ export async function registerAgent(walletAddress: string): Promise<bigint | nul
     })
 
     console.log(`[erc8004] ✅ register tx sent: ${txHash} for ${checksummedAddress}`)
-    return BigInt(-1) // -1 = tx sent, agentId pending confirmation
+
+    // Wait for receipt and extract agentId from Registered event
+    const publicClient = createPublicClient({ chain: baseChain, transport: http(RPC_URLS[0]) })
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash, timeout: 15000 })
+
+    for (const log of receipt.logs) {
+      try {
+        const decoded = publicClient.decodeEventLog({
+          abi: [registeredEvent],
+          data: log.data,
+          topics: log.topics,
+        }) as { agentId: bigint }
+        if (decoded?.agentId !== undefined) {
+          agentIdCache.set(checksummedAddress.toLowerCase(), decoded.agentId)
+          console.log(`[erc8004] ✅ agentId from receipt: ${decoded.agentId}`)
+          return decoded.agentId
+        }
+      } catch {}
+    }
+
+    return BigInt(-1) // tx confirmed but couldn't parse agentId
   } catch (txErr: any) {
     const errMsg = txErr.shortMessage || txErr.message || ''
     // "already registered" or gas estimation revert = already on-chain, not a real error
