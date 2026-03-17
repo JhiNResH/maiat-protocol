@@ -9,18 +9,23 @@ export async function GET(req: NextRequest) {
     const name = searchParams.get('name') || 'anonymous'
     const score = parseInt(searchParams.get('score') || '0', 10)
     const type = searchParams.get('type') || 'human'
+    const shape = searchParams.get('shape') || 'og' // og=1200x630, square=500x500
+
+    const isSquare = shape === 'square'
+    const width = isSquare ? 500 : 1200
+    const height = isSquare ? 500 : 630
 
     const scoreColor = score >= 80 ? '#10b981' : score >= 50 ? '#eab308' : '#ef4444'
     const verdict = score >= 80 ? 'Trusted' : score >= 50 ? 'Caution' : 'Risky'
-
-    // Maiat logo 64x64 inlined
-    const logoBase64 = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAYABgAAD/4QCARXhpZgAATU0AKgAAAAgABAEaAAUAAAABAAAAPgEbAAUAAAABAAAARgEoAAMAAAABAAIAAIdpAAQAAAABAAAATgAAAAAAAABgAAAAAQAAAGAAAAABAAOgAQADAAAAAQABAACgAgAEAAAAAQAAAECgAwAEAAAAAQAAAEAAAAAA/+0AOFBob3Rvc2hvcCAzLjAAOEJJTQQEAAAAAAAAOEJJTQQlAAAAAAAQ1B2M2Y8AsgTpgAmY7PhCfv/CABEIAEAAQAMBIgACEQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAADAgQBBQAGBwgJCgv/xADDEAABAwMCBAMEBgQHBgQIBnMBAgADEQQSIQUxEyIQBkFRMhRhcSMHgSCRQhWhUjOxJGIwFsFy0UOSNIII4VNAJWMXNfCTc6JQRLKD8SZUNmSUdMJg0oSjGHDiJ0U3ZbNVdaSVw4Xy00Z2gONHVma0CQoZGigpKjg5OkhJSldYWVpnaGlqd3h5eoaHiImKkJaXmJmaoKWmp6ipqrC1tre4ubrAxMXGx8jJytDU1dbX2Nna4OTl5ufo6erz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAECAAMEBQYHCAkKC//EAMMRAAICAQMDAwIDBQIFAgQEhwEAAhEDEBIhBCAxQRMFMCIyURRABjMjYUIVcVI0gVAkkaFDsRYHYjVT8NElYMFE4XLxF4JjNnAmRVSSJ6LSCAkKGBkaKCkqNzg5OkZHSElKVVZXWFlaZGVmZ2hpanN0dXZ3eHl6gIOEhYaHiImKkJOUlZaXmJmaoKOkpaanqKmqsLKztLW2t7i5usDCw8TFxsfIycrQ09TV1tfY2drg4uPk5ebn6Onq8vP09fb3+Pn6/9sAQwACAgICAgIDAgIDBQMDAwUGBQUFBQYIBgYGBgYICggICAgICAoKCgoKCgoKDAwMDAwMDg4ODg4PDw8PDw8PDw8P/9sAQwECAgIEBAQHBAQHEAsJCxAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ/9oADAMBAAIRAxEAAAH8/wDbVs/YKu2clm2sa6tssj1ut9y9l+a6PkbvPUr3Xp8Y+Uf0E+KO3Cl+gvCvoMox9M5Xn+Pt9GR5RFhwHnhg+1y7baLttW21bbV//9oACAEBAAEFAv5qK2mnHbkzcqS0uoYe/hbD3v3CffD4Z8NQ3+6q8T7VZq8VKvrzw32FHt+12vhy1ube1Flb+/blHMmHZEXtps0tvvk+2XG5WdpPf3SPBW02saI/EPhu73S0st6u7vcv0FtFztniBe7+JhuMG6var07duV99YXKNl42sL+3/AKUeH9rMPiLZty2+48X2NnBJIuVf+of/2gAIAQMRAT8BRME0NK0j8dGJsnljjAG6LnIlUg4yPVqO01Lz/vH+H/Yf7Rhs8y9WcrNnt//aAAgBAhEBPwFEh40B0lnrKcmNl1kpfii/HZbjT1pzWBiamZWY8/7x/mf0xuhHlxQ2xA7f/9oACAEBAAY/Av5pRjTXEV78/BXLJplTSvzcdxNCpEcvsKIoFfL7igevlpJ0HrTg1+6QK97i9oAaLHr8C5rDe0ywGJGWA0JPzLtdm2m2N1t9CJI19RUVH09Xz7+2NpypwYY1UBEVMfZ76irski1Vf7huRTSQCsaEnyHkfi+VdzrsLaJPVyKRJKh6U1P8Djmgm902skYmUkyTJHy1CWbvbtsKir/SED/gyf8AQf6Q8Q2qYfPBci8j/k1/hcsm0Qe72umKa1cVlbDKWZQSkfEvmbluK1FHtpgjqB/lH0+ThT4enXf2N1rHjwV6gjyLsLPxBcLguZ0ryjiUk9Q9mvkPR2KtpmlKedyKT+idDw9ODnVY7nHaW0q8owDmo14gJFS5rTcLn3lUZ9ocD2tr4f3lYU1R7RbpRr7fm1W+55WSyPbg6a/ZwZXtVl7xP5TT9a/18PsD938SRyySiZc1Y1Y1K/sLVB4es+QpScTNIcpKfNmSQ5KVxP8AqL//xAAzEAEAAwACAgICAgMBAQAAAgsBEQAhMUFRYXGBkaGxwfDREOHxIDBAUGBwgJCgsMDQ4P/aAAgBAQABPyH/APKY9OZ2hzHmO/8AqRZMM0xydJs+D5OF5PP/AODaYQ2nd7ORST+eZgMcM8vT82IpIO8EIIEd2Ffx5nYhyOJN4qJU8VEUSkBYiPD/ANYnkGeqZMZLUTGn+OKsUqfbAhnO+3u6lAcO4gintc6p+79weOZT79tqkeRgk2Yd/NImSCrga75bu7JIH2UpzGjyY5vKKbXcZXwHMfnxQcsZoD3tzAz424M6YCF4YxLgl4ZolzIEAZxgvpCNTdx1/wA/qQ4d/VIymWGXnXYfqvrHM/JsJ/ZPzU4x7U3SMCiOEN7xP4Pq6r2o/Ykv6ioPVKcq/wD6F//aAAwDAQACEQMRAAAQAGHBBhwgCGEBAAAA/8QAMxEBAQEAAwABAgUFAQEAAQEJAQARITEQQVFhIHHwkYGhsdHB4fEwQFBgcICQoLDA0OD/2gAIAQMRAT8Qmicnf2glHctwC4VOe+HfocHOHOfPGpVQ55QF+xz/AJeTrjQOEJ9M375xx8fw/PEUcG/Vev4B39zIDOwG6nAPGH3dmDQUcZhvX9Dz+Wc/1wlZN/P8P//aAAgBAhEBPxCUoeTuUIHkZnHLuY/QF3T6P+FxJQ2N+NePjXB/Tj8zcH7/ADx++P8AQ+xk7ez5w/24H9/oNgpD3g8vwr/du9m/IElOnVNPjnXj9o8EM+hh+H//2gAIAQEAAT8Q/wDyoyzgaYM+FEGhvFRGEhP+JrORlCMJARSZJpiLQ8ckwEnp/wDwZPD2KFPKERQTtjluzzSy4LQYiaLs6l7pgMbGBJTg9PdKfJz0oA2gAQAWNBxXgCGTBROJOv8A2EyINJLznPxQEAC1FNB9hCWQpftqU9fwTiHlhTuL2PQQoVwVMM0ZMuR1kxhqgRo4UlYhAfAJh0YqdHNkrM0SZO1CZDx4cCoukGMErA7V4LA/Ri0wpiTkgwxm2cWejEcETkIKmUUuiKiK0gJ2BSnKlM2xul0ER0Aum0GlnoxQUCxDiDg0RkLBMhiS6RJE/wCDGqyGqKH3KzA00WsjVpyRI6pvpJEAy0SuflcLvbdcCEDiPQx5eaejLD6WXgmARkuVo7Q+KFkwHxB66qeVsyhKr/8AoX//2Q=='
+    const verdictBg = score >= 80 ? 'rgba(16,185,129,0.12)' : score >= 50 ? 'rgba(234,179,8,0.12)' : 'rgba(239,68,68,0.12)'
+    const verdictBorder = score >= 80 ? 'rgba(16,185,129,0.25)' : score >= 50 ? 'rgba(234,179,8,0.25)' : 'rgba(239,68,68,0.25)'
 
     // Score arc
     const pct = score / 100
-    const r = 56
-    const cx = 64
-    const cy = 64
+    const r = isSquare ? 44 : 56
+    const cx = isSquare ? 52 : 64
+    const cy = isSquare ? 52 : 64
+    const svgSize = isSquare ? 104 : 128
     const startAngle = -Math.PI / 2
     const endAngle = startAngle + 2 * Math.PI * pct
     const x2 = cx + r * Math.cos(endAngle)
@@ -28,22 +33,148 @@ export async function GET(req: NextRequest) {
     const largeArc = pct > 0.5 ? 1 : 0
     const arcPath = `M ${cx} ${cy - r} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`
 
+    if (isSquare) {
+      // ─── Square Card (500x500) ─── Maiat liquid-glass dark style
+      return new ImageResponse(
+        (
+          <div style={{
+            width: '500px', height: '500px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#0A0A0A',
+            fontFamily: 'Inter, sans-serif',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            {/* Atmosphere gradients (simulated — no blur in Satori) */}
+            <div style={{
+              position: 'absolute', top: '-80px', right: '-40px',
+              width: '320px', height: '320px', borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)',
+              display: 'flex', opacity: 0.8,
+            }} />
+            <div style={{
+              position: 'absolute', bottom: '-100px', left: '-40px',
+              width: '300px', height: '300px', borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 65%)',
+              display: 'flex', opacity: 0.8,
+            }} />
+
+            {/* Glass card */}
+            <div style={{
+              width: '460px', height: '460px', borderRadius: '40px',
+              background: 'rgba(20, 20, 20, 0.6)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 0 60px rgba(0,0,0,0.4), inset 0 0 30px rgba(255,255,255,0.02)',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              position: 'relative',
+            }}>
+              {/* Content */}
+              <div style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: '20px',
+              }}>
+                {/* Trust gauge */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative', width: `${svgSize}px`, height: `${svgSize}px`,
+                }}>
+                  <svg width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
+                    <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2.5" />
+                    <path d={arcPath} fill="none" stroke={scoreColor} strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                  <div style={{
+                    position: 'absolute', top: '0', left: '0', right: '0', bottom: '0',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ fontSize: '32px', fontWeight: 900, color: scoreColor, lineHeight: 1 }}>
+                      {score}
+                    </span>
+                    <span style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.2)', marginTop: '2px' }}>
+                      /100
+                    </span>
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div style={{
+                  fontSize: '30px', fontWeight: 900, letterSpacing: '-0.04em',
+                  lineHeight: 1, color: '#ffffff', display: 'flex',
+                }}>
+                  {name}.maiat.eth
+                </div>
+
+                {/* Badges */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {/* Trust */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '5px',
+                    background: verdictBg, border: `1px solid ${verdictBorder}`,
+                    borderRadius: '16px', padding: '5px 14px',
+                  }}>
+                    <div style={{
+                      width: '5px', height: '5px', borderRadius: '50%',
+                      background: scoreColor, display: 'flex',
+                    }} />
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: scoreColor }}>
+                      {verdict}
+                    </span>
+                  </div>
+
+                  {/* Type */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                    background: 'rgba(212,160,23,0.08)',
+                    border: '1px solid rgba(212,160,23,0.15)',
+                    borderRadius: '16px', padding: '5px 14px',
+                  }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#d4a017' }}>
+                      {type === 'agent' ? '🤖 Agent' : '👤 Human'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom bar */}
+              <div style={{
+                position: 'absolute', bottom: '20px',
+                display: 'flex', alignItems: 'center', gap: '10px',
+              }}>
+                <span style={{
+                  fontSize: '7px', fontWeight: 700, textTransform: 'uppercase' as const,
+                  letterSpacing: '0.25em', color: 'rgba(255,255,255,0.12)',
+                }}>
+                  Maiat Protocol
+                </span>
+                <div style={{
+                  width: '2px', height: '2px', borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.08)', display: 'flex',
+                }} />
+                <span style={{
+                  fontSize: '7px', fontWeight: 700, textTransform: 'uppercase' as const,
+                  letterSpacing: '0.2em', color: 'rgba(255,255,255,0.08)',
+                }}>
+                  Base · ACP
+                </span>
+              </div>
+            </div>
+          </div>
+        ),
+        { width, height },
+      )
+    }
+
+    // ─── OG Rectangle (1200x630) ─── Light mode, atmosphere style
     return new ImageResponse(
       (
-        <div
-          style={{
-            width: '1200px',
-            height: '630px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: '#FDFDFB',
-            fontFamily: 'Inter, sans-serif',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Subtle atmosphere */}
+        <div style={{
+          width: '1200px', height: '630px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#FDFDFB',
+          fontFamily: 'Inter, sans-serif',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          {/* Atmosphere */}
           <div style={{
             position: 'absolute', top: '-100px', right: '100px',
             width: '500px', height: '500px', borderRadius: '50%',
@@ -57,150 +188,84 @@ export async function GET(req: NextRequest) {
             display: 'flex',
           }} />
 
-          {/* White card */}
+          {/* Glass card */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '48px',
-            background: 'rgba(255, 255, 255, 0.85)',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
-            borderRadius: '32px',
-            padding: '48px 64px',
+            display: 'flex', alignItems: 'center', gap: '48px',
+            background: 'rgba(255,255,255,0.85)',
+            border: '1px solid rgba(0,0,0,0.06)',
+            borderRadius: '32px', padding: '48px 64px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.02)',
           }}>
             {/* Trust gauge */}
             <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              position: 'relative',
-              width: '128px',
-              height: '128px',
-              flexShrink: 0,
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              position: 'relative', width: '128px', height: '128px', flexShrink: 0,
             }}>
               <svg width="128" height="128" viewBox="0 0 128 128">
                 <circle cx="64" cy="64" r="56" fill="none" stroke="rgba(0,0,0,0.04)" strokeWidth="3" />
                 <path d={arcPath} fill="none" stroke={scoreColor} strokeWidth="3.5" strokeLinecap="round" />
               </svg>
               <div style={{
-                position: 'absolute',
-                top: '0', left: '0', right: '0', bottom: '0',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
+                position: 'absolute', top: '0', left: '0', right: '0', bottom: '0',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{
-                  fontSize: '40px',
-                  fontWeight: 900,
-                  color: scoreColor,
-                  lineHeight: 1,
-                }}>{score}</span>
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: 'rgba(0,0,0,0.2)',
-                  marginTop: '2px',
-                }}>/100</span>
+                <span style={{ fontSize: '40px', fontWeight: 900, color: scoreColor, lineHeight: 1 }}>
+                  {score}
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(0,0,0,0.2)', marginTop: '2px' }}>
+                  /100
+                </span>
               </div>
             </div>
 
-            {/* Right side: Logo + Name + Badges */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-            }}>
-              {/* Logo */}
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                marginBottom: '16px',
-                border: '1px solid rgba(0,0,0,0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <img
-                  src={logoBase64}
-                  width={48}
-                  height={48}
-                  style={{ objectFit: 'cover' }}
-                />
-              </div>
-
+            {/* Right side */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
               {/* Name */}
               <div style={{
-                fontSize: '48px',
-                fontWeight: 900,
-                letterSpacing: '-0.04em',
-                lineHeight: 1.1,
-                color: '#000000',
-                marginBottom: '20px',
-                display: 'flex',
+                fontSize: '48px', fontWeight: 900, letterSpacing: '-0.04em',
+                lineHeight: 1.1, color: '#000000', marginBottom: '20px', display: 'flex',
               }}>
                 {name}.maiat.eth
               </div>
 
               {/* Badges */}
-              <div style={{
-                display: 'flex',
-                gap: '10px',
-                alignItems: 'center',
-              }}>
-                {/* Trust badge */}
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                {/* Trust */}
                 <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: score >= 80 ? 'rgba(16,185,129,0.08)' : score >= 50 ? 'rgba(234,179,8,0.08)' : 'rgba(239,68,68,0.08)',
-                  border: `1px solid ${score >= 80 ? 'rgba(16,185,129,0.2)' : score >= 50 ? 'rgba(234,179,8,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                  borderRadius: '20px',
-                  padding: '8px 18px',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  background: verdictBg, border: `1px solid ${verdictBorder}`,
+                  borderRadius: '20px', padding: '8px 18px',
                 }}>
                   <div style={{
                     width: '7px', height: '7px', borderRadius: '50%',
                     background: scoreColor, display: 'flex',
                   }} />
-                  <span style={{
-                    fontSize: '14px', fontWeight: 700, color: scoreColor,
-                  }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: scoreColor }}>
                     {verdict}
                   </span>
                 </div>
 
                 {/* Verified */}
                 <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
+                  display: 'flex', alignItems: 'center', gap: '6px',
                   background: 'rgba(59,130,246,0.06)',
                   border: '1px solid rgba(59,130,246,0.12)',
-                  borderRadius: '20px',
-                  padding: '8px 18px',
+                  borderRadius: '20px', padding: '8px 18px',
                 }}>
-                  <span style={{
-                    fontSize: '14px', fontWeight: 700, color: '#3b82f6',
-                  }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#3b82f6' }}>
                     ✓ Verified on ENS
                   </span>
                 </div>
 
                 {/* Type */}
                 <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
+                  display: 'flex', alignItems: 'center', gap: '5px',
                   background: 'rgba(212,160,23,0.06)',
                   border: '1px solid rgba(212,160,23,0.1)',
-                  borderRadius: '20px',
-                  padding: '8px 18px',
+                  borderRadius: '20px', padding: '8px 18px',
                 }}>
-                  <span style={{
-                    fontSize: '14px', fontWeight: 700, color: '#d4a017',
-                  }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#d4a017' }}>
                     {type === 'agent' ? '🤖 Agent' : '👤 Human'}
                   </span>
                 </div>
@@ -210,45 +275,29 @@ export async function GET(req: NextRequest) {
 
           {/* Bottom bar */}
           <div style={{
-            position: 'absolute',
-            bottom: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '20px',
+            position: 'absolute', bottom: '24px',
+            display: 'flex', alignItems: 'center', gap: '20px',
           }}>
-            <img
-              src={logoBase64}
-              width={16}
-              height={16}
-              style={{ borderRadius: '3px', opacity: 0.3 }}
-            />
             <span style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              color: 'rgba(0,0,0,0.15)',
-              letterSpacing: '0.25em',
+              fontSize: '10px', fontWeight: 700, letterSpacing: '0.25em',
+              color: 'rgba(0,0,0,0.15)', textTransform: 'uppercase' as const,
             }}>
-              MAIAT PASSPORT
+              Maiat Passport
             </span>
             <div style={{
               width: '3px', height: '3px', borderRadius: '50%',
               background: 'rgba(0,0,0,0.08)', display: 'flex',
             }} />
             <span style={{
-              fontSize: '10px',
-              fontWeight: 700,
+              fontSize: '10px', fontWeight: 700, letterSpacing: '0.15em',
               color: 'rgba(0,0,0,0.08)',
-              letterSpacing: '0.15em',
             }}>
               Built on Base · Powered by Virtuals ACP
             </span>
           </div>
         </div>
       ),
-      {
-        width: 1200,
-        height: 630,
-      },
+      { width, height },
     )
   } catch (e: unknown) {
     return new Response(JSON.stringify({ error: String(e), stack: (e as Error)?.stack }), {
