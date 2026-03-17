@@ -14,7 +14,7 @@ import { isAddress } from "viem";
 import { pushSingleScore } from "@/lib/oracle-updater";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120; // Vercel Pro plan
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

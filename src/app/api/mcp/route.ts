@@ -20,7 +20,7 @@ import { z } from "zod";
 import { isAddress } from "viem";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120; // Vercel Pro plan
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://app.maiat.io";
 

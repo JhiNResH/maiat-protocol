@@ -9,7 +9,7 @@ import { buildEnsip25Key } from "@/lib/ensip25";
 import { PrivyClient } from "@privy-io/server-auth";
 
 // Allow up to 30s for on-chain tx (Vercel Pro/Hobby default is 10s)
-export const maxDuration = 55;
+export const maxDuration = 120; // Vercel Pro plan
 
 const rateLimiter = createRateLimiter("passport:register", 10, 60);
 

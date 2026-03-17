@@ -293,40 +293,7 @@ export async function registerAgent(
       process.env.PRIVY_APP_SECRET!,
     )
 
-    // Fund agent wallet with gas from admin wallet
-    const adminKey = (process.env.MAIAT_ADMIN_PRIVATE_KEY || '').trim()
-    if (adminKey) {
-      try {
-        const { createWalletClient, http: viemHttp } = await import('viem')
-        const { privateKeyToAccount } = await import('viem/accounts')
-        const adminAccount = privateKeyToAccount(
-          (adminKey.startsWith('0x') ? adminKey : `0x${adminKey}`) as `0x${string}`,
-        )
-        const adminWallet = createWalletClient({
-          account: adminAccount,
-          chain: baseChain,
-          transport: viemHttp(RPC_URLS[0]),
-        })
-        const publicClient = createPublicClient({ chain: baseChain, transport: http(RPC_URLS[0]) })
-        const balance = await publicClient.getBalance({ address: checksummedAddress })
-        if (balance < parseEther('0.00005')) {
-          const fundTx = await adminWallet.sendTransaction({
-            to: checksummedAddress,
-            value: parseEther('0.0003'),
-          })
-          console.log(`[erc8004] funded ${checksummedAddress} with 0.0003 ETH: ${fundTx}`)
-          await publicClient.waitForTransactionReceipt({ hash: fundTx, timeout: 15000 })
-        }
-      } catch (fundErr: any) {
-        console.warn(`[erc8004] gas funding failed: ${fundErr.message}`)
-        return null
-      }
-    } else {
-      console.log(`[erc8004] no MAIAT_ADMIN_PRIVATE_KEY, skipping on-chain register`)
-      return null
-    }
-
-    // Privy sends tx as agent's wallet (correct msg.sender for ERC-8004)
+    // Privy sends tx as agent's wallet with gas sponsorship (no admin key needed)
     const { hash: txHash } = await privy.walletApi.ethereum.sendTransaction({
       walletId: privyWalletId,
       caip2: 'eip155:8453', // Base mainnet
@@ -334,6 +301,7 @@ export async function registerAgent(
         to: IDENTITY_REGISTRY,
         data: calldata,
       },
+      sponsor: true,
     })
 
     if (!txHash) {
