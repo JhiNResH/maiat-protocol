@@ -163,7 +163,8 @@ export async function GET(
         const isKnown = !!(agent || project);
         const raw = agent?.rawMetrics as Record<string, unknown> | null;
 
-        let hasReviewed = false;
+        // Check TrustReview for projects (uses reviewerId)
+        let hasReviewedProject = false;
         if (user && project) {
           const review = await prisma.review.findFirst({
             where: {
@@ -171,7 +172,19 @@ export async function GET(
               projectId: project.id,
             },
           });
-          hasReviewed = !!review;
+          hasReviewedProject = !!review;
+        }
+
+        // Check TrustReview for agents (uses reviewer wallet address)
+        let hasReviewedAgent = false;
+        if (user && agent) {
+          const trustReview = await prisma.trustReview.findFirst({
+            where: {
+              reviewer: user.address,
+              address: interaction.address,
+            },
+          });
+          hasReviewedAgent = !!trustReview;
         }
 
         if (agent) {
@@ -181,7 +194,7 @@ export async function GET(
             category: (raw?.category as string) || null,
             txCount: interaction.txCount,
             isKnown: true,
-            hasReviewed: false, // TODO: check TrustReview table
+            hasReviewed: hasReviewedAgent,
             trustScore: agent.trustScore,
           };
         }
@@ -193,7 +206,7 @@ export async function GET(
             category: project.category,
             txCount: interaction.txCount,
             isKnown: true,
-            hasReviewed,
+            hasReviewed: hasReviewedProject,
             trustScore: project.trustScore ?? null,
           };
         }
