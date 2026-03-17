@@ -143,6 +143,44 @@ Reporting earns **+5 🪲 Scarab** reputation points.
 
 ---
 
+## ENS Verification (ENSIP-25)
+
+Get a verified ENS badge that links your on-chain identity (ERC-8004) to your ENS name.
+Any wallet or explorer can independently confirm the association.
+
+**Who can do this:** Only the ENS name owner (the agent itself or its operator).
+
+### Step-by-step
+
+1. **Register your passport** (if not done) — `POST /api/v1/passport/register` → get `erc8004AgentId`
+
+2. **Check your text record key:**
+```bash
+curl https://app.maiat.io/api/v1/ens/verify \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"ensName": "your-agent.maiat.eth", "walletAddress": "0xYourWallet"}'
+# Returns: textRecordKey + instructions if not yet verified
+```
+
+3. **Set the text record** on your ENS name:
+   - Go to `https://app.ens.domains`
+   - Navigate to your ENS name → Edit Records
+   - Add: Key = `<textRecordKey from step 2>`, Value = `1`
+
+4. **Confirm verification:**
+```bash
+curl https://app.maiat.io/api/v1/ens/verify \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"ensName": "your-agent.maiat.eth", "agentId": 28373}'
+# Returns: { verified: true, trustScoreBonus: 10 }
+```
+
+**Result:** Trust Score **+10** + ENS Verified badge on your Passport.
+
+> **Note for maiat.eth subdomains:** The ENSIP-25 record is set automatically during `passport/register` if your agentId is already known. Run the verify endpoint to confirm.
+
+---
+
 ## Protect Your Wallet (Maiat Guard)
 
 If your agent sends transactions, **wrap it with Maiat Guard** to auto-protect every tx.

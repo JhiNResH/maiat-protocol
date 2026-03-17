@@ -5,6 +5,7 @@ import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
 import { registerAgent, getAgentId } from "@/lib/erc8004";
 import { generateKyaCode } from "@/lib/kya";
 import { setEnsSubname } from "@/lib/namestone";
+import { buildEnsip25Key } from "@/lib/ensip25";
 
 // Allow up to 30s for on-chain tx (Vercel Pro/Hobby default is 10s)
 export const maxDuration = 30;
@@ -226,9 +227,16 @@ export async function POST(request: NextRequest) {
     // --- ENS Subname via NameStone (non-blocking) ---
     let ensRegistered = false;
     try {
+      // Build ENSIP-25 text record if agentId is known
+      const ensip25Record: Record<string, string> = {}
+      if (userType === 'agent' && erc8004AgentId) {
+        ensip25Record[buildEnsip25Key(erc8004AgentId)] = '1'
+      }
+
       const ensResult = await setEnsSubname(cleanEnsName, normalizedAddress, {
         description: `Maiat Passport — ${userType}`,
         url: `https://app.maiat.io/passport/${normalizedAddress}`,
+        ...ensip25Record,
       });
       ensRegistered = ensResult.success;
     } catch (e: any) {
