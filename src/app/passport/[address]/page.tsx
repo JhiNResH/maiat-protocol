@@ -351,72 +351,7 @@ export default function PassportPage() {
             transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-            {/* Agents You Can Review */}
-            <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">
-                  Agents You Can Review
-                </p>
-                {unreviewedAgents.length > 0 && (
-                  <span className="text-[10px] text-[var(--text-muted)] font-medium border border-[var(--border-color)] px-1.5 py-0.5 rounded">
-                    {unreviewedAgents.length} pending
-                  </span>
-                )}
-              </div>
-
-              {agentsLoading ? (
-                <p className="text-[var(--text-muted)] text-[10px] font-medium animate-pulse py-2">Scanning ACP history…</p>
-              ) : unreviewedAgents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6 gap-2">
-                  <p className="text-[var(--text-muted)] text-[10px] font-medium">No unreviewed agents.</p>
-                  <Link href="/monitor" className="text-[10px] text-emerald-500 font-bold hover:underline">
-                    Explore agents →
-                  </Link>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {visibleAgents.map(agent => {
-                      const score = agent.score != null ? (agent.score / 10).toFixed(1) : '—'
-                      const scoreColor = agent.score == null ? 'text-[var(--text-muted)]' :
-                        agent.score >= 70 ? 'text-emerald-500' :
-                        agent.score >= 40 ? 'text-[#06b6d4]' : 'text-emerald-500'
-
-                      return (
-                        <Link
-                          key={agent.address}
-                          href={`/verify/${agent.address}`}
-                          className="flex items-center gap-2 liquid-glass border border-[var(--border-color)] rounded-lg px-2 py-1.5 hover:border-emerald-500/20 hover:bg-emerald-500/5 transition-all"
-                        >
-                          {agent.logo ? (
-                            <img src={agent.logo} alt={agent.name} className="w-6 h-6 rounded object-cover shrink-0" />
-                          ) : (
-                            <div
-                              className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0"
-                              style={{ background: '#10b98122', color: '#10b981', border: '1px solid #10b98144' }}
-                            >
-                              {agent.name.charAt(0)}
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <p className="text-[var(--text-color)] text-[10px] font-bold truncate">{agent.name}</p>
-                            <p className="text-[var(--text-muted)] text-[9px] font-medium"><span className={scoreColor}>{score}</span></p>
-                          </div>
-                        </Link>
-                      )
-                    })}
-                  </div>
-                  {unreviewedAgents.length > 10 && !showAllAgents && (
-                    <button
-                      onClick={() => setShowAllAgents(true)}
-                      className="mt-3 w-full text-[10px] text-emerald-500 font-bold hover:underline"
-                    >
-                      Show {unreviewedAgents.length - 10} more →
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
+            {/* Agents You Can Review — removed: only agents can review now */}
 
             {/* Market Positions */}
             <MarketPositions address={address} />
