@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         totalJobs: true,
         tokenSymbol: true,
         rawMetrics: true,
-        lastUpdated: true,
+        updatedAt: true,
       },
     })
 
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
         trustScore: a.trustScore,
         completionRate: a.completionRate,
         totalJobs: a.totalJobs,
-        updated_at: a.lastUpdated?.toISOString() || new Date().toISOString(),
+        updated_at: a.updatedAt?.toISOString() || new Date().toISOString(),
         // Mock risk predictions for UI (would come from ML model)
         riskPrediction: {
           '7_days': Math.max(0, a.trustScore - Math.random() * 5),

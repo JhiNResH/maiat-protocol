@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
         totalJobs: true,
         tokenSymbol: true,
         rawMetrics: true,
-        lastUpdated: true,
+        updatedAt: true,
       },
     })
 
