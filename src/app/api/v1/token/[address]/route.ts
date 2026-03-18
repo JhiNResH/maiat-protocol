@@ -37,6 +37,8 @@ const KNOWN_SAFE: Record<string, { symbol: string; name: string }> = {
   "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b": { symbol: "VIRTUAL", name: "Virtual Protocol" },
   // VIRTUAL (Ethereum)
   "0x44ff8620b8cA30902395A7bD3F2407e1A091BF73": { symbol: "VIRTUAL", name: "Virtual Protocol" },
+  // MAIAT (Base) — Maiat Protocol native token (Virtuals ecosystem)
+  "0xf083E21C5e0993429778302C703cD8D052C72E8C": { symbol: "MAIAT", name: "Maiat" },
 };
 
 // ── Prisma (optional — may not be configured) ──────────────────────────────────
@@ -82,6 +84,8 @@ interface DexScreenerData {
   priceChange24h: number | null;
   dex: string | null;
   pairLabel: string | null; // e.g. "v4"
+  quoteTokenAddress: string | null;
+  isVirtualsPair: boolean;
   error?: string;
 }
 
@@ -142,6 +146,16 @@ async function checkHoneypot(address: string): Promise<HoneypotResult> {
   }
 }
 
+// ── Virtuals Protocol Detection ────────────────────────────────────────────────
+// Virtuals bonding curve tokens use a custom router — honeypot.is tax data is
+// unreliable (shows 100% buy / 99% sell). Detect via DexScreener pair data:
+// if quote token is VIRTUAL, it's a Virtuals ecosystem token.
+
+const VIRTUAL_TOKEN_ADDRESSES = new Set([
+  "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b", // VIRTUAL (Base)
+  "0x44ff8620b8ca30902395a7bd3f2407e1a091bf73", // VIRTUAL (Ethereum)
+]);
+
 // ── DexScreener API ────────────────────────────────────────────────────────────
 
 async function getDexScreenerData(address: string): Promise<DexScreenerData> {
@@ -152,14 +166,14 @@ async function getDexScreenerData(address: string): Promise<DexScreenerData> {
     );
 
     if (!res.ok) {
-      return { sells24h: 0, buys24h: 0, volume24h: 0, liquidity: 0, priceChange24h: null, dex: null, pairLabel: null, error: `DexScreener returned ${res.status}` };
+      return { sells24h: 0, buys24h: 0, volume24h: 0, liquidity: 0, priceChange24h: null, dex: null, pairLabel: null, quoteTokenAddress: null, isVirtualsPair: false, error: `DexScreener returned ${res.status}` };
     }
 
     const data = await res.json();
     const pairs = data.pairs;
 
     if (!pairs || pairs.length === 0) {
-      return { sells24h: 0, buys24h: 0, volume24h: 0, liquidity: 0, priceChange24h: null, dex: null, pairLabel: null, error: "No pairs found" };
+      return { sells24h: 0, buys24h: 0, volume24h: 0, liquidity: 0, priceChange24h: null, dex: null, pairLabel: null, quoteTokenAddress: null, isVirtualsPair: false, error: "No pairs found" };
     }
 
     // Use the pair with the highest liquidity
@@ -171,6 +185,7 @@ async function getDexScreenerData(address: string): Promise<DexScreenerData> {
 
     const txns = best.txns as Record<string, Record<string, number>> | undefined;
     const h24 = txns?.h24 ?? { buys: 0, sells: 0 };
+    const quoteAddr = ((best.quoteToken as Record<string, string>)?.address ?? "").toLowerCase();
 
     return {
       sells24h: h24.sells ?? 0,
@@ -180,10 +195,12 @@ async function getDexScreenerData(address: string): Promise<DexScreenerData> {
       priceChange24h: (best.priceChange as Record<string, number>)?.h24 ?? null,
       dex: (best.dexId as string) ?? null,
       pairLabel: (best.labels as string[])?.[0] ?? null,
+      quoteTokenAddress: quoteAddr || null,
+      isVirtualsPair: VIRTUAL_TOKEN_ADDRESSES.has(quoteAddr),
     };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return { sells24h: 0, buys24h: 0, volume24h: 0, liquidity: 0, priceChange24h: null, dex: null, pairLabel: null, error: msg };
+    return { sells24h: 0, buys24h: 0, volume24h: 0, liquidity: 0, priceChange24h: null, dex: null, pairLabel: null, quoteTokenAddress: null, isVirtualsPair: false, error: msg };
   }
 }
 
@@ -348,23 +365,32 @@ function calculateScore(
     riskFlags.push("HONEYPOT_CHECK_FAILED");
   }
 
-  // Buy tax penalties
-  if (honeypot.buyTax !== null) {
-    if (honeypot.buyTax > 25) {
-      score -= 30;
-      riskFlags.push("HIGH_BUY_TAX");
-    } else if (honeypot.buyTax > 10) {
-      score -= 15;
-    }
-  }
+  // Buy/Sell tax penalties — skip for Virtuals bonding curve tokens
+  // (honeypot.is reports 100%/99% tax because it can't simulate Virtuals router)
+  const isVirtuals = dex?.isVirtualsPair === true;
 
-  // Sell tax penalties
-  if (honeypot.sellTax !== null) {
-    if (honeypot.sellTax > 25) {
-      score -= 30;
-      riskFlags.push("HIGH_SELL_TAX");
-    } else if (honeypot.sellTax > 10) {
-      score -= 15;
+  if (isVirtuals) {
+    riskFlags.push("VIRTUALS_BONDING_CURVE");
+    // Don't penalize for tax — honeypot.is data is unreliable for Virtuals
+  } else {
+    // Buy tax penalties
+    if (honeypot.buyTax !== null) {
+      if (honeypot.buyTax > 25) {
+        score -= 30;
+        riskFlags.push("HIGH_BUY_TAX");
+      } else if (honeypot.buyTax > 10) {
+        score -= 15;
+      }
+    }
+
+    // Sell tax penalties
+    if (honeypot.sellTax !== null) {
+      if (honeypot.sellTax > 25) {
+        score -= 30;
+        riskFlags.push("HIGH_SELL_TAX");
+      } else if (honeypot.sellTax > 10) {
+        score -= 15;
+      }
     }
   }
 
