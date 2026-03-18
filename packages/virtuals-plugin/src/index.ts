@@ -337,4 +337,12 @@ export async function createMaiatWorker(config: MaiatVirtualsConfig = {}) {
   });
 }
 
+// Re-export ACP evaluator defaults for Virtuals GAME SDK users
+export {
+  MAIAT_EVALUATOR_ADDRESS,
+  MAIAT_ACP_HOOK_ADDRESS,
+  MAIAT_EVALUATOR_CLUSTER,
+  MAIAT_ACP_DEFAULTS,
+} from "@jhinresh/maiat-sdk";
+
 export default createMaiatWorker;
