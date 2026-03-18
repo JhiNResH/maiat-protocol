@@ -74,6 +74,17 @@ interface ScarabReviews {
   reviewCount: number;
 }
 
+interface DexScreenerData {
+  sells24h: number;
+  buys24h: number;
+  volume24h: number;
+  liquidity: number;
+  priceChange24h: number | null;
+  dex: string | null;
+  pairLabel: string | null; // e.g. "v4"
+  error?: string;
+}
+
 type Verdict = "trusted" | "proceed" | "caution" | "avoid";
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
@@ -128,6 +139,51 @@ async function checkHoneypot(address: string): Promise<HoneypotResult> {
       sellTax: null,
       error: msg,
     };
+  }
+}
+
+// ── DexScreener API ────────────────────────────────────────────────────────────
+
+async function getDexScreenerData(address: string): Promise<DexScreenerData> {
+  try {
+    const res = await fetch(
+      `https://api.dexscreener.com/latest/dex/tokens/${address}`,
+      { signal: AbortSignal.timeout(8_000) }
+    );
+
+    if (!res.ok) {
+      return { sells24h: 0, buys24h: 0, volume24h: 0, liquidity: 0, priceChange24h: null, dex: null, pairLabel: null, error: `DexScreener returned ${res.status}` };
+    }
+
+    const data = await res.json();
+    const pairs = data.pairs;
+
+    if (!pairs || pairs.length === 0) {
+      return { sells24h: 0, buys24h: 0, volume24h: 0, liquidity: 0, priceChange24h: null, dex: null, pairLabel: null, error: "No pairs found" };
+    }
+
+    // Use the pair with the highest liquidity
+    const best = pairs.reduce((a: Record<string, unknown>, b: Record<string, unknown>) => {
+      const liqA = (a.liquidity as Record<string, number>)?.usd ?? 0;
+      const liqB = (b.liquidity as Record<string, number>)?.usd ?? 0;
+      return liqB > liqA ? b : a;
+    });
+
+    const txns = best.txns as Record<string, Record<string, number>> | undefined;
+    const h24 = txns?.h24 ?? { buys: 0, sells: 0 };
+
+    return {
+      sells24h: h24.sells ?? 0,
+      buys24h: h24.buys ?? 0,
+      volume24h: (best.volume as Record<string, number>)?.h24 ?? 0,
+      liquidity: (best.liquidity as Record<string, number>)?.usd ?? 0,
+      priceChange24h: (best.priceChange as Record<string, number>)?.h24 ?? null,
+      dex: (best.dexId as string) ?? null,
+      pairLabel: (best.labels as string[])?.[0] ?? null,
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { sells24h: 0, buys24h: 0, volume24h: 0, liquidity: 0, priceChange24h: null, dex: null, pairLabel: null, error: msg };
   }
 }
 
@@ -248,22 +304,37 @@ interface ScoreResult {
 
 function calculateScore(
   honeypot: HoneypotResult,
-  reviews: ScarabReviews
+  reviews: ScarabReviews,
+  dex?: DexScreenerData
 ): ScoreResult {
   const riskFlags: string[] = [];
   let score = 50; // Start at 50
 
-  // ── Honeypot penalties ───────────────────────────────────────────────────────
+  // ── Honeypot penalties (with DexScreener cross-verification) ─────────────────
 
-  // Honeypot confirmed → instant block
   if (honeypot.isHoneypot === true) {
-    riskFlags.push("HONEYPOT_DETECTED");
-    return {
-      trustScore: 0,
-      verdict: "avoid",
-      riskFlags,
-      riskSummary: "Token is confirmed as a honeypot. Do not interact.",
-    };
+    // Cross-verify with on-chain trading data
+    const hasTradingActivity = dex && !dex.error && dex.sells24h >= 50;
+    const isV4Pool = dex?.pairLabel === "v4";
+
+    if (hasTradingActivity) {
+      // DexScreener shows real sells happening → likely false positive
+      riskFlags.push("HONEYPOT_FLAGGED_BUT_TRADEABLE");
+      if (isV4Pool) {
+        riskFlags.push("UNISWAP_V4_POOL");
+      }
+      // Don't instant-block; penalize but let other factors weigh in
+      score -= 15;
+    } else {
+      // No trading activity to contradict → trust honeypot.is verdict
+      riskFlags.push("HONEYPOT_DETECTED");
+      return {
+        trustScore: 0,
+        verdict: "avoid",
+        riskFlags,
+        riskSummary: "Token is confirmed as a honeypot. Do not interact.",
+      };
+    }
   }
 
   // Simulation failed
@@ -303,6 +374,33 @@ function calculateScore(
     score += 10;
   } else if (reviews.reviewCount >= 3 && reviews.averageRating !== null && reviews.averageRating >= 3) {
     score += 5;
+  }
+
+  // ── DexScreener bonuses / penalties ────────────────────────────────────────
+
+  if (dex && !dex.error) {
+    // Liquidity bonus
+    if (dex.liquidity >= 500_000) {
+      score += 10;
+    } else if (dex.liquidity >= 100_000) {
+      score += 5;
+    } else if (dex.liquidity < 10_000 && dex.liquidity > 0) {
+      score -= 10;
+      riskFlags.push("LOW_LIQUIDITY");
+    }
+
+    // Volume bonus
+    if (dex.volume24h >= 100_000) {
+      score += 5;
+    }
+
+    // Extreme sell pressure warning
+    if (dex.buys24h > 0 && dex.sells24h / dex.buys24h > 4) {
+      score -= 5;
+      riskFlags.push("HIGH_SELL_PRESSURE");
+    }
+  } else if (dex?.error) {
+    riskFlags.push("DEXSCREENER_UNAVAILABLE");
   }
 
   // ── Clamp score ──────────────────────────────────────────────────────────────
@@ -472,11 +570,12 @@ export async function GET(
 
   // ── Step 3: Honeypot.is (memecoin / unknown) ─────────────────────────────────
   try {
-    // ── Run 3 parallel checks ──────────────────────────────────────────────────
-    const [honeypot, tokenMetadata, scarabReviews] = await Promise.all([
+    // ── Run 4 parallel checks ──────────────────────────────────────────────────
+    const [honeypot, tokenMetadata, scarabReviews, dexData] = await Promise.all([
       checkHoneypot(checksumAddress),
       getTokenMetadata(checksumAddress),
       getScarabReviews(checksumAddress),
+      getDexScreenerData(checksumAddress),
     ]);
 
     // ── Check for total data failure ───────────────────────────────────────────
@@ -519,7 +618,8 @@ export async function GET(
     // ── Calculate score ────────────────────────────────────────────────────────
     const { trustScore, verdict, riskFlags, riskSummary } = calculateScore(
       honeypot,
-      scarabReviews
+      scarabReviews,
+      dexData
     );
 
     // ── Build response ─────────────────────────────────────────────────────────
@@ -545,8 +645,19 @@ export async function GET(
         tokenSymbol: tokenMetadata.symbol,
         buyTax: honeypot.buyTax,
         sellTax: honeypot.sellTax,
+        dexScreener: dexData.error
+          ? { error: dexData.error }
+          : {
+              sells24h: dexData.sells24h,
+              buys24h: dexData.buys24h,
+              volume24h: dexData.volume24h,
+              liquidity: dexData.liquidity,
+              priceChange24h: dexData.priceChange24h,
+              dex: dexData.dex,
+              pairLabel: dexData.pairLabel,
+            },
         tokenType: "memecoin",
-        dataSource: "HONEYPOT_IS + ALCHEMY + SCARAB",
+        dataSource: "HONEYPOT_IS + ALCHEMY + SCARAB + DEXSCREENER",
         _outcomeReporting: {
           endpoint: "POST /api/v1/outcome",
           required: { agentAddress: checksumAddress, outcome: "success|failure|partial|expired", txHash: "on-chain tx hash", jobId: "query ID" },
