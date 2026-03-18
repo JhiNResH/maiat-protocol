@@ -371,7 +371,29 @@ function calculateScore(
 
   if (isVirtuals) {
     riskFlags.push("VIRTUALS_BONDING_CURVE");
-    // Don't penalize for tax — honeypot.is data is unreliable for Virtuals
+    // honeypot.is tax data unreliable for Virtuals — use DexScreener signals instead
+    // Still penalize based on on-chain behavior:
+    if (dex && !dex.error) {
+      // Very few sells vs buys = potential rug
+      if (dex.sells24h < 10 && dex.buys24h > 50) {
+        score -= 25;
+        riskFlags.push("SELLS_BLOCKED");
+      }
+      // Extreme price dump
+      if (dex.priceChange24h !== null && dex.priceChange24h < -50) {
+        score -= 15;
+        riskFlags.push("PRICE_CRASH");
+      }
+      // Near-zero liquidity
+      if (dex.liquidity < 5_000 && dex.liquidity > 0) {
+        score -= 20;
+        riskFlags.push("NEAR_ZERO_LIQUIDITY");
+      }
+    } else {
+      // Can't verify Virtuals token without DexScreener → penalize
+      score -= 20;
+      riskFlags.push("UNVERIFIABLE_VIRTUALS_TOKEN");
+    }
   } else {
     // Buy tax penalties
     if (honeypot.buyTax !== null) {
