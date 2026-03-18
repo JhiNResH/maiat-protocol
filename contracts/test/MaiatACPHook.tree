@@ -1,0 +1,72 @@
+MaiatACPHook
+├── constructor
+│   ├── when oracle is zero address
+│   │   └── it should revert MaiatACPHook__ZeroAddress
+│   ├── when acpContract is zero address
+│   │   └── it should revert MaiatACPHook__ZeroAddress
+│   ├── when clientThreshold exceeds MAX_SCORE
+│   │   └── it should revert MaiatACPHook__ThresholdOutOfRange
+│   ├── when providerThreshold exceeds MAX_SCORE
+│   │   └── it should revert MaiatACPHook__ThresholdOutOfRange
+│   └── when all params valid
+│       └── it should set oracle, acpContract, thresholds, allowUninitialized, owner
+├── beforeAction
+│   ├── when selector is FUND_SELECTOR
+│   │   ├── given client is not initialized
+│   │   │   ├── given allowUninitialized is false
+│   │   │   │   └── it should revert MaiatACPHook__ClientNotInitialized
+│   │   │   └── given allowUninitialized is true
+│   │   │       └── it should pass and emit FundGated(allowed=true)
+│   │   ├── given client score < clientThreshold
+│   │   │   └── it should revert MaiatACPHook__ClientTrustTooLow and emit FundGated(allowed=false)
+│   │   └── given client score >= clientThreshold
+│   │       └── it should pass, increment totalFundGated, emit FundGated(allowed=true)
+│   ├── when selector is SUBMIT_SELECTOR
+│   │   ├── given provider is not initialized and allowUninitialized
+│   │   │   └── it should pass and emit SubmitChecked(allowed=true)
+│   │   ├── given provider score < providerThreshold
+│   │   │   └── it should revert MaiatACPHook__ProviderTrustTooLow and emit SubmitChecked(allowed=false)
+│   │   └── given provider score >= providerThreshold
+│   │       └── it should pass and emit SubmitChecked(allowed=true)
+│   └── when selector is something else (e.g., SET_BUDGET_SELECTOR)
+│       └── it should pass through without checks
+├── afterAction
+│   ├── when selector is COMPLETE_SELECTOR
+│   │   └── it should increment totalCompleted and emit JobOutcomeRecorded(completed=true)
+│   ├── when selector is REJECT_SELECTOR
+│   │   └── it should increment totalRejected and emit JobOutcomeRecorded(completed=false)
+│   └── when selector is something else
+│       └── it should do nothing
+├── supportsInterface
+│   ├── when interfaceId is IACPHook
+│   │   └── it should return true
+│   ├── when interfaceId is IERC165
+│   │   └── it should return true
+│   └── when interfaceId is something random
+│       └── it should return false
+├── setThresholds
+│   ├── when caller is not owner
+│   │   └── it should revert OwnableUnauthorizedAccount
+│   ├── when clientThreshold > MAX_SCORE
+│   │   └── it should revert MaiatACPHook__ThresholdOutOfRange
+│   └── when valid
+│       └── it should update both thresholds and emit ThresholdsUpdated
+├── setOracle
+│   ├── when caller is not owner
+│   │   └── it should revert OwnableUnauthorizedAccount
+│   ├── when oracle is zero address
+│   │   └── it should revert MaiatACPHook__ZeroAddress
+│   └── when valid
+│       └── it should update oracle and emit OracleUpdated
+├── setACPContract
+│   ├── when caller is not owner
+│   │   └── it should revert OwnableUnauthorizedAccount
+│   ├── when acpContract is zero address
+│   │   └── it should revert MaiatACPHook__ZeroAddress
+│   └── when valid
+│       └── it should update acpContract and emit ACPContractUpdated
+└── setAllowUninitialized
+    ├── when caller is not owner
+    │   └── it should revert OwnableUnauthorizedAccount
+    └── when valid
+        └── it should update allowUninitialized
