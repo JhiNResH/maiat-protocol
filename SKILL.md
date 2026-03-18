@@ -1,6 +1,6 @@
 ---
 name: maiat
-version: 2.3.0
+version: 2.4.0
 description: >
   Trust infrastructure for AI agents. Register your agent, get an on-chain identity,
   check trust scores, and protect transactions. Use this when your agent needs to
@@ -215,6 +215,44 @@ curl https://app.maiat.io/api/v1/token/0xTokenAddress
 curl -X POST https://app.maiat.io/api/v1/predict \
   -H "Content-Type: application/json" \
   -d '{"token_address": "0xTokenAddress"}'
+```
+
+### Multi-Source Verification (v2.4.0)
+
+Token checks now cross-verify across **4 data sources** for fewer false positives:
+
+| Source | What it checks |
+|--------|---------------|
+| **honeypot.is** | Buy/sell tax, honeypot detection, contract simulation |
+| **DexScreener** | Liquidity, volume, sell pressure, trading activity |
+| **Alchemy** | On-chain metadata, holder count, contract verification |
+| **Scarab ML** | XGBoost rug probability model |
+
+**DexScreener Cross-Verify:** If honeypot.is flags a token as honeypot BUT DexScreener shows ≥50 successful sells, the verdict is downgraded to `caution` instead of `avoid`. This catches false positives from low-liquidity pool testing (e.g., honeypot.is testing against a $24K USDC/v3 pool instead of the main $1.8M WETH/v4 pool).
+
+**Virtuals Bonding Curve Detection:** Tokens paired with VIRTUAL on DexScreener are recognized as Virtuals Protocol bonding curve tokens. Honeypot.is reports 100% buy / 99% sell tax for these (incorrect) — Maiat skips tax penalties and uses on-chain signals instead.
+
+**Liquidity Scoring from DexScreener:**
+
+| Liquidity | Score Impact |
+|-----------|-------------|
+| ≥ $500K | +10 |
+| ≥ $100K | +5 |
+| < $10K | -10 |
+
+**Response includes `dexScreener` field:**
+```json
+{
+  "trustScore": 72,
+  "verdict": "proceed",
+  "dexScreener": {
+    "liquidity": 523000,
+    "volume24h": 180000,
+    "sellCount": 245,
+    "buyCount": 312
+  },
+  "dataSource": "HONEYPOT_IS + ALCHEMY + SCARAB + DEXSCREENER"
+}
 ```
 
 ---
