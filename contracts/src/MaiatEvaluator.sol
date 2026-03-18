@@ -17,8 +17,9 @@ import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/Reentrancy
 //////////////////////////////////////////////////////////////*/
 
 /// @notice Minimal interface for ERC-8183 AgenticCommerce contract
+/// @dev Aligned with erc-8183/base-contracts reference implementation
 interface IAgenticCommerce {
-    enum Status {
+    enum JobStatus {
         Open,
         Funded,
         Submitted,
@@ -28,13 +29,14 @@ interface IAgenticCommerce {
     }
 
     struct Job {
+        uint256 id;
         address client;
         address provider;
         address evaluator;
         string description;
         uint256 budget;
         uint256 expiredAt;
-        Status status;
+        JobStatus status;
         address hook;
     }
 
@@ -123,7 +125,7 @@ contract MaiatEvaluator is Ownable2Step, ReentrancyGuard {
     event ThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
     event ThreatThresholdUpdated(uint256 oldCount, uint256 newCount);
     event ThreatReported(address indexed provider, uint256 newCount, address reporter);
-    event OracleUpdated(address oldOracle, address newOracle);
+    event OracleUpdated(address indexed oldOracle, address indexed newOracle);
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -167,7 +169,7 @@ contract MaiatEvaluator is Ownable2Step, ReentrancyGuard {
         IAgenticCommerce.Job memory job = acp.getJob(jobId);
 
         // Must be Submitted
-        if (job.status != IAgenticCommerce.Status.Submitted) {
+        if (job.status != IAgenticCommerce.JobStatus.Submitted) {
             revert MaiatEvaluator__JobNotSubmitted(jobId, uint8(job.status));
         }
 

@@ -35,14 +35,14 @@ contract FuzzMockACP is IAgenticCommerce {
 
     function createMockJob(address client, address provider, address evaluator) external returns (uint256 jobId) {
         jobId = nextJobId++;
-        jobs[jobId] = Job({
+        jobs[jobId] = Job({ id: jobId,
             client: client,
             provider: provider,
             evaluator: evaluator,
             description: "fuzz",
             budget: 0.02 ether,
             expiredAt: block.timestamp + 7 days,
-            status: Status.Submitted,
+            status: JobStatus.Submitted,
             hook: address(0)
         });
     }
@@ -52,12 +52,12 @@ contract FuzzMockACP is IAgenticCommerce {
     }
 
     function complete(uint256 jobId, bytes32, bytes calldata) external {
-        jobs[jobId].status = Status.Completed;
+        jobs[jobId].status = JobStatus.Completed;
         completedCount++;
     }
 
     function reject(uint256 jobId, bytes32, bytes calldata) external {
-        jobs[jobId].status = Status.Rejected;
+        jobs[jobId].status = JobStatus.Rejected;
         rejectedCount++;
     }
 }
@@ -99,13 +99,13 @@ contract MaiatEvaluatorFuzzTest is Test {
         if (cappedScore >= threshold) {
             assertEq(
                 uint8(acp.getJob(jobId).status),
-                uint8(IAgenticCommerce.Status.Completed),
+                uint8(IAgenticCommerce.JobStatus.Completed),
                 "Should complete when score >= threshold"
             );
         } else {
             assertEq(
                 uint8(acp.getJob(jobId).status),
-                uint8(IAgenticCommerce.Status.Rejected),
+                uint8(IAgenticCommerce.JobStatus.Rejected),
                 "Should reject when score < threshold"
             );
         }
@@ -132,13 +132,13 @@ contract MaiatEvaluatorFuzzTest is Test {
         if (threats >= threatThreshold) {
             assertEq(
                 uint8(acp.getJob(jobId).status),
-                uint8(IAgenticCommerce.Status.Rejected),
+                uint8(IAgenticCommerce.JobStatus.Rejected),
                 "Should reject when threats >= threatThreshold"
             );
         } else {
             assertEq(
                 uint8(acp.getJob(jobId).status),
-                uint8(IAgenticCommerce.Status.Completed),
+                uint8(IAgenticCommerce.JobStatus.Completed),
                 "Should complete when threats < threatThreshold and score is high"
             );
         }
@@ -174,7 +174,7 @@ contract MaiatEvaluatorFuzzTest is Test {
         uint256 jobId = acp.createMockJob(client, provider, address(evaluator));
         evaluator.evaluate(address(acp), jobId);
 
-        bool didComplete = acp.getJob(jobId).status == IAgenticCommerce.Status.Completed;
+        bool didComplete = acp.getJob(jobId).status == IAgenticCommerce.JobStatus.Completed;
 
         assertEq(wouldPass, didComplete, "preCheck must match evaluate outcome");
     }
