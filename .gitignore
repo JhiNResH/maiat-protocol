@@ -21,3 +21,7 @@ tsconfig.tsbuildinfo
 maiat_features.md
 CHANGELOG.md
 specs/MAIAT-MASTER-SPEC.md
+
+# Separate repos
+packages/wadjet/
+packages/landing/
