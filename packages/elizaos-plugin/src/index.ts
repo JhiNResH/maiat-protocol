@@ -254,4 +254,12 @@ export function maiatPlugin(config: MaiatElizaConfig = {}) {
   };
 }
 
+// Re-export ACP evaluator defaults
+export {
+  MAIAT_EVALUATOR_ADDRESS,
+  MAIAT_ACP_HOOK_ADDRESS,
+  MAIAT_EVALUATOR_CLUSTER,
+  MAIAT_ACP_DEFAULTS,
+} from "@jhinresh/maiat-sdk";
+
 export default maiatPlugin;

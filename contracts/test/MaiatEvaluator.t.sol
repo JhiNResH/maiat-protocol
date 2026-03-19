@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {MaiatEvaluator, ITrustScoreOracle, IAgenticCommerce} from "../src/MaiatEvaluator.sol";
+import {MaiatEvaluator, ITrustScoreOracle, IAgenticCommerce} from "../src/acp/MaiatEvaluator.sol";
 
 /*//////////////////////////////////////////////////////////////
                     MOCK: TrustScoreOracle
@@ -48,19 +48,19 @@ contract MockACP is IAgenticCommerce {
         uint256 budget
     ) external returns (uint256 jobId) {
         jobId = nextJobId++;
-        jobs[jobId] = Job({
+        jobs[jobId] = Job({ id: jobId,
             client: client,
             provider: provider,
             evaluator: evaluator,
             description: "test job",
             budget: budget,
             expiredAt: block.timestamp + 7 days,
-            status: Status.Submitted,
+            status: JobStatus.Submitted,
             hook: address(0)
         });
     }
 
-    function setJobStatus(uint256 jobId, Status status) external {
+    function setJobStatus(uint256 jobId, JobStatus status) external {
         jobs[jobId].status = status;
     }
 
@@ -69,13 +69,13 @@ contract MockACP is IAgenticCommerce {
     }
 
     function complete(uint256 jobId, bytes32 reason, bytes calldata) external {
-        jobs[jobId].status = Status.Completed;
+        jobs[jobId].status = JobStatus.Completed;
         lastCompletedJobId = jobId;
         lastCompleteReason = reason;
     }
 
     function reject(uint256 jobId, bytes32 reason, bytes calldata) external {
-        jobs[jobId].status = Status.Rejected;
+        jobs[jobId].status = JobStatus.Rejected;
         lastRejectedJobId = jobId;
         lastRejectReason = reason;
     }
@@ -110,7 +110,7 @@ contract MaiatEvaluatorTest is Test {
     event ThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
     event ThreatThresholdUpdated(uint256 oldCount, uint256 newCount);
     event ThreatReported(address indexed provider, uint256 newCount, address reporter);
-    event OracleUpdated(address oldOracle, address newOracle);
+    event OracleUpdated(address indexed oldOracle, address indexed newOracle);
 
     function setUp() public {
         oracle = new MockOracle();
@@ -157,7 +157,7 @@ contract MaiatEvaluatorTest is Test {
 
         evaluator.evaluate(address(acp), jobId);
 
-        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.Status.Completed));
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Completed));
         assertEq(acp.lastCompletedJobId(), jobId);
         assertEq(evaluator.totalEvaluations(), 1);
         assertEq(evaluator.totalCompleted(), 1);
@@ -170,7 +170,7 @@ contract MaiatEvaluatorTest is Test {
 
         evaluator.evaluate(address(acp), jobId);
 
-        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.Status.Completed));
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Completed));
     }
 
     function test_evaluate_completesWithMaxScore() public {
@@ -180,7 +180,7 @@ contract MaiatEvaluatorTest is Test {
         evaluator.evaluate(address(acp), jobId);
 
         // Score capped at 100 in event
-        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.Status.Completed));
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Completed));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -193,7 +193,7 @@ contract MaiatEvaluatorTest is Test {
 
         evaluator.evaluate(address(acp), jobId);
 
-        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.Status.Rejected));
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Rejected));
         assertEq(acp.lastRejectReason(), evaluator.REASON_LOW_TRUST());
         assertEq(evaluator.totalRejected(), 1);
     }
@@ -204,7 +204,7 @@ contract MaiatEvaluatorTest is Test {
 
         evaluator.evaluate(address(acp), jobId);
 
-        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.Status.Rejected));
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Rejected));
         assertEq(acp.lastRejectReason(), evaluator.REASON_UNINITIALIZED());
     }
 
@@ -214,7 +214,7 @@ contract MaiatEvaluatorTest is Test {
 
         evaluator.evaluate(address(acp), jobId);
 
-        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.Status.Rejected));
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Rejected));
         assertEq(acp.lastRejectReason(), evaluator.REASON_LOW_TRUST());
     }
 
@@ -233,7 +233,7 @@ contract MaiatEvaluatorTest is Test {
 
         evaluator.evaluate(address(acp), jobId);
 
-        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.Status.Rejected));
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Rejected));
         assertEq(acp.lastRejectReason(), evaluator.REASON_FLAGGED());
     }
 
@@ -247,7 +247,7 @@ contract MaiatEvaluatorTest is Test {
 
         evaluator.evaluate(address(acp), jobId);
 
-        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.Status.Completed));
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Completed));
     }
 
     function test_evaluate_threatThresholdZeroDisablesCheck() public {
@@ -260,7 +260,7 @@ contract MaiatEvaluatorTest is Test {
 
         evaluator.evaluate(address(acp), jobId);
 
-        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.Status.Completed));
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Completed));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -270,7 +270,7 @@ contract MaiatEvaluatorTest is Test {
     function test_evaluate_revertsNotSubmitted() public {
         oracle.setUserData(provider, 50, true);
         uint256 jobId = acp.createMockJob(client, provider, address(evaluator), 0.02 ether);
-        acp.setJobStatus(jobId, IAgenticCommerce.Status.Funded);
+        acp.setJobStatus(jobId, IAgenticCommerce.JobStatus.Funded);
 
         vm.expectRevert(
             abi.encodeWithSignature("MaiatEvaluator__JobNotSubmitted(uint256,uint8)", jobId, 1)

@@ -7,8 +7,8 @@ pragma solidity 0.8.26;
 ///         (interface mismatches between caller and oracle).
 
 import {Test, console2} from "forge-std/Test.sol";
-import {TrustScoreOracle} from "../src/TrustScoreOracle.sol";
-import {TrustGateHook} from "../src/TrustGateHook.sol";
+import {TrustScoreOracle} from "../src/core/TrustScoreOracle.sol";
+import {TrustGateHook} from "../src/hooks/TrustGateHook.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {IHooks} from "v4-core/interfaces/IHooks.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";

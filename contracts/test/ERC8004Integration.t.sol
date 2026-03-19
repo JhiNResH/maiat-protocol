@@ -48,9 +48,22 @@ contract ERC8004IntegrationTest is Test {
     string public constant SAMPLE_URI = "data:application/json;base64,eyJ0eXBlIjoiaHR0cHM6Ly9laXBzLmV0aGVyZXVtLm9yZy9FSVBTLmVpcC04MDA0I3JlZ2lzdHJhdGlvbi12MSIsIm5hbWUiOiJUZXN0QWdlbnQiLCJkZXNjcmlwdGlvbiI6IkZvcmsgdGVzdCBhZ2VudCIsImltYWdlIjoiaHR0cHM6Ly9hcHAubWFpYXQuaW8vbG9nby5wbmciLCJzZXJ2aWNlcyI6W119";
     string public constant UPDATED_URI = "data:application/json;base64,eyJ0eXBlIjoiaHR0cHM6Ly9laXBzLmV0aGVyZXVtLm9yZy9FSVBTLmVpcC04MDA0I3JlZ2lzdHJhdGlvbi12MSIsIm5hbWUiOiJVcGRhdGVkQWdlbnQiLCJkZXNjcmlwdGlvbiI6IlVwZGF0ZWQgdXJpIiwiaW1hZ2UiOiIiLCJzZXJ2aWNlcyI6W119";
 
+    /// @dev Skip all tests when not running with --fork-url
+    modifier onlyFork() {
+        if (block.chainid == 31337) {
+            return; // local anvil — skip
+        }
+        _;
+    }
+
     function setUp() public {
         // Fork Base mainnet — requires BASE_RPC_URL env var
-        // forge test --fork-url $BASE_RPC_URL
+        // forge test --match-contract ERC8004IntegrationTest --fork-url $BASE_RPC_URL -vvv
+        if (block.chainid == 31337) {
+            // Not forked — tests will be skipped via onlyFork modifier
+            return;
+        }
+
         registry = IERC8004IdentityRegistry(REGISTRY_ADDR);
 
         testAgent1 = makeAddr("testAgent1");
@@ -66,7 +79,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 1: Maiat wallet is already registered ───────────────────────────
 
     /// @notice Confirms the real Maiat wallet (0xE6ac...) is registered on mainnet
-    function test_MaiatWallet_AlreadyRegistered() public view {
+    function test_MaiatWallet_AlreadyRegistered() public onlyFork {
         uint256 agentId = registry.agentOf(MAIAT_WALLET);
         assertGt(agentId, 0, "Maiat wallet should have a registered agentId > 0");
 
@@ -81,7 +94,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 2: Fresh address can register ───────────────────────────────────
 
     /// @notice New address successfully registers on the real contract
-    function test_Register_FreshAddress_Success() public {
+    function test_Register_FreshAddress_Success() public onlyFork {
         vm.prank(testAgent1);
         uint256 agentId = registry.register(SAMPLE_URI);
 
@@ -96,7 +109,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 3: Duplicate registration reverts ───────────────────────────────
 
     /// @notice Registering the same address twice must revert
-    function test_Register_Duplicate_Reverts() public {
+    function test_Register_Duplicate_Reverts() public onlyFork {
         vm.prank(testAgent1);
         registry.register(SAMPLE_URI);
 
@@ -109,7 +122,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 4: setAgentURI by owner succeeds ────────────────────────────────
 
     /// @notice Owner can update their agentURI after registration
-    function test_SetAgentURI_Owner_Success() public {
+    function test_SetAgentURI_Owner_Success() public onlyFork {
         vm.prank(testAgent1);
         uint256 agentId = registry.register(SAMPLE_URI);
 
@@ -123,7 +136,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 5: setAgentURI by non-owner reverts ─────────────────────────────
 
     /// @notice Non-owner cannot update another agent's URI
-    function test_SetAgentURI_NonOwner_Reverts() public {
+    function test_SetAgentURI_NonOwner_Reverts() public onlyFork {
         vm.prank(testAgent1);
         uint256 agentId = registry.register(SAMPLE_URI);
 
@@ -139,7 +152,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 6: AgentRegistered event emitted ───────────────────────────────
 
     /// @notice Registration must emit AgentRegistered event with correct args
-    function test_Register_EmitsAgentRegisteredEvent() public {
+    function test_Register_EmitsAgentRegisteredEvent() public onlyFork {
         // We can't predict agentId before the call, so just check it was emitted
         vm.recordLogs();
 
@@ -169,7 +182,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 7: AgentURIUpdated event emitted ───────────────────────────────
 
     /// @notice setAgentURI must emit AgentURIUpdated event
-    function test_SetAgentURI_EmitsEvent() public {
+    function test_SetAgentURI_EmitsEvent() public onlyFork {
         vm.prank(testAgent1);
         uint256 agentId = registry.register(SAMPLE_URI);
 
@@ -193,7 +206,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 8: ownerOf lookup ───────────────────────────────────────────────
 
     /// @notice ownerOf(agentId) returns correct address
-    function test_OwnerOf_ReturnsCorrectOwner() public {
+    function test_OwnerOf_ReturnsCorrectOwner() public onlyFork {
         vm.prank(testAgent1);
         uint256 agentId = registry.register(SAMPLE_URI);
 
@@ -203,7 +216,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 9: agentOf unregistered returns 0 ──────────────────────────────
 
     /// @notice Unregistered address should return 0 (or revert) from agentOf
-    function test_AgentOf_UnregisteredAddress_ReturnsZeroOrReverts() public {
+    function test_AgentOf_UnregisteredAddress_ReturnsZeroOrReverts() public onlyFork {
         address unregistered = makeAddr("never_registered");
         // Contract either returns 0 or reverts — either is acceptable
         try registry.agentOf(unregistered) returns (uint256 id) {
@@ -216,7 +229,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 10: Multiple agents get sequential IDs ─────────────────────────
 
     /// @notice agentIds should be sequential (or at least both > 0 and different)
-    function test_MultipleRegistrations_UniqueIds() public {
+    function test_MultipleRegistrations_UniqueIds() public onlyFork {
         vm.prank(testAgent1);
         uint256 id1 = registry.register(SAMPLE_URI);
 
@@ -234,7 +247,7 @@ contract ERC8004IntegrationTest is Test {
 
     /// @notice Verifies the ABI used in register-erc8004.ts matches real contract
     /// The script uses: { name: "register", inputs: [{ name: "agentURI", type: "string" }] }
-    function test_RegisterABI_MatchesRealContract() public {
+    function test_RegisterABI_MatchesRealContract() public onlyFork {
         // If the function selector is wrong, this call reverts with a different error
         // A successful register proves the ABI is correct
         vm.prank(testAgent1);
@@ -245,7 +258,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 12: Fuzz — register with any valid data URI ────────────────────
 
     /// @notice Any string can be registered as agentURI (contract doesn't validate content)
-    function testFuzz_Register_AnyURI(string calldata uri) public {
+    function testFuzz_Register_AnyURI(string calldata uri) public onlyFork {
         vm.assume(bytes(uri).length > 0);
         vm.assume(bytes(uri).length < 10_000); // realistic upper bound
 
@@ -263,7 +276,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 13: Maiat wallet cannot register again ─────────────────────────
 
     /// @notice Real Maiat wallet (already registered) reverts on second attempt
-    function test_MaiatWallet_CannotRegisterAgain() public {
+    function test_MaiatWallet_CannotRegisterAgain() public onlyFork {
         vm.deal(MAIAT_WALLET, 1 ether);
         vm.prank(MAIAT_WALLET);
         vm.expectRevert();
@@ -273,7 +286,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Test 14: getAgent for non-existent agentId ──────────────────────────
 
     /// @notice getAgent for agentId=0 or very large id should revert or return zero address
-    function test_GetAgent_NonExistentId_HandledGracefully() public view {
+    function test_GetAgent_NonExistentId_HandledGracefully() public onlyFork {
         try registry.getAgent(999_999_999) returns (address owner, string memory uri) {
             // If it returns, owner should be zero (no one owns it)
             assertEq(owner, address(0), "Non-existent agentId should return zero owner");
@@ -286,7 +299,7 @@ contract ERC8004IntegrationTest is Test {
     // ─── Security: reentrancy via malicious agentURI ─────────────────────────
 
     /// @notice Malicious strings in URI should not cause unexpected behavior
-    function test_Register_MaliciousURI_DoesNotCrash() public {
+    function test_Register_MaliciousURI_DoesNotCrash() public onlyFork {
         string memory maliciousUri = string(abi.encodePacked(
             'data:text/html;base64,',
             '<script>window.location="https://evil.com"</script>'

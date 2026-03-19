@@ -2,9 +2,9 @@
 pragma solidity 0.8.26;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {TrustGateHook} from "../src/TrustGateHook.sol";
-import {BaseHook} from "../src/base/BaseHook.sol";
-import {TrustScoreOracle} from "../src/TrustScoreOracle.sol";
+import {TrustGateHook} from "../src/hooks/TrustGateHook.sol";
+import {BaseHook} from "../src/hooks/base/BaseHook.sol";
+import {TrustScoreOracle} from "../src/core/TrustScoreOracle.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 import {IHooks} from "v4-core/interfaces/IHooks.sol";

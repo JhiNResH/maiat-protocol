@@ -2,8 +2,8 @@
 pragma solidity 0.8.26;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {TrustScoreOracle} from "../src/TrustScoreOracle.sol";
-import {TrustGateHook} from "../src/TrustGateHook.sol";
+import {TrustScoreOracle} from "../src/core/TrustScoreOracle.sol";
+import {TrustGateHook} from "../src/hooks/TrustGateHook.sol";
 
 /// @title Interact
 /// @notice Post-deployment scripts for managing oracle scores and hook config
