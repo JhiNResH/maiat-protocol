@@ -109,6 +109,7 @@ Wallet: `0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D`
 | `agent_trust`       | $0.02 | Behavioral trust score + deep analysis (percentile, risk flags, tier)        |
 | `token_forensics`   | $0.03 | Deep rug pull risk analysis (contract, holders, liquidity, rug score)        |
 | `agent_reputation`  | $0.03 | Community reviews, sentiment, and market consensus for any agent             |
+| `trust_swap`        | $0.05 | Token check + Uniswap quote — blocks calldata if verdict = avoid            |
 
 > Each offering response includes `_feedback` with outcome reporting instructions + cross-sell hints. Report outcomes to earn 5 🪲 Scarab and improve oracle accuracy.
 
@@ -151,6 +152,16 @@ EAS Attestations ─────┘
 **Rug prediction signals:** trust score, activity level, completion rate, price crash, low liquidity, LP drain, completion trend, volatility.
 
 **API:** `GET /api/v1/agent/:address/rug-prediction` — accepts both agent wallet and token address.
+
+### Wadjet API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /agents` | List all tracked agents with trust scores |
+| `GET /agents/{address}` | Single agent detail + risk profile |
+| `GET /scenarios` | Risk scenarios and Monte Carlo simulations |
+| `GET /clusters` | Sybil cluster detection |
+| `POST /predict/agent` | XGBoost rug prediction (98% accuracy, 50 features) |
 
 See [maiat-indexer](https://github.com/JhiNResH/maiat-indexer) for indexer source.
 
@@ -199,6 +210,7 @@ User/Agent action → QueryLog/TrustReview (DB)
 | [`@jhinresh/agentkit-plugin`](packages/agentkit-plugin/) | [![npm](https://img.shields.io/npm/v/@jhinresh/agentkit-plugin)](https://www.npmjs.com/package/@jhinresh/agentkit-plugin)     | Coinbase AgentKit plugin — auto-check trust before transactions        |
 | [`@jhinresh/game-maiat-plugin`](packages/game-plugin/)   | [![npm](https://img.shields.io/npm/v/@jhinresh/game-maiat-plugin)](https://www.npmjs.com/package/@jhinresh/game-maiat-plugin) | GAME SDK plugin — check_trust_score, gate_swap, batch_check            |
 | [`@jhinresh/virtuals-plugin`](packages/virtuals-plugin/) | [![npm](https://img.shields.io/npm/v/@jhinresh/virtuals-plugin)](https://www.npmjs.com/package/@jhinresh/virtuals-plugin)     | Virtuals GAME SDK plugin — trust-gate agent transactions               |
+| [`@jhinresh/maiat-evaluator`](packages/maiat-evaluator-node/) | [![npm](https://img.shields.io/npm/v/@jhinresh/maiat-evaluator)](https://www.npmjs.com/package/@jhinresh/maiat-evaluator) | Drop-in ACP evaluator — trust-based job evaluation in one line         |
 
 ---
 
@@ -256,6 +268,7 @@ npm run dev
 
 ## Related
 
+- **[hook-contracts](https://github.com/erc-8183/hook-contracts)** — ERC-8183 hook extensions (EvaluatorRegistry, TrustGateACPHook, TrustBasedEvaluator — contributed by Maiat)
 - **[maiat-acp](https://github.com/JhiNResH/maiat-acp)** — ACP agent runtime + CLI + offerings
 - **[Virtuals ACP](https://app.virtuals.io/acp)** — Agent Commerce Protocol
 - **[EAS on Base](https://base.easscan.org)** — Ethereum Attestation Service

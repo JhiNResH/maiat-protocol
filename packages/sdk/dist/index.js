@@ -121,5 +121,27 @@ export class MaiatError extends Error {
         this.name = "MaiatError";
     }
 }
+// ─── ACP Evaluator Preset ─────────────────────────────────────────────────────
+/** MaiatEvaluator contract address on Base mainnet */
+export const MAIAT_EVALUATOR_ADDRESS = "0x0000000000000000000000000000000000000000"; // TODO: deploy and update
+/** MaiatACPHook contract address on Base mainnet */
+export const MAIAT_ACP_HOOK_ADDRESS = "0x0000000000000000000000000000000000000000"; // TODO: deploy and update
+/** Evaluator cluster name for Virtuals Service Registry */
+export const MAIAT_EVALUATOR_CLUSTER = "MAIAT";
+/**
+ * ACP job defaults — use when creating jobs to auto-set Maiat as evaluator.
+ *
+ * @example
+ *   import { MAIAT_ACP_DEFAULTS } from "@jhinresh/maiat-sdk";
+ *   const job = await acpClient.createJob({
+ *     ...jobParams,
+ *     ...MAIAT_ACP_DEFAULTS,
+ *   });
+ */
+export const MAIAT_ACP_DEFAULTS = {
+    evaluator: MAIAT_EVALUATOR_ADDRESS,
+    hook: MAIAT_ACP_HOOK_ADDRESS,
+    evaluatorCluster: MAIAT_EVALUATOR_CLUSTER,
+};
 // ─── Default export ───────────────────────────────────────────────────────────
 export default Maiat;
