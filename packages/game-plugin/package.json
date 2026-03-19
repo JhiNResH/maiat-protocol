@@ -2,7 +2,8 @@
   "name": "@jhinresh/game-maiat-plugin",
   "version": "0.9.0",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
   },
   "description": "Maiat Trust Score plugin for the GAME SDK — lets your Virtuals agent verify trust before swapping or transacting",
   "main": "./dist/index.js",

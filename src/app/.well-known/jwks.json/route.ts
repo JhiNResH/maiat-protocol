@@ -26,8 +26,8 @@ import { ATTESTATION_KID, ATTESTATION_ALG } from "@/lib/attestation";
 const MAIAT_PUBLIC_JWK = {
   kty: "EC",
   crv: "P-256",
-  x: "eogoKPjpfGFeilsS_uva-DWpcJfPSofdSEgNbQDAVN8",
-  y: "A3Yh8UlgIMjyEgtwMW5mrx4qeNY6EPuXshIeXbGwdo0",
+  x: "Qtzb_MfWXCK8eeKrzdYJ09BEE-pe5gmOaQ0P6jy129Y",
+  y: "kxElC8lr4cEOjobuMuKw1DT3mrou8azYNc2DQtpqnDI",
   use: "sig",
   alg: ATTESTATION_ALG,
   kid: ATTESTATION_KID,
