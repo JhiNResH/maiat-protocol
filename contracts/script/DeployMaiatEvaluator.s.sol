@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {MaiatEvaluator} from "../src/MaiatEvaluator.sol";
+import {MaiatEvaluator} from "../src/acp/MaiatEvaluator.sol";
 
 /// @title DeployMaiatEvaluator
 /// @notice Deploys MaiatEvaluator to Base Sepolia or Base Mainnet

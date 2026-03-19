@@ -27,7 +27,7 @@ pragma solidity 0.8.26;
  */
 
 import {Script, console2} from "forge-std/Script.sol";
-import {MaiatACPHook} from "../src/MaiatACPHook.sol";
+import {MaiatACPHook} from "../src/acp/MaiatACPHook.sol";
 
 contract DeployMaiatACPHook is Script {
     function run() external {

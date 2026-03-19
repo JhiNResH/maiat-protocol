@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Script, console} from "forge-std/Script.sol";
-import {AgentIdentity} from "../src/AgentIdentity.sol";
+import {AgentIdentity} from "../src/identity/AgentIdentity.sol";
 
 contract DeployAgentIdentity is Script {
     function run() external {

@@ -12,7 +12,7 @@ import {
     MaiatACPHook__ClientNotInitialized,
     MaiatACPHook__ZeroAddress,
     MaiatACPHook__ThresholdOutOfRange
-} from "../src/MaiatACPHook.sol";
+} from "../src/acp/MaiatACPHook.sol";
 
 /*//////////////////////////////////////////////////////////////
                     MOCK: TrustOracle (Fuzz)

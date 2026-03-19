@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {TrustScoreOracle} from "../src/TrustScoreOracle.sol";
+import {TrustScoreOracle} from "../src/core/TrustScoreOracle.sol";
 
 contract TrustScoreOracleTest is Test {
     TrustScoreOracle public oracle;

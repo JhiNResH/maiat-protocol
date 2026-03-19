@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {MaiatEvaluator, ITrustScoreOracle, IAgenticCommerce} from "../src/MaiatEvaluator.sol";
+import {MaiatEvaluator, ITrustScoreOracle, IAgenticCommerce} from "../src/acp/MaiatEvaluator.sol";
 
 /*//////////////////////////////////////////////////////////////
                     MOCK: TrustScoreOracle

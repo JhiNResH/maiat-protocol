@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {TrustScoreOracle} from "../src/TrustScoreOracle.sol";
+import {TrustScoreOracle} from "../src/core/TrustScoreOracle.sol";
 
 /// @title SeedScores
 /// @notice Seeds 5 example token trust scores via batchUpdateTokenScores

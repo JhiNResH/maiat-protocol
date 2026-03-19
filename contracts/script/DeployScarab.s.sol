@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
-import "../src/ScarabToken.sol";
+import "../src/token/ScarabToken.sol";
 
 contract DeployScarab is Script {
     function run() external {

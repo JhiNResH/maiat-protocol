@@ -2,9 +2,9 @@
 pragma solidity 0.8.26;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {TrustScoreOracle} from "../src/TrustScoreOracle.sol";
-import {TrustGateHook} from "../src/TrustGateHook.sol";
-import {MaiatPassport} from "../src/MaiatPassport.sol";
+import {TrustScoreOracle} from "../src/core/TrustScoreOracle.sol";
+import {TrustGateHook} from "../src/hooks/TrustGateHook.sol";
+import {MaiatPassport} from "../src/core/MaiatPassport.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 
 /// @title Deploy
