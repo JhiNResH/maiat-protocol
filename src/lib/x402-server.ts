@@ -18,7 +18,7 @@ export const MAIAT_PAY_TO_ADDRESS = "0xB1e504aE1ce359B4C2a6DC5d63aE6199a415f312"
 // Network configuration
 // Base Sepolia testnet: eip155:84532
 // Base mainnet: eip155:8453
-export const PAYMENT_NETWORK = "eip155:84532" as const;
+export const PAYMENT_NETWORK = (process.env.X402_NETWORK || "eip155:8453") as "eip155:8453" | "eip155:84532";
 
 // Coinbase facilitator URL (handles payment verification & settlement)
 const FACILITATOR_URL = "https://facilitator.x402.org";
@@ -35,8 +35,8 @@ export const X402_PRICES = {
   trust: "$0.02",
   tokenCheck: "$0.01",
   tokenForensics: "$0.05",
-  trustSwap: "$0.05",
   reputation: "$0.03",
+  registerPassport: "$1.00",
 } as const;
 
 // Helper to create route config
