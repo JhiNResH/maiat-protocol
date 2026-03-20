@@ -97,10 +97,10 @@
   /* ── Typography (matches atmosphere-text) ── */
   .tag {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
+    font-size: 11px;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: var(--text-secondary);
+    color: var(--dim);
     margin-bottom: 24px;
     font-weight: 500;
   }
@@ -116,13 +116,8 @@
     -webkit-text-fill-color: transparent;
   }
 
-  h1 .accent {
-    background: linear-gradient(to bottom, var(--accent) 0%, #059669 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  h1 .accent2 {
-    background: linear-gradient(to bottom, var(--accent2) 0%, #4a6ae0 100%);
+  h1 .accent, h1 .accent2 {
+    background: var(--text-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
@@ -217,10 +212,10 @@
   }
 
   .compare-card.bad {
-    border-color: rgba(239,68,68,0.15);
+    border-color: var(--glass-border);
   }
   .compare-card.good {
-    border-color: rgba(16,185,129,0.15);
+    border-color: var(--glass-border);
   }
 
   .compare-card h3 {
@@ -231,8 +226,8 @@
     font-family: 'JetBrains Mono', monospace;
   }
 
-  .compare-card.bad h3 { color: var(--danger); }
-  .compare-card.good h3 { color: var(--accent); }
+  .compare-card.bad h3 { color: var(--text); }
+  .compare-card.good h3 { color: var(--text); }
 
   .compare-item {
     display: flex;
@@ -296,10 +291,10 @@
     height: 3px;
   }
 
-  .tier-card.guardian::before { background: var(--guardian); }
-  .tier-card.verified::before { background: var(--verified); }
-  .tier-card.trusted::before { background: var(--trusted); }
-  .tier-card.new-tier::before { background: var(--new); }
+  .tier-card.guardian::before { background: var(--text); }
+  .tier-card.verified::before { background: var(--dim); }
+  .tier-card.trusted::before { background: var(--text-secondary); }
+  .tier-card.new-tier::before { background: var(--text-secondary); opacity: 0.5; }
 
   .tier-name {
     font-family: 'JetBrains Mono', monospace;
@@ -309,23 +304,16 @@
     margin-bottom: 20px;
   }
 
-  .tier-card.guardian .tier-name { color: var(--guardian); }
-  .tier-card.verified .tier-name { color: var(--verified); }
-  .tier-card.trusted .tier-name { color: var(--trusted); }
-  .tier-card.new-tier .tier-name { color: var(--new); }
+  .tier-name { color: var(--dim); }
 
   .tier-fee {
     font-size: 56px;
-    font-weight: 800;
-    letter-spacing: -2px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
     line-height: 1;
     margin-bottom: 8px;
+    color: var(--text);
   }
-
-  .tier-card.guardian .tier-fee { color: var(--guardian); }
-  .tier-card.verified .tier-fee { color: var(--verified); }
-  .tier-card.trusted .tier-fee { color: var(--trusted); }
-  .tier-card.new-tier .tier-fee { color: var(--new); }
 
   .tier-unit {
     font-size: 14px;
@@ -386,10 +374,9 @@
   }
 
   .arch-node.hook {
-    border-color: rgba(16,185,129,0.3);
-    background: rgba(16,185,129,0.04);
+    border-color: rgba(0,0,0,0.12);
   }
-  .arch-node.hook .name { color: var(--accent); }
+  .arch-node.hook .name { color: var(--text); }
 
   .arch-row {
     display: flex;
@@ -435,11 +422,11 @@
   }
 
   .mode-badge.m1 {
-    color: var(--accent);
+    color: var(--text);
   }
 
   .mode-badge.m2 {
-    color: var(--accent2);
+    color: var(--text);
   }
 
   /* ── Slide 5: What's Next ── */
@@ -474,8 +461,8 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 32px;
     font-weight: 700;
-    color: var(--accent);
-    opacity: 0.4;
+    color: var(--dim);
+    opacity: 0.3;
     flex-shrink: 0;
     width: 48px;
   }
@@ -519,8 +506,8 @@
   }
 
   .nav button:hover {
-    background: rgba(16,185,129,0.1);
-    border-color: rgba(16,185,129,0.3);
+    background: rgba(0,0,0,0.04);
+    border-color: rgba(0,0,0,0.15);
   }
 
   .slide-counter {
