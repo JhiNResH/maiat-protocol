@@ -57,7 +57,7 @@ export async function GET() {
       prisma.agentScore.count(),
       prisma.queryLog.count(),
       prisma.queryLog
-        .groupBy({ by: ["caller"] })
+        .groupBy({ by: ["clientId"] })
         .then((groups) => groups.length),
       prisma.trustReview.count(),
       prisma.trustReview

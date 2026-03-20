@@ -22,6 +22,7 @@ interface ApiStats {
     last30d: number;
     uniqueBuyers: number;
     uniqueTargets: number;
+    uniqueCallersTotal: number;
     uniqueCallers7d: number;
   };
   trending: Array<{
@@ -224,7 +225,7 @@ export default function AnalyticsPage() {
           />
           <StatCard
             label="Unique Callers"
-            value={overview.uniqueCallers7d.toLocaleString()}
+            value={overview.uniqueCallersTotal.toLocaleString()}
             change=""
             changeType="neutral"
             delay={0.1}

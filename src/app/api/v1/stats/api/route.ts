@@ -70,7 +70,18 @@ export async function GET() {
     });
     const trustMap = Object.fromEntries(projects.map(p => [p.address, p]));
 
-    // Extract unique callers + resolve identities
+    // All-time unique callers (by IP across all records)
+    const allWithMeta = await prisma.queryLog.findMany({
+      select: { metadata: true },
+    });
+    const allTimeIps = new Set<string>();
+    for (const r of allWithMeta) {
+      const meta = r.metadata as Record<string, unknown> | null;
+      if (meta?.callerIp) allTimeIps.add(meta.callerIp as string);
+    }
+    const uniqueCallersTotal = allTimeIps.size;
+
+    // Extract unique callers + resolve identities (7d window)
     const recentWithMeta = await prisma.queryLog.findMany({
       where: { createdAt: { gte: d7 } },
       select: { metadata: true, clientId: true },
@@ -168,6 +179,7 @@ export async function GET() {
         last30d, 
         uniqueBuyers, 
         uniqueTargets, 
+        uniqueCallersTotal,
         uniqueCallers7d: uniqueIps.size 
       },
       byType: Object.fromEntries(byType.map((r) => [r.type, r._count])),
