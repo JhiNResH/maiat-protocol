@@ -90,7 +90,7 @@ const VerifyResultPanel = ({ address }: { address: string }) => {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="text-4xl font-black text-[var(--text-color)]">{score.toFixed(1)}</p>
+            <p className="text-3xl sm:text-4xl font-black text-[var(--text-color)]">{score.toFixed(1)}</p>
             <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Trust Score</p>
           </div>
           <span className={cn(
@@ -105,7 +105,7 @@ const VerifyResultPanel = ({ address }: { address: string }) => {
       </div>
 
       {data.breakdown && (
-        <div className="mt-6 grid grid-cols-3 gap-4">
+        <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-4">
           {data.breakdown.completionRate != null && (
             <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl p-4 text-center">
               <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-1">Completion</p>
@@ -204,19 +204,19 @@ export default function VerifyPage() {
   return (
     <div className="min-h-screen pb-20 relative">
 
-      <main className="max-w-7xl mx-auto px-6 relative">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 relative">
         {/* Vertical Rail Text */}
         <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden xl:block">
           <p className="rail-text">DECENTRALIZED TRUTH LAYER • MAIAT PROTOCOL v2.0</p>
         </div>
 
         {/* Hero Section */}
-        <section className="text-center mb-24 relative pt-16 min-h-[50vh] flex flex-col justify-center">
+        <section className="text-center mb-12 sm:mb-24 relative pt-10 sm:pt-16 min-h-[40vh] sm:min-h-[50vh] flex flex-col justify-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--text-color)] text-[var(--bg-color)] text-[10px] font-black uppercase tracking-[0.2em] mb-12 mx-auto"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--text-color)] text-[var(--bg-color)] text-[10px] font-black uppercase tracking-[0.2em] mb-8 sm:mb-12 mx-auto"
           >
             <Zap size={14} className="text-emerald-400 fill-emerald-400" />
             <span>Mainnet Live</span>
@@ -238,7 +238,7 @@ export default function VerifyPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-[var(--text-secondary)] text-xl md:text-2xl max-w-2xl mx-auto font-medium mb-20 leading-tight"
+            className="text-[var(--text-secondary)] text-lg sm:text-xl md:text-2xl max-w-2xl mx-auto font-medium mb-12 sm:mb-20 leading-tight px-4 sm:px-0"
           >
             The decentralized truth layer. Verifying the future of{' '}
             <span className="text-[var(--text-color)] font-bold underline decoration-emerald-500/30 underline-offset-8">
@@ -255,10 +255,10 @@ export default function VerifyPage() {
             className="max-w-3xl mx-auto w-full relative group z-20"
           >
             <div className={cn(
-              "liquid-glass flex items-center px-10 py-6 transition-all duration-700 rounded-[3rem]",
+              "liquid-glass flex items-center px-5 sm:px-10 py-4 sm:py-6 transition-all duration-700 rounded-[2rem] sm:rounded-[3rem]",
               isFocused ? "ring-[15px] ring-[var(--text-color)]/5 scale-[1.02] shadow-[0_40px_100px_rgba(0,0,0,0.1)]" : "hover:scale-[1.01]"
             )}>
-              <div className="flex items-center pointer-events-none mr-6">
+              <div className="flex items-center pointer-events-none mr-3 sm:mr-6">
                 <Search
                   className={cn("transition-colors duration-500", isFocused ? "text-[var(--text-color)]" : "text-[var(--text-muted)]")}
                   size={28}
@@ -267,7 +267,7 @@ export default function VerifyPage() {
               <input
                 type="text"
                 placeholder="0x... or agent name"
-                className="bg-transparent border-none focus:outline-none w-full text-xl md:text-2xl font-bold text-[var(--text-color)] placeholder:text-[var(--text-muted)] outline-none"
+                className="bg-transparent border-none focus:outline-none w-full text-base sm:text-xl md:text-2xl font-bold text-[var(--text-color)] placeholder:text-[var(--text-muted)] outline-none"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
                 onFocus={() => setIsFocused(true)}
@@ -276,7 +276,7 @@ export default function VerifyPage() {
               />
               <button
                 onClick={handleVerify}
-                className="bg-[var(--text-color)] text-[var(--bg-color)] px-8 md:px-12 py-4 rounded-full font-bold hover:opacity-90 transition-all shadow-2xl shadow-black/20 dark:shadow-white/5 flex items-center gap-3 group/btn shrink-0"
+                className="bg-[var(--text-color)] text-[var(--bg-color)] px-5 sm:px-8 md:px-12 py-3 sm:py-4 rounded-full font-bold hover:opacity-90 transition-all shadow-2xl shadow-black/20 dark:shadow-white/5 flex items-center gap-3 group/btn shrink-0"
               >
                 Verify <ArrowRight size={20} className="group-hover/btn:translate-x-2 transition-transform" />
               </button>
@@ -345,7 +345,7 @@ export default function VerifyPage() {
         {/* Stats moved to /analytics */}
 
         {/* Recent Verifications */}
-        <div className="mb-32">
+        <div className="mb-16 sm:mb-32">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -406,7 +406,7 @@ export default function VerifyPage() {
         </div>
 
         {/* Features */}
-        <section className="mt-32 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <section className="mt-16 sm:mt-32 grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
             { icon: ShieldCheck, title: "Sybil Protection", desc: "Advanced heuristics to identify and flag coordinated sybil attacks." },
             { icon: Lock, title: "Privacy First", desc: "Zero-knowledge proofs for identity verification without exposing PII." },
@@ -434,12 +434,12 @@ export default function VerifyPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.5 }}
-          className="mt-32 liquid-glass p-16 rounded-[4rem] relative overflow-hidden"
+          className="mt-16 sm:mt-32 liquid-glass p-8 sm:p-16 rounded-[2.5rem] sm:rounded-[4rem] relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-50 dark:bg-emerald-500/10 blur-[100px] -mr-48 -mt-48 opacity-50" />
           <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
             <div className="text-center lg:text-left">
-              <h2 className="text-5xl font-bold text-[var(--text-color)] mb-6">Build with Maiat</h2>
+              <h2 className="text-3xl sm:text-5xl font-bold text-[var(--text-color)] mb-4 sm:mb-6">Build with Maiat</h2>
               <p className="text-[var(--text-secondary)] text-xl max-w-md font-medium">Add trust scoring to your agent in 3 lines. No API key needed.</p>
             </div>
             <div className="flex flex-wrap justify-center gap-5">

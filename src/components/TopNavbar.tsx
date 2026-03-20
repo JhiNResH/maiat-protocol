@@ -4,8 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
-import { Sun, Moon, Wallet, LogOut, User, Flame } from 'lucide-react';
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { Sun, Moon, Wallet, LogOut, User, Flame, Menu, X } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import useSWR from 'swr';
@@ -92,6 +92,7 @@ export default function TopNavbar() {
   const { authenticated, user, login, logout } = usePrivy();
   const { wallets } = useWallets();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
   const lastScrollY = useRef(0);
 
@@ -150,6 +151,16 @@ export default function TopNavbar() {
 
       {/* Right side */}
       <div className="flex items-center gap-3">
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setMobileNavOpen((o) => !o)}
+          className={`md:hidden w-9 h-9 rounded-full flex items-center justify-center border transition-all ${
+            isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-black/5 border-black/5 text-black'
+          }`}
+          aria-label="Toggle navigation"
+        >
+          {mobileNavOpen ? <X size={16} /> : <Menu size={16} />}
+        </button>
         {/* Scarab balance (when logged in) */}
         {authenticated && walletAddress && (
           <div className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${
@@ -239,6 +250,43 @@ export default function TopNavbar() {
           </div>
         )}
       </div>
+      {/* Mobile nav dropdown */}
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.97 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className={`absolute top-full left-0 right-0 mt-2 rounded-3xl p-4 border md:hidden ${
+              isDark
+                ? 'bg-black/90 border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.5)]'
+                : 'bg-white/95 border-black/5 shadow-[0_20px_50px_rgba(0,0,0,0.1)]'
+            }`}
+            style={{ backdropFilter: 'blur(40px)' }}
+          >
+            <div className="flex flex-col gap-1">
+              {navLinks.map((link) => {
+                const active = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    onClick={() => setMobileNavOpen(false)}
+                    className={`px-4 py-3 rounded-2xl text-[11px] font-bold uppercase tracking-[0.15em] transition-all ${
+                      active
+                        ? isDark ? 'bg-white/10 text-white' : 'bg-black/5 text-black'
+                        : isDark ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-black hover:bg-black/5'
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 }
