@@ -15,7 +15,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
 import { isAddress } from "viem";
 
@@ -348,26 +348,20 @@ export async function GET() {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function handleMcpRequest(request: NextRequest): Promise<Response> {
   const server = buildMcpServer();
-  const transport = new StreamableHTTPServerTransport({
+  const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: () => crypto.randomUUID(),
   });
 
-  const response = new Response();
   await server.connect(transport);
-  await transport.handleRequest(request, response);
-  return response;
+  return transport.handleRequest(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handleMcpRequest(request);
 }
 
 export async function DELETE(request: NextRequest) {
-  const server = buildMcpServer();
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => crypto.randomUUID(),
-  });
-
-  const response = new Response();
-  await server.connect(transport);
-  await transport.handleRequest(request, response);
-  return response;
+  return handleMcpRequest(request);
 }
