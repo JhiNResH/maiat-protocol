@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useTheme } from '@/components/ThemeProvider';
 import { CheckCircle, Copy, ExternalLink, Shield, Twitter, Users } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface AgentInfo {
   address: string;
@@ -134,24 +135,30 @@ export default function VerifyPage() {
     }
   };
 
-  // ── Design tokens ────────────────────────────────────────────────
+  // ── Design tokens (aligned with passport.maiat.io) ───────────────
   const bg = isDark ? 'bg-[#0A0A0A]' : 'bg-[#FDFDFB]';
   const text = isDark ? 'text-white' : 'text-black';
-  const card = isDark ? 'bg-white/5 border-white/10' : 'bg-white/40 border-black/5';
-  const btnPrimary = isDark ? 'bg-white text-black hover:bg-white/90' : 'bg-black text-white hover:bg-black/90';
+  const card = isDark
+    ? 'bg-white/[0.03] border-white/[0.06] shadow-[inset_0_0_30px_rgba(255,255,255,0.01)]'
+    : 'bg-white/60 border-black/[0.04] shadow-[0_8px_32px_rgba(0,0,0,0.04)]';
+  const btnPrimary = isDark
+    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-400 hover:to-purple-400 shadow-lg shadow-blue-500/20'
+    : 'bg-black text-white hover:bg-black/90';
   const btnSecondary = isDark
-    ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
+    ? 'bg-white/[0.06] text-white/80 hover:bg-white/[0.1] border border-white/[0.08] backdrop-blur-sm'
     : 'bg-black/5 text-black hover:bg-black/10 border border-black/10';
   const inputClass = isDark
-    ? 'bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-white/30'
+    ? 'bg-white/[0.04] border-white/[0.08] text-white placeholder-white/25 focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20'
     : 'bg-white border-black/10 text-black placeholder-black/30 focus:border-black/30';
-  const subtle = 'text-gray-400';
+  const subtle = isDark ? 'text-white/40' : 'text-gray-400';
 
   // ── Loading ───────────────────────────────────────────────────────
   if (pageState === 'loading') {
     return (
-      <div className={`min-h-screen ${bg} ${text} flex items-center justify-center`}>
-        <div className="animate-pulse text-center">
+      <div className={`min-h-screen ${bg} ${text} flex items-center justify-center relative overflow-hidden`}>
+        <div className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] pointer-events-none ${isDark ? 'bg-blue-900/20' : 'bg-blue-100/30'}`} />
+        <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] pointer-events-none ${isDark ? 'bg-purple-900/10' : 'bg-orange-50/40'}`} />
+        <div className="animate-pulse text-center relative z-10">
           <Shield className="w-12 h-12 mx-auto mb-4 opacity-40" />
           <p className={subtle}>Loading agent info…</p>
         </div>
@@ -175,9 +182,16 @@ export default function VerifyPage() {
   // ── Success ───────────────────────────────────────────────────────
   if (pageState === 'success' && kya) {
     return (
-      <div className={`min-h-screen ${bg} ${text} flex items-center justify-center px-4`}>
-        <div className={`border rounded-2xl p-8 max-w-md w-full text-center ${card}`}>
-          <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-400" />
+      <div className={`min-h-screen ${bg} ${text} flex items-center justify-center px-4 relative overflow-hidden`}>
+        <div className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] pointer-events-none ${isDark ? 'bg-blue-900/20' : 'bg-blue-100/30'}`} />
+        <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] pointer-events-none ${isDark ? 'bg-purple-900/10' : 'bg-orange-50/40'}`} />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className={`border rounded-2xl p-8 max-w-md w-full text-center backdrop-blur-sm relative z-10 ${card}`}
+        >
+          <CheckCircle className="w-16 h-16 mx-auto mb-4 text-emerald-400" />
           <h2 className="text-2xl font-bold mb-2">Endorsement recorded! 🎉</h2>
           <p className={`${subtle} mb-6`}>
             You endorsed <strong>{kya.agent.name ?? kya.agent.address.slice(0, 10) + '…'}</strong>
@@ -189,11 +203,11 @@ export default function VerifyPage() {
           </div>
           <a
             href={`/passport/${endorserAddress}`}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${btnPrimary}`}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${btnPrimary}`}
           >
             View my passport
           </a>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -203,20 +217,41 @@ export default function VerifyPage() {
   const agentDisplayName = agent.name ?? `${agent.address.slice(0, 6)}…${agent.address.slice(-4)}`;
 
   return (
-    <div className={`min-h-screen ${bg} ${text}`}>
-      <div className="max-w-2xl mx-auto px-4 py-12">
+    <div className={`min-h-screen ${bg} ${text} relative overflow-hidden selection:bg-blue-500 selection:text-white`}>
+      {/* Atmospheric Backgrounds — matching passport.maiat.io */}
+      <motion.div
+        animate={{ scale: [1, 1.1, 1], x: [0, 20, 0], y: [0, -20, 0] }}
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] pointer-events-none ${isDark ? 'bg-blue-900/20' : 'bg-blue-100/30'}`}
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1], x: [0, -30, 0], y: [0, 30, 0] }}
+        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+        className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] pointer-events-none ${isDark ? 'bg-purple-900/10' : 'bg-orange-50/40'}`}
+      />
+      <motion.div
+        animate={{ scale: [1, 1.15, 1] }}
+        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+        className={`absolute top-[30%] right-[10%] w-[25%] h-[25%] rounded-full blur-[100px] pointer-events-none ${isDark ? 'bg-indigo-900/10' : 'bg-indigo-100/20'}`}
+      />
+
+      <div className="max-w-2xl mx-auto px-4 py-12 sm:py-16 relative z-10">
         {/* Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border mb-4"
-            style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-10"
+        >
+          <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium border mb-5 backdrop-blur-sm ${isDark ? 'border-white/[0.08] bg-white/[0.04]' : 'border-black/[0.06] bg-white/60'}`}>
             <Shield className="w-3 h-3" />
             Know Your Agent
           </div>
-          <h1 className="text-3xl font-bold mb-2">Endorse this agent</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-3 tracking-tight">Endorse this agent</h1>
           <p className={`${subtle} text-sm`}>
             Tweet your support → get <span className="text-yellow-500">🪲 5 Scarab</span> reward
           </p>
-        </div>
+        </motion.div>
 
         {/* Referrer badge */}
         {referrer && (
@@ -228,10 +263,15 @@ export default function VerifyPage() {
         )}
 
         {/* Agent card */}
-        <div className={`border rounded-2xl p-6 mb-6 ${card}`}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className={`border rounded-2xl p-6 mb-6 backdrop-blur-sm ${card}`}
+        >
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center shrink-0">
-              <Shield className="w-6 h-6 text-blue-400" />
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/[0.06]' : 'bg-gradient-to-br from-blue-100 to-purple-100'}`}>
+              <Shield className={`w-6 h-6 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold truncate">{agentDisplayName}</h2>
@@ -241,55 +281,65 @@ export default function VerifyPage() {
               <p className={`text-xs font-mono ${subtle} truncate mt-1`}>{agent.address}</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-xs font-mono bg-white/10 px-2 py-1 rounded">{code}</p>
+              <p className={`text-xs font-mono px-2.5 py-1 rounded-lg ${isDark ? 'bg-white/[0.06] border border-white/[0.08] text-white/60' : 'bg-black/5 border border-black/[0.06] text-black/50'}`}>{code}</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <div className={`rounded-xl p-3 text-center border ${isDark ? 'bg-white/5 border-white/5' : 'bg-black/3 border-black/5'}`}>
-              <p className="text-2xl font-bold">{agent.totalEndorsements}</p>
-              <p className={`text-xs ${subtle}`}>endorsements</p>
+          <div className="grid grid-cols-2 gap-3 mt-5">
+            <div className={`rounded-xl p-4 text-center ${isDark ? 'bg-white/[0.03] border border-white/[0.05]' : 'bg-black/[0.02] border border-black/[0.04]'}`}>
+              <p className="text-2xl font-bold tracking-tight">{agent.totalEndorsements}</p>
+              <p className={`text-xs mt-0.5 ${subtle}`}>endorsements</p>
             </div>
-            <div className={`rounded-xl p-3 text-center border ${isDark ? 'bg-white/5 border-white/5' : 'bg-black/3 border-black/5'}`}>
-              <p className="text-2xl font-bold text-green-400">+{agent.trustBoost}</p>
-              <p className={`text-xs ${subtle}`}>trust boost</p>
+            <div className={`rounded-xl p-4 text-center ${isDark ? 'bg-white/[0.03] border border-white/[0.05]' : 'bg-black/[0.02] border border-black/[0.04]'}`}>
+              <p className="text-2xl font-bold tracking-tight text-emerald-400">+{agent.trustBoost}</p>
+              <p className={`text-xs mt-0.5 ${subtle}`}>trust boost</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Step 1: Tweet */}
-        <div className={`border rounded-2xl p-6 mb-4 ${card}`}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-xs flex items-center justify-center font-bold">1</span>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className={`border rounded-2xl p-6 mb-4 backdrop-blur-sm ${card}`}
+        >
+          <div className="flex items-center gap-2.5 mb-4">
+            <span className={`w-7 h-7 rounded-full text-xs flex items-center justify-center font-bold ${isDark ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20' : 'bg-blue-50 text-blue-600 border border-blue-200'}`}>1</span>
             <h3 className="font-semibold">Tweet your endorsement</h3>
           </div>
 
-          <div className={`border rounded-xl p-4 mb-4 font-mono text-sm whitespace-pre-wrap ${isDark ? 'bg-black/30 border-white/10 text-white/80' : 'bg-black/3 border-black/8 text-black/70'}`}>
+          <div className={`border rounded-xl p-4 mb-4 font-mono text-sm whitespace-pre-wrap leading-relaxed ${isDark ? 'bg-black/20 border-white/[0.06] text-white/70' : 'bg-black/[0.02] border-black/[0.06] text-black/60'}`}>
             {buildTweetText()}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={handleCopyTweet}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${btnSecondary}`}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${btnSecondary}`}
             >
-              {copied ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+              {copied ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
               {copied ? 'Copied!' : 'Copy tweet'}
             </button>
             <button
               onClick={handleOpenTwitter}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${btnPrimary}`}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${btnPrimary}`}
             >
               <Twitter className="w-4 h-4" />
               Tweet on X
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Step 2: Submit proof */}
-        <div className={`border rounded-2xl p-6 ${card}`}>
-          <div className="flex items-center gap-2 mb-4">
-            <span className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 text-xs flex items-center justify-center font-bold">2</span>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className={`border rounded-2xl p-6 backdrop-blur-sm ${card}`}
+        >
+          <div className="flex items-center gap-2.5 mb-4">
+            <span className={`w-7 h-7 rounded-full text-xs flex items-center justify-center font-bold ${isDark ? 'bg-purple-500/15 text-purple-400 border border-purple-500/20' : 'bg-purple-50 text-purple-600 border border-purple-200'}`}>2</span>
             <h3 className="font-semibold">Submit your tweet proof</h3>
           </div>
 
@@ -344,7 +394,7 @@ export default function VerifyPage() {
               One endorsement per agent. Your tweet serves as on-chain proof.
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
