@@ -261,6 +261,95 @@ function buildMcpServer(): McpServer {
     }
   );
 
+  // ── Tool: register_passport ────────────────────────────────────────────────
+
+  server.tool(
+    "register_passport",
+    "Register for a Maiat Passport — get a free ENS name (yourname.maiat.eth), on-chain ERC-8004 identity, KYA verification code, and 10 Scarab bonus. Works for both agents and humans. Wallet is auto-created if not provided.",
+    {
+      ensName: z
+        .string()
+        .describe("Desired ENS name (3+ chars, lowercase, letters/numbers/hyphens). Will become ensName.maiat.eth"),
+      walletAddress: z
+        .string()
+        .optional()
+        .describe("Optional wallet address (0x...). If omitted, a Privy server wallet is created automatically."),
+      type: z
+        .enum(["agent", "human"])
+        .default("agent")
+        .describe("Account type: 'agent' for AI agents, 'human' for people"),
+      referredBy: z
+        .string()
+        .optional()
+        .describe("Optional referrer ENS name (without .maiat.eth). Both parties get +5 Scarab bonus."),
+    },
+    async ({ ensName, walletAddress, type, referredBy }) => {
+      try {
+        const body: Record<string, string> = { ensName, type: type ?? "agent" };
+        if (walletAddress) body.walletAddress = walletAddress;
+        if (referredBy) body.referredBy = referredBy;
+
+        const res = await fetch(`${BASE_URL}/api/v1/passport/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(30_000),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          return {
+            content: [{ type: "text", text: `Registration failed (${res.status}): ${data.error || "Unknown error"}` }],
+            isError: true,
+          };
+        }
+
+        const p = data.passport;
+        let summary = `🛡️ **Passport ${p.isNew ? "Registered" : "Already Exists"}!**\n\n`;
+        summary += `ENS: ${p.ensFullName}\n`;
+        summary += `Wallet: ${p.walletAddress}\n`;
+        summary += `Type: ${p.type}\n`;
+        summary += `Trust Score: ${p.trustScore} (${p.verdict})\n`;
+        summary += `Scarab Balance: ${p.scarabBalance} 🪲\n`;
+
+        if (p.kyaCode) {
+          summary += `\nKYA Code: ${p.kyaCode}\n`;
+        }
+        if (p.erc8004AgentId) {
+          summary += `ERC-8004 Agent ID: ${p.erc8004AgentId}\n`;
+        }
+        if (p.ensRegistered) {
+          summary += `ENS: ✅ Registered on-chain\n`;
+        }
+        if (p.privyWalletCreated) {
+          summary += `Wallet: ✅ Auto-created (Privy server wallet)\n`;
+        }
+        if (p.referralApplied) {
+          summary += `Referral: ✅ +5 bonus applied\n`;
+        }
+
+        if (data.kya) {
+          summary += `\n📋 **Verification (KYA):**\n`;
+          summary += `Share URL: ${data.kya.shareUrl}\n`;
+          summary += `Tweet Template: ${data.kya.tweetTemplate}\n`;
+          summary += `\n${data.kya.instruction}\n`;
+        }
+
+        summary += `\nPassport page: https://passport.maiat.io/verify/${p.kyaCode || p.walletAddress}\n`;
+        summary += `Dashboard: https://app.maiat.io/passport/${p.walletAddress}\n`;
+
+        return { content: [{ type: "text", text: summary }] };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text", text: `Request failed: ${msg}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
   // ── Tool: get_scarab_balance ──────────────────────────────────────────────
 
   server.tool(
@@ -343,6 +432,7 @@ export async function GET() {
       "get_token_forensics",
       "report_outcome",
       "get_scarab_balance",
+      "register_passport",
     ],
     docs: "https://github.com/JhiNResH/maiat-protocol/tree/master/docs/api",
   });

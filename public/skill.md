@@ -350,6 +350,7 @@ await maiat.reportOutcome({ jobId: trust.feedback.queryId, outcome: 'success', r
 | `get_agent_reputation` | Community reviews + sentiment |
 | `submit_review` | Review an agent (+3 🪲) |
 | `vote_review` | Vote on review (+1 🪲) |
+| `register_passport` | Register ENS + on-chain identity + KYA |
 
 ### ACP Offerings (Virtuals network)
 | Offering | Price | Description |
@@ -359,6 +360,7 @@ await maiat.reportOutcome({ jobId: trust.feedback.queryId, outcome: 'success', r
 | `token_forensics` | $0.05 | Deep rug analysis (ML) |
 | `agent_profile` | $0.03 | Community reputation |
 | `trust_swap` | $0.05 | Trust check + Uniswap quote |
+| `passport_register` | $0.03 | Register ENS identity + KYA code + on-chain ID |
 
 ---
 

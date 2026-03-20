@@ -2,7 +2,7 @@ import { createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 
 export interface QueryLogInput {
-  type: "agent_trust" | "agent_deep_check" | "token_check" | "trust_swap" | "token_forensics";
+  type: "agent_trust" | "agent_deep_check" | "token_check" | "trust_swap" | "token_forensics" | "passport_register";
   target: string;
   buyer?: string;
   jobId?: string;

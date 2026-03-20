@@ -7,6 +7,7 @@ import { generateKyaCode } from "@/lib/kya";
 import { setEnsSubname } from "@/lib/namestone";
 import { buildEnsip25Key } from "@/lib/ensip25";
 import { PrivyClient } from "@privy-io/node";
+import { logQuery } from "@/lib/query-logger";
 
 // Allow up to 30s for on-chain tx (Vercel Pro/Hobby default is 10s)
 export const maxDuration = 120; // Vercel Pro plan
@@ -314,6 +315,26 @@ export async function POST(request: NextRequest) {
       ensRegistered = ensResult.success;
     } catch (e: any) {
       console.warn("[passport/register] NameStone ENS registration failed (non-blocking):", e.message);
+    }
+
+    // Log query for ACP tracking
+    try {
+      await logQuery({
+        type: "passport_register",
+        target: normalizedAddress,
+        trustScore: reputation.reputationScore,
+        verdict: getVerdict(reputation.reputationScore),
+        metadata: {
+          ensName: cleanEnsName,
+          userType,
+          referralApplied,
+          privyWalletCreated,
+          erc8004Status,
+          ensRegistered: false, // will be set below
+        },
+      });
+    } catch (e: any) {
+      console.warn("[passport/register] Query logging failed (non-blocking):", e.message);
     }
 
     // Build KYA share info for agents
