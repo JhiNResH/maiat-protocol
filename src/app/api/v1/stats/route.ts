@@ -7,6 +7,11 @@ export const dynamic = "force-dynamic";
 let cachedStats: { data: object; expiresAt: number } | null = null;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+const CORS_HEADERS = {
+  "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+  "Access-Control-Allow-Origin": "*",
+};
+
 /**
  * GET /api/v1/stats
  *
@@ -17,12 +22,7 @@ export async function GET() {
   try {
     // Check cache
     if (cachedStats && cachedStats.expiresAt > Date.now()) {
-      return NextResponse.json(cachedStats.data, {
-        headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
+      return NextResponse.json(cachedStats.data, { headers: CORS_HEADERS });
     }
 
     // Lazy import prisma to handle environments without DB
@@ -33,10 +33,12 @@ export async function GET() {
     } catch {
       return NextResponse.json(
         {
+          agentsIndexed: 0,
+          totalQueries: 0,
+          uniqueCallers: 0,
           addressesScored: 0,
           totalReviews: 0,
           contributors: 0,
-          avgScore: 0,
           lastUpdated: new Date().toISOString(),
         },
         { headers: { "Access-Control-Allow-Origin": "*" } }
@@ -45,13 +47,18 @@ export async function GET() {
 
     // Query real stats
     const [
+      agentsIndexed,
+      totalQueries,
+      uniqueCallers,
       trustReviewCount,
       trustReviewAddresses,
       trustReviewContributors,
-      projectReviewCount,
-      projectCount,
     ] = await Promise.all([
-      // TrustReview stats (v1 API reviews)
+      prisma.agentScore.count(),
+      prisma.queryLog.count(),
+      prisma.queryLog
+        .groupBy({ by: ["caller"] })
+        .then((groups) => groups.length),
       prisma.trustReview.count(),
       prisma.trustReview
         .groupBy({ by: ["address"] })
@@ -59,30 +66,22 @@ export async function GET() {
       prisma.trustReview
         .groupBy({ by: ["reviewer"] })
         .then((groups) => groups.length),
-      // Project-based Review stats
-      prisma.review.count({ where: { status: "active" } }),
-      prisma.project.count({ where: { status: "active" } }),
     ]);
 
-    const totalReviews = trustReviewCount + projectReviewCount;
-
     const stats = {
-      addressesScored: trustReviewAddresses + projectCount,
-      totalReviews,
+      agentsIndexed,
+      totalQueries,
+      uniqueCallers,
+      addressesScored: trustReviewAddresses,
+      totalReviews: trustReviewCount,
       contributors: trustReviewContributors,
-      projectCount,
       lastUpdated: new Date().toISOString(),
     };
 
     // Cache the result
     cachedStats = { data: stats, expiresAt: Date.now() + CACHE_TTL_MS };
 
-    return NextResponse.json(stats, {
-      headers: {
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    return NextResponse.json(stats, { headers: CORS_HEADERS });
   } catch (error) {
     apiLog.error("stats", error, {});
     return NextResponse.json(
