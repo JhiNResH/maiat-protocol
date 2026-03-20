@@ -46,14 +46,39 @@ export async function POST(req: NextRequest) {
       address?: string
       signature?: string
       timestamp?: number
+      kyaCode?: string
     }
 
-    const { address, signature, timestamp } = body
+    const { address, signature, timestamp, kyaCode } = body
+
+    // ─── Path A: KYA-based auth (for headless agents / Privy wallets) ────
+    if (kyaCode && typeof kyaCode === 'string') {
+      const kyaRecord = await prisma.kyaCode.findUnique({
+        where: { code: kyaCode },
+      })
+
+      if (!kyaRecord || !kyaRecord.agentAddress) {
+        return NextResponse.json(
+          { error: 'Invalid KYA code. Register at POST /api/v1/passport/register first.' },
+          { status: 401, headers: CORS_HEADERS }
+        )
+      }
+
+      const agentAddress = getAddress(kyaRecord.agentAddress)
+      const token = await issueAgentJWT(agentAddress)
+
+      return NextResponse.json(
+        { token, expiresIn: 86400, address: agentAddress },
+        { status: 200, headers: CORS_HEADERS }
+      )
+    }
+
+    // ─── Path B: EIP-712 signature auth (for self-custodial wallets) ─────
 
     // 1. Validate address format
     if (!address || !isAddress(address)) {
       return NextResponse.json(
-        { error: 'Invalid or missing address' },
+        { error: 'Invalid or missing address. Provide {address, signature, timestamp} for EIP-712 auth, or {kyaCode} for KYA-based auth.' },
         { status: 400, headers: CORS_HEADERS }
       )
     }
