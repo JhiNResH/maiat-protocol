@@ -219,10 +219,10 @@ export default function PassportPage() {
 
   return (
     <div className="pb-20 relative">
-      <main className="max-w-6xl mx-auto px-6 relative">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 relative">
 
         {/* Hero */}
-        <section className="mb-16 pt-12 text-center">
+        <section className="mb-8 sm:mb-16 pt-6 sm:pt-12 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -266,7 +266,7 @@ export default function PassportPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative liquid-glass rounded-[2.5rem] p-8 hover-lift"
+            className="relative liquid-glass rounded-[1.5rem] sm:rounded-[2.5rem] p-5 sm:p-8 hover-lift"
           >
             <div className="relative">
               {/* Address + edit row */}
@@ -335,7 +335,7 @@ export default function PassportPage() {
           </motion.div>
 
           {/* ── Stat Cards (same pattern as analytics) ─────────────────── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8 mb-4">
             <StatCard label="Reputation" value={passport.reputationScore} delay={0.3} />
             <StatCard label="Reviews" value={passport.totalReviews} delay={0.4} />
             <StatCard label="🪲 Scarab" value={data?.scarab?.balance ?? 0} delay={0.5} />
@@ -365,7 +365,7 @@ export default function PassportPage() {
             className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Level Perks */}
-            <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
+            <div className="liquid-glass rounded-[1.5rem] sm:rounded-[2.5rem] p-5 sm:p-8 hover-lift">
               <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
                 Level Perks
               </p>
@@ -393,7 +393,7 @@ export default function PassportPage() {
             </div>
 
             {/* Review History */}
-            <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
+            <div className="liquid-glass rounded-[1.5rem] sm:rounded-[2.5rem] p-5 sm:p-8 hover-lift">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">
                   Review History
@@ -446,7 +446,7 @@ export default function PassportPage() {
 
           {/* ── CTA (if not own wallet) ──────────────────────────────────── */}
           {!isOwn && (
-            <div className="liquid-glass border border-[var(--border-color)] rounded-[2.5rem] p-8 text-center">
+            <div className="liquid-glass border border-[var(--border-color)] rounded-[1.5rem] sm:rounded-[2.5rem] p-5 sm:p-8 text-center">
               <p className="text-[var(--text-muted)] text-[10px] font-medium mb-3">View your own trust passport</p>
               <Link
                 href="/passport"
@@ -497,7 +497,7 @@ function MarketPositions({ address }: { address: string }) {
   }, [address])
 
   if (loading) return (
-    <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
+    <div className="liquid-glass rounded-[1.5rem] sm:rounded-[2.5rem] p-5 sm:p-8 hover-lift">
       <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] animate-pulse">
         Loading positions…
       </p>
@@ -505,7 +505,7 @@ function MarketPositions({ address }: { address: string }) {
   )
 
   if (positions.length === 0) return (
-    <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
+    <div className="liquid-glass rounded-[1.5rem] sm:rounded-[2.5rem] p-5 sm:p-8 hover-lift">
       <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
         Market Positions
       </p>
@@ -536,7 +536,7 @@ function MarketPositions({ address }: { address: string }) {
   const totalWinnings = resolvedPositions.reduce((s: number, p: any) => s + p.totalPayout, 0)
 
   return (
-    <div className="liquid-glass rounded-[2.5rem] p-8 hover-lift">
+    <div className="liquid-glass rounded-[1.5rem] sm:rounded-[2.5rem] p-5 sm:p-8 hover-lift">
       <div className="flex items-center justify-between mb-4">
         <p className="text-[10px] font-bold tracking-widest uppercase text-[var(--text-muted)]">
           Market Positions

@@ -182,10 +182,10 @@ function AgentDetailContent() {
 
   return (
     <div className="pb-20 relative">
-      <main className="max-w-6xl mx-auto px-6 relative">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 relative">
 
         {/* ── Hero Section ── */}
-        <section className="mb-12 pt-12 text-center">
+        <section className="mb-8 sm:mb-12 pt-6 sm:pt-12 text-center">
           {/* Breadcrumb */}
           <motion.div
             initial={{ opacity: 0, y: -8 }}
@@ -226,7 +226,7 @@ function AgentDetailContent() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8"
         >
           <StatCard label="Trust Score" value={(score * 10).toFixed(0)} delay={0.3} />
           <StatCard label="Reviews" value={reviews.length} delay={0.35} />
@@ -239,9 +239,9 @@ function AgentDetailContent() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.35 }}
-          className="liquid-glass rounded-[3rem] p-8 relative overflow-hidden group mb-8 hover-lift"
+          className="liquid-glass rounded-[1.5rem] sm:rounded-[3rem] p-5 sm:p-8 relative overflow-hidden group mb-6 sm:mb-8 hover-lift"
         >
-          <div className="flex flex-col lg:flex-row items-start gap-10 relative z-10">
+          <div className="flex flex-col lg:flex-row items-start gap-6 sm:gap-10 relative z-10">
             {/* Avatar */}
             <div className="relative shrink-0">
               <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[var(--border-color)] flex items-center justify-center text-3xl font-black text-[var(--text-color)]">
@@ -305,12 +305,12 @@ function AgentDetailContent() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.45 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8"
         >
           {/* Stats Column */}
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Score breakdown */}
-            <div className="liquid-glass rounded-[3rem] p-10 space-y-6 hover-lift">
+            <div className="liquid-glass rounded-[1.5rem] sm:rounded-[3rem] p-6 sm:p-10 space-y-6 hover-lift">
               <div className="flex items-center gap-3">
                 <Shield className="w-4 h-4 text-emerald-500" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">Score Breakdown</h3>
@@ -324,7 +324,7 @@ function AgentDetailContent() {
             </div>
 
             {/* On-chain Details */}
-            <div className="liquid-glass rounded-[3rem] p-10 space-y-6 flex flex-col hover-lift">
+            <div className="liquid-glass rounded-[1.5rem] sm:rounded-[3rem] p-6 sm:p-10 space-y-6 flex flex-col hover-lift">
               <div className="flex items-center gap-3">
                 <Activity className="w-4 h-4 text-emerald-500" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">On-Chain Details</h3>
@@ -379,7 +379,7 @@ function AgentDetailContent() {
 
           {/* Scarab Column */}
           <div className="space-y-6">
-            <div className="liquid-glass rounded-[3rem] p-10 space-y-4 hover-lift">
+            <div className="liquid-glass rounded-[1.5rem] sm:rounded-[3rem] p-6 sm:p-10 space-y-4 hover-lift">
               <div className="flex items-center justify-between">
                 <span className="text-2xl">🪲</span>
                 <div className="text-right">
@@ -393,7 +393,7 @@ function AgentDetailContent() {
             </div>
 
             {/* Risk + Sentiment Card */}
-            <div className="liquid-glass rounded-[3rem] p-10 space-y-5 hover-lift">
+            <div className="liquid-glass rounded-[1.5rem] sm:rounded-[3rem] p-6 sm:p-10 space-y-5 hover-lift">
               {/* Risk Assessment */}
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -502,7 +502,7 @@ function AgentDetailContent() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.55 }}
-          className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-12 border-t border-[var(--border-color)]"
+          className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 pt-8 sm:pt-12 border-t border-[var(--border-color)]"
         >
           {/* List — shared ReviewList with upvote/downvote */}
           <div className="lg:col-span-7 space-y-8">
@@ -515,7 +515,7 @@ function AgentDetailContent() {
 
           {/* Form */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="liquid-glass rounded-[3rem] p-8 sticky top-24 hover-lift">
+            <div className="liquid-glass rounded-[1.5rem] sm:rounded-[3rem] p-5 sm:p-8 sticky top-24 hover-lift">
               <div className="flex items-center gap-2 mb-6">
                 <Trophy className="w-4 h-4 text-emerald-500" />
                 <h2 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">Leave a Review</h2>

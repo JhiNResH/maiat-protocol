@@ -35,7 +35,7 @@ export default function PassportIndexPage() {
     <div className="min-h-screen pb-20 relative">
       <main className="max-w-6xl mx-auto px-6 relative">
         {/* Hero */}
-        <section className="text-center mb-24 pt-12">
+        <section className="text-center mb-12 sm:mb-24 pt-6 sm:pt-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -71,7 +71,7 @@ export default function PassportIndexPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={login}
-            className="bg-[var(--text-color)] text-[var(--bg-color)] px-12 py-5 rounded-2xl font-bold shadow-xl shadow-black/5 hover:opacity-90 transition-all flex items-center gap-4 mx-auto uppercase tracking-widest text-[10px]"
+            className="bg-[var(--text-color)] text-[var(--bg-color)] px-8 sm:px-12 py-4 sm:py-5 rounded-2xl font-bold shadow-xl shadow-black/5 hover:opacity-90 transition-all flex items-center gap-4 mx-auto uppercase tracking-widest text-[10px] w-full sm:w-auto justify-center"
           >
             <ShieldCheck size={20} />
             Connect Wallet to View Passport
@@ -79,18 +79,18 @@ export default function PassportIndexPage() {
         </section>
 
         {/* Bento Grid Preview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-12 items-stretch">
           {/* Recent Reviews */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
-            className="liquid-glass rounded-[3rem] border-white/40 p-12 flex flex-col items-center justify-center text-center min-h-[400px] hover-lift"
+            className="liquid-glass rounded-[1.5rem] sm:rounded-[3rem] border-white/40 p-6 sm:p-12 flex flex-col items-center justify-center text-center min-h-[280px] sm:min-h-[400px] hover-lift"
           >
             <div className="w-24 h-24 bg-[var(--card-bg)] rounded-[2rem] flex items-center justify-center text-[var(--text-muted)] mb-10">
               <Activity size={48} />
             </div>
-            <h3 className="text-3xl font-bold mb-4 text-[var(--text-color)]">Recent Reviews</h3>
+            <h3 className="text-xl sm:text-3xl font-bold mb-4 text-[var(--text-color)]">Recent Reviews</h3>
             <p className="text-[var(--text-secondary)] font-medium">
               Connect your wallet to see your review history.
             </p>
@@ -101,13 +101,13 @@ export default function PassportIndexPage() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="liquid-glass rounded-[3rem] border-white/40 p-12 flex flex-col items-center justify-center text-center min-h-[450px] relative overflow-hidden group hover-lift"
+            className="liquid-glass rounded-[1.5rem] sm:rounded-[3rem] border-white/40 p-6 sm:p-12 flex flex-col items-center justify-center text-center min-h-[320px] sm:min-h-[450px] relative overflow-hidden group hover-lift"
           >
             <div className="absolute top-0 left-0 w-full h-2 bg-[var(--text-color)]" />
             <div className="w-24 h-24 bg-[var(--card-bg)] rounded-full flex items-center justify-center text-[var(--text-color)] mb-10 group-hover:bg-[var(--text-color)] group-hover:text-[var(--bg-color)] transition-all">
               <Fingerprint size={48} />
             </div>
-            <h2 className="text-6xl font-bold mb-6 text-[var(--text-color)] tracking-tighter leading-none">
+            <h2 className="text-4xl sm:text-6xl font-bold mb-6 text-[var(--text-color)] tracking-tighter leading-none">
               Your<br />Passport
             </h2>
             <p className="text-[var(--text-secondary)] mb-12 font-medium">
@@ -126,13 +126,13 @@ export default function PassportIndexPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5 }}
-            className="liquid-glass rounded-[3rem] border-white/40 p-12 flex flex-col items-center justify-center text-center min-h-[400px] hover-lift"
+            className="liquid-glass rounded-[1.5rem] sm:rounded-[3rem] border-white/40 p-6 sm:p-12 flex flex-col items-center justify-center text-center min-h-[280px] sm:min-h-[400px] hover-lift"
           >
-            <div className="grid grid-cols-7 gap-3 mb-10">
+            <div className="grid grid-cols-7 gap-1.5 sm:gap-3 mb-10">
               {Array.from({ length: 28 }).map((_, i) => (
                 <div
                   key={i}
-                  className={`w-7 h-7 rounded-lg transition-colors ${
+                  className={`w-5 h-5 sm:w-7 sm:h-7 rounded-lg transition-colors ${
                     i % 5 === 0 ? 'bg-[var(--text-color)]' :
                     i % 3 === 0 ? 'bg-[var(--text-secondary)]' :
                     i % 2 === 0 ? 'bg-[var(--text-muted)]' : 'bg-[var(--card-bg)]'
@@ -140,7 +140,7 @@ export default function PassportIndexPage() {
                 />
               ))}
             </div>
-            <h3 className="text-3xl font-bold mb-4 text-[var(--text-color)]">Activity Heatmap</h3>
+            <h3 className="text-xl sm:text-3xl font-bold mb-4 text-[var(--text-color)]">Activity Heatmap</h3>
             <p className="text-[var(--text-secondary)] font-medium">Start contributing to build your map</p>
           </motion.div>
         </div>

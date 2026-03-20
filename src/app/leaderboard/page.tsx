@@ -173,9 +173,9 @@ function LeaderboardPage() {
 
   return (
     <div className="pb-20 relative">
-      <main className="max-w-6xl mx-auto px-6 relative">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 relative">
         {/* Hero */}
-        <section className="text-center mb-24 pt-12">
+        <section className="text-center mb-12 sm:mb-24 pt-6 sm:pt-12">
           <motion.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -205,7 +205,7 @@ function LeaderboardPage() {
         {!loading && agents.length > 0 && !query.trim() && (
           <>
             {/* Top 3 Podiums */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-24 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-12 mb-12 sm:mb-24 items-end">
               {podiumOrder.map((agent, i) => {
                 const rank = podiumRanks[i];
                 const isFeatured = rank === 1;
@@ -237,7 +237,7 @@ function LeaderboardPage() {
                       )}
                       <h3 className="font-display font-bold text-2xl mb-2 text-[var(--text-color)] truncate">{agent.name}</h3>
                       <p className="text-[10px] font-mono text-[var(--text-muted)]">{truncateAddress(agent.id)}</p>
-                      <div className={`text-6xl font-bold mt-4 mb-3 tracking-tighter ${trustScoreColor(agent.trust.score)}`}>
+                      <div className={`text-4xl sm:text-6xl font-bold mt-4 mb-3 tracking-tighter ${trustScoreColor(agent.trust.score)}`}>
                         {agent.trust.score ?? "?"}
                       </div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Trust Score</p>
@@ -283,7 +283,7 @@ function LeaderboardPage() {
                 <button
                   key={s}
                   onClick={() => setSortBy(s)}
-                  className={`px-6 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                  className={`px-4 py-3 sm:px-6 sm:py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${
                     sortBy === s
                       ? "bg-[var(--text-color)] text-[var(--bg-color)]"
                       : "liquid-glass text-[var(--text-secondary)] hover:text-[var(--text-color)]"
@@ -307,12 +307,12 @@ function LeaderboardPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[var(--bg-color)] border-b border-[var(--border-color)]">
-                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Rank</th>
-                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Agent</th>
-                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-center hidden md:table-cell">Jobs</th>
-                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-center hidden lg:table-cell">AGDP</th>
-                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-center">Verdict</th>
-                  <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-right">Trust Score</th>
+                  <th className="px-3 sm:px-10 py-3 sm:py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Rank</th>
+                  <th className="px-3 sm:px-10 py-3 sm:py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Agent</th>
+                  <th className="px-3 sm:px-10 py-3 sm:py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-center hidden md:table-cell">Jobs</th>
+                  <th className="px-3 sm:px-10 py-3 sm:py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-center hidden lg:table-cell">AGDP</th>
+                  <th className="px-3 sm:px-10 py-3 sm:py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-center">Verdict</th>
+                  <th className="px-3 sm:px-10 py-3 sm:py-6 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-right">Trust Score</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-color)]">
@@ -325,8 +325,8 @@ function LeaderboardPage() {
                       onClick={() => router.push(`/agent/${cleanAgentName(agent.name)}/${agent.id}`)}
                       className="hover:bg-[var(--bg-color)] transition-all group cursor-pointer"
                     >
-                      <td className="px-10 py-8 font-bold text-[var(--text-color)] text-lg">#{globalRank}</td>
-                      <td className="px-10 py-8">
+                      <td className="px-3 sm:px-10 py-4 sm:py-8 font-bold text-[var(--text-color)] text-sm sm:text-lg">#{globalRank}</td>
+                      <td className="px-3 sm:px-10 py-4 sm:py-8">
                         <div className="flex items-center gap-6">
                           {agent.logo ? (
                             <img src={agent.logo} alt={agent.name} className="w-14 h-14 rounded-2xl object-cover" />
@@ -341,18 +341,18 @@ function LeaderboardPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-10 py-8 text-center hidden md:table-cell">
+                      <td className="px-3 sm:px-10 py-4 sm:py-8 text-center hidden md:table-cell">
                         <span className="text-base font-bold text-[var(--text-color)]">{agent.breakdown?.totalJobs?.toLocaleString() ?? "—"}</span>
                       </td>
-                      <td className="px-10 py-8 text-center hidden lg:table-cell">
+                      <td className="px-3 sm:px-10 py-4 sm:py-8 text-center hidden lg:table-cell">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">{formatAgdp(agent.breakdown?.agdp)}</span>
                       </td>
-                      <td className="px-10 py-8 text-center">
+                      <td className="px-3 sm:px-10 py-4 sm:py-8 text-center">
                         <span className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest border ${verdictStyle(verdict)}`}>
                           {verdict.toUpperCase()}
                         </span>
                       </td>
-                      <td className="px-10 py-8 text-right">
+                      <td className="px-3 sm:px-10 py-4 sm:py-8 text-right">
                         <span className={`text-2xl font-bold ${trustScoreColor(agent.trust.score)}`}>
                           {agent.trust.score ?? "?"}
                         </span>
