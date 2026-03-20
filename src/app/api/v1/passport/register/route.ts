@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
           appId: process.env.PRIVY_APP_ID!,
           appSecret: process.env.PRIVY_APP_SECRET!,
         });
-        const wallet = await privy.wallets().create({ chainType: "ethereum" });
+        const wallet = await privy.wallets().create({ chain_type: "ethereum" } as any);
         resolvedWallet = wallet.address;
         privyWalletId = wallet.id;
         privyWalletCreated = true;
