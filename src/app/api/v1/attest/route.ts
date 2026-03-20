@@ -93,38 +93,61 @@ async function handler(request: NextRequest, address: string | null) {
     },
   });
 
-  if (!agent) {
-    return NextResponse.json(
-      {
-        error: "Agent not found.",
-        hint: "This address has no ACP job history indexed by Maiat.",
-        address: checksumAddress,
-      },
-      { status: 404 }
-    );
-  }
+  // If no ACP history, check if agent has a KYA registration (passport holder)
+  // Issue a "new" tier attestation so registered agents can participate immediately
+  let score: number;
+  let completionRate: number;
+  let jobCount: number;
+  let sybilFlags: string[] = [];
 
-  // Extract sybil flags from rawMetrics (goplusFlags + any risk signals)
-  const raw = agent.rawMetrics as Record<string, unknown> | null;
-  const sybilFlags: string[] = [];
-  if (raw) {
-    const goplusFlags = raw.goplusFlags;
-    if (Array.isArray(goplusFlags)) {
-      sybilFlags.push(...goplusFlags.filter((f): f is string => typeof f === "string"));
+  if (agent) {
+    score = agent.trustScore;
+    completionRate = agent.completionRate;
+    jobCount = agent.totalJobs;
+
+    // Extract sybil flags from rawMetrics
+    const raw = agent.rawMetrics as Record<string, unknown> | null;
+    if (raw) {
+      const goplusFlags = raw.goplusFlags;
+      if (Array.isArray(goplusFlags)) {
+        sybilFlags.push(...goplusFlags.filter((f): f is string => typeof f === "string"));
+      }
+      const riskFlags = raw.riskFlags;
+      if (Array.isArray(riskFlags)) {
+        sybilFlags.push(...riskFlags.filter((f): f is string => typeof f === "string"));
+      }
     }
-    // Surface any hardcoded risk codes stored in rawMetrics
-    const riskFlags = raw.riskFlags;
-    if (Array.isArray(riskFlags)) {
-      sybilFlags.push(...riskFlags.filter((f): f is string => typeof f === "string"));
+  } else {
+    // Fallback: check KYA registration
+    const kyaAgent = await prisma.kyaCode.findFirst({
+      where: { agentAddress: { equals: checksumAddress, mode: "insensitive" } },
+      select: { agentAddress: true, totalEndorsements: true, trustBoost: true },
+    });
+
+    if (!kyaAgent) {
+      return NextResponse.json(
+        {
+          error: "Agent not found.",
+          hint: "This address has no ACP history or KYA registration indexed by Maiat.",
+          address: checksumAddress,
+        },
+        { status: 404 }
+      );
     }
+
+    // Registered agent with no job history — issue attestation with endorsement score
+    score = Math.min(kyaAgent.trustBoost, 100);
+    completionRate = 0;
+    jobCount = 0;
+    sybilFlags = ["no-job-history"];
   }
 
   // Build and sign the attestation
   const payload = buildAttestationPayload({
     agent: checksumAddress,
-    score: agent.trustScore,
-    completionRate: agent.completionRate,
-    jobCount: agent.totalJobs,
+    score,
+    completionRate,
+    jobCount,
     sybilFlags,
   });
 
