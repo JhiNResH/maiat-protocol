@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "provider": "Maiat Protocol",
+  "contact": "team@maiat.io",
+  "services": [
+    {
+      "url": "https://app.maiat.io/api/x402/trust",
+      "name": "Maiat Agent Trust Score",
+      "description": "Query trust scores for AI agents — behavioral analysis from 18,600+ indexed agents on Base",
+      "protocol": "x402",
+      "price_usd": 0.02,
+      "payment_asset": "USDC",
+      "payment_network": "Base",
+      "category": "identity",
+      "http_method": "GET"
+    },
+    {
+      "url": "https://app.maiat.io/api/x402/token-check",
+      "name": "Maiat Token Safety Check",
+      "description": "Check if an ERC-20 token is safe to swap — detects honeypots, high tax, unverified contracts",
+      "protocol": "x402",
+      "price_usd": 0.01,
+      "payment_asset": "USDC",
+      "payment_network": "Base",
+      "category": "crypto",
+      "http_method": "GET"
+    },
+    {
+      "url": "https://app.maiat.io/api/x402/token-forensics",
+      "name": "Maiat Token Forensics (Wadjet ML)",
+      "description": "Deep rug pull analysis powered by Wadjet ML engine — 98% accuracy on known scams",
+      "protocol": "x402",
+      "price_usd": 0.05,
+      "payment_asset": "USDC",
+      "payment_network": "Base",
+      "category": "crypto",
+      "http_method": "GET"
+    },
+    {
+      "url": "https://app.maiat.io/api/x402/reputation",
+      "name": "Maiat Agent Reputation",
+      "description": "Community sentiment, endorsements, and market consensus for AI agents",
+      "protocol": "x402",
+      "price_usd": 0.03,
+      "payment_asset": "USDC",
+      "payment_network": "Base",
+      "category": "identity",
+      "http_method": "GET"
+    },
+    {
+      "url": "https://app.maiat.io/api/x402/register-passport",
+      "name": "Maiat Passport Registration",
+      "description": "Register an agent passport with on-chain trust attestation via Maiat SBT",
+      "protocol": "x402",
+      "price_usd": 0.05,
+      "payment_asset": "USDC",
+      "payment_network": "Base",
+      "category": "identity",
+      "http_method": "POST"
+    }
+  ]
+}
