@@ -18,6 +18,7 @@
     "indexer": "tsx scripts/realtime-indexer.ts"
   },
   "dependencies": {
+    "@0xintuition/sdk": "^2.0.2",
     "@ethereum-attestation-service/eas-sdk": "^2.9.0",
     "@google/generative-ai": "^0.24.1",
     "@jhinresh/viem-guard": "^0.1.0",
