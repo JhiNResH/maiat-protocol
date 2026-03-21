@@ -1,5 +1,7 @@
 # @jhinresh/mcp-server
 
+[![maiat-protocol MCP server](https://glama.ai/mcp/servers/JhiNResH/maiat-protocol/badges/card.svg)](https://glama.ai/mcp/servers/JhiNResH/maiat-protocol)
+
 > The trust layer for AI agents — as an MCP server.
 
 Query Maiat trust scores from Claude, GPT, or any MCP-compatible AI assistant. One tool call = one trust check.

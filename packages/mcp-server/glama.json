@@ -1,0 +1,13 @@
+{
+  "name": "maiat-protocol",
+  "display_name": "Maiat Trust Score MCP Server",
+  "description": "Query AI agent trust scores, token safety, forensics, and community reputation. 30,000+ agents indexed on Base.",
+  "repository": "https://github.com/JhiNResH/maiat-protocol",
+  "homepage": "https://app.maiat.io",
+  "author": {
+    "name": "JhiNResH",
+    "url": "https://github.com/JhiNResH"
+  },
+  "tags": ["trust", "security", "defi", "agents", "web3", "token-safety"],
+  "related_servers": []
+}
