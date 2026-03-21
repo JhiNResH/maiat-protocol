@@ -53,25 +53,28 @@ export async function GET(request: NextRequest) {
     // ── Fetch agents that haven't been written to Intuition yet ────────────────
     // We use a JSON field in rawMetrics to track intuitionTripleId
     // to avoid adding a new DB column right now.
-    const agents = await prisma.agentScore.findMany({
+    // Fetch agents that haven't been written to Intuition yet.
+    // Prisma JSON path filters don't work reliably when rawMetrics is DB NULL,
+    // so we fetch all eligible agents and filter in-app.
+    const allAgents = await prisma.agentScore.findMany({
       where: {
         trustScore: { gte: minScore },
-        // Skip agents whose rawMetrics already has intuitionTripleId set
-        NOT: {
-          rawMetrics: {
-            path: ["intuitionTripleId"],
-            not: null,
-          },
-        },
       },
       orderBy: { trustScore: "desc" },
-      take: limit,
+      take: limit * 2, // over-fetch to account for filtering
       select: {
         walletAddress: true,
         trustScore: true,
         rawMetrics: true,
       },
     });
+
+    const agents = allAgents
+      .filter((a) => {
+        const metrics = a.rawMetrics as Record<string, unknown> | null;
+        return !metrics?.intuitionTripleId;
+      })
+      .slice(0, limit);
 
     if (agents.length === 0) {
       return NextResponse.json(
