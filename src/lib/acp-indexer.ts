@@ -109,11 +109,11 @@ export function computeTrustScore(agent: AcpAgent, existingRawMetrics?: Record<s
   const paymentRate = successRate > 0 ? Math.min(successRate * 1.05, 1) : 0; // proxy
   const expireRate = successRate > 0 ? Math.max(1 - successRate - 0.05, 0) : 0.5;
 
-  // Volume factor: log scale, max 1.0 at 50+ jobs
-  const volumeFactor = totalJobs > 0 ? Math.min(Math.log10(totalJobs + 1) / Math.log10(51), 1) : 0;
+  // Volume factor: log scale, max 1.0 at 1000+ jobs (was 50 — too easy to cap)
+  const volumeFactor = totalJobs > 0 ? Math.min(Math.log10(totalJobs + 1) / Math.log10(1001), 1) : 0;
 
-  // Diversity factor: multiple unique buyers = more trustworthy
-  const diversityFactor = Math.min(buyerCount / 5, 1);
+  // Diversity factor: multiple unique buyers = more trustworthy (20 to cap, was 5)
+  const diversityFactor = Math.min(buyerCount / 20, 1);
 
   // ─── Wadjet Health Signals ───────────────────────────────────────────────
   // Reads priceData + healthSignals from existing DB rawMetrics (indexed by Wadjet)
@@ -150,7 +150,12 @@ export function computeTrustScore(agent: AcpAgent, existingRawMetrics?: Record<s
 
   // Cap total Wadjet modifier to ±20 to prevent overwhelming ACP behavioral data
   const wadjetModifier = Math.max(-20, Math.min(20, priceModifier + healthModifier));
-  const score = Math.round(Math.min(Math.max(rawScore + wadjetModifier, 0), 100));
+  let score = Math.round(Math.min(Math.max(rawScore + wadjetModifier, 0), 100));
+
+  // Hard cap: agents completing < 70% of jobs can't score above 60
+  if (completionRate < 0.70) {
+    score = Math.min(score, 60);
+  }
 
   return {
     walletAddress: agent.walletAddress,
