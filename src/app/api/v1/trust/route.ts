@@ -130,6 +130,6 @@ export async function GET(request: NextRequest) {
       summary: "No data found. Address not indexed as agent or token.",
       learnMore: `GET /api/v1/agent/${checksumAddress} or GET /api/v1/token/${checksumAddress}`,
     },
-    { status: 404 }
+    { status: 200 }
   );
 }
