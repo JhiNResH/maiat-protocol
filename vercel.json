@@ -21,6 +21,10 @@
     {
       "path": "/api/v1/cron/register-agents",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/v1/cron/write-intuition-triples",
+      "schedule": "0 5 * * *"
     }
   ]
 }
