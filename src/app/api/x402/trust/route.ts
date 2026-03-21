@@ -134,4 +134,4 @@ async function trustHandler(request: NextRequest): Promise<NextResponse<unknown>
 import { withPaymentGate } from "@/lib/x402-gate";
 
 // Wrap with manual x402 payment gate (no SDK init at build time)
-export const GET = withPaymentGate(trustHandler, "$0.02", "Trust score lookup for agents and tokens");
+export const GET = withPaymentGate(trustHandler, "$0.02", "Trust score lookup for agents and tokens", "agent_trust");

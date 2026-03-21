@@ -327,4 +327,4 @@ import { withPaymentGate } from "@/lib/x402-gate";
 
 // Wrap with manual x402 payment gate
 // Payment gate handled by middleware.ts — export handler directly
-export const GET = withPaymentGate(reputationHandler, "$0.03", "Full agent reputation and behavioral trust score");
+export const GET = withPaymentGate(reputationHandler, "$0.03", "Full agent reputation and behavioral trust score", "agent_trust");

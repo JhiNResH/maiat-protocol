@@ -111,6 +111,8 @@ async function settlePayment(paymentSignature: string): Promise<void> {
 
 type RouteHandler = (request: NextRequest) => Promise<NextResponse<unknown>>;
 
+type QueryType = "agent_trust" | "agent_deep_check" | "token_check" | "trust_swap" | "token_forensics" | "passport_register";
+
 /**
  * Wrap a route handler with x402 payment gate.
  * This is a lazy wrapper — no SDK initialization at import time.
@@ -118,7 +120,8 @@ type RouteHandler = (request: NextRequest) => Promise<NextResponse<unknown>>;
 export function withPaymentGate(
   handler: RouteHandler,
   priceUsd: string,
-  description: string
+  description: string,
+  queryType?: QueryType
 ): RouteHandler {
   const paymentRequiredHeader = buildPaymentRequired(priceUsd, description);
 
@@ -155,6 +158,25 @@ export function withPaymentGate(
 
     // Payment valid — run the actual handler
     const response = await handler(request);
+
+    // Log paid query (fire-and-forget)
+    if (queryType) {
+      const target = request.nextUrl.searchParams.get("address") || 
+                     request.nextUrl.searchParams.get("token") || 
+                     "unknown";
+      import("@/lib/query-logger").then(({ logQuery }) => {
+        logQuery({
+          type: queryType,
+          target: target.toLowerCase(),
+          clientId: "x402",
+          metadata: { 
+            channel: "x402",
+            priceUsd,
+            paymentProtocol: "x402",
+          },
+        });
+      }).catch(() => {});
+    }
 
     // Settle payment in background (don't block response)
     settlePayment(paymentSig).catch(() => {});

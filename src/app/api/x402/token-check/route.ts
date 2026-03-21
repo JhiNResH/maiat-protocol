@@ -446,4 +446,4 @@ import { withPaymentGate } from "@/lib/x402-gate";
 
 // Wrap with manual x402 payment gate
 // Payment gate handled by middleware.ts — export handler directly
-export const GET = withPaymentGate(tokenCheckHandler, "$0.01", "Token honeypot and safety check");
+export const GET = withPaymentGate(tokenCheckHandler, "$0.01", "Token honeypot and safety check", "token_check");

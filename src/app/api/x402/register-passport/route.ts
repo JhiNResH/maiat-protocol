@@ -354,4 +354,4 @@ import { withPaymentGate } from "@/lib/x402-gate";
 
 // Wrap with manual x402 payment gate
 // Payment gate handled by middleware.ts — export handler directly
-export const POST = withPaymentGate(registerPassportHandler, "$1.00", "Register a Maiat Passport with ENS, ERC-8004, and KYA");
+export const POST = withPaymentGate(registerPassportHandler, "$1.00", "Register a Maiat Passport with ENS, ERC-8004, and KYA", "passport_register");
