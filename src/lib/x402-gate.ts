@@ -35,10 +35,41 @@ export const X402_CORS_HEADERS = {
 /**
  * Build PAYMENT-REQUIRED header value (base64-encoded JSON)
  */
-function buildPaymentRequired(priceUsd: string, description: string): string {
+function buildPaymentRequired(priceUsd: string, description: string, bazaar?: BazaarMetadata): string {
   // Convert "$0.02" to micro-units (USDC has 6 decimals)
   const dollars = parseFloat(priceUsd.replace("$", ""));
   const microUnits = Math.round(dollars * 1_000_000).toString();
+
+  // Build bazaar extension if provided
+  const extensions: Record<string, unknown> = {};
+  if (bazaar) {
+    extensions.bazaar = {
+      info: {
+        input: {
+          type: "http",
+          queryParams: bazaar.input?.queryParams || {},
+        },
+        output: {
+          type: "json",
+          ...(bazaar.output?.example && { example: bazaar.output.example }),
+        },
+      },
+      ...(bazaar.output?.schema && {
+        schema: {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          type: "object",
+          properties: {
+            output: {
+              type: "object",
+              properties: {
+                example: bazaar.output.schema,
+              },
+            },
+          },
+        },
+      }),
+    };
+  }
 
   const paymentRequirements = {
     x402Version: 2,
@@ -54,6 +85,7 @@ function buildPaymentRequired(priceUsd: string, description: string): string {
         maxTimeoutSeconds: 300,
         asset: USDC_ADDRESSES[NETWORK] || USDC_ADDRESSES["eip155:8453"],
         extra: {},
+        ...(Object.keys(extensions).length > 0 && { extensions }),
       },
     ],
   };
@@ -113,6 +145,16 @@ type RouteHandler = (request: NextRequest) => Promise<NextResponse<unknown>>;
 
 type QueryType = "agent_trust" | "agent_deep_check" | "token_check" | "trust_swap" | "token_forensics" | "passport_register";
 
+interface BazaarMetadata {
+  output?: {
+    example?: Record<string, unknown>;
+    schema?: Record<string, unknown>;
+  };
+  input?: {
+    queryParams?: Record<string, { type: string; description?: string }>;
+  };
+}
+
 /**
  * Wrap a route handler with x402 payment gate.
  * This is a lazy wrapper — no SDK initialization at import time.
@@ -121,9 +163,10 @@ export function withPaymentGate(
   handler: RouteHandler,
   priceUsd: string,
   description: string,
-  queryType?: QueryType
+  queryType?: QueryType,
+  bazaar?: BazaarMetadata
 ): RouteHandler {
-  const paymentRequiredHeader = buildPaymentRequired(priceUsd, description);
+  const paymentRequiredHeader = buildPaymentRequired(priceUsd, description, bazaar);
 
   return async (request: NextRequest): Promise<NextResponse<unknown>> => {
     // Check for payment signature
