@@ -62,12 +62,21 @@ export async function GET() {
       }),
     ]);
 
-    // Fetch trust grades for trending targets
+    // Fetch trust scores for trending targets — check AgentScore first, then Project table
     const trendingTargets = trending.map(t => t.target);
-    const projects = await prisma.project.findMany({
-      where: { address: { in: trendingTargets } },
-      select: { address: true, trustScore: true, trustGrade: true }
-    });
+    const [agentScores, projects] = await Promise.all([
+      prisma.agentScore.findMany({
+        where: { walletAddress: { in: trendingTargets, mode: "insensitive" } },
+        select: { walletAddress: true, trustScore: true },
+      }),
+      prisma.project.findMany({
+        where: { address: { in: trendingTargets } },
+        select: { address: true, trustScore: true, trustGrade: true },
+      }),
+    ]);
+    const agentScoreMap = Object.fromEntries(
+      agentScores.map(a => [a.walletAddress.toLowerCase(), a.trustScore])
+    );
     const trustMap = Object.fromEntries(projects.map(p => [p.address, p]));
 
     // All-time unique callers (by IP across all records)
@@ -188,8 +197,9 @@ export async function GET() {
       trending: trending.map(t => ({
         target: t.target,
         count: t._count._all,
-        trustScore: trustMap[t.target]?.trustScore || null,
-        trustGrade: trustMap[t.target]?.trustGrade || null
+        // AgentScore takes priority (behavioral trust), fall back to Project table
+        trustScore: agentScoreMap[t.target?.toLowerCase()] ?? trustMap[t.target]?.trustScore ?? null,
+        trustGrade: trustMap[t.target]?.trustGrade || null,
       })),
       recent: recentQueries.map(q => {
         const meta = q.metadata as Record<string, unknown> | null;
