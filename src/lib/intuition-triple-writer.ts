@@ -23,6 +23,7 @@ import {
   intuitionTestnet,
   getMultiVaultAddressFromChainId,
 } from "@0xintuition/sdk";
+import { API_URL_PROD, API_URL_DEV } from "@0xintuition/graphql";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
@@ -31,10 +32,12 @@ import { privateKeyToAccount } from "viem/accounts";
 const NETWORK = process.env.INTUITION_NETWORK === "mainnet" ? "mainnet" : "testnet";
 const chain = NETWORK === "mainnet" ? intuitionMainnet : intuitionTestnet;
 
-// Minimum ETH deposit for signal weight (in wei) — 0.001 ETH testnet, 0.0001 mainnet
-const SIGNAL_VALUE = NETWORK === "mainnet"
-  ? 100_000_000_000_000n   // 0.0001 ETH
-  : 1_000_000_000_000_000n; // 0.001 tTRUST
+// GraphQL endpoint — imported from @0xintuition/graphql, not hardcoded
+export const INTUITION_GRAPHQL_URL = NETWORK === "mainnet" ? API_URL_PROD : API_URL_DEV;
+
+// Minimum ETH/TRUST deposit for signal weight (in wei) — 0.0001 on both networks
+// Purpose is data writing, not conviction signaling — use minimum value
+const SIGNAL_VALUE = 100_000_000_000_000n; // 0.0001 ETH / tTRUST
 
 // ─── Client factory ──────────────────────────────────────────────────────────
 
