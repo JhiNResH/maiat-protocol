@@ -68,8 +68,26 @@ export async function GET() {
         .then((groups) => groups.length),
     ]);
 
+    // Fetch Virtuals live total (with short timeout, non-blocking)
+    let virtualsTotal = 0;
+    try {
+      const vRes = await fetch(
+        "https://acpx.virtuals.io/api/agents?pagination%5Bpage%5D=1&pagination%5BpageSize%5D=1",
+        { signal: AbortSignal.timeout(4_000) }
+      );
+      if (vRes.ok) {
+        const vJson = await vRes.json() as { meta?: { pagination?: { total?: number } } };
+        virtualsTotal = vJson.meta?.pagination?.total ?? 0;
+      }
+    } catch {
+      // Non-critical — fall back to DB count
+    }
+
     const stats = {
-      agentsIndexed,
+      // Total agents on Virtuals ACP (live) — falls back to DB count if Virtuals is unreachable
+      agentsIndexed: virtualsTotal > agentsIndexed ? virtualsTotal : agentsIndexed,
+      agentsInDB: agentsIndexed,         // how many we've actually indexed
+      agentsVirtuals: virtualsTotal,     // live Virtuals count
       totalQueries,
       uniqueCallers,
       addressesScored: trustReviewAddresses,
