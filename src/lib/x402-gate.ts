@@ -130,7 +130,11 @@ export function withPaymentGate(
 
     if (!paymentSig) {
       // No payment — return 402 with payment instructions
-      return new NextResponse(null, {
+      // Body includes decoded payment requirements for compatibility with health checkers (402index)
+      const paymentRequirementsJson = JSON.parse(
+        Buffer.from(paymentRequiredHeader, "base64").toString()
+      );
+      return NextResponse.json(paymentRequirementsJson, {
         status: 402,
         headers: {
           ...X402_CORS_HEADERS,
