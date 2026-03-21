@@ -20,8 +20,9 @@ import { PrismaClient } from "@prisma/client";
 
 const LIST_URL = "https://acpx.virtuals.io/api/agents";
 const SEARCH_URL = "https://acpx.virtuals.io/api/agents/v5/search";
-const PAGE_SIZE = 100;  // API supports up to 100
-const MAX_PAGES = 900;  // safety cap — covers ~22,500 agents
+const PAGE_SIZE = 100;   // API supports up to 100
+const MAX_PAGES = 1500;  // safety cap — covers ~150,000 agents
+const INDEXER_TIMEOUT_MS = 4.5 * 60 * 1000; // 4.5 min graceful stop before Vercel 5min kill
 
 // ─── Known Titan Agents (seed list) ───────────────────────────────────────────
 // These are Virtuals Protocol "Titan" type agents that may not appear in standard listing
@@ -396,12 +397,21 @@ function getTitanSeedAgents(): AcpAgent[] {
   }));
 }
 
-export async function fetchAllAgents(verbose = false): Promise<AcpAgent[]> {
+export async function fetchAllAgents(verbose = false, startedAt?: number): Promise<AcpAgent[]> {
   const seen = new Map<string, AcpAgent>();
+  const deadline = startedAt ?? Date.now(); // use caller's start time if provided
 
   // ─── Phase 1: Standard pagination ─────────────────────────────────────────
   if (verbose) console.log("\n📋 Phase 1: Standard pagination scan");
+  let timedOut = false;
   for (let page = 0; page < MAX_PAGES; page++) {
+    // Graceful stop: if we're within 30s of the timeout budget, stop pagination early
+    if (Date.now() - deadline > INDEXER_TIMEOUT_MS - 30_000) {
+      if (verbose) console.log(`   ⏱️  Approaching timeout — stopping pagination at page ${page} (${seen.size} agents so far)`);
+      timedOut = true;
+      break;
+    }
+
     if (verbose) process.stdout?.write?.(`   Fetching page ${page}... `);
     try {
       const agents = await fetchAgentsPage(page);
@@ -435,7 +445,10 @@ export async function fetchAllAgents(verbose = false): Promise<AcpAgent[]> {
   }
 
   const paginationCount = seen.size;
-  if (verbose) console.log(`   Pagination total: ${paginationCount}`);
+  if (verbose) {
+    if (timedOut) console.log(`   Pagination stopped early (timeout): ${paginationCount}`);
+    else console.log(`   Pagination total: ${paginationCount}`);
+  }
 
   // ─── Phase 2: V5 Search for additional agents (Titans, etc) ───────────────
   if (verbose) console.log("\n🔍 Phase 2: V5 search for Titan/Virtual agents");
@@ -476,8 +489,9 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
   if (dryRun) log("   ⚠️  DRY RUN — no DB writes\n");
 
   // 1. Collect ALL agents via full pagination (no keyword filtering)
+  const indexerStart = Date.now();
   log("   Strategy: full pagination scan (no keyword filter)");
-  const allAgents = await fetchAllAgents(verbose);
+  const allAgents = await fetchAllAgents(verbose, indexerStart);
   log(`\n📦 Total unique agents: ${allAgents.length}`);
 
   // 2. Fetch existing rawMetrics (contains Wadjet priceData) for scoring
