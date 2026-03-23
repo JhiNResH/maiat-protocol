@@ -4,11 +4,7 @@
   "rewrites": [
     {
       "source": "/demo",
-      "destination": "https://playground-edk1zdudk-jhinreshs-projects.vercel.app/"
-    },
-    {
-      "source": "/demo/:path*",
-      "destination": "https://playground-edk1zdudk-jhinreshs-projects.vercel.app/:path*"
+      "destination": "/demo/index.html"
     }
   ],
   "crons": [
