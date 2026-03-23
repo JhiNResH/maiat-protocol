@@ -77,12 +77,14 @@
   font-weight: 900;
   letter-spacing: -0.06em;
   line-height: 1.0;
-  font-size: clamp(4rem, 15vw, 14rem);
+  font-size: clamp(3rem, 12vw, 10rem);
   color: var(--text-color);
   background: var(--text-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   transition: background 0.5s ease;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .rail-text {
