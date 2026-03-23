@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
         destination: '/agent/:name/:address',
         permanent: false,
       },
+      {
+        source: '/demo',
+        destination: 'https://playground-edk1zdudk-jhinreshs-projects.vercel.app/',
+        permanent: false,
+      },
     ]
   },
 }
