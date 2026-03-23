@@ -24,6 +24,9 @@ const PAGE_SIZE = 100;   // API supports up to 100
 const MAX_PAGES = 1500;  // safety cap — covers ~150,000 agents
 const INDEXER_TIMEOUT_MS = 4.5 * 60 * 1000; // 4.5 min graceful stop before Vercel 5min kill
 
+// Incremental indexer config
+const PAGES_PER_RUN = 120; // ~120 pages × 1.6s ≈ 3.2 min, well within 4.5min timeout
+
 // ─── Known Titan Agents (seed list) ───────────────────────────────────────────
 // These are Virtuals Protocol "Titan" type agents that may not appear in standard listing
 // Format: { name, walletAddress, tokenAddress }
@@ -87,6 +90,18 @@ export interface IndexerResult {
     highScoreCount: number;
     mediumScoreCount: number;
     lowScoreCount: number;
+  };
+}
+
+export interface IncrementalIndexerResult extends IndexerResult {
+  segment: {
+    startPage: number;
+    endPage: number;
+    isComplete: boolean;
+  };
+  cycle: {
+    lastFullCycleAt: string | null;
+    currentPage: number;
   };
 }
 
@@ -619,4 +634,280 @@ export async function runAcpIndexer(options: IndexerOptions): Promise<IndexerRes
       lowScoreCount,
     },
   };
+}
+
+// ─── Incremental Indexer (Segmented Pagination) ───────────────────────────────
+/**
+ * Runs a segmented indexer that processes PAGES_PER_RUN pages at a time.
+ * Tracks state in DB (IndexerState) to resume where it left off.
+ *
+ * - On each run: fetch pages [lastPage, lastPage + PAGES_PER_RUN]
+ * - V5 search and Titan seed list only run when starting a new cycle (page 0)
+ * - When we reach the end (empty page or < PAGE_SIZE), reset to page 0
+ */
+export async function runIncrementalIndexer(
+  options: IndexerOptions
+): Promise<IncrementalIndexerResult> {
+  const { dryRun, prisma: externalPrisma, verbose = false } = options;
+
+  const log = verbose ? console.log.bind(console) : () => {};
+
+  log("🔍 Maiat ACP Incremental Indexer — Segmented Pagination");
+  log(`   Source: ${LIST_URL}`);
+  log(`   Pages per run: ${PAGES_PER_RUN}`);
+  if (dryRun) log("   ⚠️  DRY RUN — no DB writes\n");
+
+  const prisma = externalPrisma ?? new PrismaClient();
+  const shouldDisconnect = !externalPrisma;
+
+  try {
+    // 1. Read IndexerState from DB
+    let indexerState = await prisma.indexerState.findUnique({
+      where: { id: "acp-indexer" },
+    });
+
+    if (!indexerState) {
+      // Initialize state on first run
+      indexerState = await prisma.indexerState.create({
+        data: {
+          id: "acp-indexer",
+          lastPage: 0,
+          totalPages: 0,
+          lastFullCycleAt: null,
+        },
+      });
+      log("   Created new IndexerState (first run)");
+    }
+
+    const startPage = indexerState.lastPage;
+    const endPage = startPage + PAGES_PER_RUN;
+    const isStartOfCycle = startPage === 0;
+
+    log(`   Segment: pages ${startPage} to ${endPage - 1}`);
+    log(`   Last full cycle: ${indexerState.lastFullCycleAt?.toISOString() ?? "never"}`);
+
+    // 2. Collect agents from the segment
+    const seen = new Map<string, AcpAgent>();
+    let reachedEnd = false;
+    let actualEndPage = startPage;
+
+    for (let page = startPage; page < endPage && page < MAX_PAGES; page++) {
+      if (verbose) process.stdout?.write?.(`   Fetching page ${page}... `);
+      try {
+        const agents = await fetchAgentsPage(page);
+        if (agents.length === 0) {
+          if (verbose) console.log("done (empty page)");
+          reachedEnd = true;
+          break;
+        }
+        let newCount = 0;
+        for (const a of agents) {
+          if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
+            seen.set(a.walletAddress.toLowerCase(), a);
+            newCount++;
+          }
+        }
+        if (verbose) console.log(`${agents.length} results (${newCount} new)`);
+        actualEndPage = page + 1;
+        if (agents.length < PAGE_SIZE) {
+          reachedEnd = true;
+          break;
+        }
+      } catch (e) {
+        if (verbose) console.log(`⚠️  page ${page} failed: ${(e as Error).message}`);
+        // Retry once, then skip page
+        await new Promise((r) => setTimeout(r, 1000));
+        try {
+          const retry = await fetchAgentsPage(page);
+          for (const a of retry) {
+            if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
+              seen.set(a.walletAddress.toLowerCase(), a);
+            }
+          }
+          actualEndPage = page + 1;
+        } catch { /* skip this page */ }
+      }
+      await new Promise((r) => setTimeout(r, 100)); // rate limit
+    }
+
+    log(`\n   Pagination segment: ${seen.size} agents from pages ${startPage}-${actualEndPage - 1}`);
+
+    // 3. V5 Search and Titan seed list only at start of cycle
+    if (isStartOfCycle) {
+      log("\n🔍 Start of cycle — running V5 search for Titan/Virtual agents");
+      const v5Agents = await fetchV5SearchAllKeywords(verbose);
+      let v5NewCount = 0;
+      for (const a of v5Agents) {
+        if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
+          seen.set(a.walletAddress.toLowerCase(), a);
+          v5NewCount++;
+        }
+      }
+      log(`   V5 search added: ${v5NewCount} new agents`);
+
+      log("\n🏛️  Adding Titan seed list");
+      const titanAgents = getTitanSeedAgents();
+      let titanNewCount = 0;
+      for (const a of titanAgents) {
+        if (a.walletAddress && !seen.has(a.walletAddress.toLowerCase())) {
+          seen.set(a.walletAddress.toLowerCase(), a);
+          titanNewCount++;
+        }
+      }
+      log(`   Titan seed added: ${titanNewCount} new agents`);
+    }
+
+    const allAgents = [...seen.values()];
+    log(`\n📦 Total agents this segment: ${allAgents.length}`);
+
+    // 4. Fetch existing rawMetrics for scoring
+    const existingAgents = await prisma.agentScore.findMany({
+      where: { walletAddress: { in: allAgents.map(a => a.walletAddress) } },
+      select: { walletAddress: true, rawMetrics: true },
+    });
+    const existingMap = new Map(
+      existingAgents.map(a => [a.walletAddress.toLowerCase(), a.rawMetrics as Record<string, unknown> | null])
+    );
+
+    // 5. Compute trust scores
+    const scores: AgentScore[] = allAgents.map(agent => {
+      const existing = existingMap.get(agent.walletAddress.toLowerCase());
+      return computeTrustScore(agent, existing ?? undefined);
+    });
+
+    // Stats
+    const withJobs = scores.filter((s) => s.totalJobs > 0);
+    const avg = withJobs.length
+      ? Math.round(withJobs.reduce((s, a) => s + a.trustScore, 0) / withJobs.length)
+      : 0;
+
+    const highScoreCount = scores.filter((s) => s.trustScore >= 80).length;
+    const mediumScoreCount = scores.filter((s) => s.trustScore >= 60 && s.trustScore < 80).length;
+    const lowScoreCount = scores.filter((s) => s.trustScore < 60).length;
+
+    log(`\n📊 Score distribution:`);
+    log(`   Agents with job history: ${withJobs.length}/${scores.length}`);
+    log(`   Average score (active): ${avg}/100`);
+    log(`   High (≥80): ${highScoreCount}`);
+    log(`   Medium (60-79): ${mediumScoreCount}`);
+    log(`   Low (<60): ${lowScoreCount}`);
+
+    if (dryRun) {
+      log("\n✅ Dry run complete. Run without --dry-run to write to DB.");
+      return {
+        indexed: scores.length,
+        updated: 0,
+        failed: 0,
+        stats: {
+          totalAgents: scores.length,
+          agentsWithJobs: withJobs.length,
+          averageScore: avg,
+          highScoreCount,
+          mediumScoreCount,
+          lowScoreCount,
+        },
+        segment: {
+          startPage,
+          endPage: actualEndPage,
+          isComplete: reachedEnd,
+        },
+        cycle: {
+          lastFullCycleAt: indexerState.lastFullCycleAt?.toISOString() ?? null,
+          currentPage: reachedEnd ? 0 : actualEndPage,
+        },
+      };
+    }
+
+    // 6. Upsert to Supabase
+    log(`\n💾 Writing ${scores.length} agent scores to Supabase...`);
+
+    let written = 0;
+    let failed = 0;
+
+    for (const s of scores) {
+      try {
+        const existing = existingMap.get(s.walletAddress.toLowerCase()) ?? {};
+        const mergedRaw = {
+          ...existing,
+          ...(s.rawMetrics as object),
+          priceData: (existing as Record<string, unknown>)?.priceData ?? undefined,
+        };
+
+        const tokenAddr = (s.rawMetrics as Record<string, unknown>)?.tokenAddress as string | null | undefined;
+
+        await prisma.agentScore.upsert({
+          where: { walletAddress: s.walletAddress },
+          update: {
+            trustScore: s.trustScore,
+            completionRate: s.completionRate,
+            paymentRate: s.paymentRate,
+            expireRate: s.expireRate,
+            totalJobs: s.totalJobs,
+            dataSource: "ACP_BEHAVIORAL",
+            rawMetrics: mergedRaw,
+            ...(tokenAddr ? { tokenAddress: tokenAddr } : {}),
+          },
+          create: {
+            walletAddress: s.walletAddress,
+            trustScore: s.trustScore,
+            completionRate: s.completionRate,
+            paymentRate: s.paymentRate,
+            expireRate: s.expireRate,
+            totalJobs: s.totalJobs,
+            dataSource: "ACP_BEHAVIORAL",
+            rawMetrics: mergedRaw,
+            ...(tokenAddr ? { tokenAddress: tokenAddr } : {}),
+          },
+        });
+        written++;
+      } catch (e) {
+        failed++;
+        log(`   ⚠️  Failed ${s.walletAddress}: ${(e as Error).message}`);
+      }
+    }
+
+    log(`\n💾 Written: ${written}, Failed: ${failed}`);
+
+    // 7. Update IndexerState
+    const newLastPage = reachedEnd ? 0 : actualEndPage;
+    const newLastFullCycleAt = reachedEnd ? new Date() : indexerState.lastFullCycleAt;
+
+    await prisma.indexerState.update({
+      where: { id: "acp-indexer" },
+      data: {
+        lastPage: newLastPage,
+        totalPages: reachedEnd ? actualEndPage : indexerState.totalPages,
+        lastFullCycleAt: newLastFullCycleAt,
+      },
+    });
+
+    log(`\n✅ IndexerState updated: nextPage=${newLastPage}, cycleComplete=${reachedEnd}`);
+
+    return {
+      indexed: scores.length,
+      updated: written,
+      failed,
+      stats: {
+        totalAgents: scores.length,
+        agentsWithJobs: withJobs.length,
+        averageScore: avg,
+        highScoreCount,
+        mediumScoreCount,
+        lowScoreCount,
+      },
+      segment: {
+        startPage,
+        endPage: actualEndPage,
+        isComplete: reachedEnd,
+      },
+      cycle: {
+        lastFullCycleAt: newLastFullCycleAt?.toISOString() ?? null,
+        currentPage: newLastPage,
+      },
+    };
+  } finally {
+    if (shouldDisconnect) {
+      await prisma.$disconnect();
+    }
+  }
 }

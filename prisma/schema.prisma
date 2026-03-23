@@ -430,3 +430,14 @@ model KyaEndorsement {
   @@index([endorserAddress])
   @@index([status])
 }
+
+/// Indexer state for incremental/segmented pagination (avoids Vercel 5min timeout)
+model IndexerState {
+  id              String    @id @default("acp-indexer")
+  lastPage        Int       @default(0) @map("last_page")
+  totalPages      Int       @default(0) @map("total_pages")
+  lastFullCycleAt DateTime? @map("last_full_cycle_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("indexer_state")
+}

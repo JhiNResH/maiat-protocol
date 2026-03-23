@@ -1,13 +1,17 @@
 /**
  * GET /api/v1/cron/index-agents
- * Vercel Cron Job — runs daily at 02:00 UTC
+ * Vercel Cron Job — runs every 8 hours (segmented pagination)
  * Protected by CRON_SECRET header
+ *
+ * Uses incremental indexer to process ~120 pages per run,
+ * resuming from where the last run left off.
+ * Full cycle (~350 pages) completes within 24h with 3 runs.
  *
  * Set CRON_SECRET in Vercel env vars.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { runAcpIndexer } from "@/lib/acp-indexer";
+import { runIncrementalIndexer } from "@/lib/acp-indexer";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 min timeout for Vercel Pro
@@ -35,7 +39,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await runAcpIndexer({ dryRun: false });
+    const result = await runIncrementalIndexer({ dryRun: false });
 
     return NextResponse.json(
       {
@@ -44,6 +48,8 @@ export async function GET(request: NextRequest) {
         updated: result.updated,
         failed: result.failed,
         stats: result.stats,
+        segment: result.segment,
+        cycle: result.cycle,
         timestamp: new Date().toISOString(),
       },
       { headers: CORS_HEADERS }
