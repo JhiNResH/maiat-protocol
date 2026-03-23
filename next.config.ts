@@ -11,10 +11,17 @@ const nextConfig: NextConfig = {
         destination: '/agent/:name/:address',
         permanent: false,
       },
+    ]
+  },
+  async rewrites() {
+    return [
       {
         source: '/demo',
         destination: 'https://playground-edk1zdudk-jhinreshs-projects.vercel.app/',
-        permanent: false,
+      },
+      {
+        source: '/demo/:path*',
+        destination: 'https://playground-edk1zdudk-jhinreshs-projects.vercel.app/:path*',
       },
     ]
   },
