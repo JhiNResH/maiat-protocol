@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Shield, ArrowRight, CheckCircle2, Radio, Database,
   Globe, Cpu, Zap, ChevronRight, ExternalLink,
-  Play, Pause, RotateCcw, Clock, Link2
+  Play, Pause, RotateCcw, Clock, Link2, Gavel, FileCheck, BookOpen
 } from 'lucide-react'
 
 // ============================================================================
@@ -24,126 +24,230 @@ type Step = {
 }
 
 // ============================================================================
-// DEMO STEPS — Chainlink CRE Trust Oracle Flow
+// DEMO STEPS — ERC-8183 Agentic Commerce Hook Lifecycle (Hackathon Judging)
 // ============================================================================
 
 const STEPS: Step[] = [
   {
     id: 1,
-    title: 'Agent Queries Trust Score',
-    subtitle: 'Any AI agent via HTTP',
-    description: 'An autonomous agent (e.g., a DeFi router) needs to verify whether a counterparty is trustworthy before executing a transaction.',
-    icon: Cpu,
+    title: 'Create Job & Fund',
+    subtitle: 'Project Submits for Evaluation',
+    description: 'A hackathon project calls createJob("evaluate my project") then fund() on the AgenticCommerce contract. MaiatACPHook.beforeAction(fund) intercepts to verify the project\'s trust score before accepting funds.',
+    icon: Globe,
     color: '#3b82f6',
     details: [
-      'Agent calls POST /api/v1/trust-score',
-      'Passes target project name or address',
-      'No SDK required — just HTTP',
-      'Free tier: 100 req/day'
+      'Project calls AgenticCommerce.createJob("evaluate my project")',
+      'Project calls fund() to escrow payment',
+      'MaiatACPHook.beforeAction(fund) fires — checks client trust score via TrustScoreOracle',
+      'Low-trust projects (score < threshold) are reverted with ClientTrustTooLow error',
+      'Trusted projects pass through; FundGated(jobId, client, score, true) emitted'
     ],
-    code: `curl -X POST https://app.maiat.io/api/v1/trust-score \\
-  -H "Content-Type: application/json" \\
-  -d '{"agentAddress": "0x1234..."}'`
+    code: `// MaiatACPHook.sol — beforeAction(fund) check
+function _checkClientTrust(uint256 jobId, bytes calldata data) internal {
+    // data = abi.encode(caller, optParams) per ERC-8183 spec
+    (address caller,) = abi.decode(data, (address, bytes));
+
+    ITrustOracle.UserReputation memory rep = oracle.getUserData(caller);
+
+    uint256 score = rep.initialized ? rep.reputationScore : 0;
+    uint256 cappedScore = score > MAX_SCORE ? MAX_SCORE : score;
+
+    if (!rep.initialized && !allowUninitialized) {
+        revert MaiatACPHook__ClientNotInitialized(jobId, caller);
+    } else if (rep.initialized && cappedScore < clientThreshold) {
+        emit FundGated(jobId, caller, cappedScore, false);
+        revert MaiatACPHook__ClientTrustTooLow(
+            jobId, caller, cappedScore, clientThreshold
+        );
+    }
+
+    totalFundGated++;
+    emit FundGated(jobId, caller, cappedScore, true);
+}`
   },
   {
     id: 2,
-    title: 'Maiat Aggregates Trust Data',
-    subtitle: 'Multi-source scoring engine',
-    description: 'Maiat\'s scoring engine aggregates on-chain history, contract analysis, community reviews, and blacklist data into a single 0-10 trust score.',
-    icon: Database,
+    title: 'Judge Submits Verdict',
+    subtitle: 'AI Judge Reviews & Submits',
+    description: 'An AI judge agent calls submit(jobId, verdict, evidence) to deliver its evaluation. MaiatACPHook.beforeAction(submit) checks the judge\'s trust score — only trusted judges can submit verdicts, protecting evaluation integrity.',
+    icon: Gavel,
     color: '#6366f1',
     details: [
-      'On-Chain History (weight: 4.0) — tx count, age, volume',
-      'Contract Analysis (weight: 3.0) — verified source, audit status',
-      'Blacklist Check (weight: 2.0) — known scam databases',
-      'Activity Score (weight: 1.0) — recent engagement'
+      'AI judge agent calls AgenticCommerce.submit(jobId, verdict, evidence)',
+      'MaiatACPHook.beforeAction(submit) fires — checks judge\'s trust score',
+      'Low-trust judges (score < providerThreshold) are blocked with ProviderTrustTooLow',
+      'Trusted judges pass; SubmitChecked(jobId, provider, score, true) emitted',
+      'Job status advances to Submitted — now ready for MaiatEvaluator'
     ],
-    code: `// Score Breakdown
+    code: `// MaiatACPHook.sol — beforeAction(submit) check
+function _checkProviderTrust(uint256 jobId, bytes calldata data) internal {
+    (address caller,,) = abi.decode(data, (address, bytes32, bytes));
+
+    ITrustOracle.UserReputation memory rep = oracle.getUserData(caller);
+
+    uint256 score = rep.initialized ? rep.reputationScore : 0;
+    uint256 cappedScore = score > MAX_SCORE ? MAX_SCORE : score;
+
+    if (rep.initialized && cappedScore < providerThreshold) {
+        emit SubmitChecked(jobId, caller, cappedScore, false);
+        revert MaiatACPHook__ProviderTrustTooLow(
+            jobId, caller, cappedScore, providerThreshold
+        );
+    }
+
+    emit SubmitChecked(jobId, caller, cappedScore, true);
+}
+
+// Called from beforeAction dispatcher:
+function beforeAction(uint256 jobId, bytes4 selector, bytes calldata data)
+    external override
 {
-  "onChainHistory": 8.2,    // 4.0 weight
-  "contractAnalysis": 7.5,  // 3.0 weight
-  "blacklistCheck": 10.0,   // 2.0 weight
-  "activityScore": 6.0,     // 1.0 weight
-  "overall": 8.07           // weighted average
+    if (selector == FUND_SELECTOR)   { _checkClientTrust(jobId, data); }
+    else if (selector == SUBMIT_SELECTOR) { _checkProviderTrust(jobId, data); }
+    // Other selectors (setBudget, etc.) pass through without gating
 }`
   },
   {
     id: 3,
-    title: 'Chainlink CRE Workflow Triggers',
-    subtitle: 'Decentralized oracle execution',
-    description: 'When a score is requested, Chainlink\'s Compute Runtime Environment (CRE) triggers a workflow that fetches, validates, and prepares the trust score for on-chain attestation.',
-    icon: Link2,
-    color: '#375BD2',
-    details: [
-      'CRE Workflow receives trigger event',
-      'Fetches latest trust data from Maiat API',
-      'Validates data integrity with consensus',
-      'Prepares signed attestation payload'
-    ],
-    code: `// Chainlink CRE Workflow (YAML)
-triggers:
-  - type: on-demand
-    config:
-      requester: "0x..."
-
-consensus:
-  - type: offchain_reporting
-    config:
-      report_codec: "trust_score_v1"
-
-targets:
-  - type: write_base-sepolia
-    config:
-      address: "0xf662902ca2..."   # TrustScoreOracle
-      function: "updateScore(address,uint256)"`
-  },
-  {
-    id: 4,
-    title: 'On-Chain Attestation',
-    subtitle: 'Base Sepolia → TrustScoreOracle',
-    description: 'The validated trust score is written on-chain via the TrustScoreOracle contract on Base Sepolia, creating an immutable, verifiable attestation.',
+    title: 'Evaluator Verifies Judge',
+    subtitle: 'MaiatEvaluator Validates',
+    description: 'MaiatEvaluator.evaluate(acpContract, jobId) is called to make the final verdict. It reads the judge\'s trust score from the oracle and decides: if score ≥ threshold AND not flagged → complete(); otherwise → reject().',
     icon: Shield,
     color: '#10B981',
     details: [
-      'TrustScoreOracle.updateScore() called by CRE',
-      'Score stored with timestamp + block number',
-      'Emits TrustScoreUpdated event',
-      'Queryable by any smart contract or dApp'
+      'MaiatEvaluator.evaluate(acpContract, jobId) called',
+      'Reads judge\'s (provider\'s) trust score from TrustScoreOracle',
+      'Checks threat report count — flagged agents auto-rejected regardless of score',
+      'Score ≥ threshold AND not flagged → acp.complete(jobId, reason, "")',
+      'Score too low OR flagged → acp.reject(jobId, REASON_LOW_TRUST / REASON_FLAGGED, "")'
     ],
-    code: `// TrustScoreOracle.sol (Base Sepolia)
-// 0xf662902ca227baba3a4d11a1bc58073e0b0d1139
+    code: `// MaiatEvaluator.sol — evaluate() decision logic
+function evaluate(address acpContract, uint256 jobId) external nonReentrant {
+    IAgenticCommerce acp = IAgenticCommerce(acpContract);
+    IAgenticCommerce.Job memory job = acp.getJob(jobId);
 
-function updateScore(
-  address target,
-  uint256 score    // 0-1000 (10.0 = 1000)
-) external onlyOracle {
-  scores[target] = Score(score, block.timestamp);
-  emit TrustScoreUpdated(target, score, block.timestamp);
+    // Read provider score from oracle
+    ITrustScoreOracle.UserReputation memory rep =
+        oracle.getUserData(job.provider);
+
+    uint256 cappedScore = rep.initialized
+        ? (rep.reputationScore > MAX_SCORE ? MAX_SCORE : rep.reputationScore)
+        : 0;
+
+    bool shouldComplete;
+    bytes32 reason;
+    uint256 threats = threatReports[job.provider];
+
+    if (threats >= threatThreshold && threatThreshold > 0) {
+        shouldComplete = false;
+        reason = REASON_FLAGGED;           // keccak256("FLAGGED_AGENT")
+    } else if (!rep.initialized) {
+        shouldComplete = false;
+        reason = REASON_UNINITIALIZED;     // keccak256("UNINITIALIZED_PROVIDER")
+    } else if (cappedScore >= threshold) {
+        shouldComplete = true;
+        reason = bytes32(cappedScore);     // attestation: the score itself
+    } else {
+        shouldComplete = false;
+        reason = REASON_LOW_TRUST;         // keccak256("LOW_TRUST_SCORE")
+    }
+
+    evaluated[acpContract][jobId] = true;
+
+    if (shouldComplete) { acp.complete(jobId, reason, ""); }
+    else                { acp.reject(jobId, reason, "");   }
+
+    emit EvaluationResult(
+        acpContract, jobId, job.provider, cappedScore, shouldComplete, reason
+    );
+}`
+  },
+  {
+    id: 4,
+    title: 'Outcome Recorded',
+    subtitle: 'Hook Records Result',
+    description: 'After complete() or reject() is called, MaiatACPHook.afterAction fires and records the outcome on-chain. It emits JobOutcomeRecorded with both parties\' trust scores — picked up by the Wadjet off-chain indexer for ML training.',
+    icon: Database,
+    color: '#f59e0b',
+    details: [
+      'AgenticCommerce calls MaiatACPHook.afterAction(complete/reject)',
+      'Hook reads job data and both parties\' current trust scores from oracle',
+      'Emits JobOutcomeRecorded(jobId, provider, client, completed, providerScore, clientScore)',
+      'Wadjet off-chain indexer picks up event for ML training data',
+      'Outcome feeds back into trust score calculations for future interactions'
+    ],
+    code: `// MaiatACPHook.sol — _recordOutcome (called from afterAction)
+function afterAction(uint256 jobId, bytes4 selector, bytes calldata)
+    external override
+{
+    if (selector == COMPLETE_SELECTOR) { _recordOutcome(jobId, true);  }
+    else if (selector == REJECT_SELECTOR)  { _recordOutcome(jobId, false); }
+}
+
+function _recordOutcome(uint256 jobId, bool completed) internal {
+    // Read job data to get provider and client addresses
+    IAgenticCommerceReader.Job memory job = acpContract.getJob(jobId);
+
+    // Get current scores for both parties
+    ITrustOracle.UserReputation memory providerRep =
+        oracle.getUserData(job.provider);
+    ITrustOracle.UserReputation memory clientRep =
+        oracle.getUserData(job.client);
+
+    uint256 providerScore = providerRep.initialized
+        ? providerRep.reputationScore : 0;
+    uint256 clientScore = clientRep.initialized
+        ? clientRep.reputationScore : 0;
+
+    if (completed) { totalCompleted++; } else { totalRejected++; }
+
+    // Emit event — off-chain indexer (Wadjet) picks this up for ML training
+    emit JobOutcomeRecorded(
+        jobId,
+        job.provider,
+        job.client,
+        completed,
+        providerScore,
+        clientScore
+    );
 }`
   },
   {
     id: 5,
-    title: 'TrustGateHook Enforces',
-    subtitle: 'Uniswap v4 integration',
-    description: 'The TrustGateHook reads on-chain trust scores and blocks swaps involving untrusted counterparties — protecting DeFi users automatically.',
-    icon: Zap,
+    title: 'EAS Attestation',
+    subtitle: 'Permanent On-Chain Receipt',
+    description: 'An EAS (Ethereum Attestation Service) attestation is created with the evaluation result — an immutable on-chain receipt of the hackathon evaluation. This feeds back into trust scores for all future interactions.',
+    icon: FileCheck,
     color: '#06b6d4',
     details: [
-      'Uniswap v4 hook checks score before swap',
-      'Minimum threshold: 5.0 (configurable)',
-      'Below threshold → swap reverted',
-      'Zero user friction — enforcement is invisible'
+      'EAS attestation created via MaiatReceiptResolver schema',
+      'Schema UID: 0x24b0db68...346d802 (Base Mainnet)',
+      'Attestation encodes: jobId, provider, client, score, completed, timestamp',
+      'Immutable proof — cannot be altered or deleted',
+      'Wadjet ingests attestations → recalculates trust scores → oracle sync every 6h'
     ],
-    code: `// TrustGateHook.sol (Base Sepolia)
-// 0xf6065fb076090af33ee0402f7e902b2583e7721e
+    code: `// EAS Schema & Attestation Flow
+// Schema UID (Base Mainnet):
+// 0x24b0db687434f15057bef6011b95f1324f2c38af06d0e636aea1c58bf346d802
 
-function beforeSwap(
-  address sender, PoolKey calldata key, ...
-) external override returns (bytes4) {
-  uint256 score = oracle.getScore(sender);
-  require(score >= minScore, "Trust score too low");
-  return BaseHook.beforeSwap.selector;
-}`
+// Schema fields:
+// uint256 jobId          — ERC-8183 job identifier
+// address provider       — AI judge's wallet address
+// address client         — Hackathon project's address
+// uint256 score          — Provider trust score at evaluation time (0-100)
+// bool    completed      — true = passed, false = rejected
+// bytes32 reason         — Reason code or score bytes
+
+// Gated by MaiatReceiptResolver:
+// Base Mainnet: 0xda696009655825124bcbfdd5755c0657d6d841c0
+
+// Only MaiatAttester operator can create valid attestations:
+// Operator: 0xB1e504aE1ce359B4C2a6DC5d63aE6199a415f312
+
+// After attestation:
+// Wadjet indexes → trust scores recalculated
+// MaiatOracle.updateScore() called (Base Mainnet)
+// Future jobs query updated on-chain score`
   }
 ]
 
@@ -264,11 +368,11 @@ function DetailPanel({ step }: { step: Step }) {
 
 function FlowDiagram({ activeStep }: { activeStep: number }) {
   const nodes = [
-    { label: 'Agent', color: '#3b82f6' },
-    { label: 'Maiat API', color: '#6366f1' },
-    { label: 'CRE', color: '#375BD2' },
-    { label: 'On-Chain', color: '#10B981' },
-    { label: 'Hook', color: '#06b6d4' },
+    { label: 'Project', color: '#3b82f6' },
+    { label: 'MaiatACPHook', color: '#6366f1' },
+    { label: 'Judge', color: '#10B981' },
+    { label: 'MaiatEvaluator', color: '#f59e0b' },
+    { label: 'EAS', color: '#06b6d4' },
   ]
   return (
     <div className="flex items-center justify-center gap-1 py-4 overflow-x-auto">
@@ -351,7 +455,7 @@ export default function DemoPage() {
               <span className="font-semibold text-sm">Maiat Protocol</span>
             </Link>
             <span className="text-zinc-700">/</span>
-            <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider">CRE Demo</span>
+            <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider">ERC-8183 Demo</span>
           </div>
           <div className="flex items-center gap-3">
             <a
@@ -374,15 +478,15 @@ export default function DemoPage() {
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Hero */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#375BD2]/30 bg-[#375BD2]/5 text-[#375BD2] text-xs font-mono mb-4">
-            <Link2 className="w-3 h-3" /> Powered by Chainlink CRE
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#6366f1]/30 bg-[#6366f1]/5 text-[#6366f1] text-xs font-mono mb-4">
+            <BookOpen className="w-3 h-3" /> ERC-8183 Agentic Commerce
           </div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-            Trust Score Oracle Flow
+            ERC-8183 Agentic Commerce Hook
           </h1>
           <p className="text-zinc-500 text-sm max-w-xl mx-auto leading-relaxed">
-            How Maiat delivers verifiable, on-chain trust scores for AI agents
-            using Chainlink&apos;s Compute Runtime Environment.
+            Trust-gated job lifecycle for AI agent commerce — MaiatACPHook and MaiatEvaluator
+            protect every transition from fund to final EAS attestation.
           </p>
         </div>
 
@@ -447,6 +551,34 @@ export default function DemoPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800/50 bg-[var(--bg-page)]">
               <div>
+                <p className="text-xs font-mono text-indigo-400">MaiatACPHook</p>
+                <p className="text-[10px] font-mono text-zinc-500 mt-0.5">ERC-8183 IACPHook — gates fund/submit lifecycle</p>
+                <p className="text-[11px] font-mono text-zinc-600 mt-1">(Hookathon — address TBD)</p>
+              </div>
+              <a
+                href="https://sepolia.basescan.org"
+                target="_blank"
+                className="text-zinc-600 hover:text-zinc-400"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800/50 bg-[var(--bg-page)]">
+              <div>
+                <p className="text-xs font-mono text-emerald-400">MaiatEvaluator</p>
+                <p className="text-[10px] font-mono text-zinc-500 mt-0.5">Trust-based job evaluator — reads oracle scores</p>
+                <p className="text-[11px] font-mono text-zinc-600 mt-1">(Hookathon — address TBD)</p>
+              </div>
+              <a
+                href="https://sepolia.basescan.org"
+                target="_blank"
+                className="text-zinc-600 hover:text-zinc-400"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800/50 bg-[var(--bg-page)]">
+              <div>
                 <p className="text-xs font-mono text-blue-400">TrustScoreOracle</p>
                 <p className="text-[11px] font-mono text-zinc-600 mt-1">0xf662902ca227baba3a4d11a1bc58073e0b0d1139</p>
               </div>
@@ -460,11 +592,11 @@ export default function DemoPage() {
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800/50 bg-[var(--bg-page)]">
               <div>
-                <p className="text-xs font-mono text-cyan-400">TrustGateHook</p>
-                <p className="text-[11px] font-mono text-zinc-600 mt-1">0xf6065fb076090af33ee0402f7e902b2583e7721e</p>
+                <p className="text-xs font-mono text-cyan-400">EAS Resolver (Base Mainnet)</p>
+                <p className="text-[11px] font-mono text-zinc-600 mt-1">0xda696009655825124bcbfdd5755c0657d6d841c0</p>
               </div>
               <a
-                href="https://sepolia.basescan.org/address/0xf6065fb076090af33ee0402f7e902b2583e7721e"
+                href="https://basescan.org/address/0xda696009655825124bcbfdd5755c0657d6d841c0"
                 target="_blank"
                 className="text-zinc-600 hover:text-zinc-400"
               >
@@ -477,7 +609,7 @@ export default function DemoPage() {
         {/* Footer CTA */}
         <div className="mt-10 text-center">
           <p className="text-xs text-zinc-600 mb-4">
-            Built for Chainlink Convergence Hackathon — February 2026
+            Built for Uniswap Hookathon — March 2026
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link

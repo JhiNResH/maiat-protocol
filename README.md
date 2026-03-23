@@ -123,6 +123,8 @@ Wallet: `0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D`
 | **MaiatReceiptResolver** | Base Mainnet   | `0xda696009655825124bcbfdd5755c0657d6d841c0` | EAS Resolver — rejects any attestation not from Maiat Attester |
 | **TrustGateHook**        | Base Sepolia   | `0xf6065fb076090af33ee0402f7e902b2583e7721e` | Uniswap v4 Hook — gates swaps via `beforeSwap` oracle check |
 | **TrustScoreOracle**     | Base Sepolia   | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` | Legacy oracle — behavioral + review scores (Hookathon dev)  |
+| **MaiatACPHook**         | Base Sepolia   | _(Hookathon)_                                | ERC-8183 IACPHook — trust-gated fund/submit + outcome recording |
+| **MaiatEvaluator**       | Base Sepolia   | _(Hookathon)_                                | Trust-based job evaluator — reads oracle scores, calls complete/reject |
 | **MaiatPassport**        | Base Mainnet   | _(Phase 2)_                                  | Soulbound ERC-721 — auto-minted on wallet connect           |
 | **MaiatTrustConsumer**   | Base Sepolia   | _(planned)_                                  | Chainlink CRE consumer — receives signed reports, batch-updates TrustScoreOracle |
 
@@ -180,6 +182,38 @@ See [maiat-indexer](https://github.com/JhiNResH/maiat-indexer) for indexer sourc
 - **Project:** AgenticCommerceHook | **ID:** HK-UHI8-0765
 - `beforeSwap` reads TrustScoreOracle → blocks or surcharges low-trust tokens
 - Dynamic fee adjustment based on trust score
+
+### ERC-8183 Agentic Commerce Hooks
+
+Maiat implements ERC-8183's `IACPHook` interface to protect the full job lifecycle for AI agent commerce. Two contracts work together to enforce trust at every step:
+
+**MaiatACPHook** — `IACPHook` implementation that gates lifecycle transitions:
+- `beforeAction(fund)` — Checks client (project) trust score via TrustScoreOracle. Low-trust projects are reverted before funds enter escrow.
+- `beforeAction(submit)` — Checks provider (AI judge) trust score. Low-trust agents cannot submit verdicts, protecting evaluation integrity.
+- `afterAction(complete/reject)` — Records the outcome on-chain, emitting `JobOutcomeRecorded` with both parties' scores for Wadjet's ML pipeline.
+
+**MaiatEvaluator** — Trust-based job evaluator that makes the final verdict:
+- Reads provider's `reputationScore` from TrustScoreOracle
+- Checks threat report count (flagged agents auto-rejected regardless of score)
+- Score ≥ threshold AND not flagged → calls `acp.complete()`
+- Score too low OR flagged → calls `acp.reject()` with reason code
+
+**How they work together:**
+
+```
+createJob() → fund()
+                └─ MaiatACPHook.beforeAction(fund) → [trust check client]
+submit(verdict)
+                └─ MaiatACPHook.beforeAction(submit) → [trust check judge]
+MaiatEvaluator.evaluate(acp, jobId)
+                └─ reads oracle → complete() or reject()
+                └─ MaiatACPHook.afterAction → emit JobOutcomeRecorded
+                └─ EAS attestation created → trust scores updated
+```
+
+The Hook protects lifecycle transitions (pre-flight checks), while the Evaluator makes the final authoritative verdict based on live oracle data. Together they form two layers of Maiat's three-layer protection: Hook (during) + Evaluator (after).
+
+[Interactive Demo](https://app.maiat.io/demo)
 
 ### Base Builder Code
 
