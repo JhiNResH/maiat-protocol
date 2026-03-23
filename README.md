@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/JhiNResH/maiat-protocol/master/public/maiat-logo.jpg" width="120" alt="Maiat" />
+  <img src="https://raw.githubusercontent.com/JhiNResH/maiat-protocol/master/apps/web/public/maiat-logo.jpg" width="120" alt="Maiat" />
 </p>
 
 <h1 align="center">Maiat Protocol</h1>
@@ -17,295 +17,103 @@
 
 ---
 
-## Architecture
+## Monorepo Structure
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                          maiat-protocol                             │
-├──────────┬──────────┬──────────┬─────────────────────────────────────┤
-│ Web App  │ API      │Contracts │ Packages                            │
-│ Next.js  │ /api/v1  │ Solidity │ sdk · guard · mcp · elizaos ·       │
-│          │          │          │ agentkit · game · virtuals           │
-├──────────┴──────────┴──────────┴─────────────────────────────────────┤
-│                          Feedback Loop                               │
-│    ACP Query → QueryLog → AgentScore → Oracle Sync → EAS             │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-## Connect in 30 Seconds
-
-**MCP (Claude Desktop, Cursor, any MCP-compatible agent):**
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "maiat": {
-      "url": "https://app.maiat.io/api/mcp"
-    }
-  }
-}
-```
-
-5 tools instantly available: `get_agent_trust` · `get_token_forensics` · `get_agent_reputation` · `report_outcome` · `get_scarab_balance`
-
-**REST API (any agent, any LLM):**
-
-```bash
-# Agent trust score
-curl https://app.maiat.io/api/v1/agent/0x5facebd66d78a69b400dc702049374b95745fbc5
-
-# Token rug risk
-curl https://app.maiat.io/api/v1/token/0xYourToken/forensics
-
-# skill.md (for LLM agents)
-Read https://app.maiat.io/skill.md and follow the instructions
+maiat-protocol/
+├── apps/
+│   └── web/                    # Next.js dashboard + API (app.maiat.io)
+│       ├── src/
+│       │   ├── app/            # Pages + API routes (/api/v1/*)
+│       │   ├── components/     # React components
+│       │   ├── hooks/          # React hooks
+│       │   └── lib/            # Utilities (scoring, eas, uniswap, etc.)
+│       ├── public/             # Static assets
+│       ├── prisma/             # Database schema + migrations
+│       ├── package.json        # Web app dependencies
+│       └── tsconfig.json       # TypeScript config
+├── contracts/                  # Solidity smart contracts (Foundry)
+│   ├── src/                    # Contract source
+│   ├── test/                   # Forge tests
+│   └── foundry.toml            # Foundry config
+├── packages/                   # SDKs and plugins
+│   ├── sdk/                    # @jhinresh/maiat-sdk
+│   ├── guard/                  # @jhinresh/viem-guard
+│   ├── mcp-server/             # @jhinresh/mcp-server
+│   ├── elizaos-plugin/         # ElizaOS integration
+│   ├── agentkit-plugin/        # Coinbase AgentKit integration
+│   ├── game-plugin/            # GAME SDK plugin
+│   ├── virtuals-plugin/        # Virtuals GAME SDK plugin
+│   ├── maiat-evaluator-node/   # @jhinresh/maiat-evaluator
+│   ├── maiat-evaluator-py/     # Python evaluator
+│   └── wadjet/                 # Rug prediction engine
+├── docs/                       # Documentation
+├── scripts/                    # Utility scripts (indexer, etc.)
+├── tests/                      # Root-level integration tests
+├── package.json                # Workspace config
+├── tsconfig.json               # Root TypeScript config
+└── LICENSE
 ```
 
 ---
 
-## What It Does
-
-| Use Case               | Endpoint                               | Fee      |
-| ---------------------- | -------------------------------------- | -------- |
-| Token honeypot check   | `GET /api/v1/token/:address`           | Free     |
-| Agent trust score      | `GET /api/v1/agent/:address`           | Free     |
-| Deep agent analysis    | `GET /api/v1/agent/:address/deep`      | Free     |
-| **Rug prediction**     | `GET /api/v1/agent/:address/rug-prediction` | Free |
-| Trust-gated swap quote | `POST /api/v1/swap/quote`              | Free     |
-| Browse 35K+ agents     | `GET /api/v1/agents`                   | Free     |
-| Submit review          | `POST /api/v1/review`                  | 2 Scarab |
-| Trust Passport         | `GET /api/v1/wallet/:address/passport` | Free     |
-
----
-
-## Web App Pages
-
-Live at [app.maiat.io](https://app.maiat.io)
-
-| Route                    | Description                                                                                  |
-| ------------------------ | -------------------------------------------------------------------------------------------- |
-| `/monitor`               | Tactical dashboard — real-time agent activity feed, ACP job stream, oracle sync status       |
-| `/explore`               | Browse 35K+ indexed agents with trust scores, colored risk indicators (green/amber/red)    |
-| `/leaderboard`           | Top agents ranked by trust score, completion rate, and job volume                            |
-| `/agent/[name]`          | Agent detail — behavioral insights, score breakdown, review history, deep analysis           |
-| `/passport/[address]`    | Trust Passport — wallet's cross-agent reputation, EAS receipt history _(Phase 2)_            |
-| `/review/[address]`      | Submit on-chain review — weighted by tx history (3x) and EAS receipts (5x), burns Scarab    |
-| `/swap`                  | Trust-gated swap UI — checks oracle before surfacing Uniswap quote; blocks unsafe tokens     |
-| `/markets`               | Prediction markets for AI agent performance outcomes                                         |
-| `/dashboard`             | Personal dashboard — your agents, reviews submitted, trust score history                     |
-| `/docs`                  | API reference, SDK guides, contract ABIs, integration examples                               |
-
----
-
-## ACP Offerings (Virtuals Protocol)
-
-Wallet: `0xE6ac05D2b50cd525F793024D75BB6f519a52Af5D`
-
-| Offering            | Fee   | Description                                                                  |
-| ------------------- | ----- | ---------------------------------------------------------------------------- |
-| `token_check`       | $0.01 | Honeypot detection, tax analysis, risk flags                                 |
-| `agent_trust`       | $0.02 | Behavioral trust score + deep analysis (percentile, risk flags, tier)        |
-| `token_forensics`   | $0.03 | Deep rug pull risk analysis (contract, holders, liquidity, rug score)        |
-| `agent_reputation`  | $0.03 | Community reviews, sentiment, and market consensus for any agent             |
-| `trust_swap`        | $0.05 | Token check + Uniswap quote — blocks calldata if verdict = avoid            |
-
-> Each offering response includes `_feedback` with outcome reporting instructions + cross-sell hints. Report outcomes to earn 5 🪲 Scarab and improve oracle accuracy.
-
----
-
-## Smart Contracts (Base Mainnet)
-
-| Contract                 | Network        | Address                                      | Purpose                                                     |
-| ------------------------ | -------------- | -------------------------------------------- | ----------------------------------------------------------- |
-| **MaiatOracle**          | Base Mainnet   | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` | On-chain trust scores for AI agents — written by ACP agent after each job |
-| **MaiatReceiptResolver** | Base Mainnet   | `0xda696009655825124bcbfdd5755c0657d6d841c0` | EAS Resolver — rejects any attestation not from Maiat Attester |
-| **TrustGateHook**        | Base Sepolia   | `0xf6065fb076090af33ee0402f7e902b2583e7721e` | Uniswap v4 Hook — gates swaps via `beforeSwap` oracle check |
-| **TrustScoreOracle**     | Base Sepolia   | `0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139` | Legacy oracle — behavioral + review scores (Hookathon dev)  |
-| **MaiatACPHook**         | Base Sepolia   | _(Hookathon)_                                | ERC-8183 IACPHook — trust-gated fund/submit + outcome recording |
-| **MaiatEvaluator**       | Base Sepolia   | _(Hookathon)_                                | Trust-based job evaluator — reads oracle scores, calls complete/reject |
-| **MaiatPassport**        | Base Mainnet   | _(Phase 2)_                                  | Soulbound ERC-721 — auto-minted on wallet connect           |
-| **MaiatTrustConsumer**   | Base Sepolia   | _(planned)_                                  | Chainlink CRE consumer — receives signed reports, batch-updates TrustScoreOracle |
-
-**Base Builder Code:** `bc_cozhkj23` (ERC-8021, appended to all swap calldata)
-
-**Owner/Operator separation:** Cold wallet deployer (owner, upgrade-only) + ACP hot wallet operator (`0xB1e504aE1ce359B4C2a6DC5d63aE6199a415f312`, write-only for scores + attestations).
-
----
-
-## Wadjet — Rug Prediction Engine
-
-Wadjet is Maiat's internal risk intelligence engine — an "Agent Credit Bureau" that aggregates behavioral, market, and on-chain data to predict agent token risks.
-
-```
-ACP Behavioral Data ──┐
-DexScreener Prices ───┤──▶ Trust Score ──▶ Rug Prediction (0-100)
-Health Signals ───────┤     (0-100)
-EAS Attestations ─────┘
-```
-
-**Data pipeline:** `maiat-indexer` (Railway) polls 4 sources every 5-15 min:
-- **Virtuals ACP** — 17K+ agents with job history, completion rates
-- **Virtuals Protocol** — 20K+ agents with token addresses
-- **DexScreener** — Real-time prices, liquidity, volume for all tokens
-- **Base Chain** — EAS attestations, ERC-8004 registrations
-
-**Rug prediction signals:** trust score, activity level, completion rate, price crash, low liquidity, LP drain, completion trend, volatility.
-
-**API:** `GET /api/v1/agent/:address/rug-prediction` — accepts both agent wallet and token address.
-
-### Wadjet API Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /agents` | List all tracked agents with trust scores |
-| `GET /agents/{address}` | Single agent detail + risk profile |
-| `GET /scenarios` | Risk scenarios and Monte Carlo simulations |
-| `GET /clusters` | Sybil cluster detection |
-| `POST /predict/agent` | XGBoost rug prediction (98% accuracy, 50 features) |
-
-See [maiat-indexer](https://github.com/JhiNResH/maiat-indexer) for indexer source.
-
----
-
-## On-Chain Integrations
-
-### EAS (Ethereum Attestation Service)
-
-- **Schema UID**: `0x24b0db687434f15057bef6011b95f1324f2c38af06d0e636aea1c58bf346d802`
-- Gated by `MaiatReceiptResolver`. Attestations made via this schema are verified "Maiat Receipts".
-- Base Mainnet EAS contract: `0x4200000000000000000000000000000000000021`
-
-### Uniswap v4 Hook (Hookathon)
-
-- **Project:** AgenticCommerceHook | **ID:** HK-UHI8-0765
-- `beforeSwap` reads TrustScoreOracle → blocks or surcharges low-trust tokens
-- Dynamic fee adjustment based on trust score
-
-### ERC-8183 Agentic Commerce Hooks
-
-Maiat implements ERC-8183's `IACPHook` interface to protect the full job lifecycle for AI agent commerce. Two contracts work together to enforce trust at every step:
-
-**MaiatACPHook** — `IACPHook` implementation that gates lifecycle transitions:
-- `beforeAction(fund)` — Checks client (project) trust score via TrustScoreOracle. Low-trust projects are reverted before funds enter escrow.
-- `beforeAction(submit)` — Checks provider (AI judge) trust score. Low-trust agents cannot submit verdicts, protecting evaluation integrity.
-- `afterAction(complete/reject)` — Records the outcome on-chain, emitting `JobOutcomeRecorded` with both parties' scores for Wadjet's ML pipeline.
-
-**MaiatEvaluator** — Trust-based job evaluator that makes the final verdict:
-- Reads provider's `reputationScore` from TrustScoreOracle
-- Checks threat report count (flagged agents auto-rejected regardless of score)
-- Score ≥ threshold AND not flagged → calls `acp.complete()`
-- Score too low OR flagged → calls `acp.reject()` with reason code
-
-**How they work together:**
-
-```
-createJob() → fund()
-                └─ MaiatACPHook.beforeAction(fund) → [trust check client]
-submit(verdict)
-                └─ MaiatACPHook.beforeAction(submit) → [trust check judge]
-MaiatEvaluator.evaluate(acp, jobId)
-                └─ reads oracle → complete() or reject()
-                └─ MaiatACPHook.afterAction → emit JobOutcomeRecorded
-                └─ EAS attestation created → trust scores updated
-```
-
-The Hook protects lifecycle transitions (pre-flight checks), while the Evaluator makes the final authoritative verdict based on live oracle data. Together they form two layers of Maiat's three-layer protection: Hook (during) + Evaluator (after).
-
-[Interactive Demo](https://app.maiat.io/demo)
-
-### Base Builder Code
-
-- Registered at base.dev: `bc_cozhkj23`
-- Zero gas overhead (ERC-8021 data suffix)
-
----
-
-## Feedback Loop
-
-```
-User/Agent action → QueryLog/TrustReview (DB)
-                  → recalculate AgentScore (behavioral 70% + reviews 30%)
-                  → Oracle Sync cron (every 6h → on-chain TrustScoreOracle)
-                  → EAS Auto-Attest cron (daily → permanent attestations)
-```
-
----
-
-## Packages
-
-| Package                                                  | npm                                                                                                                           | Description                                                            |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| [`@jhinresh/maiat-sdk`](packages/sdk/)                             | [![npm](https://img.shields.io/npm/v/@jhinresh/maiat-sdk)](https://www.npmjs.com/package/@jhinresh/maiat-sdk)                                     | Core SDK — trust scores, token safety, swap verification for AI agents |
-| [`@jhinresh/viem-guard`](packages/guard/)                | [![npm](https://img.shields.io/npm/v/@jhinresh/viem-guard)](https://www.npmjs.com/package/@jhinresh/viem-guard)               | Viem middleware — auto-checks trust before every transaction           |
-| [`@jhinresh/mcp-server`](packages/mcp-server/)           | [![npm](https://img.shields.io/npm/v/@jhinresh/mcp-server)](https://www.npmjs.com/package/@jhinresh/mcp-server)               | MCP Server — query trust from Claude, GPT, or any MCP-compatible AI    |
-| [`@jhinresh/elizaos-plugin`](packages/elizaos-plugin/)   | [![npm](https://img.shields.io/npm/v/@jhinresh/elizaos-plugin)](https://www.npmjs.com/package/@jhinresh/elizaos-plugin)       | ElizaOS plugin — trust-gate actions, evaluators, providers             |
-| [`@jhinresh/agentkit-plugin`](packages/agentkit-plugin/) | [![npm](https://img.shields.io/npm/v/@jhinresh/agentkit-plugin)](https://www.npmjs.com/package/@jhinresh/agentkit-plugin)     | Coinbase AgentKit plugin — auto-check trust before transactions        |
-| [`@jhinresh/game-maiat-plugin`](packages/game-plugin/)   | [![npm](https://img.shields.io/npm/v/@jhinresh/game-maiat-plugin)](https://www.npmjs.com/package/@jhinresh/game-maiat-plugin) | GAME SDK plugin — check_trust_score, gate_swap, batch_check            |
-| [`@jhinresh/virtuals-plugin`](packages/virtuals-plugin/) | [![npm](https://img.shields.io/npm/v/@jhinresh/virtuals-plugin)](https://www.npmjs.com/package/@jhinresh/virtuals-plugin)     | Virtuals GAME SDK plugin — trust-gate agent transactions               |
-| [`@jhinresh/maiat-evaluator`](packages/maiat-evaluator-node/) | [![npm](https://img.shields.io/npm/v/@jhinresh/maiat-evaluator)](https://www.npmjs.com/package/@jhinresh/maiat-evaluator) | Drop-in ACP evaluator — trust-based job evaluation in one line         |
-
----
-
-## Cron Jobs (Vercel)
-
-| Job               | Schedule        | Purpose                                   |
-| ----------------- | --------------- | ----------------------------------------- |
-| `index-agents`    | Daily 02:00 UTC | Index new agents from ACP on-chain        |
-| `auto-attest`     | Daily 03:00 UTC | EAS attestations for ACP interactions     |
-| `oracle-sync`     | Every 6h        | Sync trust scores to on-chain oracle      |
-| `resolve-markets` | Every 6h        | Settle prediction markets past `closesAt` |
-
----
-
-## Tech Stack
-
-| Layer       | Tech                                          |
-| ----------- | --------------------------------------------- |
-| Framework   | Next.js 15 (App Router)                       |
-| Database    | PostgreSQL + Prisma (Supabase)                |
-| Auth        | Privy (wallet connect)                        |
-| AI          | Google Gemini (review quality, deep insights) |
-| Chain       | Base (primary)                                |
-| Oracle      | TrustScoreOracle + Chainlink CRE (planned)    |
-| Attestation | EAS on Base                                   |
-| Deployment  | Vercel (web) · Railway (ACP agent)            |
-
----
-
-## Local Development
+## Quick Start
 
 ```bash
 git clone https://github.com/JhiNResH/maiat-protocol.git
 cd maiat-protocol
 npm install
 
-# Create .env.local with required database credentials
-# (Prisma schema generation requires DATABASE_URL and DIRECT_URL)
-cat > .env.local << 'EOF'
-DATABASE_URL="postgresql://dev:dev@localhost:5432/maiat_dev"
-DIRECT_URL="postgresql://dev:dev@localhost:5432/maiat_dev"
-NEXT_PUBLIC_PRIVY_APP_ID=""
-PRIVY_APP_ID=""
-GEMINI_API_KEY=""
-EOF
+# Run the web app
+npm run dev
 
-npx prisma generate
-npx prisma db push  # optional: only if you have a running PostgreSQL instance
+# Or run from the apps/web directory
+cd apps/web
 npm run dev
 ```
 
-**Note:** `.env.local` is gitignored for security. Use `.env.example` as reference for all available variables.
+---
+
+## Smart Contracts (Base Mainnet)
+
+| Contract                 | Address                                      |
+| ------------------------ | -------------------------------------------- |
+| **MaiatOracle**          | `0xc6cf2d59ff2e4ee64bbfceaad8dcb9aa3f13c6da` |
+| **MaiatReceiptResolver** | `0xda696009655825124bcbfdd5755c0657d6d841c0` |
+| **TrustGateHook**        | `0xf980Ad83bCbF2115598f5F555B29752F00b8daFf` |
+
+**EAS Schema UID:** `0x24b0db687434f15057bef6011b95f1324f2c38af06d0e636aea1c58bf346d802`
 
 ---
 
-## Related
+## API Endpoints
 
-- **[hook-contracts](https://github.com/erc-8183/hook-contracts)** — ERC-8183 hook extensions (EvaluatorRegistry, TrustGateACPHook, TrustBasedEvaluator — contributed by Maiat)
-- **[maiat-acp](https://github.com/JhiNResH/maiat-acp)** — ACP agent runtime + CLI + offerings
-- **[Virtuals ACP](https://app.virtuals.io/acp)** — Agent Commerce Protocol
-- **[EAS on Base](https://base.easscan.org)** — Ethereum Attestation Service
+| Route | Method | Description |
+|---|---|---|
+| `/api/v1/agent/:address` | GET | Agent trust score |
+| `/api/v1/agent/:address/deep` | GET | Deep analysis |
+| `/api/v1/agents` | GET | Browse all 2,292+ agents |
+| `/api/v1/token/:address` | GET | Token honeypot check |
+| `/api/v1/swap/quote` | POST | Trust-gated Uniswap quote |
+| `/api/v1/review` | POST | Submit review (costs 2 Scarab) |
+| `/api/v1/wallet/:address/passport` | GET | Trust Passport |
+| `/api/v1/scarab` | GET | Scarab balance |
+| `/api/v1/markets` | GET | Prediction markets |
+
+---
+
+## Packages
+
+| Package | Description |
+|---------|-------------|
+| `@jhinresh/maiat-sdk` | Core SDK — trust scores, token safety, swap verification |
+| `@jhinresh/viem-guard` | Viem middleware — auto-checks trust before transactions |
+| `@jhinresh/mcp-server` | MCP Server for Claude, GPT, and MCP-compatible AIs |
+| `@jhinresh/elizaos-plugin` | ElizaOS plugin — trust-gate actions and evaluators |
+| `@jhinresh/agentkit-plugin` | Coinbase AgentKit plugin |
+| `@jhinresh/game-maiat-plugin` | GAME SDK plugin |
+| `@jhinresh/virtuals-plugin` | Virtuals GAME SDK plugin |
+| `@jhinresh/maiat-evaluator` | Drop-in ACP evaluator |
 
 ---
 
@@ -314,12 +122,6 @@ npm run dev
 Pull requests are welcome. For major changes, open an issue first.
 
 We use [Conventional Commits](https://www.conventionalcommits.org/) and squash-merge all PRs.
-
-## Contributors
-
-Thanks to everyone who has contributed to Maiat Protocol:
-
-[![Contributors](https://contrib.rocks/image?repo=JhiNResH/maiat-protocol)](https://github.com/JhiNResH/maiat-protocol/graphs/contributors)
 
 ---
 
