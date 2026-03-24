@@ -110,6 +110,10 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [engagement, setEngagement] = useState<EngagementStats | null>(null);
   const [timeseries, setTimeseries] = useState<Array<{ date: string; count: number; cumulative: number }>>([]);
+  const [platformStats, setPlatformStats] = useState<{
+    agentsIndexed: number; agentsInDB: number; totalQueries: number;
+    uniqueCallers: number; totalReviews: number; contributors: number;
+  } | null>(null);
 
   useEffect(() => {
     const fetchStats = () =>
@@ -122,6 +126,13 @@ export default function AnalyticsPage() {
     fetchStats();
     const t = setInterval(fetchStats, 30_000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/v1/stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setPlatformStats(d); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -215,35 +226,28 @@ export default function AnalyticsPage() {
           </motion.p>
         </section>
 
-        {/* Agent Index Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        {/* Platform Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           <StatCard
-            label="Agent Index"
-            value="54,474"
-            change="Cross-chain coverage"
+            label="Agents Indexed"
+            value={platformStats ? platformStats.agentsIndexed.toLocaleString() : "—"}
+            change="Cross-chain"
             changeType="neutral"
             delay={0}
           />
           <StatCard
-            label="With Trust Scores"
-            value="54,474"
-            change="ERC-8004 + ACP"
-            changeType="neutral"
+            label="Total Reviews"
+            value={platformStats ? platformStats.totalReviews.toLocaleString() : "—"}
+            change={platformStats ? `${platformStats.contributors} contributors` : ""}
+            changeType="increase"
             delay={0.1}
           />
           <StatCard
-            label="Active Traders"
-            value="9,284"
-            change="Job history"
-            changeType="increase"
-            delay={0.2}
-          />
-          <StatCard
-            label="Pending"
-            value="+44K"
-            change="Other chains recovering"
+            label="Unique Callers"
+            value={platformStats ? platformStats.uniqueCallers.toLocaleString() : "—"}
+            change="API consumers"
             changeType="neutral"
-            delay={0.3}
+            delay={0.2}
           />
         </div>
 
@@ -279,33 +283,20 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Engagement Stats (if available) */}
-        {engagement && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        {engagement && (engagement.overview.totalReviews > 0 || engagement.overview.totalVotes > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
             <StatCard
-              label="Indexed Agents"
-              value="54,474"
-              change="With Trust Scores"
-              changeType="neutral"
-              delay={0}
-            />
-            <StatCard
-              label="Active Traders"
-              value="9,284"
-              change="ACP activity"
-              changeType="neutral"
-              delay={0.1}
-            />
-            <StatCard
-              label="Total Reviews"
+              label="Community Reviews"
               value={engagement.overview.totalReviews.toLocaleString()}
+              change={`${engagement.overview.uniqueReviewers} reviewers`}
               changeType="increase"
-              delay={0.2}
+              delay={0}
             />
             <StatCard
               label="Endorsements"
               value={engagement.overview.totalVotes.toLocaleString()}
               changeType="increase"
-              delay={0.3}
+              delay={0.1}
             />
           </div>
         )}
