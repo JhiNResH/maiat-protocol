@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
 import { createRateLimiter, checkIpRateLimit } from "@/lib/ratelimit";
+import { logQuery } from "@/lib/query-logger";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,15 @@ export async function GET(request: NextRequest) {
 
   if (agent) {
     const v = verdict(agent.trustScore);
+    logQuery({
+      type: "agent_trust",
+      target: checksumAddress.toLowerCase(),
+      trustScore: agent.trustScore,
+      verdict: v,
+      callerIp: request.headers.get("x-forwarded-for") ?? undefined,
+      userAgent: request.headers.get("user-agent") ?? undefined,
+      metadata: { endpoint: "/api/v1/trust", resultType: "agent" },
+    });
     return NextResponse.json(
       {
         address: checksumAddress,
@@ -105,6 +115,15 @@ export async function GET(request: NextRequest) {
   if (project) {
     const score = project.trustScore ?? 50;
     const v = verdict(score);
+    logQuery({
+      type: "token_check",
+      target: checksumAddress.toLowerCase(),
+      trustScore: score,
+      verdict: v,
+      callerIp: request.headers.get("x-forwarded-for") ?? undefined,
+      userAgent: request.headers.get("user-agent") ?? undefined,
+      metadata: { endpoint: "/api/v1/trust", resultType: "token", projectName: project.name },
+    });
     return NextResponse.json(
       {
         address: checksumAddress,

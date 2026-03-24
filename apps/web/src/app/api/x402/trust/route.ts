@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
 import { prisma } from "@/lib/prisma";
+import { logQuery } from "@/lib/query-logger";
 
 // CORS headers — payment gate is handled by middleware.ts
 const X402_CORS_HEADERS = {
@@ -75,6 +76,15 @@ async function trustHandler(request: NextRequest): Promise<NextResponse<unknown>
 
   if (agent) {
     const v = verdict(agent.trustScore);
+    logQuery({
+      type: "agent_trust",
+      target: checksumAddress.toLowerCase(),
+      trustScore: agent.trustScore,
+      verdict: v,
+      callerIp: request.headers.get("x-forwarded-for") ?? undefined,
+      userAgent: request.headers.get("user-agent") ?? undefined,
+      metadata: { endpoint: "/api/x402/trust", resultType: "agent", paid: true },
+    });
     return NextResponse.json(
       {
         address: checksumAddress,
@@ -104,6 +114,15 @@ async function trustHandler(request: NextRequest): Promise<NextResponse<unknown>
   if (project) {
     const score = project.trustScore ?? 50;
     const v = verdict(score);
+    logQuery({
+      type: "token_check",
+      target: checksumAddress.toLowerCase(),
+      trustScore: score,
+      verdict: v,
+      callerIp: request.headers.get("x-forwarded-for") ?? undefined,
+      userAgent: request.headers.get("user-agent") ?? undefined,
+      metadata: { endpoint: "/api/x402/trust", resultType: "token", paid: true, projectName: project.name },
+    });
     return NextResponse.json(
       {
         address: checksumAddress,
