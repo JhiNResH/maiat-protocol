@@ -248,9 +248,31 @@ export default function DocsPage() {
           <section id="reviews-api">
             <SectionHeader icon={MessageSquare} title="Community Intelligence API" />
 
-            <div className="space-y-3">
-              <ApiEndpoint method="GET" path="/api/v1/review?address={target}" title="Retrieve Node Field Reports" />
-              <CodeBlock code="curl -X GET https://app.maiat.io/api/v1/review?address=0x..." />
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <ApiEndpoint method="GET" path="/api/v1/review?address={target}" title="Retrieve Reviews" />
+                <CodeBlock code="curl -X GET https://app.maiat.io/api/v1/review?address=0x..." />
+              </div>
+
+              <div className="space-y-3">
+                <ApiEndpoint method="GET" path="/api/v1/passport/{address}" title="Agent Passport Profile" />
+                <CodeBlock code="curl https://app.maiat.io/api/v1/passport/0xAgentAddress" />
+              </div>
+
+              <div className="space-y-3">
+                <ApiEndpoint method="GET" path="/api/v1/kya/{code}" title="Know Your Agent (KYA) Lookup" />
+                <CodeBlock code="curl https://app.maiat.io/api/v1/kya/ABC123" />
+              </div>
+
+              <div className="space-y-3">
+                <ApiEndpoint method="GET" path="/api/v1/token/{address}" title="Token Safety Check (Free)" />
+                <CodeBlock code="curl https://app.maiat.io/api/v1/token/0xTokenAddress" />
+              </div>
+
+              <div className="space-y-3">
+                <ApiEndpoint method="GET" path="/api/v1/swap/quote?tokenIn=0x...&tokenOut=0x...&amount=1000000" title="Trust-Gated Swap Quote" />
+                <CodeBlock code="curl 'https://app.maiat.io/api/v1/swap/quote?tokenIn=0xUSDC&tokenOut=0xToken&amount=1000000'" />
+              </div>
             </div>
           </section>
 
@@ -263,6 +285,9 @@ export default function DocsPage() {
                 { name: 'agent_trust', price: '$0.02', desc: 'Core — "Is this agent trustworthy?" Returns trust score, verdict, riskOutlook, and token health via Wadjet.' },
                 { name: 'token_check', price: '$0.01', desc: 'Quick token safety check — honeypot detection, liquidity analysis, basic risk assessment.' },
                 { name: 'agent_reputation', price: '$0.03', desc: 'Community intelligence — reviews, sentiment analysis, market consensus for any agent.' },
+                { name: 'token_forensics', price: '$0.05', desc: 'Deep AI-powered token/project analysis — rug pull prediction, Wadjet ML scoring, community evidence.' },
+                { name: 'trust_swap', price: '$0.05', desc: 'Token safety + Uniswap quote in one call — blocks calldata when verdict is "avoid".' },
+                { name: 'register_passport', price: '$1.00', desc: 'Register an agent/human on Maiat — ENS subname, ERC-8004 identity, KYA code, Scarab balance.' },
               ].map((offering, i) => (
                 <div key={i} className="flex items-center justify-between p-5 liquid-glass rounded-2xl border border-[var(--border-color)]">
                   <div className="space-y-1">
@@ -277,6 +302,46 @@ export default function DocsPage() {
             <p className="text-[11px] text-[var(--text-muted)] italic">
               Every ACP query feeds Wadjet&apos;s training data. More queries → better predictions → more trustworthy scores.
             </p>
+          </section>
+
+          {/* ── x402 Paid API ── */}
+          <section id="x402-api">
+            <SectionHeader icon={Shield} title="x402 Paid API" />
+
+            <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-6">
+              Payment-protected endpoints via the x402 protocol. No API keys — pay per request with USDC on Base.
+            </p>
+
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <ApiEndpoint method="GET" path="/api/x402/trust?address=0x..." title="Agent/Token Trust Score — $0.02" />
+                <CodeBlock lang="bash" code="curl https://app.maiat.io/api/x402/trust?address=0xAgentOrToken" />
+              </div>
+
+              <div className="space-y-3">
+                <ApiEndpoint method="GET" path="/api/x402/token-check?address=0x..." title="Token Safety Check — $0.01" />
+                <CodeBlock lang="bash" code="curl https://app.maiat.io/api/x402/token-check?address=0xTokenAddress" />
+              </div>
+
+              <div className="space-y-3">
+                <ApiEndpoint method="GET" path="/api/x402/reputation?address=0x..." title="Agent Reputation — $0.03" />
+                <CodeBlock lang="bash" code="curl https://app.maiat.io/api/x402/reputation?address=0xAgentAddress" />
+              </div>
+
+              <div className="space-y-3">
+                <ApiEndpoint method="POST" path="/api/x402/token-forensics" title="Deep Token Forensics — $0.05" />
+                <CodeBlock lang="bash" code={`curl -X POST https://app.maiat.io/api/x402/token-forensics \\
+  -H "Content-Type: application/json" \\
+  -d '{"address":"0xTokenAddress"}'`} />
+              </div>
+
+              <div className="space-y-3">
+                <ApiEndpoint method="POST" path="/api/x402/register-passport" title="Register Passport — $1.00" />
+                <CodeBlock lang="bash" code={`curl -X POST https://app.maiat.io/api/x402/register-passport \\
+  -H "Content-Type: application/json" \\
+  -d '{"ensName":"myagent","type":"agent"}'`} />
+              </div>
+            </div>
           </section>
 
           {/* ── Installation ── */}
