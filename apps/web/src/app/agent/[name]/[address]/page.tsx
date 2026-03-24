@@ -193,7 +193,7 @@ function AgentDetailContent() {
   }
 
   return (
-    <div className="pb-20 relative">
+    <div className="pb-20 relative min-h-screen bg-[#0A0A0A] text-white">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 relative">
 
         {/* ── Hero Section ── */}
