@@ -31,19 +31,19 @@ export default function StatCard({ label, value, change, changeType, description
       <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">{label}</p>
       <motion.h3 
         whileHover={{ x: 5 }}
-        className="text-4xl font-bold text-[var(--text-color)] mb-3 tracking-tight transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
+        className="text-4xl font-bold text-[var(--text-color)] mb-3 tracking-tight transition-colors"
       >
         {value}
       </motion.h3>
       
       {change && (
         <div className="flex items-center gap-2">
-          {changeType === 'increase' && <TrendingUp size={16} className="text-emerald-500 dark:text-emerald-400" />}
+          {changeType === 'increase' && <TrendingUp size={16} className="text-[var(--text-color)]" />}
           {changeType === 'decrease' && <TrendingDown size={16} className="text-rose-500 dark:text-rose-400" />}
           {changeType === 'neutral' && <Minus size={16} className="text-[var(--text-muted)]" />}
           <span className={cn(
             "text-[10px] font-bold uppercase tracking-widest",
-            changeType === 'increase' ? "text-emerald-500 dark:text-emerald-400" : 
+            changeType === 'increase' ? "text-[var(--text-color)]" : 
             changeType === 'decrease' ? "text-rose-500 dark:text-rose-400" : "text-[var(--text-muted)]"
           )}>
             {change}

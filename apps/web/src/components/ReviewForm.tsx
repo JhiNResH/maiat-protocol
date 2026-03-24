@@ -132,8 +132,8 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
   if (success) {
     return (
       <div className="liquid-glass rounded-[3rem] p-6 text-center">
-        <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
-          <Shield className="w-6 h-6 text-emerald-500" />
+        <div className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mx-auto mb-3">
+          <Shield className="w-6 h-6 text-[var(--text-color)]" />
         </div>
         <h3 className="text-sm font-bold text-[var(--text-color)] mb-1 uppercase tracking-wider">Review Submitted!</h3>
         <p className="text-xs text-[var(--text-muted)]">Thank you for sharing your experience.</p>
@@ -162,7 +162,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
                 size={24}
                 className={`transition-colors ${
                   star <= (hoverRating || rating)
-                    ? 'fill-emerald-500 text-emerald-500'
+                    ? 'fill-current text-[var(--text-color)]'
                     : 'text-[var(--border-color)]'
                 }`}
               />
@@ -186,7 +186,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
           onChange={(e) => setComment(e.target.value)}
           placeholder="Share your experience with this agent..."
           rows={3}
-          className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-2xl px-4 py-3 text-sm text-[var(--text-color)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-emerald-500/50 transition-colors resize-none"
+          className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-2xl px-4 py-3 text-sm text-[var(--text-color)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--text-color)]/30 transition-colors resize-none"
         />
       </div>
 
@@ -203,8 +203,8 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
               onClick={() => toggleTag(tag)}
               className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
                 selectedTags.includes(tag)
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-[var(--bg-color)] border border-[var(--border-color)] text-[var(--text-muted)] hover:border-emerald-500/50'
+                  ? 'bg-[var(--text-color)] text-white'
+                  : 'bg-[var(--bg-color)] border border-[var(--border-color)] text-[var(--text-muted)] hover:border-[var(--text-color)]/30'
               }`}
             >
               {tag}
@@ -224,7 +224,7 @@ export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProp
       <button
         onClick={handleSubmit}
         disabled={submitting || rating === 0}
-        className="w-full py-3 bg-emerald-500 text-white font-bold text-xs rounded-2xl transition-all hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest flex items-center justify-center gap-2"
+        className="w-full py-3 bg-[var(--text-color)] text-white font-bold text-xs rounded-2xl transition-all hover:bg-[var(--text-color)] disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest flex items-center justify-center gap-2"
       >
         {submitting ? (
           <>

@@ -26,14 +26,14 @@ interface ReviewListProps {
 }
 
 function getInteractionBadge(r: Review) {
-  if (r.interactionTier === 'acp' || r.hasEas) return { label: 'ACP Verified', icon: CheckCircle, color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' }
+  if (r.interactionTier === 'acp' || r.hasEas) return { label: 'ACP Verified', icon: CheckCircle, color: 'bg-black/5 dark:bg-white/5 text-[var(--text-color)] border-[var(--border-color)]' }
   if (r.interactionTier === 'onchain') return { label: 'On-chain', icon: Shield, color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' }
   return { label: 'Unverified', icon: AlertTriangle, color: 'bg-black/5 dark:bg-white/5 text-[var(--text-muted)] border-white/10' }
 }
 
 function getQualityTier(qs: number | null | undefined) {
   const score = qs ?? 50
-  if (score >= 70) return { badge: '✓ Verified', badgeClass: 'text-emerald-400 bg-emerald-500/10', cardClass: '', isLow: false }
+  if (score >= 70) return { badge: '✓ Verified', badgeClass: 'text-[var(--text-color)] bg-black/5 dark:bg-white/5', cardClass: '', isLow: false }
   if (score >= 40) return { badge: null, badgeClass: '', cardClass: '', isLow: false }
   return { badge: 'Low Quality', badgeClass: 'text-red-400 bg-red-500/10', cardClass: 'opacity-50', isLow: true }
 }
@@ -92,7 +92,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
   if (loading && reviews.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-3">
-        <div className="animate-spin w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-6 h-6 border-2 border-[var(--text-color)] border-t-transparent rounded-full" />
         <span className="text-sm text-[var(--text-muted)] ">Loading reviews...</span>
       </div>
     )
@@ -132,7 +132,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-bold text-[var(--text-color)] flex items-center gap-2 ">
           Community Reviews
-          <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500 text-xs ">{count}</span>
+          <span className="px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/5 text-[var(--text-color)] text-xs ">{count}</span>
         </h3>
       </div>
 
@@ -170,7 +170,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
                       {review.qualityScore != null && (
                         <span 
                           className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider cursor-help ${
-                            review.qualityScore >= 70 ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' :
+                            review.qualityScore >= 70 ? 'text-[var(--text-color)] bg-black/5 dark:bg-white/5 border border-[var(--border-color)]' :
                             review.qualityScore >= 40 ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20' :
                             'text-red-400 bg-red-500/10 border border-red-400/20'
                           }`}
@@ -196,7 +196,7 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
                   {/* Rating + Vote */}
                   <div className="flex items-center gap-3">
                     <div className={`px-2 py-1 rounded text-[11px] font-bold  ${
-                      review.rating >= 8 ? 'bg-emerald-500/10 text-emerald-400' :
+                      review.rating >= 8 ? 'bg-black/5 dark:bg-white/5 text-[var(--text-color)]' :
                       review.rating >= 5 ? 'bg-amber-500/10 text-amber-400' :
                       'bg-red-500/10 text-red-400'
                     }`}>
@@ -207,11 +207,11 @@ export function ReviewList({ address, refreshTrigger }: ReviewListProps) {
                       <button
                         onClick={(e) => { e.preventDefault(); handleVote(review.id, 'up'); }}
                         disabled={!walletAddress || votingId === review.id}
-                        className={`transition-colors disabled:opacity-30 p-0.5 ${myVotes[review.id] === 'up' ? 'text-emerald-400' : 'text-[var(--text-muted)] hover:text-emerald-400'}`}
+                        className={`transition-colors disabled:opacity-30 p-0.5 ${myVotes[review.id] === 'up' ? 'text-[var(--text-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-color)]'}`}
                       >
                         <ThumbsUp className="w-3.5 h-3.5" />
                       </button>
-                      <span className={`text-[9px]  ${(review.upvotes ?? 0) - (review.downvotes ?? 0) > 0 ? 'text-emerald-400' : (review.upvotes ?? 0) - (review.downvotes ?? 0) < 0 ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
+                      <span className={`text-[9px]  ${(review.upvotes ?? 0) - (review.downvotes ?? 0) > 0 ? 'text-[var(--text-color)]' : (review.upvotes ?? 0) - (review.downvotes ?? 0) < 0 ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
                         {(review.upvotes ?? 0) - (review.downvotes ?? 0)}
                       </span>
                       <button
