@@ -183,7 +183,7 @@ function AgentDetailContent() {
   }
 
   return (
-    <div className="pb-20 relative min-h-screen" style={{ background: '#0A0A0A', color: '#f5f5f5', ['--bg-color' as string]: '#0A0A0A', ['--text-color' as string]: '#f5f5f5', ['--text-secondary' as string]: 'rgba(255,255,255,0.7)', ['--text-muted' as string]: 'rgba(255,255,255,0.4)', ['--glass-bg' as string]: 'rgba(20,20,20,0.4)', ['--glass-border' as string]: 'rgba(255,255,255,0.08)', ['--border-color' as string]: 'rgba(255,255,255,0.06)', ['--glass-shadow' as string]: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)' }}>
+    <div className="pb-20 relative min-h-screen bg-[var(--bg-color)] text-[var(--text-color)]">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 relative">
 
         {/* ── Hero Section ── */}
