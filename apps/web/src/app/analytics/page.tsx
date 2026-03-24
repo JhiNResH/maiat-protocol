@@ -215,7 +215,39 @@ export default function AnalyticsPage() {
           </motion.p>
         </section>
 
-        {/* Stat Cards */}
+        {/* Agent Index Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+          <StatCard
+            label="Agent Index"
+            value="54,474"
+            change="Cross-chain coverage"
+            changeType="neutral"
+            delay={0}
+          />
+          <StatCard
+            label="With Trust Scores"
+            value="54,474"
+            change="ERC-8004 + ACP"
+            changeType="neutral"
+            delay={0.1}
+          />
+          <StatCard
+            label="Active Traders"
+            value="9,284"
+            change="Job history"
+            changeType="increase"
+            delay={0.2}
+          />
+          <StatCard
+            label="Pending"
+            value="+44K"
+            change="Other chains recovering"
+            changeType="neutral"
+            delay={0.3}
+          />
+        </div>
+
+        {/* API Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           <StatCard
             label="Total Queries"
@@ -250,22 +282,23 @@ export default function AnalyticsPage() {
         {engagement && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
             <StatCard
-              label="Total Agents"
-              value={(engagement.overview.totalAgents ?? 0).toLocaleString()}
-              change={`${engagement.overview.totalUsers} users`}
+              label="Indexed Agents"
+              value="54,474"
+              change="With Trust Scores"
               changeType="neutral"
               delay={0}
+            />
+            <StatCard
+              label="Active Traders"
+              value="9,284"
+              change="ACP activity"
+              changeType="neutral"
+              delay={0.1}
             />
             <StatCard
               label="Total Reviews"
               value={engagement.overview.totalReviews.toLocaleString()}
               changeType="increase"
-              delay={0.1}
-            />
-            <StatCard
-              label="Market Bets"
-              value={engagement.overview.totalBets.toLocaleString()}
-              changeType="neutral"
               delay={0.2}
             />
             <StatCard
