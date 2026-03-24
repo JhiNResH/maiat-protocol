@@ -242,13 +242,7 @@ export default function AnalyticsPage() {
             changeType="increase"
             delay={0.1}
           />
-          <StatCard
-            label="Unique Callers"
-            value={platformStats ? platformStats.uniqueCallers.toLocaleString() : "—"}
-            change="API consumers"
-            changeType="neutral"
-            delay={0.2}
-          />
+
         </div>
 
         {/* API Stats */}
