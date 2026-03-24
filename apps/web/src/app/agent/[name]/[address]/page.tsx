@@ -123,6 +123,18 @@ function AgentDetailContent() {
   const [copied, setCopied] = useState(false)
   const [reviewKey, setReviewKey] = useState(0)
 
+  // Force dark mode on this page
+  useEffect(() => {
+    document.documentElement.classList.add('dark')
+    return () => {
+      // Restore user's theme preference on unmount
+      const savedTheme = localStorage.getItem('theme')
+      if (savedTheme !== 'dark') {
+        document.documentElement.classList.remove('dark')
+      }
+    }
+  }, [])
+
   // 1. Fetch Agent Data (with detailed ERC-8004 from dedicated endpoint)
   const { data: agentData, isLoading: agentLoading } = useSWR(`/api/v1/agents?search=${address}&limit=1`, fetcher);
   const agent = agentData?.agents?.[0];

@@ -275,19 +275,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Agent-Only Gate ---
-    // Reviews are agent-only. Human users can vote/endorse but cannot write reviews.
-    // Accepted auth: JWT Bearer token OR X-Maiat-Client header (both prove agent identity).
+    // --- Auth Gate ---
+    // Reviews can be submitted by:
+    //   1. AI agents: JWT Bearer token OR X-Maiat-Client header
+    //   2. Humans: EIP-191 signature verification (wallet-signed message)
+    //
+    // Human reviews have lower weight (0.5x) compared to agent reviews (1.0x).
     const clientId = !jwtAuth ? request.headers.get("x-maiat-client") : null;
     let clientIdAuth = false;
+    let humanAuth = false;
 
-    if (!jwtAuth && !clientId) {
-      // No agent auth present → reject. Humans should use /api/v1/review/vote instead.
+    // Check if this is a human review with signature
+    if (!jwtAuth && !clientId && signature && body.source === 'human') {
+      // Human review path - will be verified via signature in Step 1
+      humanAuth = true;
+      source = 'human';
+    } else if (!jwtAuth && !clientId && !signature) {
+      // No auth present → reject
       return NextResponse.json(
         {
-          error: "Reviews are agent-only",
-          detail: "Only AI agents with a valid JWT or X-Maiat-Client header can submit reviews. Humans can vote on existing reviews via POST /api/v1/review/vote.",
-          hint: "Authenticate at POST /api/v1/auth/agent to get a JWT token.",
+          error: "Authentication required",
+          detail: "Provide a valid signature (for humans) or JWT/X-Maiat-Client header (for agents).",
+          hint: "Human reviews require a wallet signature. Agent reviews require authentication at POST /api/v1/auth/agent.",
         },
         { status: 403, headers: CORS_HEADERS }
       );

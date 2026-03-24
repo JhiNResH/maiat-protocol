@@ -1,7 +1,9 @@
 'use client'
 
-import { usePrivy } from '@privy-io/react-auth'
-import { Shield, Zap, Star } from 'lucide-react'
+import { useState } from 'react'
+import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { Shield, Star, Send, Loader2 } from 'lucide-react'
+import { getAddress } from 'viem'
 
 interface ReviewFormProps {
   projectId: string
@@ -9,64 +11,238 @@ interface ReviewFormProps {
   onSuccess?: () => void
 }
 
+const REVIEW_TAGS = [
+  'Reliable',
+  'Fast',
+  'Good UX',
+  'Innovative',
+  'Secure',
+  'Responsive',
+  'Fair Pricing',
+  'Buggy',
+  'Slow',
+  'Poor Support',
+]
+
 export function ReviewForm({ projectId, projectName, onSuccess }: ReviewFormProps) {
   const { authenticated, user, login } = usePrivy()
+  const { wallets } = useWallets()
+  const walletAddress = user?.wallet?.address
+
+  const [rating, setRating] = useState(0)
+  const [hoverRating, setHoverRating] = useState(0)
+  const [comment, setComment] = useState('')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
 
   if (!authenticated) {
     return (
       <div className="liquid-glass rounded-[3rem] p-6 text-center">
         <Shield className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-3" />
-        <h3 className="text-sm font-bold text-[var(--text-color)] mb-1 uppercase tracking-wider">Agent-Only Reviews</h3>
-        <p className="text-xs text-[var(--text-muted)] mb-4">Only AI agents can write reviews on Maiat. Humans curate by voting on agent reviews.</p>
-        <button 
+        <h3 className="text-sm font-bold text-[var(--text-color)] mb-1 uppercase tracking-wider">Write a Review</h3>
+        <p className="text-xs text-[var(--text-muted)] mb-4">Connect your wallet to share your experience with this agent.</p>
+        <button
           onClick={login}
           className="w-full py-3 bg-[var(--text-color)] text-[var(--bg-color)] font-bold text-xs rounded-2xl transition-all hover:opacity-90 uppercase tracking-widest"
         >
-          Connect to Vote
+          Connect Wallet
         </button>
       </div>
     )
   }
 
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag].slice(0, 3)
+    )
+  }
+
+  const handleSubmit = async () => {
+    if (rating === 0) {
+      setError('Please select a rating')
+      return
+    }
+
+    if (!walletAddress) {
+      setError('Wallet not connected')
+      return
+    }
+
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const checksumAddress = getAddress(projectId)
+      const checksumReviewer = getAddress(walletAddress)
+      const ratingValue = rating * 2 // Convert 1-5 stars to 2-10 scale
+
+      // Build signature message
+      const message = `Maiat Review: ${checksumAddress} Rating: ${ratingValue} Reviewer: ${checksumReviewer}`
+
+      // Sign the message with the user's wallet
+      const wallet = wallets.find(w => w.address.toLowerCase() === walletAddress.toLowerCase())
+      if (!wallet) {
+        throw new Error('Wallet not found')
+      }
+
+      const provider = await wallet.getEthereumProvider()
+      const signature = await provider.request({
+        method: 'personal_sign',
+        params: [message, walletAddress],
+      }) as string
+
+      // Submit review
+      const res = await fetch('/api/v1/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: checksumAddress,
+          rating: ratingValue,
+          comment: comment.trim() || undefined,
+          tags: selectedTags.length > 0 ? selectedTags : undefined,
+          reviewer: checksumReviewer,
+          signature,
+          source: 'human',
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || data.detail || 'Failed to submit review')
+      }
+
+      setSuccess(true)
+      setRating(0)
+      setComment('')
+      setSelectedTags([])
+      onSuccess?.()
+
+      // Reset success message after 3 seconds
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit review')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="liquid-glass rounded-[3rem] p-6 text-center">
+        <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
+          <Shield className="w-6 h-6 text-emerald-500" />
+        </div>
+        <h3 className="text-sm font-bold text-[var(--text-color)] mb-1 uppercase tracking-wider">Review Submitted!</h3>
+        <p className="text-xs text-[var(--text-muted)]">Thank you for sharing your experience.</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="liquid-glass rounded-[3rem] p-6 flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center">
-          <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-        </div>
-        <div>
-          <h3 className="text-sm font-bold text-[var(--text-color)] uppercase tracking-wider">Agent-Only Reviews</h3>
-          <p className="text-[10px] text-[var(--text-muted)]">Reviews on Maiat are written exclusively by AI agents.</p>
+    <div className="flex flex-col gap-5">
+      {/* Rating */}
+      <div>
+        <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2 block">
+          Your Rating
+        </label>
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => setRating(star)}
+              onMouseEnter={() => setHoverRating(star)}
+              onMouseLeave={() => setHoverRating(0)}
+              className="p-1 transition-transform hover:scale-110"
+            >
+              <Star
+                size={24}
+                className={`transition-colors ${
+                  star <= (hoverRating || rating)
+                    ? 'fill-emerald-500 text-emerald-500'
+                    : 'text-[var(--border-color)]'
+                }`}
+              />
+            </button>
+          ))}
+          {rating > 0 && (
+            <span className="ml-2 text-sm text-[var(--text-secondary)] self-center">
+              {rating === 1 ? 'Poor' : rating === 2 ? 'Fair' : rating === 3 ? 'Good' : rating === 4 ? 'Great' : 'Excellent'}
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl px-4 py-3">
-        <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-          <strong className="text-[var(--text-color)]">Why?</strong> Agent reviews are based on real on-chain interactions and verified data — not opinions. 
-          This makes trust scores more reliable for the entire network.
-        </p>
+      {/* Comment */}
+      <div>
+        <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2 block">
+          Your Review (Optional)
+        </label>
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Share your experience with this agent..."
+          rows={3}
+          className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] rounded-2xl px-4 py-3 text-sm text-[var(--text-color)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-emerald-500/50 transition-colors resize-none"
+        />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">What you can do</p>
-        <div className="flex gap-2">
-          <div className="flex-1 bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl px-3 py-3 text-center">
-            <Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mx-auto mb-1" />
-            <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Upvote</p>
-            <p className="text-[8px] text-[var(--text-muted)]">1 🪲 per vote</p>
-          </div>
-          <div className="flex-1 bg-rose-50 dark:bg-rose-500/5 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-3 py-3 text-center">
-            <Star className="w-4 h-4 text-rose-600 dark:text-rose-400 mx-auto mb-1" />
-            <p className="text-[9px] font-bold text-rose-600 dark:text-rose-400 uppercase">Downvote</p>
-            <p className="text-[8px] text-[var(--text-muted)]">1 🪲 per vote</p>
-          </div>
+      {/* Tags */}
+      <div>
+        <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2 block">
+          Tags (Optional, max 3)
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {REVIEW_TAGS.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => toggleTag(tag)}
+              className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
+                selectedTags.includes(tag)
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-[var(--bg-color)] border border-[var(--border-color)] text-[var(--text-muted)] hover:border-emerald-500/50'
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 rounded-2xl px-3 py-2 text-[9px] text-amber-700 dark:text-amber-400">
-        <Zap className="w-3 h-3 inline mr-1" />
-        Your votes shape agent reputation. Good curation earns you Scarab rewards.
-      </div>
+      {/* Error */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 text-red-400 text-xs">
+          {error}
+        </div>
+      )}
+
+      {/* Submit */}
+      <button
+        onClick={handleSubmit}
+        disabled={submitting || rating === 0}
+        className="w-full py-3 bg-emerald-500 text-white font-bold text-xs rounded-2xl transition-all hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest flex items-center justify-center gap-2"
+      >
+        {submitting ? (
+          <>
+            <Loader2 size={14} className="animate-spin" />
+            Submitting...
+          </>
+        ) : (
+          <>
+            <Send size={14} />
+            Submit Review
+          </>
+        )}
+      </button>
+
+      {/* Info */}
+      <p className="text-[9px] text-[var(--text-muted)] text-center">
+        Reviews cost <strong className="text-[var(--text-color)]">2</strong> Scarab. Quality reviews earn up to <strong className="text-[var(--text-color)]">+3</strong> Scarab back.
+      </p>
     </div>
   )
 }
