@@ -422,10 +422,45 @@ interface ScoreResult {
 function calculateScore(
   honeypot: HoneypotResult,
   reviews: ScarabReviews,
-  dex?: DexScreenerData
+  dex?: DexScreenerData,
+  goplus?: GoPlusResult
 ): ScoreResult {
   const riskFlags: string[] = [];
   let score = 50; // Start at 50
+
+  // ── GoPlus contract security bonuses ─────────────────────────────────────────
+  if (goplus && !goplus.error) {
+    // Clean contract signals — each verified-safe property adds trust
+    if (goplus.isOpenSource === true) score += 5;
+    if (goplus.isMintable === false) score += 3;
+    if (goplus.hiddenOwner === false) score += 3;
+    if (goplus.canTakeBackOwnership === false) score += 2;
+    if (goplus.slippageModifiable === false) score += 2;
+
+    // Red flags from GoPlus
+    if (goplus.isMintable === true) { score -= 15; riskFlags.push("MINTABLE"); }
+    if (goplus.hiddenOwner === true) { score -= 10; riskFlags.push("HIDDEN_OWNER"); }
+    if (goplus.canTakeBackOwnership === true) { score -= 10; riskFlags.push("CAN_RECLAIM_OWNERSHIP"); }
+    if (goplus.slippageModifiable === true) { score -= 10; riskFlags.push("SLIPPAGE_MODIFIABLE"); }
+
+    // Holder count bonus
+    if (goplus.holderCount !== null) {
+      if (goplus.holderCount >= 10_000) score += 10;
+      else if (goplus.holderCount >= 5_000) score += 5;
+      else if (goplus.holderCount >= 1_000) score += 3;
+      else if (goplus.holderCount < 100) { score -= 5; riskFlags.push("FEW_HOLDERS"); }
+    }
+
+    // Creator/owner still holds large % = centralization risk
+    if (goplus.creatorPercent !== null && goplus.creatorPercent > 0.2) {
+      score -= 5;
+      riskFlags.push("HIGH_CREATOR_HOLDINGS");
+    }
+    if (goplus.ownerPercent !== null && goplus.ownerPercent > 0.2) {
+      score -= 5;
+      riskFlags.push("HIGH_OWNER_HOLDINGS");
+    }
+  }
 
   // ── Honeypot penalties (with DexScreener cross-verification) ─────────────────
 
@@ -471,8 +506,8 @@ function calculateScore(
 
   if (isVirtuals) {
     riskFlags.push("VIRTUALS_BONDING_CURVE");
-    // Virtuals bonding curve = inherently higher risk (custom router, limited simulation)
-    score -= 10;
+    // Virtuals bonding curve = slightly elevated risk (custom router, limited simulation)
+    score -= 5;
     // honeypot.is tax data unreliable for Virtuals — use DexScreener signals instead
     // Still penalize based on on-chain behavior:
     if (dex && !dex.error) {
@@ -783,7 +818,8 @@ export async function GET(
     const { trustScore, verdict, riskFlags, riskSummary } = calculateScore(
       honeypot,
       scarabReviews,
-      dexData
+      dexData,
+      goplus
     );
 
     // ── Cross-verify tax data ──────────────────────────────────────────────────
