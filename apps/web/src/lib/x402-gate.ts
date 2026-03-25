@@ -120,15 +120,12 @@ function buildPaymentRequired(priceUsd: string, description: string, resourceUrl
       {
         scheme: "exact",
         network: NETWORK,
-        maxAmountRequired: microUnits,
-        payTo: PAY_TO,
         asset: USDC_ADDRESSES[NETWORK] || USDC_ADDRESSES["eip155:8453"],
+        // v2 uses "amount" (not "maxAmountRequired")
+        amount: microUnits,
+        payTo: PAY_TO,
         maxTimeoutSeconds: 300,
-        mimeType: "application/json",
         extra: { name: "USD Coin", version: "2" },
-        // Keep resource/description/extensions inside accepts too for x402.org facilitator compatibility
-        resource: resourceUrl,
-        description,
       },
     ],
   };
