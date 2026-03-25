@@ -159,4 +159,13 @@ export const GET = withPaymentGate(trustHandler, "$0.02", "Trust score lookup fo
     example: { trustScore: 85, verdict: "proceed", summary: "Reliable ACP agent — 42 jobs, 95% completion", completionRate: 0.95, totalJobs: 42 },
     schema: { properties: { trustScore: { type: "number" }, verdict: { type: "string" }, summary: { type: "string" } }, required: ["trustScore", "verdict"] },
   },
-});
+}, "/api/x402/trust");
+
+// x402scan probes with POST — return same 402 challenge
+export const POST = withPaymentGate(trustHandler, "$0.02", "Trust score lookup for agents and tokens", "agent_trust", {
+  input: { queryParams: { address: { type: "string", description: "Ethereum address (agent or token)" } } },
+  output: {
+    example: { trustScore: 85, verdict: "proceed", summary: "Reliable ACP agent — 42 jobs, 95% completion", completionRate: 0.95, totalJobs: 42 },
+    schema: { properties: { trustScore: { type: "number" }, verdict: { type: "string" }, summary: { type: "string" } }, required: ["trustScore", "verdict"] },
+  },
+}, "/api/x402/trust");

@@ -452,4 +452,13 @@ export const GET = withPaymentGate(tokenCheckHandler, "$0.01", "Token honeypot a
     example: { safe: true, verdict: "proceed", honeypot: false, highTax: false, verified: true },
     schema: { properties: { safe: { type: "boolean" }, verdict: { type: "string" }, honeypot: { type: "boolean" } }, required: ["safe", "verdict"] },
   },
-});
+}, "/api/x402/token-check");
+
+// x402scan probes with POST — return same 402 challenge
+export const POST = withPaymentGate(tokenCheckHandler, "$0.01", "Token honeypot and safety check", "token_check", {
+  input: { queryParams: { token: { type: "string", description: "ERC-20 token contract address" } } },
+  output: {
+    example: { safe: true, verdict: "proceed", honeypot: false, highTax: false, verified: true },
+    schema: { properties: { safe: { type: "boolean" }, verdict: { type: "string" }, honeypot: { type: "boolean" } }, required: ["safe", "verdict"] },
+  },
+}, "/api/x402/token-check");

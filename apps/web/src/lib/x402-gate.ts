@@ -34,47 +34,19 @@ export const X402_CORS_HEADERS = {
 
 /**
  * Build PAYMENT-REQUIRED header value (base64-encoded JSON)
+ *
+ * Must satisfy BOTH:
+ * - x402scan (@agentcash/discovery) validation: needs `resource` as URL, `extra.name/version`, `outputSchema` with `discoverable:true`
+ * - CDP Bazaar: needs `extensions.bazaar` with info + schema
  */
-function buildPaymentRequired(priceUsd: string, description: string, bazaar?: BazaarMetadata): string {
+function buildPaymentRequired(priceUsd: string, description: string, resourceUrl: string, bazaar?: BazaarMetadata): string {
   // Convert "$0.02" to micro-units (USDC has 6 decimals)
   const dollars = parseFloat(priceUsd.replace("$", ""));
   const microUnits = Math.round(dollars * 1_000_000).toString();
 
-  // Build bazaar extension if provided
-  const extensions: Record<string, unknown> = {};
-  if (bazaar) {
-    extensions.bazaar = {
-      info: {
-        input: {
-          type: "http",
-          queryParams: bazaar.input?.queryParams || {},
-        },
-        output: {
-          type: "json",
-          ...(bazaar.output?.example && { example: bazaar.output.example }),
-        },
-      },
-      ...(bazaar.output?.schema && {
-        schema: {
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          type: "object",
-          properties: {
-            output: {
-              type: "object",
-              properties: {
-                example: bazaar.output.schema,
-              },
-            },
-          },
-        },
-      }),
-    };
-  }
-
   // Build v1-compatible outputSchema for x402scan discovery
   const outputSchema: Record<string, unknown> = {};
   if (bazaar) {
-    // Input schema
     const inputSpec: Record<string, unknown> = {
       discoverable: true,
       type: "http",
@@ -90,11 +62,45 @@ function buildPaymentRequired(priceUsd: string, description: string, bazaar?: Ba
       }
     }
     outputSchema.input = inputSpec;
-    
-    // Output schema
     if (bazaar.output?.example) {
       outputSchema.output = bazaar.output.example;
     }
+  }
+
+  // Build v2 bazaar extension
+  const extensions: Record<string, unknown> = {};
+  if (bazaar) {
+    extensions.bazaar = {
+      info: {
+        input: {
+          type: "http",
+          ...(bazaar.input?.queryParams
+            ? { method: "GET", queryParams: bazaar.input.queryParams }
+            : { method: "POST" }),
+        },
+        output: {
+          type: "json",
+          ...(bazaar.output?.example && { example: bazaar.output.example }),
+        },
+      },
+      ...(bazaar.output?.schema && {
+        schema: {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          type: "object",
+          properties: {
+            input: bazaar.input?.queryParams
+              ? { type: "object", properties: Object.fromEntries(
+                  Object.entries(bazaar.input.queryParams).map(([k, v]) => [k, v])
+                )}
+              : { type: "object" },
+            output: {
+              type: "object",
+              properties: bazaar.output.schema,
+            },
+          },
+        },
+      }),
+    };
   }
 
   const paymentRequirements = {
@@ -104,14 +110,16 @@ function buildPaymentRequired(priceUsd: string, description: string, bazaar?: Ba
         scheme: "exact",
         network: NETWORK,
         maxAmountRequired: microUnits,
-        resource: PAY_TO,
+        // resource MUST be the endpoint URL for x402scan
+        resource: resourceUrl,
         description,
         mimeType: "application/json",
         payTo: PAY_TO,
         maxTimeoutSeconds: 300,
         asset: USDC_ADDRESSES[NETWORK] || USDC_ADDRESSES["eip155:8453"],
-        extra: {},
-        // v1 outputSchema for x402scan compatibility
+        // extra MUST include token name/version for x402scan
+        extra: { name: "USD Coin", version: "2" },
+        // v1 outputSchema for x402scan
         ...(Object.keys(outputSchema).length > 0 && { outputSchema }),
         // v2 extensions for Bazaar
         ...(Object.keys(extensions).length > 0 && { extensions }),
@@ -187,15 +195,21 @@ interface BazaarMetadata {
 /**
  * Wrap a route handler with x402 payment gate.
  * This is a lazy wrapper — no SDK initialization at import time.
+ *
+ * @param endpointPath - The URL path (e.g. "/api/x402/trust") used as `resource` in 402 response
  */
 export function withPaymentGate(
   handler: RouteHandler,
   priceUsd: string,
   description: string,
   queryType?: QueryType,
-  bazaar?: BazaarMetadata
+  bazaar?: BazaarMetadata,
+  endpointPath?: string
 ): RouteHandler {
-  const paymentRequiredHeader = buildPaymentRequired(priceUsd, description, bazaar);
+  const resourceUrl = endpointPath
+    ? `https://app.maiat.io${endpointPath}`
+    : PAY_TO; // fallback to wallet address
+  const paymentRequiredHeader = buildPaymentRequired(priceUsd, description, resourceUrl, bazaar);
 
   return async (request: NextRequest): Promise<NextResponse<unknown>> => {
     // Check for payment signature

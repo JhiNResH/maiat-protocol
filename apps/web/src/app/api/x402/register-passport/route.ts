@@ -359,4 +359,4 @@ export const POST = withPaymentGate(registerPassportHandler, "$1.00", "Register 
     example: { success: true, passportId: "maiat-agent-001.maiat.eth", attestationTx: "0x..." },
     schema: { properties: { success: { type: "boolean" }, passportId: { type: "string" } }, required: ["success"] },
   },
-});
+}, "/api/x402/register-passport");

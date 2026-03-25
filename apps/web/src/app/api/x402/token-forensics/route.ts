@@ -193,4 +193,4 @@ export const POST = withPaymentGate(tokenForensicsHandler, "$0.05", "Deep AI-pow
     example: { rugPullRisk: "low", mlScore: 0.12, verdict: "proceed", analysis: "No suspicious patterns detected" },
     schema: { properties: { rugPullRisk: { type: "string" }, mlScore: { type: "number" }, verdict: { type: "string" } }, required: ["rugPullRisk", "verdict"] },
   },
-});
+}, "/api/x402/token-forensics");
