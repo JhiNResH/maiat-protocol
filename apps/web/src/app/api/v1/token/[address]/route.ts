@@ -817,36 +817,17 @@ export async function GET(
     }
 
     // ── Calculate heuristic score ─────────────────────────────────────────────
-    const heuristic = calculateScore(
+    const { trustScore, verdict, riskFlags, riskSummary } = calculateScore(
       honeypot,
       scarabReviews,
       dexData,
       goplus
     );
 
-    // ── Blend with Wadjet ML if available ──────────────────────────────────────
-    // Wadjet rug_probability (0-1) → trust = 100 - (rug_prob * 100)
-    // Blend: 60% Wadjet ML + 40% heuristic (ML has more signal)
-    let trustScore: number;
-    let scoringMethod: string;
-    if (wadjet && wadjet.rug_probability != null) {
-      const wadjetTrust = Math.round((1 - wadjet.rug_probability) * 100);
-      trustScore = Math.round(wadjetTrust * 0.6 + heuristic.trustScore * 0.4);
-      trustScore = Math.max(0, Math.min(100, trustScore));
-      scoringMethod = `wadjet_ml(${wadjetTrust}) * 0.6 + heuristic(${heuristic.trustScore}) * 0.4`;
-    } else {
-      trustScore = heuristic.trustScore;
-      scoringMethod = "heuristic_only";
-    }
-
-    // Re-derive verdict from blended score
-    const verdict: Verdict =
-      trustScore >= 80 ? "trusted" :
-      trustScore >= 60 ? "proceed" :
-      trustScore >= 40 ? "caution" : "avoid";
-
-    const riskFlags = heuristic.riskFlags;
-    const riskSummary = heuristic.riskSummary;
+    // ── Wadjet ML: informational only (v1 returns default 0.4, v2 has bias) ──
+    // TODO: re-enable blending once Wadjet model is retrained with proper
+    // token-type separation (agent tokens vs generic ERC-20s)
+    const scoringMethod = "heuristic_only";
 
     // ── Cross-verify tax data ──────────────────────────────────────────────────
     const isVirtuals = dexData?.isVirtualsPair === true;
@@ -899,20 +880,17 @@ export async function GET(
               pairLabel: dexData.pairLabel,
             },
         tokenType: "memecoin",
-        wadjetML: wadjet ? {
+        wadjetML: wadjet && wadjet.confidence > 0 ? {
           rugProbability: wadjet.rug_probability,
           riskLevel: wadjet.risk_level,
           confidence: wadjet.confidence,
+          note: "Informational only — not blended into trustScore (model retraining pending)",
         } : null,
         scoring: {
           method: scoringMethod,
-          heuristicScore: heuristic.trustScore,
-          wadjetTrust: wadjet ? Math.round((1 - wadjet.rug_probability) * 100) : null,
-          blendedScore: trustScore,
+          trustScore,
         },
-        dataSource: wadjet
-          ? "HONEYPOT_IS + GOPLUS + ALCHEMY + SCARAB + DEXSCREENER + WADJET_ML"
-          : "HONEYPOT_IS + GOPLUS + ALCHEMY + SCARAB + DEXSCREENER",
+        dataSource: "HONEYPOT_IS + GOPLUS + ALCHEMY + SCARAB + DEXSCREENER",
         _outcomeReporting: {
           endpoint: "POST /api/v1/outcome",
           required: { agentAddress: checksumAddress, outcome: "success|failure|partial|expired", txHash: "on-chain tx hash", jobId: "query ID" },
