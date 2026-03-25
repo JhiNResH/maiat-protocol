@@ -228,17 +228,25 @@ interface GoPlusResult {
 
 async function checkGoPlus(address: string, chainId: string = "8453"): Promise<GoPlusResult> {
   try {
-    const res = await fetch(
-      `https://api.gopluslabs.com/api/v1/token_security/${chainId}?contract_addresses=${address}`,
-      { signal: AbortSignal.timeout(8_000) }
-    );
+    // GoPlus has TLS SNI issues on api.gopluslabs.com — use https agent workaround
+    const https = await import("https");
+    const agent = new https.Agent({ rejectUnauthorized: true, servername: "api.gopluslabs.com" });
+    const url = `https://api.gopluslabs.com/api/v1/token_security/${chainId}?contract_addresses=${address}`;
+    
+    // Use node http module directly since fetch has TLS issues with GoPlus
+    const data = await new Promise<Record<string, unknown>>((resolve, reject) => {
+      const req = https.get(url, { agent, timeout: 8000 }, (res) => {
+        let body = "";
+        res.on("data", (chunk: Buffer) => { body += chunk.toString(); });
+        res.on("end", () => {
+          try { resolve(JSON.parse(body)); } catch { reject(new Error("Invalid JSON")); }
+        });
+      });
+      req.on("error", reject);
+      req.on("timeout", () => { req.destroy(); reject(new Error("Timeout")); });
+    });
 
-    if (!res.ok) {
-      return { buyTax: null, sellTax: null, isHoneypot: null, isMintable: null, hiddenOwner: null, canTakeBackOwnership: null, slippageModifiable: null, isOpenSource: null, holderCount: null, top10HolderPct: null, lpLockedPct: null, creatorAddress: null, creatorPercent: null, ownerPercent: null, error: `GoPlus returned ${res.status}` };
-    }
-
-    const data = await res.json();
-    const token = data?.result?.[address.toLowerCase()];
+    const token = (data?.result as Record<string, unknown>)?.[address.toLowerCase()] as Record<string, string> | undefined;
 
     if (!token) {
       return { buyTax: null, sellTax: null, isHoneypot: null, isMintable: null, hiddenOwner: null, canTakeBackOwnership: null, slippageModifiable: null, isOpenSource: null, holderCount: null, top10HolderPct: null, lpLockedPct: null, creatorAddress: null, creatorPercent: null, ownerPercent: null, error: "Token not found in GoPlus" };
