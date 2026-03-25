@@ -71,6 +71,32 @@ function buildPaymentRequired(priceUsd: string, description: string, bazaar?: Ba
     };
   }
 
+  // Build v1-compatible outputSchema for x402scan discovery
+  const outputSchema: Record<string, unknown> = {};
+  if (bazaar) {
+    // Input schema
+    const inputSpec: Record<string, unknown> = {
+      discoverable: true,
+      type: "http",
+    };
+    if (bazaar.input?.queryParams) {
+      inputSpec.method = "GET";
+      inputSpec.queryParams = bazaar.input.queryParams;
+    } else {
+      inputSpec.method = "POST";
+      if (bazaar.input && "bodyFields" in bazaar.input) {
+        inputSpec.bodyFields = (bazaar.input as Record<string, unknown>).bodyFields;
+        inputSpec.bodyType = "json";
+      }
+    }
+    outputSchema.input = inputSpec;
+    
+    // Output schema
+    if (bazaar.output?.example) {
+      outputSchema.output = bazaar.output.example;
+    }
+  }
+
   const paymentRequirements = {
     x402Version: 2,
     accepts: [
@@ -85,6 +111,9 @@ function buildPaymentRequired(priceUsd: string, description: string, bazaar?: Ba
         maxTimeoutSeconds: 300,
         asset: USDC_ADDRESSES[NETWORK] || USDC_ADDRESSES["eip155:8453"],
         extra: {},
+        // v1 outputSchema for x402scan compatibility
+        ...(Object.keys(outputSchema).length > 0 && { outputSchema }),
+        // v2 extensions for Bazaar
         ...(Object.keys(extensions).length > 0 && { extensions }),
       },
     ],
