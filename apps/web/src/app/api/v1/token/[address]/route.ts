@@ -204,6 +204,104 @@ async function getDexScreenerData(address: string): Promise<DexScreenerData> {
   }
 }
 
+// ── GoPlus Security API ────────────────────────────────────────────────────────
+// Cross-verification source for token security data. More accurate than
+// honeypot.is for Virtuals bonding curve tokens.
+
+interface GoPlusResult {
+  buyTax: number | null;
+  sellTax: number | null;
+  isHoneypot: boolean | null;
+  isMintable: boolean | null;
+  hiddenOwner: boolean | null;
+  canTakeBackOwnership: boolean | null;
+  slippageModifiable: boolean | null;
+  isOpenSource: boolean | null;
+  holderCount: number | null;
+  top10HolderPct: number | null;
+  lpLockedPct: number | null;
+  creatorAddress: string | null;
+  creatorPercent: number | null;
+  ownerPercent: number | null;
+  error?: string;
+}
+
+async function checkGoPlus(address: string, chainId: string = "8453"): Promise<GoPlusResult> {
+  try {
+    const res = await fetch(
+      `https://api.gopluslabs.com/api/v1/token_security/${chainId}?contract_addresses=${address}`,
+      { signal: AbortSignal.timeout(8_000) }
+    );
+
+    if (!res.ok) {
+      return { buyTax: null, sellTax: null, isHoneypot: null, isMintable: null, hiddenOwner: null, canTakeBackOwnership: null, slippageModifiable: null, isOpenSource: null, holderCount: null, top10HolderPct: null, lpLockedPct: null, creatorAddress: null, creatorPercent: null, ownerPercent: null, error: `GoPlus returned ${res.status}` };
+    }
+
+    const data = await res.json();
+    const token = data?.result?.[address.toLowerCase()];
+
+    if (!token) {
+      return { buyTax: null, sellTax: null, isHoneypot: null, isMintable: null, hiddenOwner: null, canTakeBackOwnership: null, slippageModifiable: null, isOpenSource: null, holderCount: null, top10HolderPct: null, lpLockedPct: null, creatorAddress: null, creatorPercent: null, ownerPercent: null, error: "Token not found in GoPlus" };
+    }
+
+    return {
+      buyTax: token.buy_tax != null ? parseFloat((parseFloat(token.buy_tax) * 100).toFixed(2)) : null,
+      sellTax: token.sell_tax != null ? parseFloat((parseFloat(token.sell_tax) * 100).toFixed(2)) : null,
+      isHoneypot: token.is_honeypot === "1",
+      isMintable: token.is_mintable === "1",
+      hiddenOwner: token.hidden_owner === "1",
+      canTakeBackOwnership: token.can_take_back_ownership === "1",
+      slippageModifiable: token.slippage_modifiable === "1",
+      isOpenSource: token.is_open_source === "1",
+      holderCount: token.holder_count ? parseInt(token.holder_count) : null,
+      top10HolderPct: null, // GoPlus doesn't directly give this in the same call
+      lpLockedPct: null, // Would need LP holder analysis
+      creatorAddress: token.creator_address || null,
+      creatorPercent: token.creator_percent ? parseFloat(token.creator_percent) : null,
+      ownerPercent: token.owner_percent ? parseFloat(token.owner_percent) : null,
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { buyTax: null, sellTax: null, isHoneypot: null, isMintable: null, hiddenOwner: null, canTakeBackOwnership: null, slippageModifiable: null, isOpenSource: null, holderCount: null, top10HolderPct: null, lpLockedPct: null, creatorAddress: null, creatorPercent: null, ownerPercent: null, error: msg };
+  }
+}
+
+/**
+ * Cross-verify tax data: when honeypot.is and GoPlus disagree significantly,
+ * prefer GoPlus (reads contract code directly) over honeypot.is (simulation-based).
+ */
+function crossVerifyTax(
+  honeypot: HoneypotResult,
+  goplus: GoPlusResult,
+  isVirtuals: boolean
+): { buyTax: number | null; sellTax: number | null; source: string } {
+  // If Virtuals bonding curve and GoPlus has data, always prefer GoPlus
+  if (isVirtuals && goplus.buyTax !== null) {
+    return { buyTax: goplus.buyTax, sellTax: goplus.sellTax, source: "goplus" };
+  }
+
+  // If both have data and disagree by >20%, prefer GoPlus
+  if (honeypot.buyTax !== null && goplus.buyTax !== null) {
+    const buyDiff = Math.abs(honeypot.buyTax - goplus.buyTax);
+    const sellDiff = Math.abs((honeypot.sellTax ?? 0) - (goplus.sellTax ?? 0));
+    if (buyDiff > 20 || sellDiff > 20) {
+      return { buyTax: goplus.buyTax, sellTax: goplus.sellTax, source: "goplus (cross-verified)" };
+    }
+  }
+
+  // Default: use honeypot.is
+  if (honeypot.buyTax !== null) {
+    return { buyTax: honeypot.buyTax, sellTax: honeypot.sellTax, source: "honeypot.is" };
+  }
+
+  // Fallback to GoPlus
+  if (goplus.buyTax !== null) {
+    return { buyTax: goplus.buyTax, sellTax: goplus.sellTax, source: "goplus (fallback)" };
+  }
+
+  return { buyTax: null, sellTax: null, source: "none" };
+}
+
 // ── Alchemy Token Metadata ─────────────────────────────────────────────────────
 
 async function getTokenMetadata(address: string): Promise<TokenMetadata> {
@@ -619,11 +717,12 @@ export async function GET(
   // ── Step 3: Honeypot.is (memecoin / unknown) ─────────────────────────────────
   try {
     // ── Run 4 parallel checks ──────────────────────────────────────────────────
-    const [honeypot, tokenMetadata, scarabReviews, dexData] = await Promise.all([
+    const [honeypot, tokenMetadata, scarabReviews, dexData, goplus] = await Promise.all([
       checkHoneypot(checksumAddress),
       getTokenMetadata(checksumAddress),
       getScarabReviews(checksumAddress),
       getDexScreenerData(checksumAddress),
+      checkGoPlus(checksumAddress),
     ]);
 
     // ── Check for total data failure ───────────────────────────────────────────
@@ -670,6 +769,10 @@ export async function GET(
       dexData
     );
 
+    // ── Cross-verify tax data ──────────────────────────────────────────────────
+    const isVirtuals = dexData?.isVirtualsPair === true;
+    const verifiedTax = crossVerifyTax(honeypot, goplus, isVirtuals);
+
     // ── Build response ─────────────────────────────────────────────────────────
     logQuery({ type: "token_check", target: checksumAddress, clientId: _clientId, callerIp: _callerIp, userAgent: _userAgent, trustScore, verdict, metadata: { tokenType: "memecoin", isHoneypot: honeypot.isHoneypot, riskFlags } });
     return NextResponse.json(
@@ -680,9 +783,9 @@ export async function GET(
         riskFlags,
         riskSummary,
         honeypot: {
-          isHoneypot: honeypot.isHoneypot,
-          buyTax: honeypot.buyTax,
-          sellTax: honeypot.sellTax,
+          isHoneypot: goplus.isHoneypot !== null ? goplus.isHoneypot : honeypot.isHoneypot,
+          buyTax: verifiedTax.buyTax,
+          sellTax: verifiedTax.sellTax,
           simulationSuccess: honeypot.simulationSuccess,
         },
         scarabReviews: {
@@ -691,8 +794,20 @@ export async function GET(
         },
         tokenName: tokenMetadata.name,
         tokenSymbol: tokenMetadata.symbol,
-        buyTax: honeypot.buyTax,
-        sellTax: honeypot.sellTax,
+        buyTax: verifiedTax.buyTax,
+        sellTax: verifiedTax.sellTax,
+        goplus: goplus.error ? { error: goplus.error } : {
+          isMintable: goplus.isMintable,
+          hiddenOwner: goplus.hiddenOwner,
+          canTakeBackOwnership: goplus.canTakeBackOwnership,
+          slippageModifiable: goplus.slippageModifiable,
+          isOpenSource: goplus.isOpenSource,
+          holderCount: goplus.holderCount,
+          creatorAddress: goplus.creatorAddress,
+          creatorPercent: goplus.creatorPercent,
+          ownerPercent: goplus.ownerPercent,
+        },
+        taxSource: verifiedTax.source,
         dexScreener: dexData.error
           ? { error: dexData.error }
           : {
@@ -705,7 +820,7 @@ export async function GET(
               pairLabel: dexData.pairLabel,
             },
         tokenType: "memecoin",
-        dataSource: "HONEYPOT_IS + ALCHEMY + SCARAB + DEXSCREENER",
+        dataSource: "HONEYPOT_IS + GOPLUS + ALCHEMY + SCARAB + DEXSCREENER",
         _outcomeReporting: {
           endpoint: "POST /api/v1/outcome",
           required: { agentAddress: checksumAddress, outcome: "success|failure|partial|expired", txHash: "on-chain tx hash", jobId: "query ID" },
