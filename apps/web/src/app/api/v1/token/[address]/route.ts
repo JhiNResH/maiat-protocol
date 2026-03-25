@@ -471,6 +471,8 @@ function calculateScore(
 
   if (isVirtuals) {
     riskFlags.push("VIRTUALS_BONDING_CURVE");
+    // Virtuals bonding curve = inherently higher risk (custom router, limited simulation)
+    score -= 10;
     // honeypot.is tax data unreliable for Virtuals — use DexScreener signals instead
     // Still penalize based on on-chain behavior:
     if (dex && !dex.error) {
@@ -488,6 +490,16 @@ function calculateScore(
       if (dex.liquidity < 5_000 && dex.liquidity > 0) {
         score -= 20;
         riskFlags.push("NEAR_ZERO_LIQUIDITY");
+      }
+      // Low volume = dead/dying token
+      if (dex.volume24h < 50_000) {
+        score -= 5;
+        riskFlags.push("LOW_VOLUME");
+      }
+      // Very low volume relative to liquidity = ghost town
+      if (dex.liquidity > 0 && dex.volume24h / dex.liquidity < 0.1) {
+        score -= 5;
+        riskFlags.push("LOW_VOLUME_TO_LIQUIDITY");
       }
     } else {
       // Can't verify Virtuals token without DexScreener → penalize
@@ -537,9 +549,12 @@ function calculateScore(
       riskFlags.push("LOW_LIQUIDITY");
     }
 
-    // Volume bonus
+    // Volume bonus/penalty
     if (dex.volume24h >= 100_000) {
       score += 5;
+    } else if (dex.volume24h < 50_000 && dex.volume24h > 0) {
+      score -= 5;
+      if (!riskFlags.includes("LOW_VOLUME")) riskFlags.push("LOW_VOLUME");
     }
 
     // Extreme sell pressure warning
