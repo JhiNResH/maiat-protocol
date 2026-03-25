@@ -67,22 +67,10 @@ function buildPaymentRequired(priceUsd: string, description: string, resourceUrl
     }
   }
 
-  // Build v2 bazaar extension
+  // Build v2 bazaar extension (schema only — no redundant "info" block)
   const extensions: Record<string, unknown> = {};
   if (bazaar) {
     extensions.bazaar = {
-      info: {
-        input: {
-          type: "http",
-          ...(bazaar.input?.queryParams
-            ? { method: "GET", queryParams: bazaar.input.queryParams }
-            : { method: "POST" }),
-        },
-        output: {
-          type: "json",
-          ...(bazaar.output?.example && { example: bazaar.output.example }),
-        },
-      },
       schema: {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         type: "object",
