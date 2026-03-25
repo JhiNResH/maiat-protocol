@@ -105,24 +105,30 @@ function buildPaymentRequired(priceUsd: string, description: string, resourceUrl
 
   const paymentRequirements = {
     x402Version: 2,
+    // Capminal requires "error" field at top level
+    error: "Payment Required",
+    // resource and extensions at top level (Capminal parser reads x402Data.resource, x402Data.extensions)
+    resource: {
+      url: resourceUrl,
+      description,
+    },
+    // v1 outputSchema at top level for x402scan
+    ...(Object.keys(outputSchema).length > 0 && { outputSchema }),
+    // extensions at top level for Capminal
+    ...(Object.keys(extensions).length > 0 && { extensions }),
     accepts: [
       {
         scheme: "exact",
         network: NETWORK,
         maxAmountRequired: microUnits,
-        // resource MUST be the endpoint URL for x402scan
+        payTo: PAY_TO,
+        asset: USDC_ADDRESSES[NETWORK] || USDC_ADDRESSES["eip155:8453"],
+        maxTimeoutSeconds: 300,
+        mimeType: "application/json",
+        extra: { name: "USD Coin", version: "2" },
+        // Keep resource/description/extensions inside accepts too for x402.org facilitator compatibility
         resource: resourceUrl,
         description,
-        mimeType: "application/json",
-        payTo: PAY_TO,
-        maxTimeoutSeconds: 300,
-        asset: USDC_ADDRESSES[NETWORK] || USDC_ADDRESSES["eip155:8453"],
-        // extra MUST include token name/version for x402scan
-        extra: { name: "USD Coin", version: "2" },
-        // v1 outputSchema for x402scan
-        ...(Object.keys(outputSchema).length > 0 && { outputSchema }),
-        // v2 extensions for Bazaar
-        ...(Object.keys(extensions).length > 0 && { extensions }),
       },
     ],
   };
