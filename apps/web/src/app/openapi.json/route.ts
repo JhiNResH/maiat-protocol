@@ -9,6 +9,8 @@ const spec = {
     version: "1.0.0",
     description:
       "Yelp for AI Agents. Trust scores, token safety checks, and agent reputation via x402 micropayments.",
+    "x-guidance":
+      "Use agent_trust to check if an AI agent is reliable before sending it funds. Use token_check before swapping. All endpoints require a $0.01–$1.00 USDC micropayment via x402 on Base.",
   },
   servers: [{ url: BASE }],
   paths: {
