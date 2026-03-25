@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, getAddress } from "viem";
 import { logQuery } from "@/lib/query-logger";
+import { predictToken, type WadjetTokenResult } from "@/lib/wadjet-client";
 
 // ── Known-safe whitelist ──────────────────────────────────────────────────────
 // Tokens that are universally trusted — skip all external checks.
@@ -768,13 +769,14 @@ export async function GET(
 
   // ── Step 3: Honeypot.is (memecoin / unknown) ─────────────────────────────────
   try {
-    // ── Run 4 parallel checks ──────────────────────────────────────────────────
-    const [honeypot, tokenMetadata, scarabReviews, dexData, goplus] = await Promise.all([
+    // ── Run 5 parallel checks (including Wadjet ML) ────────────────────────────
+    const [honeypot, tokenMetadata, scarabReviews, dexData, goplus, wadjet] = await Promise.all([
       checkHoneypot(checksumAddress),
       getTokenMetadata(checksumAddress),
       getScarabReviews(checksumAddress),
       getDexScreenerData(checksumAddress),
       checkGoPlus(checksumAddress),
+      predictToken(checksumAddress).catch(() => null as WadjetTokenResult | null),
     ]);
 
     // ── Check for total data failure ───────────────────────────────────────────
@@ -814,13 +816,37 @@ export async function GET(
       );
     }
 
-    // ── Calculate score ────────────────────────────────────────────────────────
-    const { trustScore, verdict, riskFlags, riskSummary } = calculateScore(
+    // ── Calculate heuristic score ─────────────────────────────────────────────
+    const heuristic = calculateScore(
       honeypot,
       scarabReviews,
       dexData,
       goplus
     );
+
+    // ── Blend with Wadjet ML if available ──────────────────────────────────────
+    // Wadjet rug_probability (0-1) → trust = 100 - (rug_prob * 100)
+    // Blend: 60% Wadjet ML + 40% heuristic (ML has more signal)
+    let trustScore: number;
+    let scoringMethod: string;
+    if (wadjet && wadjet.rug_probability != null) {
+      const wadjetTrust = Math.round((1 - wadjet.rug_probability) * 100);
+      trustScore = Math.round(wadjetTrust * 0.6 + heuristic.trustScore * 0.4);
+      trustScore = Math.max(0, Math.min(100, trustScore));
+      scoringMethod = `wadjet_ml(${wadjetTrust}) * 0.6 + heuristic(${heuristic.trustScore}) * 0.4`;
+    } else {
+      trustScore = heuristic.trustScore;
+      scoringMethod = "heuristic_only";
+    }
+
+    // Re-derive verdict from blended score
+    const verdict: Verdict =
+      trustScore >= 80 ? "trusted" :
+      trustScore >= 60 ? "proceed" :
+      trustScore >= 40 ? "caution" : "avoid";
+
+    const riskFlags = heuristic.riskFlags;
+    const riskSummary = heuristic.riskSummary;
 
     // ── Cross-verify tax data ──────────────────────────────────────────────────
     const isVirtuals = dexData?.isVirtualsPair === true;
@@ -873,7 +899,20 @@ export async function GET(
               pairLabel: dexData.pairLabel,
             },
         tokenType: "memecoin",
-        dataSource: "HONEYPOT_IS + GOPLUS + ALCHEMY + SCARAB + DEXSCREENER",
+        wadjetML: wadjet ? {
+          rugProbability: wadjet.rug_probability,
+          riskLevel: wadjet.risk_level,
+          confidence: wadjet.confidence,
+        } : null,
+        scoring: {
+          method: scoringMethod,
+          heuristicScore: heuristic.trustScore,
+          wadjetTrust: wadjet ? Math.round((1 - wadjet.rug_probability) * 100) : null,
+          blendedScore: trustScore,
+        },
+        dataSource: wadjet
+          ? "HONEYPOT_IS + GOPLUS + ALCHEMY + SCARAB + DEXSCREENER + WADJET_ML"
+          : "HONEYPOT_IS + GOPLUS + ALCHEMY + SCARAB + DEXSCREENER",
         _outcomeReporting: {
           endpoint: "POST /api/v1/outcome",
           required: { agentAddress: checksumAddress, outcome: "success|failure|partial|expired", txHash: "on-chain tx hash", jobId: "query ID" },
