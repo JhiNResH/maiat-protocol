@@ -144,6 +144,11 @@ contract MaiatEvaluatorTest is Test {
         new MaiatEvaluator(address(oracle), 101, 3, owner);
     }
 
+    function test_constructor_revertsZeroThreatThreshold() public {
+        vm.expectRevert(abi.encodeWithSignature("MaiatEvaluator__ThreatThresholdCannotBeZero()"));
+        new MaiatEvaluator(address(oracle), 30, 0, owner);
+    }
+
     /*//////////////////////////////////////////////////////////////
                     EVALUATE: COMPLETE PATH
     //////////////////////////////////////////////////////////////*/
@@ -250,17 +255,9 @@ contract MaiatEvaluatorTest is Test {
         assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Completed));
     }
 
-    function test_evaluate_threatThresholdZeroDisablesCheck() public {
+    function test_setThreatThreshold_revertsOnZero() public {
+        vm.expectRevert(abi.encodeWithSignature("MaiatEvaluator__ThreatThresholdCannotBeZero()"));
         evaluator.setThreatThreshold(0);
-        oracle.setUserData(provider, 50, true);
-        uint256 jobId = acp.createMockJob(client, provider, address(evaluator), 0.02 ether);
-
-        // Even with 100 threats, threatThreshold=0 disables the check
-        for (uint256 i = 0; i < 5; i++) evaluator.reportThreat(provider);
-
-        evaluator.evaluate(address(acp), jobId);
-
-        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Completed));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -494,5 +491,96 @@ contract MaiatEvaluatorTest is Test {
         assertEq(evaluator.totalEvaluations(), 2);
         assertEq(evaluator.totalCompleted(), 1);
         assertEq(evaluator.totalRejected(), 1);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    CALLER RESTRICTION
+    //////////////////////////////////////////////////////////////*/
+
+    function test_callerRestriction_blocksUnauthorized() public {
+        oracle.setUserData(provider, 50, true);
+        uint256 jobId = acp.createMockJob(client, provider, address(evaluator), 0.02 ether);
+
+        // Enable caller restriction
+        evaluator.setCallerRestriction(true);
+
+        // Non-whitelisted caller should be blocked
+        vm.prank(address(0xCAFE));
+        vm.expectRevert(
+            abi.encodeWithSignature("MaiatEvaluator__CallerNotAllowed(address)", address(0xCAFE))
+        );
+        evaluator.evaluate(address(acp), jobId);
+    }
+
+    function test_callerRestriction_allowsWhitelisted() public {
+        oracle.setUserData(provider, 50, true);
+        uint256 jobId = acp.createMockJob(client, provider, address(evaluator), 0.02 ether);
+
+        // Enable restriction + whitelist a caller
+        evaluator.setCallerRestriction(true);
+        evaluator.setAllowedCaller(address(0xCAFE), true);
+
+        // Whitelisted caller should work
+        vm.prank(address(0xCAFE));
+        evaluator.evaluate(address(acp), jobId);
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Completed));
+    }
+
+    function test_callerRestriction_disabledAllowsAnyone() public {
+        oracle.setUserData(provider, 50, true);
+        uint256 jobId = acp.createMockJob(client, provider, address(evaluator), 0.02 ether);
+
+        // Restriction disabled (default) — anyone can call
+        vm.prank(address(0xCAFE));
+        evaluator.evaluate(address(acp), jobId);
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Completed));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    ACP CONTRACT RESTRICTION
+    //////////////////////////////////////////////////////////////*/
+
+    function test_acpRestriction_blocksFakeContract() public {
+        oracle.setUserData(provider, 50, true);
+        uint256 jobId = acp.createMockJob(client, provider, address(evaluator), 0.02 ether);
+
+        // Enable ACP restriction but don't whitelist our mock ACP
+        evaluator.setAcpRestriction(true);
+
+        vm.expectRevert(
+            abi.encodeWithSignature("MaiatEvaluator__AcpContractNotAllowed(address)", address(acp))
+        );
+        evaluator.evaluate(address(acp), jobId);
+    }
+
+    function test_acpRestriction_allowsWhitelisted() public {
+        oracle.setUserData(provider, 50, true);
+        uint256 jobId = acp.createMockJob(client, provider, address(evaluator), 0.02 ether);
+
+        // Enable restriction + whitelist ACP
+        evaluator.setAcpRestriction(true);
+        evaluator.setAllowedAcpContract(address(acp), true);
+
+        evaluator.evaluate(address(acp), jobId);
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Completed));
+    }
+
+    function test_acpRestriction_disabledAllowsAny() public {
+        oracle.setUserData(provider, 50, true);
+        uint256 jobId = acp.createMockJob(client, provider, address(evaluator), 0.02 ether);
+
+        // Restriction disabled (default) — any ACP contract works
+        evaluator.evaluate(address(acp), jobId);
+        assertEq(uint8(acp.getJob(jobId).status), uint8(IAgenticCommerce.JobStatus.Completed));
+    }
+
+    function test_setAllowedCaller_revertsZeroAddress() public {
+        vm.expectRevert(abi.encodeWithSignature("MaiatEvaluator__ZeroAddress()"));
+        evaluator.setAllowedCaller(address(0), true);
+    }
+
+    function test_setAllowedAcpContract_revertsZeroAddress() public {
+        vm.expectRevert(abi.encodeWithSignature("MaiatEvaluator__ZeroAddress()"));
+        evaluator.setAllowedAcpContract(address(0), true);
     }
 }

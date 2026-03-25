@@ -66,8 +66,11 @@ interface ITrustScoreOracle {
 error MaiatEvaluator__JobNotSubmitted(uint256 jobId, uint8 currentStatus);
 error MaiatEvaluator__NotJobEvaluator(uint256 jobId, address expected, address actual);
 error MaiatEvaluator__ThresholdOutOfRange(uint256 value);
+error MaiatEvaluator__ThreatThresholdCannotBeZero();
 error MaiatEvaluator__ZeroAddress();
 error MaiatEvaluator__AlreadyEvaluated(uint256 jobId);
+error MaiatEvaluator__CallerNotAllowed(address caller);
+error MaiatEvaluator__AcpContractNotAllowed(address acpContract);
 
 /*//////////////////////////////////////////////////////////////
                         CONTRACT
@@ -101,6 +104,18 @@ contract MaiatEvaluator is Ownable2Step, ReentrancyGuard {
     /// @notice Threat report count per provider
     mapping(address => uint256) public threatReports;
 
+    /// @notice Addresses allowed to call evaluate() (empty = open to all for backwards compat)
+    mapping(address => bool) public allowedCallers;
+
+    /// @notice Whitelisted ACP contracts (only these can be evaluated)
+    mapping(address => bool) public allowedAcpContracts;
+
+    /// @notice Whether caller restriction is enabled
+    bool public callerRestrictionEnabled;
+
+    /// @notice Whether ACP contract restriction is enabled
+    bool public acpRestrictionEnabled;
+
     /// @notice Track evaluated jobs to prevent double-evaluation
     mapping(address => mapping(uint256 => bool)) public evaluated;
 
@@ -126,6 +141,11 @@ contract MaiatEvaluator is Ownable2Step, ReentrancyGuard {
     event ThreatThresholdUpdated(uint256 oldCount, uint256 newCount);
     event ThreatReported(address indexed provider, uint256 newCount, address reporter);
     event OracleUpdated(address indexed oldOracle, address indexed newOracle);
+    event CallerUpdated(address indexed caller, bool allowed);
+    event AcpContractUpdated(address indexed acpContract, bool allowed);
+    event CallerRestrictionToggled(bool enabled);
+    event AcpRestrictionToggled(bool enabled);
+    event ThreatsCleared(address indexed provider);
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -143,6 +163,7 @@ contract MaiatEvaluator is Ownable2Step, ReentrancyGuard {
     ) Ownable(_owner) {
         if (_oracle == address(0)) revert MaiatEvaluator__ZeroAddress();
         if (_threshold > MAX_SCORE) revert MaiatEvaluator__ThresholdOutOfRange(_threshold);
+        if (_threatThreshold == 0) revert MaiatEvaluator__ThreatThresholdCannotBeZero();
 
         oracle = ITrustScoreOracle(_oracle);
         threshold = _threshold;
@@ -159,6 +180,16 @@ contract MaiatEvaluator is Ownable2Step, ReentrancyGuard {
     /// @dev Reads provider TrustScore → complete if >= threshold, reject otherwise
     function evaluate(address acpContract, uint256 jobId) external nonReentrant {
         if (acpContract == address(0)) revert MaiatEvaluator__ZeroAddress();
+
+        // Caller restriction — only whitelisted callers when enabled
+        if (callerRestrictionEnabled && !allowedCallers[msg.sender]) {
+            revert MaiatEvaluator__CallerNotAllowed(msg.sender);
+        }
+
+        // ACP contract whitelist — only trusted ACP contracts when enabled
+        if (acpRestrictionEnabled && !allowedAcpContracts[acpContract]) {
+            revert MaiatEvaluator__AcpContractNotAllowed(acpContract);
+        }
 
         // Prevent double evaluation
         if (evaluated[acpContract][jobId]) {
@@ -209,20 +240,25 @@ contract MaiatEvaluator is Ownable2Step, ReentrancyGuard {
             reason = REASON_LOW_TRUST;
         }
 
-        // Mark as evaluated before external call
+        // Mark as evaluated before external call (CEI pattern)
         evaluated[acpContract][jobId] = true;
         totalEvaluations++;
 
-        // Execute decision on ACP contract
         if (shouldComplete) {
             totalCompleted++;
-            acp.complete(jobId, reason, "");
         } else {
             totalRejected++;
-            acp.reject(jobId, reason, "");
         }
 
+        // Emit event BEFORE external call (CEI — effects before interactions)
         emit EvaluationResult(acpContract, jobId, job.provider, cappedScore, shouldComplete, reason);
+
+        // Execute decision on ACP contract (interaction last)
+        if (shouldComplete) {
+            acp.complete(jobId, reason, "");
+        } else {
+            acp.reject(jobId, reason, "");
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -261,7 +297,9 @@ contract MaiatEvaluator is Ownable2Step, ReentrancyGuard {
     }
 
     /// @notice Update the threat report threshold (owner only)
+    /// @dev Cannot be set to 0 — that would silently disable the entire threat system
     function setThreatThreshold(uint256 _count) external onlyOwner {
+        if (_count == 0) revert MaiatEvaluator__ThreatThresholdCannotBeZero();
         uint256 old = threatThreshold;
         threatThreshold = _count;
         emit ThreatThresholdUpdated(old, _count);
@@ -294,5 +332,36 @@ contract MaiatEvaluator is Ownable2Step, ReentrancyGuard {
     /// @notice Reset threat count for a provider (owner only — false positive)
     function clearThreats(address provider) external onlyOwner {
         threatReports[provider] = 0;
+        emit ThreatsCleared(provider);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    ADMIN: ACCESS CONTROL
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Toggle caller restriction on evaluate()
+    function setCallerRestriction(bool _enabled) external onlyOwner {
+        callerRestrictionEnabled = _enabled;
+        emit CallerRestrictionToggled(_enabled);
+    }
+
+    /// @notice Toggle ACP contract restriction on evaluate()
+    function setAcpRestriction(bool _enabled) external onlyOwner {
+        acpRestrictionEnabled = _enabled;
+        emit AcpRestrictionToggled(_enabled);
+    }
+
+    /// @notice Add or remove an allowed caller
+    function setAllowedCaller(address caller, bool allowed) external onlyOwner {
+        if (caller == address(0)) revert MaiatEvaluator__ZeroAddress();
+        allowedCallers[caller] = allowed;
+        emit CallerUpdated(caller, allowed);
+    }
+
+    /// @notice Add or remove an allowed ACP contract
+    function setAllowedAcpContract(address acpContract, bool allowed) external onlyOwner {
+        if (acpContract == address(0)) revert MaiatEvaluator__ZeroAddress();
+        allowedAcpContracts[acpContract] = allowed;
+        emit AcpContractUpdated(acpContract, allowed);
     }
 }
