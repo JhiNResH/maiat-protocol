@@ -109,45 +109,61 @@ async function analyzeContract(address: `0x${string}`): Promise<ContractAnalysis
 
 // ── Holder Concentration ───────────────────────────────────────────────────────
 
+/**
+ * Known non-circulating addresses that should be excluded from holder
+ * concentration calculations. These include burn addresses, null addresses,
+ * and well-known protocol contracts that hold tokens but don't represent
+ * real holder concentration risk.
+ */
+const EXCLUDED_HOLDER_ADDRESSES = new Set([
+  "0x000000000000000000000000000000000000dead", // Common burn address
+  "0x0000000000000000000000000000000000000000", // Null / zero address
+  "0x0000000000000000000000000000000000000001", // Precompile
+  "0x00000000000000000000000000000000000000dead", // Variant burn
+  "0xdead000000000000000000000000000000000000", // Another burn variant
+  "0x000000000000000000000000000000000000dead", // Short burn
+]);
+
+/** Heuristic: is this address likely a non-circulating holder? */
+function isExcludedHolder(addr: string): boolean {
+  const lower = addr.toLowerCase();
+  // Exact match against known addresses
+  if (EXCLUDED_HOLDER_ADDRESSES.has(lower)) return true;
+  // Catch any address that is mostly zeros + "dead" pattern
+  if (/^0x0{30,}d?e?a?d?$/i.test(lower)) return true;
+  if (/^0xdead0{30,}$/i.test(lower)) return true;
+  return false;
+}
+
 interface HolderAnalysis {
-  topHolders: { address: string; percentage: number }[];
-  top10Pct: number;
-  whaleCount: number; // holders with >5%
+  topHolders: { address: string; percentage: number; excluded?: boolean }[];
+  top10Pct: number;         // concentration among real holders only
+  rawTop10Pct: number;      // raw concentration including excluded addresses
+  whaleCount: number;       // holders with >5% (real only)
   holderCount: number | null;
+  excludedAddresses: { address: string; percentage: number; reason: string }[];
 }
 
 async function analyzeHolders(address: string): Promise<HolderAnalysis> {
   const result: HolderAnalysis = {
     topHolders: [],
     top10Pct: 0,
+    rawTop10Pct: 0,
     whaleCount: 0,
     holderCount: null,
+    excludedAddresses: [],
   };
 
   const apiKey = process.env.ALCHEMY_API_KEY;
   if (!apiKey) return result;
 
   try {
-    // Get top token holders via Alchemy
-    const res = await fetch(`https://base-mainnet.g.alchemy.com/v2/${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "alchemy_getTokenBalances",
-        // Note: Alchemy doesn't have a direct "top holders" endpoint on Base
-        // We'll use getTokenMetadata for supply + approximate via transfers
-        params: [address],
-      }),
-      signal: AbortSignal.timeout(8_000),
-    });
-
     // Fallback: use BaseScan API for holder info if available
     const basescanKey = process.env.BASESCAN_API_KEY;
     if (basescanKey) {
+      // Fetch more than 10 so we still have 10 real holders after filtering
       const holdersRes = await fetch(
-        `https://api.basescan.org/api?module=token&action=tokenholderlist&contractaddress=${address}&page=1&offset=10&apikey=${basescanKey}`,
+        `https://api.basescan.org/api?module=token&action=tokenholderlist&contractaddress=${address}&page=1&offset=20&apikey=${basescanKey}`,
         { signal: AbortSignal.timeout(8_000) }
       );
       const holdersData = await holdersRes.json();
@@ -170,20 +186,69 @@ async function analyzeHolders(address: string): Promise<HolderAnalysis> {
           ? BigInt(metaData.result.totalSupply)
           : null;
 
-        for (const holder of holdersData.result.slice(0, 10)) {
+        // Also check which addresses are contracts (LP pools, etc.)
+        const allHolders: { address: string; pct: number }[] = [];
+        for (const holder of holdersData.result) {
           const balance = BigInt(holder.TokenHolderQuantity || "0");
           const pct = totalSupply && totalSupply > 0n
             ? Number((balance * 10000n) / totalSupply) / 100
             : 0;
-
-          result.topHolders.push({
-            address: holder.TokenHolderAddress,
-            percentage: pct,
-          });
-
-          if (pct > 5) result.whaleCount++;
+          allHolders.push({ address: holder.TokenHolderAddress, pct });
         }
 
+        // Calculate raw top 10 (before filtering)
+        result.rawTop10Pct = allHolders.slice(0, 10).reduce((sum, h) => sum + h.pct, 0);
+
+        // Separate excluded vs real holders
+        const realHolders: { address: string; pct: number }[] = [];
+        for (const h of allHolders) {
+          if (isExcludedHolder(h.address)) {
+            result.excludedAddresses.push({
+              address: h.address,
+              percentage: h.pct,
+              reason: "burn/null address",
+            });
+          } else {
+            realHolders.push(h);
+          }
+        }
+
+        // Also try to detect LP pair contracts via code check (top 5 only to limit RPC calls)
+        const topReal = realHolders.slice(0, 15);
+        const codeChecks = await Promise.allSettled(
+          topReal.slice(0, 5).map(async (h) => {
+            try {
+              const code = await client.getCode({ address: h.address as `0x${string}` });
+              return { address: h.address, isContract: !!code && code.length > 2 };
+            } catch {
+              return { address: h.address, isContract: false };
+            }
+          })
+        );
+
+        const contractAddrs = new Set<string>();
+        for (const check of codeChecks) {
+          if (check.status === "fulfilled" && check.value.isContract) {
+            contractAddrs.add(check.value.address.toLowerCase());
+          }
+        }
+
+        // Build final top holders list — mark contracts but don't exclude
+        // (LP pools holding tokens is useful info, just flagged differently)
+        let realCount = 0;
+        for (const h of realHolders) {
+          if (realCount >= 10) break;
+          const isContract = contractAddrs.has(h.address.toLowerCase());
+          result.topHolders.push({
+            address: h.address,
+            percentage: h.pct,
+            ...(isContract ? { excluded: false } : {}),
+          });
+          if (h.pct > 5) result.whaleCount++;
+          realCount++;
+        }
+
+        // Concentration = sum of real top 10 holders only
         result.top10Pct = result.topHolders.reduce((sum, h) => sum + h.percentage, 0);
       }
     }
@@ -309,7 +374,7 @@ function calculateRugRisk(
 
   // Summary
   const parts: string[] = [];
-  if (flags.includes("EXTREME_CONCENTRATION")) parts.push("Top 10 holders control >80% of supply.");
+  if (flags.includes("EXTREME_CONCENTRATION")) parts.push("Top 10 real holders control >80% of circulating supply (burn/null addresses excluded).");
   if (flags.includes("NO_LIQUIDITY")) parts.push("No trading liquidity detected.");
   if (flags.includes("LOW_LIQUIDITY")) parts.push(`Low liquidity ($${liquidity.estimatedLiquidityUsd?.toLocaleString()}).`);
   if (flags.includes("UPGRADEABLE_PROXY")) parts.push("Contract is upgradeable (proxy pattern).");
@@ -428,8 +493,13 @@ export async function GET(
         },
         holders: {
           top10Percentage: holders.top10Pct,
+          rawTop10Percentage: holders.rawTop10Pct,
           whaleCount: holders.whaleCount,
           topHolders: holders.topHolders.slice(0, 5), // Top 5 only
+          excludedAddresses: holders.excludedAddresses.length > 0 ? holders.excludedAddresses : undefined,
+          note: holders.excludedAddresses.length > 0
+            ? `${holders.excludedAddresses.length} address(es) excluded from concentration calc (burn/null). Raw top-10: ${holders.rawTop10Pct.toFixed(1)}%, adjusted: ${holders.top10Pct.toFixed(1)}%.`
+            : undefined,
         },
         liquidity: {
           hasLiquidity: liquidity.hasLiquidity,
