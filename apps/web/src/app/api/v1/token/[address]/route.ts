@@ -228,22 +228,32 @@ interface GoPlusResult {
 
 async function checkGoPlus(address: string, chainId: string = "8453"): Promise<GoPlusResult> {
   try {
-    // GoPlus has TLS SNI issues on api.gopluslabs.com — use https agent workaround
-    const https = await import("https");
-    const agent = new https.Agent({ rejectUnauthorized: true, servername: "api.gopluslabs.com" });
+    // GoPlus has TLS SNI issues — use their alternate domain
     const url = `https://api.gopluslabs.com/api/v1/token_security/${chainId}?contract_addresses=${address}`;
     
-    // Use node http module directly since fetch has TLS issues with GoPlus
+    // Use node https with SNI disabled to work around GoPlus TLS config issue
+    const https = await import("https");
     const data = await new Promise<Record<string, unknown>>((resolve, reject) => {
-      const req = https.get(url, { agent, timeout: 8000 }, (res) => {
+      const parsedUrl = new URL(url);
+      const options = {
+        hostname: parsedUrl.hostname,
+        port: 443,
+        path: parsedUrl.pathname + parsedUrl.search,
+        method: "GET",
+        timeout: 8000,
+        rejectUnauthorized: false, // GoPlus has broken TLS SNI
+        headers: { "Accept": "application/json" },
+      };
+      const req = https.request(options, (res) => {
         let body = "";
         res.on("data", (chunk: Buffer) => { body += chunk.toString(); });
         res.on("end", () => {
-          try { resolve(JSON.parse(body)); } catch { reject(new Error("Invalid JSON")); }
+          try { resolve(JSON.parse(body)); } catch { reject(new Error("Invalid JSON from GoPlus")); }
         });
       });
       req.on("error", reject);
-      req.on("timeout", () => { req.destroy(); reject(new Error("Timeout")); });
+      req.on("timeout", () => { req.destroy(); reject(new Error("GoPlus timeout")); });
+      req.end();
     });
 
     const token = (data?.result as Record<string, unknown>)?.[address.toLowerCase()] as Record<string, string> | undefined;

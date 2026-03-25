@@ -1,0 +1,97 @@
+[
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "EvaluatorRegistry__Unauthorized",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "EvaluatorRegistry__ZeroAddress",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true,  "internalType": "address", "name": "evaluator", "type": "address" },
+      { "indexed": false, "internalType": "bool",    "name": "approved",  "type": "bool" }
+    ],
+    "name": "OutcomeRecorded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "newOwner",       "type": "address" }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "evaluator", "type": "address" },
+      { "internalType": "bool",    "name": "approved",  "type": "bool" }
+    ],
+    "name": "recordOutcome",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "evaluator", "type": "address" }
+    ],
+    "name": "getApprovedCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "evaluator", "type": "address" }
+    ],
+    "name": "getRejectedCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "evaluator", "type": "address" }
+    ],
+    "name": "getStats",
+    "outputs": [
+      { "internalType": "uint256", "name": "approved", "type": "uint256" },
+      { "internalType": "uint256", "name": "rejected", "type": "uint256" },
+      { "internalType": "uint256", "name": "total",    "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

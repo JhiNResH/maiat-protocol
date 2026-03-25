@@ -4,8 +4,30 @@ pragma solidity 0.8.26;
 import {Script, console2} from "forge-std/Script.sol";
 import {MaiatEvaluator} from "../src/acp/MaiatEvaluator.sol";
 
+/// @notice Minimal mock oracle for testnet deployments
+contract MockTrustOracle {
+    struct UserReputation {
+        uint256 reputationScore;
+        uint256 totalReviews;
+        uint256 scarabPoints;
+        uint256 feeBps;
+        bool initialized;
+        uint256 lastUpdated;
+    }
+
+    mapping(address => UserReputation) public users;
+
+    function setScore(address user, uint256 score) external {
+        users[user] = UserReputation(score, 1, 0, 0, true, block.timestamp);
+    }
+
+    function getUserData(address user) external view returns (UserReputation memory) {
+        return users[user];
+    }
+}
+
 /// @title DeployMaiatEvaluator
-/// @notice Deploys MaiatEvaluator to Base Sepolia or Base Mainnet
+/// @notice Deploys MaiatEvaluator to Base Sepolia, Base Mainnet, or BNB Testnet
 contract DeployMaiatEvaluator is Script {
     // Base Sepolia
     address constant ORACLE_SEPOLIA = 0xF662902ca227BabA3a4d11A1Bc58073e0B0d1139;
@@ -29,6 +51,17 @@ contract DeployMaiatEvaluator is Script {
         } else if (block.chainid == 8453) {
             oracleAddr = ORACLE_MAINNET;
             network = "Base Mainnet";
+        } else if (block.chainid == 97) {
+            // BNB Testnet — deploy MockOracle first, then use its address
+            // For now, use env var if set, otherwise deploy mock
+            oracleAddr = vm.envOr("BNB_ORACLE", address(0));
+            if (oracleAddr == address(0)) {
+                // Deploy a minimal mock oracle for testing
+                MockTrustOracle mock = new MockTrustOracle();
+                oracleAddr = address(mock);
+                console2.log("  MockOracle deployed at:", oracleAddr);
+            }
+            network = "BNB Testnet";
         } else {
             revert("Unsupported chain");
         }
