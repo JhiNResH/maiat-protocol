@@ -83,23 +83,30 @@ function buildPaymentRequired(priceUsd: string, description: string, resourceUrl
           ...(bazaar.output?.example && { example: bazaar.output.example }),
         },
       },
-      ...(bazaar.output?.schema && {
-        schema: {
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          type: "object",
-          properties: {
-            input: bazaar.input?.queryParams
-              ? { type: "object", properties: Object.fromEntries(
-                  Object.entries(bazaar.input.queryParams).map(([k, v]) => [k, v])
-                )}
-              : { type: "object" },
-            output: {
-              type: "object",
-              properties: bazaar.output.schema,
+      schema: {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        type: "object",
+        properties: {
+          // validator reads: schema.properties.input.properties.queryParams OR .body
+          input: {
+            type: "object",
+            properties: bazaar.input?.queryParams
+              ? { queryParams: { type: "object", properties: Object.fromEntries(
+                    Object.entries(bazaar.input.queryParams).map(([k, v]) => [k, v])
+                  )}}
+              : bazaar.input && "bodyFields" in bazaar.input
+                ? { body: { type: "object", properties: (bazaar.input as Record<string, unknown>).bodyFields }}
+                : {},
+          },
+          // validator reads: schema.properties.output.properties.example
+          output: {
+            type: "object",
+            properties: {
+              example: bazaar.output?.example ?? {},
             },
           },
         },
-      }),
+      },
     };
   }
 
