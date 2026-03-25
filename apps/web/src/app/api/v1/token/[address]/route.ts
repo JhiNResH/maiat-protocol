@@ -1,15 +1,17 @@
 /**
  * GET /api/v1/token/[address]
  *
- * Token trust endpoint. Resolution order:
+ * Token CONTRACT SAFETY endpoint. Resolution order:
  *   1. KNOWN_SAFE_LIST  → return proceed immediately (no external calls)
- *   2. AgentScore DB    → if agent token, return behavioral trust
- *   3. Honeypot.is      → memecoin / unknown token safety check
+ *   2. Honeypot.is + GoPlus + DexScreener → contract safety analysis
+ *
+ * For agent BEHAVIORAL trust, use GET /api/v1/agent/[address] instead.
+ * The two scores are independent — a trusted agent can have an unsafe token contract.
  *
  * Response includes:
- *   - tokenType: "known_safe" | "agent_token" | "memecoin"
- *   - trustScore (0-100)
- *   - verdict: "proceed" | "caution" | "avoid"
+ *   - tokenType: "known_safe" | "memecoin"
+ *   - trustScore (0-100) — contract safety score only
+ *   - verdict: "trusted" | "proceed" | "caution" | "avoid"
  *   - riskFlags: array of risk indicators
  */
 
@@ -703,71 +705,10 @@ export async function GET(
     );
   }
 
-  // ── Step 2: AgentScore DB (agent tokens) ────────────────────────────────────
-  const db = await getDb();
-  if (db) {
-    try {
-      const agentScore = await db.agentScore.findFirst({
-        where: { walletAddress: { equals: checksumAddress.toLowerCase() } },
-        select: {
-          walletAddress: true,
-          rawMetrics: true,
-          trustScore: true,
-          completionRate: true,
-          paymentRate: true,
-          totalJobs: true,
-        },
-      });
-
-      if (agentScore) {
-        const raw = (agentScore.rawMetrics ?? {}) as Record<string, unknown>;
-        const agentName = typeof raw.name === 'string' ? raw.name : checksumAddress;
-        const hasScore = agentScore.trustScore !== null;
-        const score = agentScore.trustScore ?? 50;
-        const verdict: Verdict =
-          score >= 80 ? "trusted" : score >= 60 ? "proceed" : score >= 40 ? "caution" : "avoid";
-        const agentRiskFlags: string[] = [];
-        if (score < 40) agentRiskFlags.push("LOW_AGENT_TRUST");
-        if (!hasScore) agentRiskFlags.push("INSUFFICIENT_DATA");
-        const scarabReviews = await getScarabReviews(checksumAddress);
-        logQuery({ type: "token_check", target: checksumAddress, clientId: _clientId, callerIp: _callerIp, userAgent: _userAgent, trustScore: score, verdict, metadata: { tokenType: "agent_token", totalJobs: agentScore.totalJobs } });
-        return NextResponse.json(
-          {
-            address: checksumAddress,
-            tokenType: "agent_token",
-            trustScore: score,
-            verdict,
-            riskFlags: agentRiskFlags,
-            riskSummary: !hasScore
-              ? `ACP agent ${agentName} has no recorded jobs yet.`
-              : `ACP agent ${agentName}. Completion rate: ${agentScore.completionRate ?? "?"}%.`,
-            agentData: {
-              name: agentName,
-              completionRate: agentScore.completionRate,
-              paymentRate: agentScore.paymentRate,
-              totalJobs: agentScore.totalJobs,
-            },
-            scarabReviews: {
-              averageRating: scarabReviews.averageRating,
-              reviewCount: scarabReviews.reviewCount,
-            },
-            dataSource: "AGENT_SCORE_DB",
-          },
-          {
-            status: 200,
-            headers: {
-              ...CORS_HEADERS,
-              "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-            },
-          }
-        );
-      }
-    } catch {
-      // AgentScore lookup failed — fall through to honeypot check
-    }
-  }
-
-  // ── Step 3: Honeypot.is (memecoin / unknown) ─────────────────────────────────
+  // ── Step 2: Contract safety check (honeypot, GoPlus, DexScreener) ──────────
+  // NOTE: Agent behavioral trust is served by GET /api/v1/agent/[address].
+  // This endpoint focuses ONLY on token contract safety — the two scores are
+  // independent and should be displayed side-by-side in the UI.
   try {
     // ── Run 5 parallel checks (including Wadjet ML) ────────────────────────────
     const [honeypot, tokenMetadata, scarabReviews, dexData, goplus, wadjet] = await Promise.all([
