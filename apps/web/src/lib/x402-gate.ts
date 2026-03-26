@@ -1,21 +1,45 @@
 /**
- * x402 Payment Gate — Manual Implementation
+ * x402 Payment Gate — Manual Implementation with CDP Facilitator
  *
- * Instead of using @x402/next's withX402 (which eagerly fetches from facilitator
- * at module init and crashes Vercel builds), we manually construct the 402 response
- * and delegate payment verification to the facilitator at request time only.
+ * Uses CDP facilitator (api.cdp.coinbase.com) for production payment
+ * verification on Base mainnet. Auth via @coinbase/x402 JWT signing.
  *
  * Flow:
  * 1. Request comes in without PAYMENT-SIGNATURE header → return 402 + payment instructions
- * 2. Request has PAYMENT-SIGNATURE → verify with facilitator → if valid, run handler
+ * 2. Request has PAYMENT-SIGNATURE → verify with CDP facilitator → if valid, run handler
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { createAuthHeader, createCorrelationHeader } from "@coinbase/x402";
 
 const PAY_TO = "0xB1e504aE1ce359B4C2a6DC5d63aE6199a415f312";
 const NETWORK = process.env.X402_NETWORK || "eip155:8453";
-const FACILITATOR_URL =
-  process.env.X402_FACILITATOR_URL || "https://x402.org/facilitator";
+
+// CDP Facilitator (production — supports Base mainnet)
+const FACILITATOR_BASE_URL = "https://api.cdp.coinbase.com";
+const FACILITATOR_PATH = "/platform/v2/x402";
+const CDP_API_KEY_ID = process.env.CDP_API_KEY_ID || "";
+const CDP_API_KEY_SECRET = process.env.CDP_API_KEY_SECRET || "";
+
+/**
+ * Get CDP auth headers for facilitator requests
+ */
+async function getCdpAuthHeaders(path: string): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Correlation-Context": createCorrelationHeader(),
+  };
+  if (CDP_API_KEY_ID && CDP_API_KEY_SECRET) {
+    headers["Authorization"] = await createAuthHeader(
+      CDP_API_KEY_ID,
+      CDP_API_KEY_SECRET,
+      "POST",
+      FACILITATOR_BASE_URL.replace("https://", ""),
+      path,
+    );
+  }
+  return headers;
+}
 
 // USDC contract addresses
 const USDC_ADDRESSES: Record<string, string> = {
@@ -129,16 +153,18 @@ function buildPaymentRequired(priceUsd: string, description: string, resourceUrl
 }
 
 /**
- * Verify payment with facilitator
+ * Verify payment with CDP facilitator
  */
 async function verifyPayment(
   paymentSignature: string,
   paymentRequired: string
 ): Promise<{ valid: boolean; error?: string }> {
   try {
-    const res = await fetch(`${FACILITATOR_URL}/verify`, {
+    const verifyPath = `${FACILITATOR_PATH}/verify`;
+    const headers = await getCdpAuthHeaders(verifyPath);
+    const res = await fetch(`${FACILITATOR_BASE_URL}${verifyPath}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         paymentSignature,
         paymentRequirements: JSON.parse(
@@ -150,7 +176,7 @@ async function verifyPayment(
 
     if (!res.ok) {
       const body = await res.text();
-      return { valid: false, error: `Facilitator returned ${res.status}: ${body}` };
+      return { valid: false, error: `CDP facilitator returned ${res.status}: ${body}` };
     }
 
     const data = await res.json();
@@ -161,18 +187,20 @@ async function verifyPayment(
 }
 
 /**
- * Settle payment after successful handler execution
+ * Settle payment with CDP facilitator after successful handler execution
  */
 async function settlePayment(paymentSignature: string): Promise<void> {
   try {
-    await fetch(`${FACILITATOR_URL}/settle`, {
+    const settlePath = `${FACILITATOR_PATH}/settle`;
+    const headers = await getCdpAuthHeaders(settlePath);
+    await fetch(`${FACILITATOR_BASE_URL}${settlePath}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ paymentSignature }),
       signal: AbortSignal.timeout(30_000),
     });
   } catch (e) {
-    console.error("[x402-gate] Settlement failed:", e);
+    console.error("[x402-gate] CDP settlement failed:", e);
   }
 }
 
