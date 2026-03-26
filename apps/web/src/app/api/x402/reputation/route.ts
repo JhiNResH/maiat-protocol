@@ -323,6 +323,20 @@ async function reputationHandler(request: NextRequest): Promise<NextResponse<unk
   }
 }
 
-// Payment gate handled by middleware.ts — export handler directly
-export const GET = reputationHandler;
-export const POST = reputationHandler;
+import { withPaymentGate } from "@/lib/x402-gate";
+
+export const GET = withPaymentGate(reputationHandler, "$0.03", "Full agent reputation and behavioral trust score", "agent_trust", {
+  input: { queryParams: { address: { type: "string", description: "Agent address" } } },
+  output: {
+    example: { trustScore: 85, sentiment: "positive", endorsements: 12, upvoteRatio: 0.92 },
+    schema: { properties: { trustScore: { type: "number" }, sentiment: { type: "string" } }, required: ["trustScore", "sentiment"] },
+  },
+}, "/api/x402/reputation");
+
+export const POST = withPaymentGate(reputationHandler, "$0.03", "Full agent reputation and behavioral trust score", "agent_trust", {
+  input: { queryParams: { address: { type: "string", description: "Agent address" } } },
+  output: {
+    example: { trustScore: 85, sentiment: "positive", endorsements: 12, upvoteRatio: 0.92 },
+    schema: { properties: { trustScore: { type: "number" }, sentiment: { type: "string" } }, required: ["trustScore", "sentiment"] },
+  },
+}, "/api/x402/reputation");
