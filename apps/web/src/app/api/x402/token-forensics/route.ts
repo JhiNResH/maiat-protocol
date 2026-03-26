@@ -184,14 +184,5 @@ async function tokenForensicsHandler(request: NextRequest): Promise<NextResponse
   }
 }
 
-import { withPaymentGate } from "@/lib/x402-gate";
-
-// Wrap with manual x402 payment gate
 // Payment gate handled by middleware.ts — export handler directly
-export const POST = withPaymentGate(tokenForensicsHandler, "$0.05", "Deep AI-powered project analysis", "token_forensics", {
-  input: { queryParams: { token: { type: "string", description: "ERC-20 token contract address" }, chain: { type: "string", description: "Chain name (default: base)" } } },
-  output: {
-    example: { rugPullRisk: "low", mlScore: 0.12, verdict: "proceed", analysis: "No suspicious patterns detected" },
-    schema: { properties: { rugPullRisk: { type: "string" }, mlScore: { type: "number" }, verdict: { type: "string" } }, required: ["rugPullRisk", "verdict"] },
-  },
-}, "/api/x402/token-forensics");
+export const POST = tokenForensicsHandler;

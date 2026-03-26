@@ -350,14 +350,5 @@ async function registerPassportHandler(
   }
 }
 
-import { withPaymentGate } from "@/lib/x402-gate";
-
-// Wrap with manual x402 payment gate
 // Payment gate handled by middleware.ts — export handler directly
-export const POST = withPaymentGate(registerPassportHandler, "$1.00", "Register a Maiat Passport with ENS, ERC-8004, and KYA", "passport_register", {
-  input: { queryParams: { address: { type: "string", description: "Agent wallet address" }, name: { type: "string", description: "Agent display name" }, ensName: { type: "string", description: "ENS name to register" } } },
-  output: {
-    example: { success: true, passportId: "maiat-agent-001.maiat.eth", attestationTx: "0x..." },
-    schema: { properties: { success: { type: "boolean" }, passportId: { type: "string" } }, required: ["success"] },
-  },
-}, "/api/x402/register-passport");
+export const POST = registerPassportHandler;
