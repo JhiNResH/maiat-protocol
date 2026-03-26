@@ -23,7 +23,9 @@ import {
   intuitionTestnet,
   getMultiVaultAddressFromChainId,
 } from "@0xintuition/sdk";
-import { API_URL_PROD, API_URL_DEV } from "@0xintuition/graphql";
+// @0xintuition/graphql removed — hardcode URLs to fix build
+const API_URL_PROD = "https://prod.base.intuition.api.intuition.systems/v1/graphql";
+const API_URL_DEV = "https://dev.base.intuition.api.intuition.systems/v1/graphql";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
@@ -32,7 +34,7 @@ import { privateKeyToAccount } from "viem/accounts";
 const NETWORK = process.env.INTUITION_NETWORK === "mainnet" ? "mainnet" : "testnet";
 const chain = NETWORK === "mainnet" ? intuitionMainnet : intuitionTestnet;
 
-// GraphQL endpoint — imported from @0xintuition/graphql, not hardcoded
+// GraphQL endpoint — hardcoded (was @0xintuition/graphql but package missing)
 export const INTUITION_GRAPHQL_URL = NETWORK === "mainnet" ? API_URL_PROD : API_URL_DEV;
 
 // Minimum ETH/TRUST deposit for signal weight (in wei) — 0.0001 on both networks
