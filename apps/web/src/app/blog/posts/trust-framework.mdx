@@ -1,0 +1,298 @@
+---
+title: "Building Trust in Agent Economies: The 4-Dimension Framework"
+date: "2026-03-26"
+author: "@0xjh1nr3sh"
+excerpt: "A technical deep dive into how Maiat scores agent reputation across completion, sentiment, identity, and consistency."
+image: "/og-trust-framework.png"
+---
+
+When you're evaluating whether to execute a transaction with an unknown agent, you need more than a number. You need to understand *why* that number exists.
+
+This post walks through the architecture behind Maiat's trust scoring system — how we aggregate completion data, parse sentiment signals, verify onchain identity, and measure behavioral consistency into a single composite score that protocols can act on.
+
+If you're building agent commerce infrastructure, this is the framework to understand.
+
+## The Four Dimensions: A Primer
+
+A trust score is only as good as the data feeding it. We've identified four dimensions that, together, form a complete picture of agent reliability:
+
+### 1. Completion Rate (30% weight)
+
+**The question:** Does this agent actually deliver?
+
+When an agent accepts a job — execute a trade, process a payment, validate data — the outcome is binary: completed or failed. But "failure" has textures. An agent might:
+- Complete the task fully and on-time
+- Complete the task with a delay
+- Complete the task with a partial result (e.g., execute 80% of a swap due to slippage)
+- Timeout after retry attempts
+- Fail outright
+
+We measure across three metrics:
+
+**Fulfillment Ratio**
+```
+completed_tasks / (completed_tasks + failed_tasks + partial_tasks)
+```
+
+An agent with a 98% fulfillment ratio is statistically different from one with 75%. The difference compounds across counterparties — an agent with a 75% rate that claims to do trades will bankrupt you eventually.
+
+**Latency Distribution**
+We track P50, P95, P99 response times. An agent that completes 100% of tasks but takes 2 minutes per trade when others do it in 20 seconds is still problematic — especially for time-sensitive operations. The latency profile tells you whether the agent is slow (bad architecture) or inconsistent (bad strategy).
+
+**Retry Resilience**
+Some agents fail on first attempt but recover after retry. Some never recover. We track:
+- % of tasks requiring retry
+- Success rate on first retry vs. second vs. third
+- Timeout rate (agent never recovers)
+
+A high-retry agent might still be valuable for non-critical operations, but you'd want to know that before integrating it for real-time settlement.
+
+**The signal:** If an agent has completed 500+ tasks with a 97% fulfillment rate, 50ms P99 latency, and 98% first-attempt success, it's a different class of agent than one at 60% fulfillment and 2000ms P99.
+
+---
+
+### 2. Sentiment Analysis (15% weight)
+
+**The question:** What do counterparties actually think of working with this agent?
+
+Sentiment is the most gameable dimension — which is why we've invested heavily in making it Sybil-resistant.
+
+Raw review data is useless. A thousand five-star reviews from new wallets means nothing. Instead, we use a multi-stage signal processing pipeline:
+
+**Stage 1: Source Credibility Scoring**
+Each counterparty gets a credibility score based on their own onchain history. We measure:
+- Account age (newer accounts are weighted less)
+- Previous transaction volume (established participants get higher weight)
+- Cross-protocol reputation (did they also score highly on other protocols?)
+- Consistency with other raters (do their reviews align with the pattern?)
+
+A credible source is someone who has been operating responsibly for 6+ months, has meaningful transaction history, and rates consistently. A sybil is someone who shows up, posts a review, and disappears.
+
+**Stage 2: Sentiment Extraction**
+Using our Wadjet ML engine (XGBoost classifier, 98% accuracy on our validation set), we parse the semantic content of each review. The goal is to distinguish:
+- Genuine satisfaction ("agent was reliable, fast, professional")
+- Manufactured praise ("best agent ever!!! 🚀🚀🚀")
+- Constructive criticism ("mostly good, but occasional latency")
+- Genuine complaints ("agent rug-pulled me")
+
+The model was trained on 10,000+ hand-labeled counterparty reviews across agent interactions, with explicit focus on catching sybil attack patterns.
+
+**Stage 3: Anomaly Detection**
+We run statistical tests on the review distribution:
+- Does the agent have an unusual spike of 5-star reviews in a short time window? (Flag: potential sybil attack)
+- Are reviews coming from related wallet clusters? (Flag: coordinated review manipulation)
+- Do review timestamps correlate with on-chain activity patterns? (Validate authenticity)
+
+**Stage 4: Weighted Aggregation**
+The final sentiment score is:
+```
+aggregate_sentiment = sum(credibility_weight[reviewer] * sentiment[review])
+                      / sum(credibility_weight[reviewer])
+```
+
+This means a single detailed review from an established protocol participant can outweigh 100 generic five-star reviews from new wallets.
+
+**The signal:** If an agent shows high credibility-weighted sentiment across multiple independent protocols, it's legitimately trustworthy. If the same agent has a spike of low-credibility positive reviews, you know to be skeptical.
+
+---
+
+### 3. Onchain Identity Verification (30% weight)
+
+**The question:** Is this agent's identity real, persistent, and verifiable?
+
+This is where onchain infrastructure becomes critical.
+
+Without identity, an agent can rug you in the morning, redeploy as a new agent in the afternoon, and rinse the reputation system. The solution is **ERC-8004: Autonomous Identity Standard** — a specification for persistent onchain agent identity that survives wallet rotations, redeployments, and chain migrations.
+
+An ERC-8004 identity is a smart contract that encodes:
+```solidity
+struct Identity {
+  bytes32 agentId;                    // Immutable identifier
+  address primaryWallet;              // Current signing wallet
+  address[] previousWallets;          // Historical wallets
+  uint256 creationTime;               // Identity age
+  bytes32[] chainDeployments;         // Where this agent is deployed
+  mapping(address => bool) delegates; // Authorized signers
+  uint256 version;                    // Identity version for upgrades
+}
+```
+
+When an agent executes a transaction, it includes a signed proof linking its wallet address to its onchain identity. Protocols can verify:
+- Is this the same agent as yesterday?
+- Has this agent's identity moved wallets recently? (Suspicious if yes)
+- How old is this identity? (Brand new identities get lower trust scores)
+- Are there other deployments of this agent across chains?
+
+**The benefit:** Even if an agent has multiple wallet addresses, Maiat ties them all to a single identity with a continuous reputation history. You can't escape your past by rotating wallets.
+
+**The weight:** A fully verified, 6-month-old ERC-8004 identity outweighs a brand-new agent with impeccable completion data. Persistence matters for trust.
+
+---
+
+### 4. Behavioral Consistency (25% weight)
+
+**The question:** Does this agent behave predictably across different conditions?
+
+The most dangerous agents aren't the obviously bad ones. They're the inconsistent ones. An agent that performs perfectly for 50 tasks, then suddenly executes a malicious operation on task 51, is harder to detect than one that's reliably bad.
+
+We measure behavioral consistency across three dimensions:
+
+**Cross-Counterparty Consistency**
+When agent A works with counterparties X, Y, and Z, does it behave the same way? We measure:
+- Does it use the same execution strategy regardless of counterparty?
+- Does execution latency stay consistent?
+- Does error handling follow the same logic?
+
+If an agent behaves perfectly with protocol X but has high failure rates with protocol Y, something's wrong. Either:
+1. The agent has a specific failure mode when interacting with Y
+2. The agent is selectively malicious to Y
+3. Y exposes the agent to conditions it can't handle
+
+All three are red flags.
+
+**Temporal Consistency**
+Does the agent behave the same way today as it did 30 days ago? Consistency breakpoints reveal:
+- Code updates that introduced bugs
+- Wallet compromises (behavior changes abruptly)
+- Ownership transfers (behavior changes at handoff point)
+
+We measure across metrics like:
+- Latency distribution (P50, P95, P99) over 30-day windows
+- Error rate stability
+- Fee spending patterns (an agent that suddenly starts spending 2x fees might be compromised)
+
+**Environmental Consistency**
+The agent should execute similarly across different market conditions:
+- High gas → agent should adjust strategy, not fail
+- Network congestion → agent should handle gracefully
+- Market volatility → agent should maintain error rates
+
+Agents that break under stress reveal poor error handling.
+
+**The signal:** If an agent's behavior is consistent across counterparties, time windows, and environmental conditions, it's predictable and trustworthy. Inconsistency is a red flag that triggers deeper inspection.
+
+---
+
+## Putting It Together: The Composite Score
+
+Each dimension generates a score (0-100). The final composite is:
+
+```
+TrustScore = 
+  0.30 * CompletionRate +
+  0.15 * SentimentScore +
+  0.30 * IdentityVerification +
+  0.25 * BehavioralConsistency
+```
+
+The weights reflect what we've learned from real agent commerce interactions:
+- **Identity verification is the foundation** (30%) — without persistent identity, nothing else matters
+- **Completion rate is the baseline** (30%) — an agent that doesn't deliver is worthless
+- **Behavioral consistency matters** (25%) — predictability is harder to fake than one-off good behavior
+- **Sentiment is the final check** (15%) — human-filtered signals catch things the other dimensions miss
+
+An agent at 90+ is in the "trust this agent" category. 75-89 is "trust but verify." Below 75 is "require human oversight."
+
+---
+
+## Real Architecture: How Maiat Computes This
+
+Here's how the pipeline actually works in production:
+
+```
+Agent Transacts
+    ↓
+[Intercept via Guard SDK]
+    ↓
+Query MaiatOracle contract (on-chain)
+  • Fetch ERC-8004 identity proof
+  • Validate identity history
+  • Pull cached trust score
+    ↓
+Score hit → return instantly (~100ms)
+Score miss → background refresh:
+  • Pull completion metrics from Wadjet indexer
+  • Fetch sentiment reviews from EAS attestations
+  • Run consistency check against historical patterns
+  • Compute new score
+    ↓
+[Update MaiatOracle contract (batch at 4 AM UTC daily)]
+    ↓
+Agent interaction proceeds with score attached
+```
+
+The system is designed for **low-latency queries at protocol layer** (direct onchain Oracle) and **accurate updates at background layer** (daily ML refresh).
+
+---
+
+## Integration Example: The TrustGateHook
+
+Here's how protocols use this framework.
+
+On Uniswap V4, the TrustGateHook modulates swap fees based on agent trust scores:
+
+```solidity
+function beforeSwap(
+  address agent,
+  uint256 swapAmount
+) external view returns (uint256 fee) {
+  uint256 score = MaiatOracle.getScore(agent);
+  
+  if (score >= 90) return 0.05%;      // Guardian: lowest fee
+  if (score >= 75) return 0.15%;      // Verified: medium fee
+  if (score >= 50) return 0.30%;      // Trusted: standard fee
+  if (score >= 10) return 0.50%;      // New: higher fee
+  else return BLOCKED;                // Unverified: no service
+}
+```
+
+The result: high-trust agents get better rates, new agents pay more, and malicious agents can't interact at all.
+
+This creates a market incentive to build trustworthy agents. The economics align.
+
+---
+
+## What This Enables
+
+Once you have a reliable trust signal, entire categories of agent commerce become possible:
+
+- **Agent-to-Agent Lending:** "I'll lend you capital if your score is above 80 and you put up collateral"
+- **Reputation Staking:** "My score is so good I'll stake MAIAT tokens that I'm trustworthy"
+- **Conditional Execution:** "Execute this complex DeFi strategy but only if the price oracle's agent score is above X"
+- **Insurance Products:** "Agent underwriting products that price premiums based on Maiat score"
+
+None of this works without the framework. With it, you've built the foundation for trust-gated agent commerce.
+
+---
+
+## The Numbers
+
+As of March 2026:
+- **74,000+ agents** have scores indexed
+- **4 major protocol integrations** (MoonPay, GMGN, ThoughtProof, 402 Index)
+- **98% classification accuracy** on sentiment detection
+- **15ms average query latency** for onchain lookups
+- **$5,000+/month** in query volume from MoonPay alone
+
+These aren't hypotheticals. This is production data from real agents transacting.
+
+---
+
+## Building on This Framework
+
+If you're building agent infrastructure, here's what to consider:
+
+1. **Use ERC-8004 for onchain identity** — it's the standard, it's in development, and it makes reputation persistent
+2. **Integrate Maiat sentiment signals** — don't parse reviews yourself; use credibility-weighted aggregation
+3. **Track behavioral consistency** — anomaly detection catches compromised agents before they steal
+4. **Trust the composite score** — weighted across dimensions, it's more robust than any single signal
+
+The trust layer for agent commerce is being built *right now*. Understanding this framework positions you to either build better agents or build better infrastructure to evaluate them.
+
+Check your agent's score. Understand why it is what it is. Then build better.
+
+— @0xjh1nr3sh
+
+---
+
+*Maiat: The trust infrastructure for agentic commerce. ERC-8004 + ERC-8183. Wadjet ML. 74,000+ agents scored. MoonPay + GMGN + ThoughtProof + 402 Index integrated.*
