@@ -38,8 +38,7 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable, ReentrancyGuard {
     }
 
     // ── Constants ──────────────────────────────────────────────────
-    uint16 public constant MAX_PROTOCOL_FEE_BPS = 1500;  // 15% hard cap
-    uint16 public constant MAX_CREATOR_ROYALTY_BPS = 9500; // 95% hard cap
+    uint16 public constant MAX_CREATOR_ROYALTY_BPS = 9500; // 95% hard cap (min 5% protocol)
 
     // ── State ──────────────────────────────────────────────────────
     uint256 public nextSkillId = 1;
@@ -47,17 +46,15 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable, ReentrancyGuard {
     mapping(address => uint256[]) private _agentSkills;
     mapping(address => mapping(uint256 => bool)) public hasSkill;
 
-    /// @notice Configurable fee splits (basis points, 10000 = 100%)
-    uint16 public protocolFeeBps = 1000;      // 10%
-    uint16 public creatorRoyaltyBps = 8500;   // 85%
-    // Remaining 5% stays in contract (evaluator reserve)
+    /// @notice Creator royalty (basis points, 10000 = 100%). Remainder = protocol revenue.
+    uint16 public creatorRoyaltyBps = 8500;   // 85% to creator, 15% stays in contract
 
     // ── Events ─────────────────────────────────────────────────────
     event SkillCreated(uint256 indexed skillId, address indexed creator, string name, uint256 price);
     event SkillPurchased(uint256 indexed skillId, address indexed buyer, address indexed creator, uint256 pricePaid);
     event SkillDeactivated(uint256 indexed skillId);
     event SkillReactivated(uint256 indexed skillId);
-    event FeesUpdated(uint16 protocolFeeBps, uint16 creatorRoyaltyBps);
+    event CreatorRoyaltyUpdated(uint16 newRoyaltyBps);
     event Withdrawn(address indexed to, uint256 amount);
 
     // ── Errors ─────────────────────────────────────────────────────
@@ -66,7 +63,7 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable, ReentrancyGuard {
     error AlreadyOwned(address buyer, uint256 skillId);
     error InsufficientPayment(uint256 sent, uint256 required);
     error CannotBuyOwnSkill(address creator);
-    error InvalidFees(uint16 protocol, uint16 creator);
+    error InvalidRoyalty(uint16 royaltyBps);
     error InvalidSkillParams();
     error InvalidRecipient();
     error TransferFailed();
@@ -125,20 +122,18 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable, ReentrancyGuard {
         // [H-01] Block both msg.sender AND recipient from being creator
         if (msg.sender == s.creator || recipient == s.creator) revert CannotBuyOwnSkill(s.creator);
 
-        // Mint ERC-1155 token to recipient (could be EOA or TBA)
-        _mint(recipient, skillId, 1, "");
-
-        // Track ownership
+        // CEI: state updates BEFORE external calls (defense-in-depth)
         hasSkill[recipient][skillId] = true;
         _agentSkills[recipient].push(skillId);
         s.totalBuyers++;
 
-        // Split payment
-        uint256 creatorAmount = (s.price * creatorRoyaltyBps) / 10000;
-        // protocolAmount + remainder stays in contract (evaluator reserve)
-        // uint256 protocolAmount = (s.price * protocolFeeBps) / 10000;
+        // Mint ERC-1155 token (callback safe: state already updated + nonReentrant)
+        _mint(recipient, skillId, 1, "");
 
-        // Pay creator
+        // Split payment — creator gets royalty, remainder stays in contract
+        uint256 creatorAmount = (s.price * creatorRoyaltyBps) / 10000;
+
+        // Pay creator (pull pattern TODO for mainnet — push is fine for testnet)
         if (creatorAmount > 0) {
             (bool ok, ) = s.creator.call{value: creatorAmount}("");
             if (!ok) revert TransferFailed();
@@ -200,14 +195,11 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable, ReentrancyGuard {
 
     // ── Admin Functions ────────────────────────────────────────────
 
-    /// @notice [M-02] Update fee split with hard caps
-    function setFees(uint16 _protocolFeeBps, uint16 _creatorRoyaltyBps) external onlyOwner {
-        if (_protocolFeeBps > MAX_PROTOCOL_FEE_BPS) revert InvalidFees(_protocolFeeBps, _creatorRoyaltyBps);
-        if (_creatorRoyaltyBps > MAX_CREATOR_ROYALTY_BPS) revert InvalidFees(_protocolFeeBps, _creatorRoyaltyBps);
-        if (_protocolFeeBps + _creatorRoyaltyBps > 10000) revert InvalidFees(_protocolFeeBps, _creatorRoyaltyBps);
-        protocolFeeBps = _protocolFeeBps;
+    /// @notice [M-02] Update creator royalty with hard cap
+    function setCreatorRoyalty(uint16 _creatorRoyaltyBps) external onlyOwner {
+        if (_creatorRoyaltyBps > MAX_CREATOR_ROYALTY_BPS) revert InvalidRoyalty(_creatorRoyaltyBps);
         creatorRoyaltyBps = _creatorRoyaltyBps;
-        emit FeesUpdated(_protocolFeeBps, _creatorRoyaltyBps);
+        emit CreatorRoyaltyUpdated(_creatorRoyaltyBps);
     }
 
     /// @notice Deactivate a skill (creator or owner)
