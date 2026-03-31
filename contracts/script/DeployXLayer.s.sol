@@ -2,9 +2,9 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
-import "../src/xlayer/SkillRegistry.sol";
-import "../src/xlayer/ReputationEngine.sol";
-import "../src/xlayer/JobMarket.sol";
+import "../src/maiat/SkillRegistry.sol";
+import "../src/maiat/ReputationEngine.sol";
+import "../src/maiat/JobMarket.sol";
 
 contract DeployXLayer is Script {
     function run() external {

@@ -1,25 +1,30 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity 0.8.26;
 
 import "openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol";
 import "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import "openzeppelin-contracts/contracts/utils/Pausable.sol";
+import "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title SkillRegistry — Dojo Skill NFT Marketplace
  * @notice ERC-1155 skill NFTs for the Maiat Dojo.
  *         Creators earn royalties on every sale. Protocol takes a fee.
- *         Supports minting to ERC-6551 TBA (agent wallet) or directly to buyer.
+ *         Skills are soulbound to the recipient (non-transferable).
  *
- * @dev Updated 2026-03-30:
- *      - Added Pausable (emergency stop)
- *      - Added Ownable2Step (two-step ownership transfer)
- *      - Added configurable protocolFeeBps + creatorRoyaltyBps
- *      - Added mintToTBA() for 6551 integration
- *      - Added skill deactivation
- *      - Self-purchase blocked (creator != buyer)
+ * @dev Audit fixes (2026-03-31 — Patrick/Trail of Bits/Cyfrin/Pashov):
+ *      [H-01] Self-purchase bypass via TBA → block recipient == creator
+ *      [H-02] Missing ReentrancyGuard → added nonReentrant
+ *      [M-01] Transfer breaks hasSkill → soulbound (override _update)
+ *      [M-02] setFees no cap → MAX_PROTOCOL_FEE_BPS = 1500 (15%)
+ *      [M-03] buySkillToTBA no validation → require tba != address(0)
+ *      [L-01] uri() not overridden → override returns metadataURI
+ *      [L-02] withdraw() no event → added Withdrawn event
+ *      [L-03] createSkill no validation → require name + price
+ *      [I-01] floating pragma → fixed 0.8.26
+ *      [I-03] dead code → removed commented protocolAmount
  */
-contract SkillRegistry is ERC1155, Ownable2Step, Pausable {
+contract SkillRegistry is ERC1155, Ownable2Step, Pausable, ReentrancyGuard {
     // ── Structs ────────────────────────────────────────────────────
     struct Skill {
         address creator;
@@ -29,8 +34,12 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable {
         uint256 price;
         uint256 totalBuyers;
         bool exists;
-        bool active;          // can be deactivated by creator or owner
+        bool active;
     }
+
+    // ── Constants ──────────────────────────────────────────────────
+    uint16 public constant MAX_PROTOCOL_FEE_BPS = 1500;  // 15% hard cap
+    uint16 public constant MAX_CREATOR_ROYALTY_BPS = 9500; // 95% hard cap
 
     // ── State ──────────────────────────────────────────────────────
     uint256 public nextSkillId = 1;
@@ -49,6 +58,7 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable {
     event SkillDeactivated(uint256 indexed skillId);
     event SkillReactivated(uint256 indexed skillId);
     event FeesUpdated(uint16 protocolFeeBps, uint16 creatorRoyaltyBps);
+    event Withdrawn(address indexed to, uint256 amount);
 
     // ── Errors ─────────────────────────────────────────────────────
     error SkillNotFound(uint256 skillId);
@@ -57,8 +67,11 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable {
     error InsufficientPayment(uint256 sent, uint256 required);
     error CannotBuyOwnSkill(address creator);
     error InvalidFees(uint16 protocol, uint16 creator);
+    error InvalidSkillParams();
+    error InvalidRecipient();
     error TransferFailed();
     error NotCreatorOrOwner();
+    error SoulboundToken();
 
     // ── Constructor ────────────────────────────────────────────────
     constructor() ERC1155("") Ownable(msg.sender) {}
@@ -72,6 +85,8 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable {
         uint256 price,
         string calldata metadataURI
     ) external whenNotPaused returns (uint256 skillId) {
+        if (bytes(name).length == 0) revert InvalidSkillParams();
+
         skillId = nextSkillId++;
         skills[skillId] = Skill({
             creator: msg.sender,
@@ -89,14 +104,15 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable {
     // ── Buy Functions ──────────────────────────────────────────────
 
     /// @notice Buy a skill NFT — mints to msg.sender
-    function buySkill(uint256 skillId) external payable whenNotPaused {
+    function buySkill(uint256 skillId) external payable whenNotPaused nonReentrant {
         _buySkill(skillId, msg.sender);
     }
 
     /// @notice Buy a skill NFT — mints to a TBA (6551 agent wallet)
     /// @param skillId The skill to buy
     /// @param tba The ERC-6551 Token Bound Account to mint to
-    function buySkillToTBA(uint256 skillId, address tba) external payable whenNotPaused {
+    function buySkillToTBA(uint256 skillId, address tba) external payable whenNotPaused nonReentrant {
+        if (tba == address(0)) revert InvalidRecipient();
         _buySkill(skillId, tba);
     }
 
@@ -106,7 +122,8 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable {
         if (!s.active) revert SkillNotActive(skillId);
         if (hasSkill[recipient][skillId]) revert AlreadyOwned(recipient, skillId);
         if (msg.value < s.price) revert InsufficientPayment(msg.value, s.price);
-        if (msg.sender == s.creator) revert CannotBuyOwnSkill(s.creator);
+        // [H-01] Block both msg.sender AND recipient from being creator
+        if (msg.sender == s.creator || recipient == s.creator) revert CannotBuyOwnSkill(s.creator);
 
         // Mint ERC-1155 token to recipient (could be EOA or TBA)
         _mint(recipient, skillId, 1, "");
@@ -159,13 +176,35 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable {
         return _agentSkills[agent];
     }
 
+    /// @notice [L-01] Return per-token metadata URI
+    function uri(uint256 skillId) public view override returns (string memory) {
+        Skill storage s = skills[skillId];
+        if (!s.exists) revert SkillNotFound(skillId);
+        return s.metadataURI;
+    }
+
+    // ── Soulbound ──────────────────────────────────────────────────
+
+    /// @notice [M-01] Skills are soulbound — no transfers allowed
+    function _update(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values
+    ) internal override {
+        // Allow minting (from == address(0)) and burning (to == address(0))
+        // Block all other transfers
+        if (from != address(0) && to != address(0)) revert SoulboundToken();
+        super._update(from, to, ids, values);
+    }
+
     // ── Admin Functions ────────────────────────────────────────────
 
-    /// @notice Update fee split (owner only)
+    /// @notice [M-02] Update fee split with hard caps
     function setFees(uint16 _protocolFeeBps, uint16 _creatorRoyaltyBps) external onlyOwner {
-        if (_protocolFeeBps + _creatorRoyaltyBps > 10000) {
-            revert InvalidFees(_protocolFeeBps, _creatorRoyaltyBps);
-        }
+        if (_protocolFeeBps > MAX_PROTOCOL_FEE_BPS) revert InvalidFees(_protocolFeeBps, _creatorRoyaltyBps);
+        if (_creatorRoyaltyBps > MAX_CREATOR_ROYALTY_BPS) revert InvalidFees(_protocolFeeBps, _creatorRoyaltyBps);
+        if (_protocolFeeBps + _creatorRoyaltyBps > 10000) revert InvalidFees(_protocolFeeBps, _creatorRoyaltyBps);
         protocolFeeBps = _protocolFeeBps;
         creatorRoyaltyBps = _creatorRoyaltyBps;
         emit FeesUpdated(_protocolFeeBps, _creatorRoyaltyBps);
@@ -189,19 +228,14 @@ contract SkillRegistry is ERC1155, Ownable2Step, Pausable {
         emit SkillReactivated(skillId);
     }
 
-    /// @notice Pause all operations (emergency)
-    function pause() external onlyOwner {
-        _pause();
-    }
+    function pause() external onlyOwner { _pause(); }
+    function unpause() external onlyOwner { _unpause(); }
 
-    /// @notice Unpause
-    function unpause() external onlyOwner {
-        _unpause();
-    }
-
-    /// @notice Withdraw protocol fees (evaluator reserve)
+    /// @notice [L-02] Withdraw protocol fees with event
     function withdraw() external onlyOwner {
-        (bool ok, ) = owner().call{value: address(this).balance}("");
+        uint256 bal = address(this).balance;
+        (bool ok, ) = owner().call{value: bal}("");
         if (!ok) revert TransferFailed();
+        emit Withdrawn(owner(), bal);
     }
 }

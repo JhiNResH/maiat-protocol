@@ -2,9 +2,9 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import {SkillRegistry} from "../src/xlayer/SkillRegistry.sol";
-import {ReputationEngine} from "../src/xlayer/ReputationEngine.sol";
-import {JobMarket} from "../src/xlayer/JobMarket.sol";
+import {SkillRegistry} from "../src/maiat/SkillRegistry.sol";
+import {ReputationEngine} from "../src/maiat/ReputationEngine.sol";
+import {JobMarket} from "../src/maiat/JobMarket.sol";
 
 /**
  * @title XLayerTest
