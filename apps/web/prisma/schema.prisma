@@ -441,3 +441,251 @@ model IndexerState {
 
   @@map("indexer_state")
 }
+
+/// MAIAT V2 DOJO MVP — Agent skill marketplace
+/// Created agents (ERC-8004 identities with TBA wallets)
+model Agent {
+  id                String               @id @default(cuid())
+  erc8004Id         Int?                 @unique @map("erc8004_id") // on-chain agent identity
+  erc6551Tba        String?              @map("erc6551_tba")         // ERC-6551 token-bound account
+  ownerAddress      String               @map("owner_address")       // creator's wallet
+  name              String
+  description       String?
+  avatarUrl         String?              @map("avatar_url")
+  template          String               @default("assistant")      // "assistant" | "analyst" | "trader" | etc
+  xp                Int                  @default(0)
+  level             Int                  @default(1)                // Kozo=1, Senpai=2, Tatsujin=3, Sensei=4
+  rank              String               @default("kozo")           // "kozo" | "senpai" | "tatsujin" | "sensei"
+  
+  // Reputation
+  trustScore        Int                  @default(0)                // 0-100
+  completionRate    Float                @default(0.0)              // 0.0-1.0
+  totalJobs         Int                  @default(0)
+  totalEarned       Float                @default(0.0)              // in USDC
+  
+  // Status
+  isPublished       Boolean              @default(false)            // shown in Dojo?
+  isPaused          Boolean              @default(false)
+  
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  
+  // Relations
+  equippedSkills    SkillEquipment[]
+  jobHistory        Job[]
+  
+  @@map("agents")
+  @@index([ownerAddress])
+  @@index([erc8004Id])
+  @@index([trustScore])
+  @@index([isPublished])
+}
+
+/// Skills that creators can sell via Dojo
+/// Each skill is an ERC-1155 NFT (one skill type = many copies)
+model Skill {
+  id                String               @id @default(cuid())
+  erc1155Id         Int?                 @unique @map("erc1155_id")  // on-chain token ID
+  
+  // Metadata
+  name              String
+  description       String
+  category          String                                          // "analysis" | "trading" | "monitoring" | etc
+  tags              String[]             @default([])
+  
+  // Creator
+  creatorAddress    String               @map("creator_address")
+  creatorName       String?              @map("creator_name")
+  creatorAvatar     String?              @map("creator_avatar")
+  
+  // Content
+  skillMarkdownUrl  String               @map("skill_markdown_url")  // IPFS or S3 URL to SKILL.md
+  skillMarkdown     String               @default("")               // stored inline for quick access
+  
+  // Pricing
+  priceUsdc         Float                @map("price_usdc")         // in USDC
+  isPro             Boolean              @default(false)            // true = paid only
+  
+  // Stats
+  totalPurchases    Int                  @default(0)                // cumulative sales
+  totalInstalls     Int                  @default(0)                // agents equipped with it
+  avgRating         Float                @default(0.0)
+  reviewCount       Int                  @default(0)
+  
+  // Royalties
+  royaltyPercent    Int                  @default(15)               // % of skill sales to creator
+  royaltySplitter   String?              @map("royalty_splitter")   // on-chain splitter contract
+  
+  // Status
+  isPublished       Boolean              @default(false)
+  isFeatured        Boolean              @default(false)
+  
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  
+  // Relations
+  purchases         SkillPurchase[]
+  equipped          SkillEquipment[]
+  reviews           SkillReview[]
+  
+  @@map("skills")
+  @@index([creatorAddress])
+  @@index([category])
+  @@index([isPublished])
+  @@index([avgRating])
+}
+
+/// Purchase record for skill NFTs
+/// Buyer → USDC payment → mint ERC-1155 → auto-equip to their TBA
+model SkillPurchase {
+  id                String               @id @default(cuid())
+  
+  // Parties
+  buyerAddress      String               @map("buyer_address")
+  skillId           String               @map("skill_id")
+  skill             Skill                @relation(fields: [skillId], references: [id])
+  
+  // Payment
+  txHash            String?              @map("tx_hash")             // on-chain purchase tx
+  amountUsdc        Float                @map("amount_usdc")
+  status            String               @default("pending")        // "pending" | "completed" | "failed" | "refunded"
+  
+  // NFT minting
+  nftTokenId        Int?                 @map("nft_token_id")        // ERC-1155 token ID
+  autoEquipped      Boolean              @default(false)
+  
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  
+  @@map("skill_purchases")
+  @@index([buyerAddress])
+  @@index([skillId])
+  @@index([status])
+  @@index([txHash])
+}
+
+/// Skill equipped to an agent's ERC-6551 TBA
+/// An agent can equip multiple skills to build their "build"
+model SkillEquipment {
+  id                String               @id @default(cuid())
+  
+  // Agent + Skill
+  agentId           String               @map("agent_id")
+  agent             Agent                @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  skillId           String               @map("skill_id")
+  skill             Skill                @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  
+  // TBA wallet receipt
+  nftTokenId        Int?                 @map("nft_token_id")        // ERC-1155 token ID held in TBA
+  
+  // Status
+  isActive          Boolean              @default(true)
+  
+  equippedAt        DateTime             @default(now())
+  unequippedAt      DateTime?            @map("unequipped_at")
+  
+  @@unique([agentId, skillId])
+  @@map("skill_equipment")
+  @@index([agentId])
+  @@index([skillId])
+  @@index([isActive])
+}
+
+/// Jobs = agent-as-a-service requests
+/// Buyer picks a skill and an agent, agent executes, gets paid
+model Job {
+  id                String               @id @default(cuid())
+  
+  // Parties
+  buyerAddress      String               @map("buyer_address")
+  agentId           String               @map("agent_id")
+  agent             Agent                @relation(fields: [agentId], references: [id])
+  skillId           String               @map("skill_id")
+  
+  // Request + Execution
+  inputPrompt       String               @map("input_prompt")       // what buyer asked
+  outputResult      String?              @map("output_result")      // agent's response
+  executionTime     Int?                 @map("execution_time")     // ms to complete
+  
+  // Evaluation
+  verdict           String?              // "pass" | "fail" | "partial" (Micro Evaluator)
+  evaluatorNote     String?              @map("evaluator_note")
+  
+  // Payment
+  amountUsdc        Float?               @map("amount_usdc")
+  txHash            String?              @map("tx_hash")
+  status            String               @default("open")          // "open" | "funded" | "active" | "completed" | "failed"
+  
+  // Reputation
+  buyerRating       Int?                 @map("buyer_rating")       // 1-5
+  buyerReview       String?              @map("buyer_review")
+  
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  
+  @@map("jobs")
+  @@index([buyerAddress])
+  @@index([agentId])
+  @@index([status])
+  @@index([verdict])
+}
+
+/// Reviews of skills (like product reviews)
+model SkillReview {
+  id                String               @id @default(cuid())
+  skillId           String               @map("skill_id")
+  skill             Skill                @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  
+  reviewerAddress   String               @map("reviewer_address")
+  rating            Int                  // 1-5
+  comment           String               @default("")
+  
+  // EAS attestation
+  easAttestationId  String?              @map("eas_attestation_id")
+  
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  
+  @@unique([skillId, reviewerAddress])
+  @@map("skill_reviews")
+  @@index([skillId])
+  @@index([reviewerAddress])
+}
+
+/// Attestations created after job completion
+/// One per job → written to EAS on Base → updates TrustScoreOracle
+model JobAttestation {
+  id                String               @id @default(cuid())
+  jobId             String               @map("job_id")
+  agentId           String               @map("agent_id")
+  
+  verdict           String               // "pass" | "fail" | "partial"
+  evaluatorAddress  String               @map("evaluator_address")
+  
+  // EAS
+  easReceiptId      String?              @map("eas_receipt_id")      // Base EAS
+  easSchemaId       String?              @map("eas_schema_id")
+  
+  createdAt         DateTime             @default(now())
+  
+  @@map("job_attestations")
+  @@index([jobId])
+  @@index([agentId])
+}
+
+/// Leaderboard cache (updated hourly or on-demand)
+model LeaderboardEntry {
+  id                String               @id @default(cuid())
+  agentId           String               @unique @map("agent_id")
+  
+  rank              Int
+  trustScore        Int                  @map("trust_score")
+  completionRate    Float                @map("completion_rate")
+  totalJobs         Int                  @default(0)
+  totalEarned       Float                @map("total_earned")
+  
+  lastUpdatedAt     DateTime             @updatedAt @map("last_updated_at")
+  
+  @@map("leaderboard_entries")
+  @@index([rank])
+}
