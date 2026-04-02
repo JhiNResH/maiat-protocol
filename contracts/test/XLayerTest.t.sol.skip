@@ -26,11 +26,12 @@ contract XLayerTest is Test {
     function setUp() public {
         // Deploy contracts
         skillRegistry = new SkillRegistry();
-        reputationEngine = new ReputationEngine(address(0));
+        reputationEngine = new ReputationEngine(); // No-arg constructor
         jobMarket = new JobMarket(address(reputationEngine), address(skillRegistry));
 
-        // Link ReputationEngine to JobMarket
-        reputationEngine.setJobMarket(address(jobMarket));
+        // Authorize JobMarket as a caller on ReputationEngine
+        vm.prank(deployer);
+        reputationEngine.setAuthorizedCaller(address(jobMarket), true);
 
         // Fund test accounts
         vm.deal(skillCreator, 10 ether);
