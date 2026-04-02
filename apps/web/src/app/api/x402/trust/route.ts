@@ -152,20 +152,18 @@ async function trustHandler(request: NextRequest): Promise<NextResponse<unknown>
 
 import { withPaymentGate } from "@/lib/x402-gate";
 
-// Wrap with manual x402 payment gate (no SDK init at build time)
 export const GET = withPaymentGate(trustHandler, "$0.02", "Trust score lookup for agents and tokens", "agent_trust", {
   input: { queryParams: { address: { type: "string", description: "Ethereum address (agent or token)" } } },
   output: {
-    example: { trustScore: 85, verdict: "proceed", summary: "Reliable ACP agent — 42 jobs, 95% completion", completionRate: 0.95, totalJobs: 42 },
+    example: { trustScore: 85, verdict: "proceed", summary: "Reliable ACP agent — 42 jobs, 95% completion" },
     schema: { properties: { trustScore: { type: "number" }, verdict: { type: "string" }, summary: { type: "string" } }, required: ["trustScore", "verdict"] },
   },
 }, "/api/x402/trust");
 
-// x402scan probes with POST — return same 402 challenge
 export const POST = withPaymentGate(trustHandler, "$0.02", "Trust score lookup for agents and tokens", "agent_trust", {
   input: { queryParams: { address: { type: "string", description: "Ethereum address (agent or token)" } } },
   output: {
-    example: { trustScore: 85, verdict: "proceed", summary: "Reliable ACP agent — 42 jobs, 95% completion", completionRate: 0.95, totalJobs: 42 },
+    example: { trustScore: 85, verdict: "proceed", summary: "Reliable ACP agent — 42 jobs, 95% completion" },
     schema: { properties: { trustScore: { type: "number" }, verdict: { type: "string" }, summary: { type: "string" } }, required: ["trustScore", "verdict"] },
   },
 }, "/api/x402/trust");

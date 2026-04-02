@@ -325,21 +325,18 @@ async function reputationHandler(request: NextRequest): Promise<NextResponse<unk
 
 import { withPaymentGate } from "@/lib/x402-gate";
 
-// Wrap with manual x402 payment gate
-// Payment gate handled by middleware.ts — export handler directly
 export const GET = withPaymentGate(reputationHandler, "$0.03", "Full agent reputation and behavioral trust score", "agent_trust", {
   input: { queryParams: { address: { type: "string", description: "Agent address" } } },
   output: {
     example: { trustScore: 85, sentiment: "positive", endorsements: 12, upvoteRatio: 0.92 },
-    schema: { properties: { trustScore: { type: "number" }, sentiment: { type: "string" }, endorsements: { type: "number" } }, required: ["trustScore", "sentiment"] },
+    schema: { properties: { trustScore: { type: "number" }, sentiment: { type: "string" } }, required: ["trustScore", "sentiment"] },
   },
 }, "/api/x402/reputation");
 
-// x402scan probes with POST — return same 402 challenge
 export const POST = withPaymentGate(reputationHandler, "$0.03", "Full agent reputation and behavioral trust score", "agent_trust", {
   input: { queryParams: { address: { type: "string", description: "Agent address" } } },
   output: {
     example: { trustScore: 85, sentiment: "positive", endorsements: 12, upvoteRatio: 0.92 },
-    schema: { properties: { trustScore: { type: "number" }, sentiment: { type: "string" }, endorsements: { type: "number" } }, required: ["trustScore", "sentiment"] },
+    schema: { properties: { trustScore: { type: "number" }, sentiment: { type: "string" } }, required: ["trustScore", "sentiment"] },
   },
 }, "/api/x402/reputation");
