@@ -27,6 +27,7 @@ contract JobMarket {
 
     ReputationEngine public reputationEngine;
     SkillRegistry public skillRegistry;
+    address public owner;
 
     uint256 public nextJobId = 1;
     mapping(uint256 => Job) public jobs;
@@ -40,10 +41,17 @@ contract JobMarket {
     event BuyerRatedWorker(uint256 indexed jobId, address indexed buyer, address indexed worker, uint8 rating);
     event WorkerRatedBuyer(uint256 indexed jobId, address indexed worker, address indexed buyer, uint8 rating);
     event JobCancelled(uint256 indexed jobId, address indexed buyer);
+    event Withdrawn(address indexed to, uint256 amount);
 
     constructor(address _reputationEngine, address _skillRegistry) {
         reputationEngine = ReputationEngine(_reputationEngine);
         skillRegistry = SkillRegistry(_skillRegistry);
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "onlyOwner");
+        _;
     }
 
     /// @notice Buyer posts a job with reward locked in contract
@@ -106,24 +114,22 @@ contract JobMarket {
         require(job.buyerRating == 0, "already rated");
         require(score >= 1 && score <= 5, "score must be 1-5");
 
+        // CEI: State changes BEFORE external calls
         job.buyerRating = score;
-
-        // Update worker reputation — use preferredSkillId, or 0 for general
-        uint256 skillId = job.preferredSkillId;
-        reputationEngine.updateReputation(job.worker, skillId, score);
+        job.status = JobStatus.Rated;
 
         // Calculate fee based on reputation
+        uint256 skillId = job.preferredSkillId;
         uint256 baseFeeBps = 500; // 5% base fee
         uint256 adjustedFeeBps = reputationEngine.calculateFee(job.worker, baseFeeBps);
         uint256 fee = (job.reward * adjustedFeeBps) / 10000;
         uint256 payout = job.reward - fee;
 
-        // Pay worker
+        // External calls (reputation + payment) AFTER state update
+        reputationEngine.updateReputation(job.worker, skillId, score);
+
         (bool ok, ) = job.worker.call{value: payout}("");
         require(ok, "payout failed");
-
-        // Mark as Rated if both reviews done, or at least buyer reviewed
-        job.status = JobStatus.Rated;
 
         emit BuyerRatedWorker(jobId, msg.sender, job.worker, score);
     }
@@ -180,11 +186,13 @@ contract JobMarket {
         return (j.buyer, j.worker, j.description, j.reward, j.preferredSkillId, j.status, j.buyerRating, j.workerRating, j.createdAt);
     }
 
-    /// @notice Withdraw accumulated fees
-    function withdrawFees() external {
-        // In production: onlyOwner. For demo, anyone can trigger (simplified).
-        (bool ok, ) = msg.sender.call{value: address(this).balance}("");
+    /// @notice Withdraw accumulated fees (onlyOwner)
+    function withdrawFees() external onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "nothing to withdraw");
+        (bool ok, ) = owner.call{value: balance}("");
         require(ok, "withdraw failed");
+        emit Withdrawn(owner, balance);
     }
 
     // --- Internal ---

@@ -79,6 +79,7 @@ contract ReputationEngine is Ownable {
             totalScore += rep.totalScore;
             totalRatings += rep.totalRatings;
         }
+        if (totalRatings == 0) return 50;
         return totalScore / totalRatings;
     }
 
@@ -97,7 +98,9 @@ contract ReputationEngine is Ownable {
                 totalScore += r.totalScore;
                 totalRatings += r.totalRatings;
             }
-            rep = totalScore / totalRatings;
+            if (totalRatings > 0) {
+                rep = totalScore / totalRatings;
+            }
         }
 
         // Dynamic fee: high rep = low fee, low rep = high fee
