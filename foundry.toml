@@ -1,8 +1,10 @@
 [profile.default]
-src = "contracts"
+src = "contracts/src"
+test = "contracts/test"
 out = "out"
 libs = ["contracts/lib"]
 solc = "0.8.26"
+via_ir = true
 remappings = [
   "forge-std/=contracts/lib/forge-std/src/",
   "v4-core/=contracts/lib/v4-core/src/",
@@ -11,5 +13,3 @@ remappings = [
   "solmate/=contracts/lib/v4-periphery/lib/v4-core/lib/solmate/",
   "ds-test/=contracts/lib/forge-std/lib/ds-test/src/"
 ]
-# Exclude old lib test files that reference missing mocks
-deny_paths = ["contracts/lib"]
