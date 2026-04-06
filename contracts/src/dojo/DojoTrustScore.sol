@@ -2,10 +2,13 @@
 pragma solidity 0.8.26;
 
 import {AccessControl} from "openzeppelin-contracts/contracts/access/AccessControl.sol";
+import {ITrustOracle} from "../interfaces/ITrustOracle.sol";
 
 /// @title DojoTrustScore
 /// @notice 5-component trust score for Dojo agent/creator reputation
 /// @dev Multi-vertical key: scores[subject][vertical]. Evaluator write-only.
+///      Implements ITrustOracle so ERC-8183 hooks (TrustGateACPHook, TrustBasedEvaluator)
+///      can read trust scores directly.
 ///
 /// Phase 1 formula (weights in bps, total = 10000):
 ///   trustScore = evaluatorSuccess  * 3500
@@ -13,9 +16,10 @@ import {AccessControl} from "openzeppelin-contracts/contracts/access/AccessContr
 ///              + sellerAvgBehavior * 1500
 ///              + volumeScore       * 1500
 ///              + uptimeScore       * 1000
-contract DojoTrustScore is AccessControl {
+contract DojoTrustScore is AccessControl, ITrustOracle {
 
     bytes32 public constant EVALUATOR_ROLE = keccak256("EVALUATOR_ROLE");
+    bytes32 public constant DEFAULT_VERTICAL = bytes32("dojo");
     uint256 public constant MAX_SCORE = 100;
     uint256 public constant MAX_COMPONENT = 10000; // bps for sub-scores
 
@@ -109,5 +113,12 @@ contract DojoTrustScore is AccessControl {
     /// @notice Get full score breakdown
     function getFullScore(address subject, bytes32 vertical) external view returns (Score memory) {
         return scores[subject][vertical];
+    }
+
+    /// @inheritdoc ITrustOracle
+    /// @dev Returns the overall score for DEFAULT_VERTICAL ("dojo").
+    ///      ERC-8183 hooks (TrustGateACPHook, TrustBasedEvaluator) call this.
+    function getTrustScore(address user) external view override returns (uint256 score) {
+        score = uint256(scores[user][DEFAULT_VERTICAL].overall);
     }
 }

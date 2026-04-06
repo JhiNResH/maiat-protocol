@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 import {DojoTrustScore} from "../src/dojo/DojoTrustScore.sol";
+import {ITrustOracle} from "../src/interfaces/ITrustOracle.sol";
 
 contract DojoTrustScoreTest is Test {
     DojoTrustScore public trust;
@@ -140,6 +141,39 @@ contract DojoTrustScoreTest is Test {
         trust.updateScore(subject, DOJO, 5000, 5000, 5000, 5000, 10001, 1);
 
         vm.stopPrank();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        ITRUST ORACLE INTERFACE
+    //////////////////////////////////////////////////////////////*/
+
+    function test_ITrustOracle_ReturnsDefaultVertical() public {
+        vm.prank(evaluator);
+        trust.updateScore(subject, DOJO, 8000, 7000, 6000, 5000, 9000, 10);
+
+        // ITrustOracle.getTrustScore should return the "dojo" vertical score
+        ITrustOracle oracle = ITrustOracle(address(trust));
+        assertEq(oracle.getTrustScore(subject), 71);
+    }
+
+    function test_ITrustOracle_UnknownUserReturnsZero() public view {
+        ITrustOracle oracle = ITrustOracle(address(trust));
+        assertEq(oracle.getTrustScore(address(0xDEAD)), 0);
+    }
+
+    function test_ITrustOracle_OnlyReadsDefaultVertical() public {
+        vm.startPrank(evaluator);
+        trust.updateScore(subject, DOJO, 8000, 8000, 8000, 8000, 8000, 10);
+        trust.updateScore(subject, IOT, 3000, 3000, 3000, 3000, 3000, 2);
+        vm.stopPrank();
+
+        ITrustOracle oracle = ITrustOracle(address(trust));
+        // Should return DOJO score (80), not IOT score (30)
+        assertEq(oracle.getTrustScore(subject), 80);
+    }
+
+    function test_DEFAULT_VERTICAL_IsDojo() public view {
+        assertEq(trust.DEFAULT_VERTICAL(), bytes32("dojo"));
     }
 
     /*//////////////////////////////////////////////////////////////
