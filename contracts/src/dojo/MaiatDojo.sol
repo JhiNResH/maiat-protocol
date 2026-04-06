@@ -30,6 +30,7 @@ contract MaiatDojo is AccessControl, Pausable {
     IERC20 public immutable usdc;
     uint256 public sunsetTimestamp;
     uint256 public totalLocked;
+    uint256 public dojoAccrued;   // accumulated protocol fees (withdrawable by admin)
     uint256 public nextSkillId;
     uint256 public nextJobId;
 
@@ -70,6 +71,7 @@ contract MaiatDojo is AccessControl, Pausable {
     event JobSettled(uint256 indexed jobId, uint256 creatorPayout, uint256 agentRefund, uint256 dojoFee);
     event JobRefunded(uint256 indexed jobId, uint256 refundAmount);
     event Withdrawn(address indexed account, uint256 amount);
+    event FeesWithdrawn(address indexed to, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
                             ERRORS
@@ -85,8 +87,11 @@ contract MaiatDojo is AccessControl, Pausable {
     error Dojo__NotAgent(uint256 jobId);
     error Dojo__InsufficientDeposit();
     error Dojo__ZeroAddress();
+    error Dojo__ZeroDeposit();
     error Dojo__NothingToWithdraw();
     error Dojo__SpentNonZero();
+    error Dojo__NotCreator(uint256 skillId);
+    error Dojo__PricePerCallTooHigh();
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -111,6 +116,7 @@ contract MaiatDojo is AccessControl, Pausable {
         returns (uint256 skillId)
     {
         _checkNotSunset();
+        if (pricePerCall > MAX_SESSION_BUDGET) revert Dojo__PricePerCallTooHigh();
         skillId = nextSkillId++;
         skills[skillId] = Skill({
             creator: msg.sender,
@@ -124,7 +130,7 @@ contract MaiatDojo is AccessControl, Pausable {
 
     /// @notice Creator can deactivate their skill
     function deactivateSkill(uint256 skillId) external {
-        require(skills[skillId].creator == msg.sender, "not creator");
+        if (skills[skillId].creator != msg.sender) revert Dojo__NotCreator(skillId);
         skills[skillId].active = false;
     }
 
@@ -132,7 +138,7 @@ contract MaiatDojo is AccessControl, Pausable {
                         AGENT FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Buy access to a skill (one-time fee → 100% to creator)
+    /// @notice Buy access to a skill (one-time fee → 100% to creator via pull-payment)
     function buyAccess(uint256 skillId) external whenNotPaused {
         _checkNotSunset();
         Skill storage skill = skills[skillId];
@@ -142,7 +148,8 @@ contract MaiatDojo is AccessControl, Pausable {
         hasAccess[msg.sender][skillId] = true;
 
         if (skill.buyFee > 0) {
-            usdc.safeTransferFrom(msg.sender, skill.creator, skill.buyFee);
+            usdc.safeTransferFrom(msg.sender, address(this), skill.buyFee);
+            pendingWithdrawals[skill.creator] += skill.buyFee;
         }
         emit AccessPurchased(skillId, msg.sender, skill.buyFee);
     }
@@ -151,6 +158,7 @@ contract MaiatDojo is AccessControl, Pausable {
     function openSession(uint256 skillId, uint256 deposit) external whenNotPaused returns (uint256 jobId) {
         _checkNotSunset();
         if (!hasAccess[msg.sender][skillId]) revert Dojo__NoAccess();
+        if (deposit == 0) revert Dojo__ZeroDeposit();
         if (deposit > MAX_SESSION_BUDGET) revert Dojo__BudgetExceeded();
         if (totalLocked + deposit > MAX_TOTAL_TVL) revert Dojo__TVLExceeded();
 
@@ -209,9 +217,10 @@ contract MaiatDojo is AccessControl, Pausable {
 
         // Pull-payment for creator: prevents blacklisted-address DoS
         if (creatorPayout > 0) pendingWithdrawals[creator] += creatorPayout;
+        // Track protocol fees (withdrawable by admin)
+        if (dojoFee > 0) dojoAccrued += dojoFee;
         // Push-payment for agent: agent controls their own address
         if (agentRefund > 0) usdc.safeTransfer(job.agent, agentRefund);
-        // Phase 0: dojoFee = 0, no transfer needed
 
         emit JobSettled(jobId, creatorPayout, agentRefund, dojoFee);
     }
@@ -265,6 +274,16 @@ contract MaiatDojo is AccessControl, Pausable {
 
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
+    }
+
+    /// @notice Admin withdraws accumulated protocol fees
+    function withdrawFees(address to) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (to == address(0)) revert Dojo__ZeroAddress();
+        uint256 amount = dojoAccrued;
+        if (amount == 0) revert Dojo__NothingToWithdraw();
+        dojoAccrued = 0;
+        usdc.safeTransfer(to, amount);
+        emit FeesWithdrawn(to, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
