@@ -301,9 +301,9 @@ contract MaiatDojoTest is Test {
         emit JobSettled(0, expectedCreator, expectedRefund, 0);
         dojo.settle(0);
 
-        // Creator payout is pull-based — buyFee + session payout in pending withdrawals
+        // All payouts are pull-based now
         assertEq(dojo.pendingWithdrawals(creator), BUY_FEE + expectedCreator);
-        assertEq(usdc.balanceOf(agent), agentBefore + expectedRefund);
+        assertEq(dojo.pendingWithdrawals(agent), expectedRefund);
         assertEq(dojo.totalLocked(), 0);
 
         // Creator withdraws (buyFee + session payout)
@@ -315,6 +315,11 @@ contract MaiatDojoTest is Test {
         assertEq(usdc.balanceOf(creator), creatorBefore + totalPending);
         assertEq(dojo.pendingWithdrawals(creator), 0);
 
+        // Agent withdraws refund
+        vm.prank(agent);
+        dojo.withdraw();
+        assertEq(usdc.balanceOf(agent), agentBefore + expectedRefund);
+
         MaiatDojo.Job memory job = dojo.getJob(0);
         assertEq(uint8(job.status), uint8(MaiatDojo.JobStatus.Settled));
     }
@@ -324,12 +329,14 @@ contract MaiatDojoTest is Test {
         vm.prank(agent);
         dojo.openSession(0, DEPOSIT);
 
-        uint256 agentBefore = usdc.balanceOf(agent);
-
         vm.prank(agent);
         dojo.settle(0);
 
-        // Full refund
+        // Full refund via pull-payment
+        assertEq(dojo.pendingWithdrawals(agent), DEPOSIT);
+        uint256 agentBefore = usdc.balanceOf(agent);
+        vm.prank(agent);
+        dojo.withdraw();
         assertEq(usdc.balanceOf(agent), agentBefore + DEPOSIT);
     }
 
@@ -439,13 +446,17 @@ contract MaiatDojoTest is Test {
 
         // Creator should have accumulated buyFee + both session payouts
         uint256 sessionPayout = PRICE_PER_CALL * 15; // 0.75e18
-        uint256 expected = BUY_FEE + sessionPayout;
-        assertEq(dojo.pendingWithdrawals(creator), expected);
+        uint256 expectedCreator = BUY_FEE + sessionPayout;
+        assertEq(dojo.pendingWithdrawals(creator), expectedCreator);
+
+        // Agent refunds: (2e18 - 0.5e18) + (1e18 - 0.25e18) = 2.25e18
+        uint256 expectedAgentRefund = (2e18 - PRICE_PER_CALL * 10) + (1e18 - PRICE_PER_CALL * 5);
+        assertEq(dojo.pendingWithdrawals(agent), expectedAgentRefund);
 
         uint256 balBefore = usdc.balanceOf(creator);
         vm.prank(creator);
         dojo.withdraw();
-        assertEq(usdc.balanceOf(creator), balBefore + expected);
+        assertEq(usdc.balanceOf(creator), balBefore + expectedCreator);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -557,12 +568,11 @@ contract MaiatDojoTest is Test {
             dojo.recordCall(0);
         }
 
-        uint256 agentBefore = usdc.balanceOf(agent);
         vm.prank(agent);
         dojo.settle(0);
 
         // spent == deposit → agent gets 0 refund, creator gets buyFee + full deposit
-        assertEq(usdc.balanceOf(agent), agentBefore);
+        assertEq(dojo.pendingWithdrawals(agent), 0);
         assertEq(dojo.pendingWithdrawals(creator), BUY_FEE + exactDeposit);
         assertEq(dojo.totalLocked(), 0);
     }
@@ -611,10 +621,18 @@ contract MaiatDojoTest is Test {
         assertEq(j2.callCount, 1);
         assertEq(dojo.totalLocked(), 3e18);
 
+        // Agent1 refund via pull-payment
+        uint256 agent1Refund = 2e18 - (PRICE_PER_CALL * 2);
+        assertEq(dojo.pendingWithdrawals(agent), agent1Refund);
+
         // Settle agent2
         vm.prank(agent2);
         dojo.settle(job2);
         assertEq(dojo.totalLocked(), 0);
+
+        // Agent2 refund via pull-payment
+        uint256 agent2Refund = 3e18 - PRICE_PER_CALL;
+        assertEq(dojo.pendingWithdrawals(agent2), agent2Refund);
     }
 
     function test_WithdrawFees_AdminOnly() public {
@@ -631,6 +649,59 @@ contract MaiatDojoTest is Test {
     function test_WithdrawFees_ZeroAddressReverts() public {
         vm.expectRevert(MaiatDojo.Dojo__ZeroAddress.selector);
         dojo.withdrawFees(address(0));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        FORCE SETTLE (TIMEOUT)
+    //////////////////////////////////////////////////////////////*/
+
+    function test_ForceSettle_AfterTimeout() public {
+        _setupSkillAndAccess();
+        vm.prank(agent);
+        dojo.openSession(0, DEPOSIT);
+
+        // Record some calls
+        dojo.recordCall(0);
+        dojo.recordCall(0);
+
+        // Warp past MAX_JOB_DURATION (7 days)
+        vm.warp(block.timestamp + 7 days + 1);
+
+        // Anyone can force-settle
+        vm.prank(attacker);
+        dojo.forceSettle(0);
+
+        MaiatDojo.Job memory job = dojo.getJob(0);
+        assertEq(uint8(job.status), uint8(MaiatDojo.JobStatus.Settled));
+
+        // Creator got payout, agent got refund — both pull-payment
+        uint256 spent = PRICE_PER_CALL * 2;
+        assertEq(dojo.pendingWithdrawals(creator), BUY_FEE + spent);
+        assertEq(dojo.pendingWithdrawals(agent), DEPOSIT - spent);
+        assertEq(dojo.totalLocked(), 0);
+    }
+
+    function test_ForceSettle_NotExpiredReverts() public {
+        _setupSkillAndAccess();
+        vm.prank(agent);
+        dojo.openSession(0, DEPOSIT);
+
+        // Try to force-settle before timeout
+        vm.prank(attacker);
+        vm.expectRevert(abi.encodeWithSelector(MaiatDojo.Dojo__JobNotExpired.selector, 0));
+        dojo.forceSettle(0);
+    }
+
+    function test_ForceSettle_AlreadySettledReverts() public {
+        _setupSkillAndAccess();
+        vm.prank(agent);
+        dojo.openSession(0, DEPOSIT);
+        vm.prank(agent);
+        dojo.settle(0);
+
+        vm.warp(block.timestamp + 7 days + 1);
+        vm.expectRevert(abi.encodeWithSelector(MaiatDojo.Dojo__JobNotOpen.selector, 0));
+        dojo.forceSettle(0);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -666,8 +737,6 @@ contract MaiatDojoTest is Test {
             dojo.recordCall(0);
         }
 
-        uint256 agentBefore = usdc.balanceOf(agent);
-
         vm.prank(agent);
         dojo.settle(0);
 
@@ -678,8 +747,8 @@ contract MaiatDojoTest is Test {
 
         // Conservation: everything adds up
         assertEq(creatorPayout + agentRefund + dojoFee, deposit);
-        // Agent got refund
-        assertEq(usdc.balanceOf(agent), agentBefore + agentRefund);
+        // Agent refund in pending withdrawals (pull-payment)
+        assertEq(dojo.pendingWithdrawals(agent), agentRefund);
         // Creator payout in pending withdrawals (no buyFee since free access)
         assertEq(dojo.pendingWithdrawals(creator), creatorPayout);
         assertEq(dojo.totalLocked(), 0);

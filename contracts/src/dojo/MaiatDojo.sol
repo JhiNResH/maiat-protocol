@@ -20,6 +20,7 @@ contract MaiatDojo is AccessControl, Pausable {
 
     uint256 public constant MAX_SESSION_BUDGET = 10e18;  // $10 USDC (18 decimals)
     uint256 public constant MAX_TOTAL_TVL = 500e18;      // $500 USDC
+    uint256 public constant MAX_JOB_DURATION = 7 days;   // timeout for stuck jobs
     uint256 public constant DOJO_FEE_BPS = 0;            // Phase 0: 0% fee (Phase 1: 500 = 5%)
     uint256 public constant BPS_DENOMINATOR = 10_000;
 
@@ -50,6 +51,7 @@ contract MaiatDojo is AccessControl, Pausable {
         uint256 deposit;
         uint256 callCount;
         uint256 spent;        // accumulated per-call fees
+        uint256 openedAt;     // timestamp for timeout
         JobStatus status;
     }
 
@@ -92,6 +94,7 @@ contract MaiatDojo is AccessControl, Pausable {
     error Dojo__SpentNonZero();
     error Dojo__NotCreator(uint256 skillId);
     error Dojo__PricePerCallTooHigh();
+    error Dojo__JobNotExpired(uint256 jobId);
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -148,8 +151,10 @@ contract MaiatDojo is AccessControl, Pausable {
         hasAccess[msg.sender][skillId] = true;
 
         if (skill.buyFee > 0) {
+            uint256 balBefore = usdc.balanceOf(address(this));
             usdc.safeTransferFrom(msg.sender, address(this), skill.buyFee);
-            pendingWithdrawals[skill.creator] += skill.buyFee;
+            uint256 received = usdc.balanceOf(address(this)) - balBefore;
+            pendingWithdrawals[skill.creator] += received;
         }
         emit AccessPurchased(skillId, msg.sender, skill.buyFee);
     }
@@ -178,6 +183,7 @@ contract MaiatDojo is AccessControl, Pausable {
             deposit: received,
             callCount: 0,
             spent: 0,
+            openedAt: block.timestamp,
             status: JobStatus.Open
         });
         totalLocked += received;
@@ -205,24 +211,15 @@ contract MaiatDojo is AccessControl, Pausable {
         if (job.agent != msg.sender && !hasRole(GATEWAY_ROLE, msg.sender)) {
             revert Dojo__NotAgent(jobId);
         }
+        _doSettle(jobId, job);
+    }
 
-        job.status = JobStatus.Settled;
-        totalLocked -= job.deposit;
-
-        uint256 dojoFee = (job.spent * DOJO_FEE_BPS) / BPS_DENOMINATOR;
-        uint256 creatorPayout = job.spent - dojoFee;
-        uint256 agentRefund = job.deposit - job.spent;
-
-        address creator = skills[job.skillId].creator;
-
-        // Pull-payment for creator: prevents blacklisted-address DoS
-        if (creatorPayout > 0) pendingWithdrawals[creator] += creatorPayout;
-        // Track protocol fees (withdrawable by admin)
-        if (dojoFee > 0) dojoAccrued += dojoFee;
-        // Push-payment for agent: agent controls their own address
-        if (agentRefund > 0) usdc.safeTransfer(job.agent, agentRefund);
-
-        emit JobSettled(jobId, creatorPayout, agentRefund, dojoFee);
+    /// @notice Force-settle an expired session — anyone can call after MAX_JOB_DURATION
+    function forceSettle(uint256 jobId) external {
+        Job storage job = jobs[jobId];
+        if (job.status != JobStatus.Open) revert Dojo__JobNotOpen(jobId);
+        if (block.timestamp < job.openedAt + MAX_JOB_DURATION) revert Dojo__JobNotExpired(jobId);
+        _doSettle(jobId, job);
     }
 
     /// @notice Emergency refund — agent can reclaim full deposit if no calls made
@@ -289,6 +286,24 @@ contract MaiatDojo is AccessControl, Pausable {
     /*//////////////////////////////////////////////////////////////
                         INTERNAL
     //////////////////////////////////////////////////////////////*/
+
+    /// @dev Shared settlement logic — all payouts via pull-payment
+    function _doSettle(uint256 jobId, Job storage job) internal {
+        job.status = JobStatus.Settled;
+        totalLocked -= job.deposit;
+
+        uint256 dojoFee = (job.spent * DOJO_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 creatorPayout = job.spent - dojoFee;
+        uint256 agentRefund = job.deposit - job.spent;
+
+        address creator = skills[job.skillId].creator;
+
+        if (creatorPayout > 0) pendingWithdrawals[creator] += creatorPayout;
+        if (dojoFee > 0) dojoAccrued += dojoFee;
+        if (agentRefund > 0) pendingWithdrawals[job.agent] += agentRefund;
+
+        emit JobSettled(jobId, creatorPayout, agentRefund, dojoFee);
+    }
 
     function _checkNotSunset() internal view {
         if (block.timestamp > sunsetTimestamp) revert Dojo__Sunset();
